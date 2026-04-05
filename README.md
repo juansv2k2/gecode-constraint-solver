@@ -5,26 +5,31 @@ A simple musical constraint programming solver built with Gecode, inspired by th
 ## Quick Start (No C++ Knowledge Required)
 
 ### Step 1: Install Dependencies (One-Time Setup)
+
 ```bash
 # On macOS
 make install-deps-macos
 ```
 
 ### Step 2: Build the Solver (One-Time Setup)
+
 Yes, you need to compile it first, but it's just one command:
+
 ```bash
 make
 ```
+
 This creates an executable program called `musical-solver`.
 
 ### Step 3: Run the Solver
+
 Now you can use the solver! Try these examples:
 
 ```bash
 # Generate 5 musical sequences with no repeated notes
 ./musical-solver -solutions 5 -model basic
 
-# Generate 3 melodically smooth sequences  
+# Generate 3 melodically smooth sequences
 ./musical-solver -solutions 3 -model melodic
 
 # Generate sequences with controlled interval sizes
@@ -32,13 +37,16 @@ Now you can use the solver! Try these examples:
 ```
 
 ### Understanding the Output
+
 The solver will show you:
+
 - **MIDI notes**: Numbers representing musical pitches (60 = C4, 61 = C#4, etc.)
-- **Intervals**: Differences between consecutive notes (1 = semitone, 12 = octave)  
+- **Intervals**: Differences between consecutive notes (1 = semitone, 12 = octave)
 - **Note names**: Human-readable note names (C4, D#4, etc.)
 - **Statistics**: How fast it found solutions
 
 Example output:
+
 ```
 Musical Sequence (MIDI notes): 60 -> 64 -> 67 -> 71 -> 74 -> 77 -> 79 -> 83
 Intervals: 4, 3, 4, 3, 3, 2, 4
@@ -46,6 +54,7 @@ Note names: C4 -> E4 -> G4 -> B4 -> D5 -> F5 -> G5 -> B5
 ```
 
 ### Common Commands
+
 ```bash
 # Get help and see all options
 ./musical-solver -help
