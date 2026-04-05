@@ -1,2 +1,2 @@
-# ad-hoc-constraint-solver
-an experimental constraint solver 
+# Gecode-constraint-solver
+an experimental constraint solver based on Gecode
