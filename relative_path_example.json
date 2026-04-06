@@ -5,7 +5,7 @@
   "num_voices": 1,
   "backtrack_method": "intelligent",
   "export_path": "results/music",
-  
+
   "rules": [
     {
       "rule_type": "r-pitches-one-voice",

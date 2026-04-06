@@ -3,9 +3,9 @@
   "description": "Test configuration with custom export path",
   "solution_length": 6,
   "num_voices": 1,
-  "backtrack_method": "intelligent", 
+  "backtrack_method": "intelligent",
   "export_path": "/Users/juanvassallo/GitHub/gecode-constraint-solver/custom_results",
-  
+
   "rules": [
     {
       "rule_type": "r-pitches-one-voice",
