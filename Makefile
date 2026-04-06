@@ -36,7 +36,42 @@ PHASE3_TARGET = phase3-test
 PHASE3_SOURCE = src/phase3_test.cpp
 PHASE3_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
 
-all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET)
+# Phase 4 State Persistence & Continuity Test (no Gecode dependencies)
+PHASE4_TARGET = phase4-test
+PHASE4_SOURCE = src/phase4_test.cpp
+PHASE4_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
+
+# Phase 5 Professional Features Test (no Gecode dependencies)
+PHASE5_TARGET = phase5-test
+PHASE5_SOURCE = src/phase5_test.cpp
+PHASE5_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
+
+# Phase 5 Simple Test (minimal features)
+PHASE5_SIMPLE_TARGET = phase5-simple-test
+PHASE5_SIMPLE_SOURCE = src/phase5_simple_test.cpp
+PHASE5_SIMPLE_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
+
+# Phase 5 Demo (professional studio workflow)
+PHASE5_DEMO_TARGET = phase5-demo
+PHASE5_DEMO_SOURCE = src/phase5_demo.cpp
+PHASE5_DEMO_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
+
+# Cluster Engine - Authentic Architecture (no Gecode dependencies)
+CLUSTER_ENGINE_TARGET = cluster-engine-test
+CLUSTER_ENGINE_SOURCE = src/cluster_engine_test.cpp src/cluster_engine_implementation.cpp
+CLUSTER_ENGINE_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
+
+# Cluster Engine - Simple Test (working functionality only)
+CLUSTER_ENGINE_SIMPLE_TARGET = cluster-engine-simple
+CLUSTER_ENGINE_SIMPLE_SOURCE = src/cluster_engine_simple_test.cpp src/cluster_engine_implementation.cpp
+CLUSTER_ENGINE_SIMPLE_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
+
+# Cluster Engine - Stop Rules Test (search termination system)
+CLUSTER_ENGINE_STOP_TARGET = cluster-engine-stop-test
+CLUSTER_ENGINE_STOP_SOURCE = src/cluster_engine_stop_rules_test.cpp src/cluster_engine_implementation.cpp
+CLUSTER_ENGINE_STOP_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
+
+all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET)
 
 $(TARGET): $(SOURCE)
 	$(CXX) $(CXXFLAGS) $(GECODE_INC) -o $@ $< $(GECODE_LIB)
@@ -50,8 +85,32 @@ $(PHASE2_TARGET): $(PHASE2_SOURCE)
 $(PHASE3_TARGET): $(PHASE3_SOURCE)
 	$(CXX) $(PHASE3_CXXFLAGS) -o $@ $<
 
+$(PHASE4_TARGET): $(PHASE4_SOURCE)
+	$(CXX) $(PHASE4_CXXFLAGS) -o $@ $<
+
+$(PHASE5_TARGET): $(PHASE5_SOURCE)
+	$(CXX) $(PHASE5_CXXFLAGS) -o $@ $<
+
+$(PHASE5_SIMPLE_TARGET): $(PHASE5_SIMPLE_SOURCE)
+	$(CXX) $(PHASE5_SIMPLE_CXXFLAGS) -o $@ $<
+
+$(PHASE5_DEMO_TARGET): $(PHASE5_DEMO_SOURCE)
+	$(CXX) $(PHASE5_DEMO_CXXFLAGS) -o $@ $<
+
+$(CLUSTER_ENGINE_TARGET): $(CLUSTER_ENGINE_SOURCE)
+	$(CXX) $(CLUSTER_ENGINE_CXXFLAGS) -o $@ $^
+
+$(CLUSTER_ENGINE_SIMPLE_TARGET): $(CLUSTER_ENGINE_SIMPLE_SOURCE)
+	$(CXX) $(CLUSTER_ENGINE_SIMPLE_CXXFLAGS) -o $@ $^
+
+$(CLUSTER_ENGINE_STOP_TARGET): $(CLUSTER_ENGINE_STOP_SOURCE)
+	$(CXX) $(CLUSTER_ENGINE_STOP_CXXFLAGS) -o $@ $^
+
 clean:
-	rm -f $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET)
+	rm -f $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(PHASE5_SIMPLE_TARGET) $(PHASE5_DEMO_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET)
+	rm -rf test_musical_states session_states integrated_states
+	rm -rf ./professional_workspace ./batch_results ./professional_exports
+	rm -rf ./professional_integration ./professional_studio
 
 # Run examples
 test: $(TARGET)
@@ -77,15 +136,15 @@ test-phase3: $(PHASE3_TARGET)
 	@echo "Running Phase 3: Advanced Musical Intelligence Test..."
 	@./$(PHASE3_TARGET)
 
-test-all: test test-phase1 test-phase2 test-phase3
+test-phase4: $(PHASE4_TARGET)
+	@echo "Running Phase 4: State Persistence & Continuity Test..."
+	@./$(PHASE4_TARGET)
 
-# Test Phase 1 Foundation Architecture
-test-phase1: $(PHASE1_TARGET)
-	@echo "Running Phase 1: Foundation Architecture Test Suite..."
-	@./$(PHASE1_TARGET)
+test-phase5: $(PHASE5_TARGET)
+	@echo "Running Phase 5: Professional Features Test..."
+	@./$(PHASE5_TARGET)
 
-# Full test suite
-test-all: test test-phase1
+test-all: test test-phase1 test-phase2 test-phase3 test-phase4 test-phase5
 	@echo "All tests completed!"
 
 # Check if Gecode is installed
