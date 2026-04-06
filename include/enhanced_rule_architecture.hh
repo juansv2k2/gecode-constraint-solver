@@ -32,6 +32,25 @@ namespace MusicalConstraints {
 class RuleEngine;
 
 /**
+ * @brief Backjump suggestion for failed rule constraints
+ * 
+ * Provides intelligent suggestions for constraint domain reductions
+ * when a rule fails, supporting advanced musical search heuristics.
+ */
+struct BackjumpSuggestion {
+    int variable_index;                        ///< Variable to modify
+    int backjump_distance;                    ///< How far back to jump
+    std::vector<int> allowed_absolute_values; ///< Restricted absolute value domain
+    std::vector<int> allowed_interval_values; ///< Restricted interval value domain
+    std::string explanation;                  ///< Human-readable explanation
+    
+    BackjumpSuggestion() : variable_index(-1), backjump_distance(1) {}
+    
+    BackjumpSuggestion(int var_idx, int distance = 1) 
+        : variable_index(var_idx), backjump_distance(distance) {}
+};
+
+/**
  * @brief Result of rule evaluation with backjump intelligence
  * 
  * This encapsulates both the success/failure of a rule and provides
@@ -40,16 +59,17 @@ class RuleEngine;
  * Based on Cluster Engine v4.05's sophisticated backtracking system.
  */
 struct RuleResult {
-    bool success;                    ///< Whether the rule passed
-    int backjump_distance;          ///< Suggested backjump distance if failed
-    std::string failure_reason;     ///< Human-readable failure explanation
+    bool passes;                                      ///< Whether the rule passed (renamed from success)
+    int backjump_distance;                           ///< Suggested backjump distance if failed
+    std::string failure_reason;                      ///< Human-readable failure explanation
+    std::vector<BackjumpSuggestion> backjump_suggestions; ///< Domain restrictions and backjump hints
     
     /// Constructor for successful rule
-    RuleResult() : success(true), backjump_distance(0) {}
+    RuleResult() : passes(true), backjump_distance(0) {}
     
     /// Constructor for failed rule with backjump suggestion
     RuleResult(bool success, int backjump = 1, const std::string& reason = "")
-        : success(success), backjump_distance(backjump), failure_reason(reason) {}
+        : passes(success), backjump_distance(backjump), failure_reason(reason) {}
         
     /// Static factory for success
     static RuleResult Success() { return RuleResult(); }
@@ -57,6 +77,11 @@ struct RuleResult {
     /// Static factory for failure with backjump
     static RuleResult Failure(int backjump = 1, const std::string& reason = "") {
         return RuleResult(false, backjump, reason);
+    }
+
+    /// Add backjump suggestion
+    void add_suggestion(const BackjumpSuggestion& suggestion) {
+        backjump_suggestions.push_back(suggestion);
     }
 };
 
@@ -407,7 +432,7 @@ public:
         // Check all strict rules
         for (const auto& rule : rules_) {
             RuleResult result = rule->check_rule(storage, current_index);
-            if (!result.success) {
+            if (!result.passes) {
                 failures.push_back(result);
                 // For immediate fail mode (Cluster Engine Mode 2), return immediately
                 // For consensus mode (Mode 3), collect all failures first

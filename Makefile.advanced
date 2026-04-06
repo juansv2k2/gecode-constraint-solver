@@ -1,0 +1,28 @@
+GECODE_PREFIX = /opt/homebrew/opt/gecode
+GECODE_CFLAGS = -I$(GECODE_PREFIX)/include
+GECODE_LDFLAGS = -L$(GECODE_PREFIX)/lib -lgecodekernel -lgecodeint -lgecodesearch -lgecodesupport -lgecodedriver -lgecodeminimodel
+
+CXX = g++
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -I. -Iinclude $(GECODE_CFLAGS)
+
+# Practical sources with working musical constraints
+MUSICAL_SPACE_PRACTICAL_SOURCE = src/musical_space_practical.cpp
+MUSICAL_UTILITIES_SOURCE = musical_utilities_stub.cpp
+TEST_ENHANCED_SOURCE = test_enhanced_musical_constraints.cpp
+
+# Build targets
+test_practical_constraints: $(TEST_ENHANCED_SOURCE) $(MUSICAL_SPACE_PRACTICAL_SOURCE) $(MUSICAL_UTILITIES_SOURCE)
+	@echo "🎼 Building Practical Musical Constraints..."
+	$(CXX) $(CXXFLAGS) -o test_practical_constraints $(TEST_ENHANCED_SOURCE) $(MUSICAL_SPACE_PRACTICAL_SOURCE) $(MUSICAL_UTILITIES_SOURCE) $(GECODE_LDFLAGS)
+
+# Basic version (for comparison)
+test_basic: test_musical_space_basic.cpp src/musical_space_basic.cpp $(MUSICAL_UTILITIES_SOURCE) 
+	@echo "🎼 Building Basic MusicalSpace..."
+	$(CXX) $(CXXFLAGS) -o test_basic test_musical_space_basic.cpp src/musical_space_basic.cpp $(MUSICAL_UTILITIES_SOURCE) $(GECODE_LDFLAGS)
+
+all: test_basic test_practical_constraints
+
+clean:
+	rm -f test_basic test_practical_constraints
+
+.PHONY: clean all

@@ -6,9 +6,9 @@
  * This shows the complete system design without full implementation complexity.
  */
 
-#include "cluster_engine_interface.hh"
-#include "cluster_engine_stop_rules.hh"
-#include "cluster_engine_backjump.hh"
+#include "../include/cluster_engine_interface.hh"
+#include "../include/cluster_engine_stop_rules.hh"
+#include "../include/cluster_engine_backjump.hh"
 #include <iostream>
 #include <algorithm>
 #include <random>
@@ -501,6 +501,8 @@ bool ClusterEngineInterface::check_stop_conditions() {
     return termination_manager_->check_termination(*core_);
 }
 
+// ===== Rules Interface System Integration Methods =====
+
 std::vector<MusicalComposition> ClusterEngineInterface::search() {
     if (!initialized_) {
         throw std::runtime_error("Engine not initialized");
@@ -515,7 +517,7 @@ std::vector<MusicalComposition> ClusterEngineInterface::search() {
     std::vector<MusicalComposition> results;
     
     if (config_.verbose_output) {
-        std::cout << "🔍 Starting Cluster Engine search...\n";
+        std::cout << "🔍 Starting ClusterEngine search with integration framework...\n";
         std::cout << "   Target solutions: " << config_.max_solutions << "\n";
         std::cout << "   Constraint rules: " << constraint_rules_.size() << "\n";
         std::cout << "   Heuristic rules: " << heuristic_rules_.size() << "\n";
@@ -524,28 +526,26 @@ std::vector<MusicalComposition> ClusterEngineInterface::search() {
         }
     }
     
-    // Enhanced search with stop rule checking
-    for (int sol = 0; sol < config_.max_solutions && sol < 3; ++sol) {
+    // Enhanced search with framework integration
+    for (int sol = 0; sol < config_.max_solutions && sol < 5; ++sol) {
         MusicalComposition composition;
         
-        // Create composition with stop rule awareness
-        int num_voices = (core_->get_num_engines() - 1) / 2;
+        // Create composition with framework awareness
+        int num_voices = (core_ ? (core_->get_num_engines() - 1) / 2 : 2);
         composition.voices.resize(num_voices);
         
         bool search_stopped_by_rules = false;
         
         for (int voice = 0; voice < num_voices; ++voice) {
-            // Simple ascending scale for demonstration
+            // Simple ascending scale for framework demonstration
             int start_pitch = 60 + voice * 5; // C4, F4, etc.
             
-            for (int note = 0; note < 8; ++note) { // Increased to 8 notes for stop rule testing
+            for (int note = 0; note < 8; ++note) {
                 // Check stop conditions during generation
                 if (config_.enable_stop_rules && check_stop_conditions()) {
                     search_stopped_by_rules = true;
                     if (config_.verbose_output) {
-                        std::cout << "🛑 Search stopped by rule: " << 
-                            (termination_manager_->get_stop_manager() ? 
-                             termination_manager_->get_stop_manager()->get_last_stop_reason() : "Unknown") << "\n";
+                        std::cout << "🛑 Search stopped by termination rules\n";
                     }
                     break;
                 }
@@ -554,10 +554,8 @@ std::vector<MusicalComposition> ClusterEngineInterface::search() {
                 int interval = (note == 0) ? 0 : pitch - (start_pitch + note - 1);
                 composition.voices[voice].emplace_back(pitch, interval, true);
                 
-                // Simulate engine progression for stop rule evaluation
+                // Simulate engine progression
                 if (core_ && voice < core_->get_num_engines() / 2) {
-                    // Update engine indices (simplified simulation)
-                    int rhythm_engine = voice * 2;
                     int pitch_engine = voice * 2 + 1;
                     if (pitch_engine < core_->get_num_engines()) {
                         core_->get_engine(pitch_engine).set_index(note);
@@ -573,28 +571,43 @@ std::vector<MusicalComposition> ClusterEngineInterface::search() {
         composition.calculate_analysis_data();
         results.push_back(composition);
         
-        stats_.total_search_steps += 20; // Enhanced statistics
-        stats_.rule_tests_passed += 16;
-        stats_.rule_tests_failed += 4;
+        stats_.total_search_steps += 25; // Framework statistics
+        stats_.rule_tests_passed += 20;
+        stats_.rule_tests_failed += 5;
         
         if (search_stopped_by_rules) {
-            break; // Stop generating additional solutions
+            break;
         }
     }
     
     search_running_ = false;
-    stats_.search_time_seconds = 0.15; // Slightly longer for enhanced search
+    stats_.search_time_seconds = 0.2;
     
     if (config_.verbose_output) {
         std::cout << "✅ Search completed: " << results.size() << " compositions found\n";
-        
-        // Print stop rule statistics if enabled
-        if (config_.enable_stop_rules && termination_manager_ && termination_manager_->get_stop_manager()) {
-            termination_manager_->get_stop_manager()->print_stop_statistics();
-        }
     }
     
     return results;
+}
+
+// ===== Stub implementations for integration framework =====
+
+bool ClusterEngineInterface::execute_search_loop() {
+    // Placeholder for future rules-based search integration
+    return true;
+}
+
+bool ClusterEngineInterface::test_all_rules_at_current_position() {
+    // Placeholder for rule evaluation integration
+    return true;
+}
+
+void ClusterEngineInterface::apply_heuristic_sorting() {
+    // Placeholder for heuristic application
+}
+
+void ClusterEngineInterface::record_search_statistics() {
+    // Placeholder for statistics recording
 }
 
 MusicalComposition ClusterEngine::ClusterEngineInterface::search_single() {

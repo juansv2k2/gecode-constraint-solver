@@ -24,6 +24,15 @@
 
 namespace MusicalConstraints {
 
+// Forward declaration for compatibility
+struct DualCandidate {
+    int absolute_value;
+    int interval_value;
+    
+    DualCandidate(int abs = 0, int interval = 0) 
+        : absolute_value(abs), interval_value(interval) {}
+};
+
 /**
  * @brief Musical value that stores both absolute and relative representations
  * 
@@ -200,6 +209,52 @@ public:
      * @return The initial absolute value
      */
     int starting_value() const { return starting_value_; }
+    
+    // ========================================
+    // Compatibility methods for rule integration
+    // ========================================
+    
+    /**
+     * @brief Check if a value is assigned at given index
+     * @param index Position in sequence (0-based)
+     * @return true if value is assigned at this position
+     */
+    bool has_candidate(int index) const {
+        return index >= -1 && index < static_cast<int>(solution_.size()) - 1;
+    }
+    
+    /**
+     * @brief Get dual candidate at index (compatibility with rule integration)
+     * @param index Position in sequence (0-based)
+     * @return DualCandidate with absolute and interval values
+     */
+    DualCandidate get_candidate(int index) const {
+        if (!has_candidate(index)) {
+            return DualCandidate(0, 0);
+        }
+        return DualCandidate(absolute(index), interval(index));
+    }
+    
+    /**
+     * @brief Add candidate value (compatibility with rule integration)
+     * @param index Position in sequence (0-based)
+     * @param candidate Dual candidate with absolute and interval values
+     */
+    void add_candidate(int index, const DualCandidate& candidate) {
+        if (index >= 0 && index < static_cast<int>(solution_.size()) - 1) {
+            int storage_index = index + 1;
+            solution_[storage_index].absolute_val = candidate.absolute_value;
+            solution_[storage_index].interval_val = candidate.interval_value;
+        }
+    }
+    
+    /**
+     * @brief Get size for iteration (compatibility with rule integration)
+     * @return Number of variable positions
+     */
+    size_t size() const {
+        return static_cast<size_t>(length());
+    }
     
     /**
      * @brief Print the complete solution for debugging

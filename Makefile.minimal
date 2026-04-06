@@ -1,0 +1,21 @@
+GECODE_PREFIX = /opt/homebrew/opt/gecode
+GECODE_CFLAGS = -I$(GECODE_PREFIX)/include
+GECODE_LDFLAGS = -L$(GECODE_PREFIX)/lib -lgecodekernel -lgecodeint -lgecodesearch -lgecodesupport -lgecodedriver -lgecodeminimodel
+
+CXX = g++
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -I. -Iinclude $(GECODE_CFLAGS)
+
+# Minimal sources for basic Gecode proof-of-concept
+MUSICAL_SPACE_TEST_SOURCE = test_musical_space_basic.cpp
+MUSICAL_SPACE_SOURCES = src/musical_space_basic.cpp
+MUSICAL_UTILITIES_SOURCE = musical_utilities_stub.cpp
+
+# Core build targets
+test_musical_space: $(MUSICAL_SPACE_TEST_SOURCE) $(MUSICAL_SPACE_SOURCES) $(MUSICAL_UTILITIES_SOURCE)
+	@echo "🎼 Building Minimal MusicalSpace with Real Gecode..."
+	$(CXX) $(CXXFLAGS) -o test_musical_space $(MUSICAL_SPACE_TEST_SOURCE) $(MUSICAL_SPACE_SOURCES) $(MUSICAL_UTILITIES_SOURCE) $(GECODE_LDFLAGS)
+
+clean:
+	rm -f test_musical_space
+
+.PHONY: clean

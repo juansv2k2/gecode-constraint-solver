@@ -23,13 +23,7 @@
 #include <algorithm>
 #include <numeric>
 
-// C++11 compatibility for make_unique
-namespace std {
-    template<typename T, typename... Args>
-    std::unique_ptr<T> make_unique(Args&&... args) {
-        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-    }
-}
+
 
 namespace ClusterEngine {
 
@@ -246,6 +240,14 @@ public:
     int select_next_engine();
     void process_forward_step();
     void process_backtrack_step();
+    
+    // Current engine tracking
+    int get_current_engine() const { return current_engine_; }
+    void set_current_engine(int engine_id) {
+        if (engine_id >= 0 && engine_id < static_cast<int>(engines_.size())) {
+            current_engine_ = engine_id;
+        }
+    }
     
     // Debug and monitoring
     void print_engine_status() const;

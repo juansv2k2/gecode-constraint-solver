@@ -76,6 +76,26 @@ CLUSTER_ENGINE_BACKJUMP_TARGET = cluster-engine-backjump-test
 CLUSTER_ENGINE_BACKJUMP_SOURCE = src/cluster_engine_backjump_test.cpp src/cluster_engine_implementation.cpp
 CLUSTER_ENGINE_BACKJUMP_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
 
+# Foundation Architecture Test (no Gecode dependencies)
+test_foundation_architecture: test_foundation_architecture.cpp include/enhanced_rule_architecture.hh include/dual_solution_storage.hh
+	$(CXX) -std=c++17 -I./include -I./src test_foundation_architecture.cpp -o test_foundation_architecture
+
+# Performance Revolution Test (no Gecode dependencies)  
+test_performance_revolution: test_performance_revolution.cpp include/enhanced_rule_architecture.hh include/dual_solution_storage.hh
+	$(CXX) -std=c++17 -I./include -I./src test_performance_revolution.cpp -o test_performance_revolution
+
+# Complete Integration Test (no Gecode dependencies)
+test_complete_integration: test_complete_integration.cpp include/enhanced_rule_architecture.hh include/advanced_backjumping_strategies.hh include/dual_solution_storage.hh src/advanced_backjumping_strategies.cpp
+	$(CXX) -std=c++17 -I./include -I./src test_complete_integration.cpp src/advanced_backjumping_strategies.cpp -o test_complete_integration
+
+# Advanced Backjumping Test (no Gecode dependencies)
+test_advanced_backjumping: test_advanced_backjumping.cpp include/advanced_backjumping_strategies.hh src/advanced_backjumping_strategies.cpp 
+	$(CXX) -std=c++17 -I./include -I./src test_advanced_backjumping.cpp src/advanced_backjumping_strategies.cpp -o test_advanced_backjumping
+
+# GECODE INTEGRATION (PRODUCTION SYSTEM)
+gecode_cluster_integration: test_gecode_cluster_integration.cpp include/gecode_cluster_integration.hh src/gecode_cluster_integration.cpp src/advanced_backjumping_strategies.cpp
+	$(CXX) -std=c++17 $(GECODE_INC) -I./include -I./src test_gecode_cluster_integration.cpp src/gecode_cluster_integration.cpp src/advanced_backjumping_strategies.cpp $(GECODE_LIB) -o gecode_cluster_integration
+
 all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET)
 
 $(TARGET): $(SOURCE)
