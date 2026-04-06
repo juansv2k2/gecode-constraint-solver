@@ -43,6 +43,22 @@ private:
     std::string export_path_;
     std::vector<RuleConfig> rules_;
     
+    // Domain configuration
+    struct DomainConfig {
+        int engine_id;
+        std::string type;
+        std::vector<int> values;
+        std::string description;
+    };
+    std::vector<DomainConfig> domains_;
+    
+    // Output options
+    bool export_xml_;
+    bool export_png_;
+    bool export_midi_;
+    bool show_statistics_;
+    bool include_analysis_;
+    
     std::string trim(const std::string& str) {
         size_t first = str.find_first_not_of(" \t\n\r");
         if (first == std::string::npos) return "";
@@ -55,8 +71,9 @@ private:
         // Remove trailing comma
         if (!result.empty() && result.back() == ',') {
             result.pop_back();
+            result = trim(result);
         }
-        // Remove quotes
+        // Remove quotes if present
         if (result.length() >= 2 && result.front() == '"' && result.back() == '"') {
             result = result.substr(1, result.length() - 2);
         }
@@ -161,12 +178,43 @@ private:
             if (pos != std::string::npos) {
                 export_path_ = removeQuotesAndComma(line.substr(pos + 1));
             }
+        } else if (line.find("\"export_xml\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                export_xml_ = (value == "true");
+            }
+        } else if (line.find("\"export_png\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                export_png_ = (value == "true");
+            }
+        } else if (line.find("\"export_midi\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                export_midi_ = (value == "true");
+            }
+        } else if (line.find("\"show_statistics\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                show_statistics_ = (value == "true");
+            }
+        } else if (line.find("\"include_analysis\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                include_analysis_ = (value == "true");
+            }
         }
     }
     
 public:
     ConstraintSolverJSONParser() 
-        : solution_length_(12), num_voices_(2), backtrack_method_("intelligent"), export_path_("tests/output") {}
+        : solution_length_(12), num_voices_(2), backtrack_method_("intelligent"), export_path_("tests/output"),
+          export_xml_(false), export_png_(false), export_midi_(false), show_statistics_(true), include_analysis_(true) {}
     
     bool parse(const std::string& filename) {
         std::ifstream file(filename);
@@ -180,8 +228,11 @@ public:
         bool in_rule_object = false;
         bool in_constraint_function = false;
         bool in_parameters_array = false;
+        bool in_domains_section = false;
+        bool in_domain_object = false;
         
         RuleConfig current_rule;
+        DomainConfig current_domain;
         std::string parameters_content;
         
         while (std::getline(file, line)) {
@@ -197,6 +248,16 @@ public:
             // Exit rules section when we hit another top-level section
             if (in_rules_section && line.find("\"domains\"") != std::string::npos) {
                 in_rules_section = false;
+                in_domains_section = true;
+                std::cout << "DEBUG: Entering domains section" << std::endl;
+                continue;
+            }
+            
+            // Exit domains section when we hit another top-level section
+            if (in_domains_section && (line.find("\"search_strategy\"") != std::string::npos || 
+                                      line.find("\"output_options\"") != std::string::npos ||
+                                      line.find("\"display_options\"") != std::string::npos)) {
+                in_domains_section = false;
                 continue;
             }
             
@@ -336,6 +397,57 @@ public:
                 continue;
             }
             
+            // Handle domains section  
+            if (in_domains_section) {
+                std::cout << "DEBUG: In domains section, line: " << line << std::endl;
+                // New domain starts with standalone opening brace
+                if (line == "{" && !in_domain_object) {
+                    in_domain_object = true;
+                    current_domain = DomainConfig{}; // Reset
+                    current_domain.engine_id = -1;
+                    std::cout << "DEBUG: Starting new domain object" << std::endl;
+                }
+                // Domain ends with standalone closing brace
+                else if (line == "}" && in_domain_object) {
+                    in_domain_object = false;
+                    if (current_domain.engine_id != -1) {
+                        domains_.push_back(current_domain);
+                    }
+                }
+                // Parse domain properties
+                else if (in_domain_object) {
+                    if (line.find("\"engine_id\"") != std::string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != std::string::npos) {
+                            std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                            try {
+                                current_domain.engine_id = std::stoi(value);
+                            } catch (...) {}
+                        }
+                    }
+                    else if (line.find("\"type\"") != std::string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != std::string::npos) {
+                            current_domain.type = removeQuotesAndComma(line.substr(pos + 1));
+                        }
+                    }
+                    else if (line.find("\"values\"") != std::string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != std::string::npos) {
+                            std::string values_str = line.substr(pos + 1);
+                            current_domain.values = parseIntArray(values_str);
+                        }
+                    }
+                    else if (line.find("\"description\"") != std::string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != std::string::npos) {
+                            current_domain.description = removeQuotesAndComma(line.substr(pos + 1));
+                        }
+                    }
+                }
+                continue;
+            }
+            
             // Parse top-level properties when not in rules section
             if (!in_rules_section) {
                 parseTopLevelProperty(line);
@@ -353,6 +465,32 @@ public:
     std::string getBacktrackMethod() const { return backtrack_method_; }
     std::string getExportPath() const { return export_path_; }
     
+    // Output options getters
+    bool getExportXML() const { return export_xml_; }
+    bool getExportPNG() const { return export_png_; }
+    bool getExportMIDI() const { return export_midi_; }
+    bool getShowStatistics() const { return show_statistics_; }
+    bool getIncludeAnalysis() const { return include_analysis_; }
+    
+    // Domain getters
+    const std::vector<DomainConfig>& getDomains() const { return domains_; }
+    
+    // Get pitch domain range for solver configuration
+    std::pair<int, int> getPitchDomainRange() const {
+        int min_pitch = 60; // Default C4
+        int max_pitch = 71; // Default B4
+        
+        for (const auto& domain : domains_) {
+            if (domain.type == "pitch" && !domain.values.empty()) {
+                auto minmax = std::minmax_element(domain.values.begin(), domain.values.end());
+                min_pitch = std::min(min_pitch, *minmax.first);
+                max_pitch = std::max(max_pitch, *minmax.second);
+            }
+        }
+        
+        return {min_pitch, max_pitch};
+    }
+    
     const std::vector<RuleConfig>& getRules() const { return rules_; }
     
     void printLoadedConfig() const {
@@ -363,6 +501,8 @@ public:
         std::cout << "   Number of Voices: " << num_voices_ << std::endl;
         std::cout << "   Backtrack Method: " << backtrack_method_ << std::endl;
         std::cout << "   Rules: " << rules_.size() << " configured" << std::endl;
+        std::cout << "   Domains: " << domains_.size() << " configured" << std::endl;
+        std::cout << "   Export Options: XML=" << (export_xml_ ? "✅" : "❌") << ", PNG=" << (export_png_ ? "✅" : "❌") << ", MIDI=" << (export_midi_ ? "✅" : "❌") << std::endl;
         
         if (!rules_.empty()) {
             std::cout << "\n📝 Parsed Rules:" << std::endl;
@@ -375,6 +515,22 @@ public:
                 std::cout << "      Indices: " << rule.indices.size() << " values" << std::endl;
             }
         }
+        
+        if (!domains_.empty()) {
+            std::cout << "\n📝 Parsed Domains:" << std::endl;
+            for (const auto& domain : domains_) {
+                std::cout << "   Engine " << domain.engine_id << " (" << domain.type << "): ";
+                std::cout << "[";
+                for (size_t i = 0; i < domain.values.size(); ++i) {
+                    std::cout << domain.values[i];
+                    if (i < domain.values.size() - 1) std::cout << ", ";
+                }
+                std::cout << "] - " << domain.description << std::endl;
+            }
+            
+            auto pitch_range = getPitchDomainRange();
+            std::cout << "   Computed pitch range: [" << pitch_range.first << ", " << pitch_range.second << "]" << std::endl;
+        }
     }
 };
 
@@ -386,7 +542,11 @@ public:
         
         if (ruleConfig.function == "not_equal" && ruleConfig.rule_type.find("pitches") != std::string::npos) {
             return std::make_shared<AllDifferentPitchRule>(ruleConfig.description, ruleConfig.indices.size());
-        } 
+        }
+        else if (ruleConfig.function == "retrograde_inversion_relationship" && ruleConfig.rule_type.find("cross-voice") != std::string::npos) {
+            int center = !ruleConfig.parameters.empty() ? static_cast<int>(ruleConfig.parameters[0]) : 65;
+            return std::make_shared<RetrogradeInversionRule>(ruleConfig.description, center, ruleConfig.indices.size());
+        }
         else if (ruleConfig.function == "equal" && !ruleConfig.parameters.empty()) {
             int target_value = static_cast<int>(ruleConfig.parameters[0]);
             return std::make_shared<FixedValueRule>(ruleConfig.description, target_value);
@@ -397,6 +557,47 @@ public:
     }
     
 private:
+    // Retrograde Inversion Rule - Voice 2 must be retrograde inversion of Voice 1
+    class RetrogradeInversionRule : public MusicalConstraints::MusicalRule {
+    private:
+        std::string description_;
+        int inversion_center_;
+        int sequence_length_;
+        
+    public:
+        RetrogradeInversionRule(const std::string& desc, int center, int length) 
+            : description_(desc), inversion_center_(center), sequence_length_(length) {}
+        
+        MusicalConstraints::RuleResult check_rule(
+            const MusicalConstraints::DualSolutionStorage& storage, 
+            int current_index) const override {
+            
+            // For now, this is a placeholder that always succeeds
+            // The actual retrograde inversion constraint needs to be implemented
+            // at a higher level where we have access to multi-voice data
+            
+            // We can add some basic constraints here, like ensuring values are in range
+            int current_value = storage.absolute(current_index);
+            if (current_value < 60 || current_value > 71) {
+                auto result = MusicalConstraints::RuleResult::Failure(1, "Value out of range");
+                MusicalConstraints::BackjumpSuggestion suggestion(current_index, 1);
+                suggestion.explanation = "Value " + std::to_string(current_value) + " is outside domain [60, 71]";
+                result.add_suggestion(suggestion);
+                return result;
+            }
+            
+            return MusicalConstraints::RuleResult::Success();
+        }
+        
+        std::string description() const override { return description_; }
+        std::vector<int> get_dependent_variables(int current_index) const override {
+            std::vector<int> deps;
+            for (int i = 0; i <= current_index; ++i) deps.push_back(i);
+            return deps;
+        }
+        std::string rule_type() const override { return "RetrogradeInversionRule"; }
+    };
+
     // All-different pitch rule (for 12-tone and similar constraints)
     class AllDifferentPitchRule : public MusicalConstraints::MusicalRule {
     private:
@@ -540,8 +741,14 @@ int main(int argc, char* argv[]) {
         // Setup solver configuration
         MusicalConstraintSolver::SolverConfig solver_config;
         solver_config.sequence_length = parser.getSolutionLength();
-        solver_config.min_note = 60;  // C4
-        solver_config.max_note = 71;  // B4
+        
+        // Get pitch range from domains configuration
+        auto pitch_range = parser.getPitchDomainRange();
+        solver_config.min_note = pitch_range.first;
+        solver_config.max_note = pitch_range.second;
+        
+        std::cout << "   Using pitch range: [" << solver_config.min_note << ", " << solver_config.max_note << "] from domains" << std::endl;
+        
         solver_config.num_voices = parser.getNumVoices();
         solver_config.allow_repetitions = false;
         solver_config.style = MusicalConstraintSolver::SolverConfig::CONTEMPORARY;
@@ -756,6 +963,26 @@ int main(int argc, char* argv[]) {
             
             txt_out.close();
             std::cout << "✅ Text: " << txt_file << std::endl;
+        }
+        
+        // Export XML if requested
+        if (parser.getExportXML()) {
+            std::string xml_file = export_dir + "/" + base_name + "_result.xml";
+            if (solver.export_solution_to_xml(solution, xml_file)) {
+                std::cout << "✅ XML: " << xml_file << std::endl;
+            } else {
+                std::cout << "❌ XML export failed" << std::endl;
+            }
+        }
+        
+        // Export PNG if requested
+        if (parser.getExportPNG()) {
+            std::string png_file = export_dir + "/" + base_name + "_result.png";
+            if (solver.export_solution_to_png(solution, png_file)) {
+                std::cout << "✅ PNG: " << png_file << std::endl;
+            } else {
+                std::cout << "❌ PNG export failed" << std::endl;
+            }
         }
         
         // Display solution

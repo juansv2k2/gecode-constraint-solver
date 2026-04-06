@@ -96,8 +96,10 @@ struct MusicalSolution {
     void print_solution(std::ostream& os = std::cout) const;
     void export_to_midi(const std::string& filename) const;
     void export_to_xml(const std::string& filename) const;
+    void export_to_png(const std::string& filename) const;
     std::string to_json() const;
     std::string to_xml() const;
+    std::string to_musicxml() const;
 };
 
 // ===============================
@@ -180,6 +182,10 @@ private:
     mutable std::map<std::string, double> performance_stats_;
     mutable int total_solutions_found_ = 0;
     mutable int total_solve_attempts_ = 0;
+    
+    // Retrograde Inversion tracking
+    bool retrograde_inversion_enabled_ = false;
+    int retrograde_inversion_center_ = 65;
 
 public:
     /**
@@ -351,14 +357,21 @@ public:
     bool export_solution_to_xml(const MusicalSolution& solution, const std::string& filename) const;
     
     /**
+     * @brief Export solution to PNG image file
+     */
+    bool export_solution_to_png(const MusicalSolution& solution, const std::string& filename) const;
+
+    /**
      * @brief Solve and immediately export to XML
      */
     bool solve_and_export_xml(const std::string& filename);
+    
+    /**
+     * @brief Solve and immediately export to PNG
+     */
+    bool solve_and_export_png(const std::string& filename);
 
 private:
-    /**
-     * @brief Initialize solver components
-     */
     void initialize_solver();
     
     /**

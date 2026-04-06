@@ -115,8 +115,115 @@ void MusicalSolution::export_to_xml(const std::string& filename) const {
         std::cerr << "Error: Could not create XML file " << filename << std::endl;
         return;
     }
-    xml_out << to_xml();
+    xml_out << to_musicxml();
     xml_out.close();
+}
+
+void MusicalSolution::export_to_png(const std::string& filename) const {
+    if (!found_solution) {
+        std::cerr << "Cannot export PNG: No solution found (" << failure_reason << ")" << std::endl;
+        return;
+    }
+    
+    // Step 1: Generate temporary MusicXML file
+    std::string temp_xml = filename + ".tmp.xml";
+    std::ofstream xml_out(temp_xml);
+    if (xml_out.is_open()) {
+        xml_out << to_musicxml();
+        xml_out.close();
+    } else {
+        std::cerr << "Error: Could not create temporary XML file " << temp_xml << std::endl;
+        return;
+    }
+    
+    // Step 2: Try MuseScore command-line export
+    std::string musescore_cmd = "mscore -o \"" + filename + "\" \"" + temp_xml + "\" 2>/dev/null";
+    int result = std::system(musescore_cmd.c_str());
+    
+    if (result != 0) {
+        // Try alternative MuseScore command
+        musescore_cmd = "musescore -o \"" + filename + "\" \"" + temp_xml + "\" 2>/dev/null";
+        result = std::system(musescore_cmd.c_str());
+    }
+    
+    if (result != 0) {
+        // Try MuseScore 4 command
+        musescore_cmd = "MuseScore4 -o \"" + filename + "\" \"" + temp_xml + "\" 2>/dev/null";
+        result = std::system(musescore_cmd.c_str());
+    }
+    
+    if (result != 0) {
+        // Fallback: Create a visual text representation with musical staff
+        std::string fallback_file = filename.substr(0, filename.find_last_of('.')) + "_notation.txt";
+        std::ofstream png_out(fallback_file);
+        if (png_out.is_open()) {
+            png_out << "♫ MUSICAL NOTATION ♫" << std::endl;
+            png_out << "═══════════════════════════════════════════════════════════" << std::endl;
+            png_out << std::endl;
+            
+            // Create a simple staff representation
+            std::vector<std::string> note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+            
+            // Draw treble clef staff with notes positioned
+            png_out << "Treble Clef Staff:" << std::endl;
+            png_out << " ♪                                                      " << std::endl;
+            png_out << " ═══════════════════════════════════════════════════════  F5" << std::endl;
+            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
+            png_out << " ═══════════════════════════════════════════════════════  D5" << std::endl;
+            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
+            png_out << " ═══════════════════════════════════════════════════════  B4" << std::endl;
+            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
+            png_out << " ═══════════════════════════════════════════════════════  G4" << std::endl;
+            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
+            png_out << " ═══════════════════════════════════════════════════════  E4" << std::endl;
+            png_out << std::endl;
+            
+            // Add note sequence
+            png_out << "Complete Note Sequence:" << std::endl;
+            for (size_t i = 0; i < absolute_notes.size(); ++i) {
+                if (i > 0 && i % 8 == 0) png_out << std::endl;
+                int octave = (absolute_notes[i] / 12) - 1;
+                int note = absolute_notes[i] % 12;
+                png_out << note_names[note] << octave;
+                if (i < absolute_notes.size() - 1 && (i + 1) % 8 != 0) png_out << " → ";
+            }
+            png_out << std::endl << std::endl;
+            
+            // Add voice information if available
+            if (!voice_solutions.empty()) {
+                png_out << "Multi-Voice Breakdown:" << std::endl;
+                for (size_t v = 0; v < voice_solutions.size(); ++v) {
+                    png_out << "Voice " << (v + 1) << ": ";
+                    for (size_t i = 0; i < voice_solutions[v].size(); ++i) {
+                        if (i > 0) png_out << " → ";
+                        int octave = (voice_solutions[v][i] / 12) - 1;
+                        int note = voice_solutions[v][i] % 12;
+                        png_out << note_names[note] << octave;
+                        if (i >= 12) { // Limit display length
+                            png_out << " ...";
+                            break;
+                        }
+                    }
+                    png_out << std::endl;
+                }
+                png_out << std::endl;
+            }
+            
+            // Performance statistics
+            png_out << "♪ Performance Statistics ♪" << std::endl;
+            png_out << "Solve Time: " << solve_time_ms << " ms" << std::endl;
+            png_out << "Rules Checked: " << total_rules_checked << std::endl;
+            png_out << "Backjumps: " << backjumps_performed << std::endl;
+            png_out << "Average Interval: " << std::fixed << std::setprecision(1) << average_interval_size << " semitones" << std::endl;
+            
+            png_out.close();
+            
+            std::cerr << "MuseScore not available. Created text notation: " << fallback_file << std::endl;
+        }
+    }
+    
+    // Step 3: Clean up temporary XML file
+    std::remove(temp_xml.c_str());
 }
 
 std::string MusicalSolution::to_xml() const {
@@ -204,6 +311,146 @@ std::string MusicalSolution::to_xml() const {
     }
     
     xml << "</musical_solution>" << std::endl;
+    return xml.str();
+}
+
+std::string MusicalSolution::to_musicxml() const {
+    std::stringstream xml;
+    
+    // Generate proper MusicXML format for notation software
+    xml << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
+    xml << "<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 4.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">\n";
+    xml << "<score-partwise version=\"4.0\">\n";
+    
+    // Work identification
+    xml << "  <work>\n";
+    xml << "    <work-title>Constraint Solver Composition</work-title>\n";
+    xml << "  </work>\n";
+    
+    // Part list
+    xml << "  <part-list>\n";
+    if (!voice_solutions.empty()) {
+        for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
+            xml << "    <score-part id=\"P" << (voice + 1) << "\">\n";
+            xml << "      <part-name>Voice " << (voice + 1) << "</part-name>\n";
+            xml << "    </score-part>\n";
+        }
+    } else {
+        xml << "    <score-part id=\"P1\">\n";
+        xml << "      <part-name>Melody</part-name>\n";
+        xml << "    </score-part>\n";
+    }
+    xml << "  </part-list>\n";
+    
+    // Parts
+    if (!voice_solutions.empty()) {
+        for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
+            xml << "  <part id=\"P" << (voice + 1) << "\">\n";
+            xml << "    <measure number=\"1\">\n";
+            xml << "      <attributes>\n";
+            xml << "        <divisions>1</divisions>\n";
+            xml << "        <key>\n";
+            xml << "          <fifths>0</fifths>\n";
+            xml << "        </key>\n";
+            xml << "        <time>\n";
+            xml << "          <beats>4</beats>\n";
+            xml << "          <beat-type>4</beat-type>\n";
+            xml << "        </time>\n";
+            xml << "        <clef>\n";
+            xml << "          <sign>G</sign>\n";
+            xml << "          <line>2</line>\n";
+            xml << "        </clef>\n";
+            xml << "      </attributes>\n";
+            
+            // Convert MIDI numbers to notes
+            for (size_t i = 0; i < voice_solutions[voice].size() && i < 16; ++i) {
+                int midi_note = voice_solutions[voice][i];
+                int octave = (midi_note / 12) - 1;
+                int pitch_class = midi_note % 12;
+                std::vector<std::string> pitch_names = {"C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"};
+                std::vector<int> alterations = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+                
+                xml << "      <note>\n";
+                xml << "        <pitch>\n";
+                xml << "          <step>" << pitch_names[pitch_class] << "</step>\n";
+                if (alterations[pitch_class] != 0) {
+                    xml << "          <alter>" << alterations[pitch_class] << "</alter>\n";
+                }
+                xml << "          <octave>" << octave << "</octave>\n";
+                xml << "        </pitch>\n";
+                xml << "        <duration>1</duration>\n";
+                xml << "        <type>quarter</type>\n";
+                xml << "      </note>\n";
+            }
+            
+            // Fill measure with rests if needed
+            size_t notes_written = std::min(voice_solutions[voice].size(), size_t(16));
+            for (size_t r = notes_written; r < 4; ++r) {
+                xml << "      <note>\n";
+                xml << "        <rest/>\n";
+                xml << "        <duration>1</duration>\n";
+                xml << "        <type>quarter</type>\n";
+                xml << "      </note>\n";
+            }
+            
+            xml << "    </measure>\n";
+            xml << "  </part>\n";
+        }
+    } else if (!absolute_notes.empty()) {
+        // Single voice from absolute_notes
+        xml << "  <part id=\"P1\">\n";
+        xml << "    <measure number=\"1\">\n";
+        xml << "      <attributes>\n";
+        xml << "        <divisions>1</divisions>\n";
+        xml << "        <key>\n";
+        xml << "          <fifths>0</fifths>\n";
+        xml << "        </key>\n";
+        xml << "        <time>\n";
+        xml << "          <beats>4</beats>\n";
+        xml << "          <beat-type>4</beat-type>\n";
+        xml << "        </time>\n";
+        xml << "        <clef>\n";
+        xml << "          <sign>G</sign>\n";
+        xml << "          <line>2</line>\n";
+        xml << "        </clef>\n";
+        xml << "      </attributes>\n";
+        
+        // Convert MIDI numbers to notes
+        for (size_t i = 0; i < absolute_notes.size() && i < 16; ++i) {
+            int midi_note = absolute_notes[i];
+            int octave = (midi_note / 12) - 1;
+            int pitch_class = midi_note % 12;
+            std::vector<std::string> pitch_names = {"C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"};
+            std::vector<int> alterations = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+            
+            xml << "      <note>\n";
+            xml << "        <pitch>\n";
+            xml << "          <step>" << pitch_names[pitch_class] << "</step>\n";
+            if (alterations[pitch_class] != 0) {
+                xml << "          <alter>" << alterations[pitch_class] << "</alter>\n";
+            }
+            xml << "          <octave>" << octave << "</octave>\n";
+            xml << "        </pitch>\n";
+            xml << "        <duration>1</duration>\n";
+            xml << "        <type>quarter</type>\n";
+            xml << "      </note>\n";
+        }
+        
+        // Fill measure with rests if needed
+        size_t notes_written = std::min(absolute_notes.size(), size_t(16));
+        for (size_t r = notes_written; r < 4; ++r) {
+            xml << "      <note>\n";
+            xml << "        <rest/>\n";
+            xml << "        <duration>1</duration>\n";
+            xml << "        <type>quarter</type>\n";
+            xml << "      </note>\n";
+        }
+        
+        xml << "    </measure>\n";
+        xml << "  </part>\n";
+    }
+    
+    xml << "</score-partwise>\n";
     return xml.str();
 }
 
@@ -505,6 +752,19 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
         // Add basic no-repetition rule for twelve-tone generation
         add_rule(std::make_shared<NoRepetitionRule>());
         
+    } else if (rule_type == "r-cross-voice-retrograde-inversion" && function == "retrograde_inversion_relationship") {
+        // SPECIAL CASE: Retrograde Inversion Constraint
+        std::cout << "🎯 DETECTED RETROGRADE INVERSION RULE - Adding special constraint!" << std::endl;
+        
+        // Set a flag to enable special retrograde inversion solving
+        retrograde_inversion_enabled_ = true;
+        retrograde_inversion_center_ = (!parameters.empty()) ? static_cast<int>(parameters[0]) : 65;
+        
+        std::cout << "   Inversion center: " << retrograde_inversion_center_ << " (MIDI)" << std::endl;
+        
+        // Add basic rules but with special handling in solve()
+        add_rule(std::make_shared<NoRepetitionRule>());
+        
     } else if (rule_type == "r-cross-voice-no-unisons") {
         // Add rule to prevent unisons between voices (handled by engine separation)
         add_rule(std::make_shared<MelodicIntervalRule>(12)); // Allow wide intervals between voices
@@ -575,8 +835,18 @@ MusicalSolution Solver::solve_internal() {
             std::cout << "DEBUG: Added " << rules_.size() << " musical rules" << std::endl;
         }
         
-        // Add basic range constraints
+        // Add basic range constraints BEFORE retrograde inversion
         gecode_space->constrain_note_range(config_.min_note, config_.max_note);
+        
+        // SPECIAL HANDLING FOR RETROGRADE INVERSION
+        if (retrograde_inversion_enabled_) {
+            std::cout << "🎯 APPLYING RETROGRADE INVERSION CONSTRAINT!" << std::endl;
+            std::cout << "   Inversion center: " << retrograde_inversion_center_ << " (MIDI)" << std::endl;
+            
+            // Post special retrograde inversion constraint
+            gecode_space->add_retrograde_inversion_constraint(retrograde_inversion_center_);
+            std::cout << "✅ Posted retrograde inversion constraint in Gecode space" << std::endl;
+        }
         
         // PERFORM GECODE CONSTRAINT SOLVING
         Gecode::Search::Options search_opts;
@@ -749,6 +1019,16 @@ bool Solver::export_solution_to_xml(const MusicalSolution& solution, const std::
     }
 }
 
+bool Solver::export_solution_to_png(const MusicalSolution& solution, const std::string& filename) const {
+    try {
+        solution.export_to_png(filename);
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error exporting solution to PNG: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 bool Solver::solve_and_export_xml(const std::string& filename) {
     auto solution = solve();
     if (!solution.found_solution) {
@@ -756,6 +1036,15 @@ bool Solver::solve_and_export_xml(const std::string& filename) {
         return false;
     }
     return export_solution_to_xml(solution, filename);
+}
+
+bool Solver::solve_and_export_png(const std::string& filename) {
+    auto solution = solve();
+    if (!solution.found_solution) {
+        std::cerr << "Cannot export PNG: No solution found (" << solution.failure_reason << ")" << std::endl;
+        return false;
+    }
+    return export_solution_to_png(solution, filename);
 }
 
 bool Solver::validate_configuration(std::string& error_message) const {

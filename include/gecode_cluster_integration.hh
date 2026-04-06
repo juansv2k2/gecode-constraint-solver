@@ -112,6 +112,27 @@ private:
 };
 
 // ===============================
+// Retrograde Inversion Propagator
+// ===============================
+
+/**
+ * @brief Gecode Propagator for Retrograde Inversion Constraint
+ * 
+ * Enforces that Voice 2 is the exact retrograde inversion of Voice 1:
+ * Voice2[i] = 2 * inversion_center - Voice1[length-1-i]
+ */
+class RetrogradeInversionPropagator : public Propagator {
+public:
+    /**
+     * @brief Static posting function for the retrograde inversion constraint
+     */
+    static ExecStatus post(Space& home,
+                          ViewArray<Int::IntView> voice1,
+                          ViewArray<Int::IntView> voice2,
+                          int center, int length);
+};
+
+// ===============================
 // Advanced Backjump Brancher
 // ===============================
 
@@ -236,6 +257,8 @@ protected:
     AdvancedBackjumping::BackjumpMode backjump_mode_;
     /// Dual solution storage
     std::unique_ptr<MusicalConstraints::DualSolutionStorage> solution_storage_;
+    /// Flag for multi-voice configuration
+    bool vocal_space_configured_;
 
 public:
     /**
@@ -283,6 +306,12 @@ public:
      * @brief Constrain note variables to a specific MIDI range
      */
     void constrain_note_range(int min_note, int max_note);
+    
+    /**
+     * @brief Add retrograde inversion constraint between voices
+     * @param inversion_center MIDI note value used as inversion center
+     */
+    void add_retrograde_inversion_constraint(int inversion_center);
 
     // ================================
     // Solution Access

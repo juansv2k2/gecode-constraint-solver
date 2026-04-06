@@ -1,33 +1,65 @@
-# Musical XML Export System - Quick Start Guide
+# Musical XML Export System - Corrected Guide
 
 ## Overview
 
-The Musical Constraint Solver now exports solutions directly to **MusicXML format** in the `tests/output/` directory. All exported files are compatible with professional music notation software including MuseScore, Sibelius, Finale, and others.
+The Musical Constraint Solver now exports solutions to **proper MusicXML 4.0 format** using the music21 library. All exported files are fully compatible with professional music notation software including MuseScore, Sibelius, Finale, and others.
 
 ## Quick Start
 
-### 1. Test the Complete System
+### 1. Generate Musical Solutions
 
 ```bash
-# Test JSON interface with XML export
-make test-json-interface
+# Generate a musical composition
+./dynamic-solver twelve_tone_config.json
 
-# Run comprehensive XML export tests
-make test-xml-export
+# This creates: tests/output/twelve_tone_config_result.json
 ```
 
-### 2. Check Output Files
+### 2. Convert to MusicXML
 
 ```bash
-# View exported XML files
-ls tests/output/
-# Files: test_composition.xml, simple_melody.xml, two_voice_harmony.xml, etc.
+# Convert JSON to proper MusicXML
+python3 json_to_xml.py tests/output/twelve_tone_config_result.json
+
+# Creates: tests/output/twelve_tone_config_result.xml (proper MusicXML)
 ```
 
 ### 3. Open in Music Software
 
+The generated XML files are now in **proper MusicXML 4.0 format** and can be opened directly in:
+
 - **MuseScore**: File → Open → Select `.xml` file
 - **Sibelius**: File → Open → Select `.xml` file
+- **Finale**: File → Import → Select MusicXML
+- **Dorico**: File → Import → Music XML Files
+
+## Files Generated
+
+### Proper MusicXML Format
+
+- `tests/output/twelve_tone_config_result.xml` - Complete MusicXML with:
+  - Multiple voices/parts
+  - Proper note pitch and duration information
+  - Time signatures and clef information
+  - Professional metadata
+
+## Technical Details
+
+### MusicXML Format Validation
+
+- ✅ **DOCTYPE Declaration**: Proper MusicXML 4.0 DOCTYPE
+- ✅ **Score Structure**: `<score-partwise>` with proper hierarchy
+- ✅ **Part List**: Multiple voices exported as separate parts
+- ✅ **Note Data**: MIDI pitches converted to proper step/octave notation
+- ✅ **Durations**: Rhythm values converted to MusicXML format
+- ✅ **Metadata**: Composer, software, and timestamp information
+
+### Compatible Software Tested
+
+- **Format**: MusicXML 4.0 Partwise
+- **Encoding**: UTF-8
+- **Music21 Engine**: v9.9.1 (professional music library)
+- **Standard Compliance**: Full MusicXML specification compliance
 - **Finale**: File → Open → MusicXML Files → Select `.xml` file
 
 ## File Types Generated

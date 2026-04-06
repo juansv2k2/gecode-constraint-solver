@@ -97,7 +97,7 @@ SIMPLE_VALIDATION_SOURCE = simple_gecode_cluster_validation.cpp src/advanced_bac
 SIMPLE_VALIDATION_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Main Interface Test (lightweight)
-MAIN_INTERFACE_TEST_TARGET = test-main-interface
+MAIN_INTERFACE_TEST_EXECUTABLE = test-main-interface-exe
 MAIN_INTERFACE_TEST_SOURCE = test_main_interface.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
 MAIN_INTERFACE_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
@@ -112,7 +112,7 @@ JSON_INTERFACE_TEST_SOURCE = test_cluster_json_interface.cpp
 JSON_INTERFACE_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Custom Consensus Test
-CUSTOM_CONSENSUS_TEST_TARGET = test-custom-consensus
+CUSTOM_CONSENSUS_TEST_EXECUTABLE = test-custom-consensus
 CUSTOM_CONSENSUS_TEST_SOURCE = test_custom_consensus.cpp
 CUSTOM_CONSENSUS_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
@@ -151,7 +151,7 @@ DYNAMIC_SOLVER_TARGET = dynamic-solver
 DYNAMIC_SOLVER_SOURCE = dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
 DYNAMIC_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
-all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET)
+all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET)
 
 # Production system - main interface
 $(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
@@ -166,7 +166,7 @@ $(SIMPLE_VALIDATION_TARGET): $(SIMPLE_VALIDATION_SOURCE) include/gecode_cluster_
 	$(CXX) $(SIMPLE_VALIDATION_CXXFLAGS) $(GECODE_INC) -o $@ $(SIMPLE_VALIDATION_SOURCE) $(GECODE_LIB)
 
 # Main interface test (lightweight)
-$(MAIN_INTERFACE_TEST_TARGET): $(MAIN_INTERFACE_TEST_SOURCE) include/musical_constraint_solver.hh
+$(MAIN_INTERFACE_TEST_EXECUTABLE): $(MAIN_INTERFACE_TEST_SOURCE) include/musical_constraint_solver.hh
 	$(CXX) $(MAIN_INTERFACE_TEST_CXXFLAGS) $(GECODE_INC) -o $@ $(MAIN_INTERFACE_TEST_SOURCE) $(GECODE_LIB)
 
 # Working Gecode demo (full demonstration)
@@ -247,7 +247,7 @@ $(CLUSTER_ENGINE_BACKJUMP_TARGET): $(CLUSTER_ENGINE_BACKJUMP_SOURCE)
 
 clean:
 	rm -f $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(PHASE5_SIMPLE_TARGET) $(PHASE5_DEMO_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET)
-	rm -f $(PRODUCTION_SOLVER_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET)
+	rm -f $(PRODUCTION_SOLVER_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET)
 	rm -rf test_musical_states session_states integrated_states
 	rm -rf ./professional_workspace ./batch_results ./professional_exports
 	rm -rf ./professional_integration ./professional_studio
@@ -264,7 +264,7 @@ validate-production: $(SIMPLE_VALIDATION_TARGET)
 	@./$(SIMPLE_VALIDATION_TARGET)
 
 # Main interface test (lightweight, safe)
-test-main-interface: $(MAIN_INTERFACE_TEST_TARGET)
+test-main-interface: $(MAIN_INTERFACE_TEST_EXECUTABLE)
 	@echo "🎼 TESTING MAIN MUSICAL CONSTRAINT SOLVER INTERFACE"
 	@echo "==================================================="
 
@@ -287,14 +287,14 @@ test-xml-export:
 	@python3 test_xml_export.py
 
 # Custom consensus backjump test
-test-custom-consensus: $(CUSTOM_CONSENSUS_TEST_TARGET)
+test-custom-consensus: $(CUSTOM_CONSENSUS_TEST_EXECUTABLE)
 	@echo "🎼 TESTING CUSTOM CONSENSUS_BACKJUMP CONFIGURATION"
 	@echo "=================================================="
-	@./$(CUSTOM_CONSENSUS_TEST_TARGET)
-	@./$(MAIN_INTERFACE_TEST_TARGET)
+	@./$(CUSTOM_CONSENSUS_TEST_EXECUTABLE)
+	@./$(MAIN_INTERFACE_TEST_EXECUTABLE)
 
 # Complete production validation
-production-ready: $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET)
+production-ready: $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE)
 	@echo "🏆 COMPLETE PRODUCTION SYSTEM VALIDATION"
 	@echo "========================================"
 	@echo "Running cluster-Gecode integration validation..."

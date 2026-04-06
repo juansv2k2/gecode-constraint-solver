@@ -186,6 +186,7 @@
     "include_analysis": true,
     "export_midi": false,
     "export_xml": true,
+    "export_png": false,
     "show_statistics": true,
     "show_intervals": true,
     "show_pitch_classes": true

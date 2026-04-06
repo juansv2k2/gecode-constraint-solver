@@ -35,5 +35,11 @@
       "priority": 8,
       "description": "First note must be C4"
     }
-  ]
+  ],
+
+  "output_options": {
+    "export_xml": true,
+    "export_png": false,
+    "show_statistics": true
+  }
 }

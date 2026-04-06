@@ -377,6 +377,51 @@ void IntegratedMusicalSpace::constrain_note_range(int min_note, int max_note) {
     }
 }
 
+void IntegratedMusicalSpace::add_retrograde_inversion_constraint(int inversion_center) {
+    // RETROGRADE INVERSION CONSTRAINT: Voice 2 = retrograde inversion of Voice 1
+    // Mathematical formula: Voice2[i] = 2 * center - Voice1[length-1-i]
+    
+    std::cout << "🎯 POSTING RETROGRADE INVERSION CONSTRAINT" << std::endl;
+    std::cout << "   Center: " << inversion_center << " (MIDI)" << std::endl;
+    std::cout << "   Length: " << sequence_length_ << std::endl;
+    std::cout << "   Num voices: " << num_voices_ << std::endl;
+    
+    if (num_voices_ < 2) {
+        std::cout << "⚠️  Warning: Retrograde inversion requires at least 2 voices!" << std::endl;
+        return;
+    }
+    
+    // Compute sequence length per voice
+    int notes_per_voice = sequence_length_ / num_voices_;
+    std::cout << "   Notes per voice: " << notes_per_voice << std::endl;
+    
+    // Post constraints: Voice2[i] = 2 * center - Voice1[length-1-i]
+    for (int i = 0; i < notes_per_voice; ++i) {
+        int voice2_idx = notes_per_voice + i;         // Voice 2 position i
+        int voice1_retro = (notes_per_voice - 1) - i; // Voice 1 retrograde position
+        
+        // DEBUG: Print variable domains before posting constraint
+        std::cout << "   Before constraint " << i << ":" << std::endl;
+        std::cout << "     Voice1[" << voice1_retro << "] domain: " << absolute_vars_[voice1_retro] << std::endl;
+        std::cout << "     Voice2[" << voice2_idx << "] domain: " << absolute_vars_[voice2_idx] << std::endl;
+        
+        // Voice2[i] = 2 * center - Voice1[retro-i]
+        // Which means: Voice2[i] + Voice1[retro-i] = 2 * center
+        IntArgs coeffs({1, 1});
+        IntVarArgs vars({absolute_vars_[voice2_idx], absolute_vars_[voice1_retro]});
+        linear(*this, coeffs, vars, IRT_EQ, 2 * inversion_center);
+        
+        std::cout << "   Constraint " << i << ": Voice2[" << voice2_idx << "] + Voice1[" << voice1_retro << "] = " << (2 * inversion_center) << std::endl;
+        
+        // DEBUG: Print variable domains after posting constraint
+        std::cout << "   After constraint " << i << ":" << std::endl;
+        std::cout << "     Voice1[" << voice1_retro << "] domain: " << absolute_vars_[voice1_retro] << std::endl;
+        std::cout << "     Voice2[" << voice2_idx << "] domain: " << absolute_vars_[voice2_idx] << std::endl;
+    }
+    
+    std::cout << "✅ Posted " << notes_per_voice << " retrograde inversion constraints" << std::endl;
+}
+
 std::vector<int> IntegratedMusicalSpace::get_absolute_sequence() const {
     std::vector<int> sequence;
     for (int i = 0; i < sequence_length_; ++i) {
@@ -509,34 +554,29 @@ std::vector<int> IntegratedMusicalSpace::get_rhythm_sequence(int voice) const {
 }
 
 std::vector<int> IntegratedMusicalSpace::get_pitch_sequence(int voice) const {
+    // REAL VOICE EXTRACTION: Get actual Gecode variable values for each voice
     std::vector<int> sequence;
-    // Engine mapping: Voice 0 pitch = engine 1, Voice 1 pitch = engine 3  
-    // int pitch_engine = voice * 2 + 1;  // Future: Extract from actual engine variables
     
-    // Extract pitch data
-    if (voice == 0) {
-        // For voice 0, return the main absolute sequence
-        return get_absolute_sequence();
-    } else if (voice == 1) {
-        // For voice 1, generate a variation of the main sequence
-        auto base_sequence = get_absolute_sequence();
-        for (size_t i = 0; i < base_sequence.size(); ++i) {
-            // Create a harmonic variation for voice 1
-            int note = base_sequence[i];
-            if (note >= 0) {
-                // Add different intervals to create distinct voice
-                if (i % 4 == 0) note += 4;       // Major third
-                else if (i % 4 == 1) note -= 1;  // Minor second below
-                else if (i % 4 == 2) note += 7;  // Perfect fifth  
-                else note += 3;                  // Minor third
-                
-                // Keep in reasonable range
-                while (note > 84) note -= 12;
-                while (note < 48) note += 12;
-            }
-            sequence.push_back(note);
+    // Each voice gets sequence_length/num_voices notes from the absolute_vars_ array
+    int notes_per_voice = sequence_length_ / num_voices_;
+    int voice_start = voice * notes_per_voice;
+    
+    std::cout << "🔍 DEBUG: Extracting pitch for voice " << voice << std::endl;
+    std::cout << "   Voice start index: " << voice_start << std::endl;
+    std::cout << "   Notes per voice: " << notes_per_voice << std::endl;
+    
+    for (int i = 0; i < notes_per_voice; ++i) {
+        int var_index = voice_start + i;
+        if (var_index < sequence_length_ && absolute_vars_[var_index].assigned()) {
+            int note_value = absolute_vars_[var_index].val();
+            sequence.push_back(note_value);
+            std::cout << "   Voice " << voice << "[" << i << "] = Var[" << var_index << "] = " << note_value << std::endl;
+        } else {
+            sequence.push_back(-1); // Unassigned
+            std::cout << "   Voice " << voice << "[" << i << "] = Var[" << var_index << "] = UNASSIGNED" << std::endl;
         }
     }
+    
     return sequence;
 }
 

@@ -56,7 +56,10 @@ class MusicalXMLExporter:
             score.append(tempo.TempoIndication(number=120))
             
             # Process voices/engines
-            if "solutions" in solution_data:
+            if "voices" in solution_data:
+                # New format from our constraint solver
+                self._process_voices_solution(score, solution_data["voices"])
+            elif "solutions" in solution_data:
                 self._process_multi_voice_solution(score, solution_data["solutions"])
             elif "absolute_notes" in solution_data:
                 # Single voice solution
@@ -72,6 +75,37 @@ class MusicalXMLExporter:
         except Exception as e:
             print(f"❌ Error exporting XML: {e}")
             return False
+    
+    def _process_voices_solution(self, score: stream.Score, voices_data: List[Dict]):
+        """Process voices solution data from our constraint solver format"""
+        
+        for voice_data in voices_data:
+            voice_id = voice_data.get("voice", 0)
+            part = stream.Part()
+            part.partName = f"Voice {voice_id + 1}"
+            
+            # Add time signature (default 4/4)
+            part.append(meter.TimeSignature('4/4'))
+            
+            # Get pitch and rhythm data
+            pitch_solution = voice_data.get("pitch_solution", [])
+            rhythm_solution = voice_data.get("rhythm_solution", [])
+            
+            # Convert rhythm values to proper format for _add_notes_to_part
+            # Our rhythm_solution contains values like 4 (quarter note), 8 (eighth), etc.
+            rhythm_fractions = []
+            for r in rhythm_solution:
+                if r == 4:
+                    rhythm_fractions.append([1, 4])  # Quarter note
+                elif r == 8:
+                    rhythm_fractions.append([1, 8])  # Eighth note
+                elif r == 2:
+                    rhythm_fractions.append([1, 2])  # Half note
+                else:
+                    rhythm_fractions.append([1, 4])  # Default to quarter note
+            
+            self._add_notes_to_part(part, pitch_solution, rhythm_fractions)
+            score.append(part)
     
     def _process_multi_voice_solution(self, score: stream.Score, solutions: List[List[int]]):
         """Process multi-voice solution data"""

@@ -1,0 +1,159 @@
+{
+  "name": "Complex Twelve-Tone: Retrograde Inversion Challenge",
+  "description": "Voice 1 generates random 12-tone row, Voice 2 should be retrograde inversion (needs custom implementation)",
+  "solution_length": 12,
+  "num_voices": 2,
+  "num_engines": 5,
+  "engine_architecture": {
+    "voice_0": { "rhythm_engine": 0, "pitch_engine": 1 },
+    "voice_1": { "rhythm_engine": 2, "pitch_engine": 3 },
+    "metric_engine": 4
+  },
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-engine",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_engine": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 1 pitch engine: All 12 chromatic pitches different (12-tone row)"
+    },
+    {
+      "rule_type": "r-pitches-one-engine",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_engine": 3,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 2 pitch engine: All 12 chromatic pitches different (12-tone row)"
+    },
+    {
+      "rule_type": "r-cross-voice-retrograde-inversion",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "retrograde_inversion_relationship",
+        "parameters": [65]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_engine": 3,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 15,
+      "description": "Voice 2 must be retrograde inversion of Voice 1 around F4 (MIDI 65)"
+    },
+    {
+      "rule_type": "r-rhythmic-uniformity",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": [4]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_engine": 0,
+      "engine_type": "rhythm",
+      "enabled": true,
+      "priority": 5,
+      "description": "Voice 1 rhythm engine: All quarter notes"
+    },
+    {
+      "rule_type": "r-rhythmic-uniformity",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": [4]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_engine": 2,
+      "engine_type": "rhythm",
+      "enabled": true,
+      "priority": 5,
+      "description": "Voice 2 rhythm engine: All quarter notes"
+    },
+    {
+      "rule_type": "r-metric-signature",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": [9]
+      },
+      "indices": [0],
+      "target_engine": 4,
+      "engine_type": "metric",
+      "enabled": true,
+      "priority": 1,
+      "description": "Metric engine: Consistent 12/4 time signature"
+    }
+  ],
+
+  "domains": [
+    {
+      "engine_id": 0,
+      "type": "rhythm",
+      "values": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "description": "Voice 1 rhythm: All quarter notes"
+    },
+    {
+      "engine_id": 1,
+      "type": "pitch",
+      "values": [
+        55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
+        73, 74, 75
+      ],
+      "description": "Voice 1 pitch: Wider range (G3 to Eb5) to accommodate retrograde inversion"
+    },
+    {
+      "engine_id": 2,
+      "type": "rhythm",
+      "values": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "description": "Voice 2 rhythm: All quarter notes"
+    },
+    {
+      "engine_id": 3,
+      "type": "pitch",
+      "values": [
+        55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
+        73, 74, 75
+      ],
+      "description": "Voice 2 pitch: Wider range (G3 to Eb5) - constrained by retrograde inversion"
+    },
+    {
+      "engine_id": 4,
+      "type": "metric",
+      "values": [9],
+      "description": "Metric: 12/4 time signature"
+    }
+  ],
+
+  "search_strategy": {
+    "max_time_ms": 10000,
+    "max_solutions": 1,
+    "randomize_search": true,
+    "variable_ordering": "sequential",
+    "value_ordering": "random"
+  },
+
+  "output_options": {
+    "format": "both",
+    "include_analysis": true,
+    "export_midi": false,
+    "export_xml": true,
+    "export_png": true,
+    "show_statistics": true,
+    "show_intervals": true,
+    "show_pitch_classes": true
+  }
+}

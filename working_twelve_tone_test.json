@@ -1,0 +1,57 @@
+{
+  "name": "Working Twelve-Tone Retrograde Inversion",
+  "description": "Twelve-tone retrograde inversion with extended range",
+  "solution_length": 12,
+  "num_voices": 2,
+  "num_engines": 5,
+  "engine_architecture": {
+    "voice_0": { "rhythm_engine": 0, "pitch_engine": 1 },
+    "voice_1": { "rhythm_engine": 2, "pitch_engine": 3 },
+    "metric_engine": 4
+  },
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "rules": [
+    {
+      "rule_type": "r-cross-voice-retrograde-inversion",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "retrograde_inversion_relationship",
+        "parameters": [72]
+      },
+      "indices": [0, 1, 2, 3, 4, 5],
+      "target_engine": 3,
+      "engine_type": "cross-voice",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 2 is retrograde inversion of Voice 1 around C5 (72)"
+    }
+  ],
+
+  "search_strategy": {
+    "max_time_ms": 15000,
+    "max_solutions": 1,
+    "randomize_search": false,
+    "variable_ordering": "sequential",
+    "value_ordering": "min"
+  },
+
+  "output_options": {
+    "format": "both",
+    "include_analysis": true,
+    "export_midi": false,
+    "export_xml": true,
+    "export_png": true,
+    "show_statistics": true,
+    "show_intervals": true,
+    "show_voice_details": true
+  },
+
+  "display_options": {
+    "show_midi_numbers": true,
+    "show_note_names": true,
+    "show_intervals": true,
+    "group_by_voice": true
+  }
+}
