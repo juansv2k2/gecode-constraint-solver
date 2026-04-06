@@ -3,7 +3,7 @@
 
 CXX = g++
 CXXFLAGS = -std=c++11 -O3 -DNDEBUG -Wall -g
-LIBS = -lgecodedriver -lgecodeminimodel -lgecodeint -lgecodesearch -lgecodekernel -lgecodesupport -lgecodegist
+LIBS = -lgecodeminimodel -lgecodeint -lgecodesearch -lgecodekernel -lgecodesupport -lgecodeflatzinc
 
 # Try to detect Gecode installation
 GECODE_INC = $(shell pkg-config --cflags gecode 2>/dev/null || echo "")
@@ -96,7 +96,44 @@ test_advanced_backjumping: test_advanced_backjumping.cpp include/advanced_backju
 gecode_cluster_integration: test_gecode_cluster_integration.cpp include/gecode_cluster_integration.hh src/gecode_cluster_integration.cpp src/advanced_backjumping_strategies.cpp
 	$(CXX) -std=c++17 $(GECODE_INC) -I./include -I./src test_gecode_cluster_integration.cpp src/gecode_cluster_integration.cpp src/advanced_backjumping_strategies.cpp $(GECODE_LIB) -o gecode_cluster_integration
 
-all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET)
+# PRODUCTION MUSICAL CONSTRAINT SOLVER (COMPLETE SYSTEM)
+PRODUCTION_SOLVER_TARGET = musical-constraint-solver
+PRODUCTION_SOLVER_SOURCE = src/musical_constraint_solver.cpp
+PRODUCTION_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+PRODUCTION_SOLVER_LIBS = -lgecode -lgecodeminimodel -lgecodekernel -lgecodeint -lgecodesupport -lgecodeflatzinc
+
+# Production Test Suite
+PRODUCTION_TEST_TARGET = test-musical-solver
+PRODUCTION_TEST_SOURCE = test_musical_constraint_solver.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
+PRODUCTION_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# Simple Validation System
+SIMPLE_VALIDATION_TARGET = validate-cluster-gecode
+SIMPLE_VALIDATION_SOURCE = simple_gecode_cluster_validation.cpp src/advanced_backjumping_strategies.cpp
+SIMPLE_VALIDATION_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# Main Interface Test (lightweight)
+MAIN_INTERFACE_TEST_TARGET = test-main-interface
+MAIN_INTERFACE_TEST_SOURCE = test_main_interface.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
+MAIN_INTERFACE_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET)
+
+# Production system - main interface
+$(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
+	$(CXX) $(PRODUCTION_SOLVER_CXXFLAGS) $(GECODE_INC) -o $@ $(PRODUCTION_SOLVER_SOURCE) $(GECODE_LIB) $(PRODUCTION_SOLVER_LIBS)
+
+# Production test suite
+$(PRODUCTION_TEST_TARGET): $(PRODUCTION_TEST_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
+	$(CXX) $(PRODUCTION_TEST_CXXFLAGS) $(GECODE_INC) -o $@ $(PRODUCTION_TEST_SOURCE) $(GECODE_LIB)
+
+# Simple validation system
+$(SIMPLE_VALIDATION_TARGET): $(SIMPLE_VALIDATION_SOURCE) include/gecode_cluster_integration.hh
+	$(CXX) $(SIMPLE_VALIDATION_CXXFLAGS) $(GECODE_INC) -o $@ $(SIMPLE_VALIDATION_SOURCE) $(GECODE_LIB)
+
+# Main interface test (lightweight)
+$(MAIN_INTERFACE_TEST_TARGET): $(MAIN_INTERFACE_TEST_SOURCE) include/musical_constraint_solver.hh
+	$(CXX) $(MAIN_INTERFACE_TEST_CXXFLAGS) $(GECODE_INC) -o $@ $(MAIN_INTERFACE_TEST_SOURCE) $(GECODE_LIB)
 
 $(TARGET): $(SOURCE)
 	$(CXX) $(CXXFLAGS) $(GECODE_INC) -o $@ $< $(GECODE_LIB)
@@ -136,9 +173,39 @@ $(CLUSTER_ENGINE_BACKJUMP_TARGET): $(CLUSTER_ENGINE_BACKJUMP_SOURCE)
 
 clean:
 	rm -f $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(PHASE5_SIMPLE_TARGET) $(PHASE5_DEMO_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET)
+	rm -f $(PRODUCTION_SOLVER_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET)
 	rm -rf test_musical_states session_states integrated_states
 	rm -rf ./professional_workspace ./batch_results ./professional_exports
 	rm -rf ./professional_integration ./professional_studio
+
+# Production system test runners
+test-production: $(PRODUCTION_TEST_TARGET)
+	@echo "🚀 RUNNING PRODUCTION MUSICAL CONSTRAINT SOLVER TEST SUITE"
+	@echo "==========================================================="
+	@./$(PRODUCTION_TEST_TARGET)
+
+validate-production: $(SIMPLE_VALIDATION_TARGET)
+	@echo "🔍 RUNNING CLUSTER-GECODE VALIDATION"
+	@echo "===================================="
+	@./$(SIMPLE_VALIDATION_TARGET)
+
+# Main interface test (lightweight, safe)
+test-main-interface: $(MAIN_INTERFACE_TEST_TARGET)
+	@echo "🎼 TESTING MAIN MUSICAL CONSTRAINT SOLVER INTERFACE"
+	@echo "==================================================="
+	@./$(MAIN_INTERFACE_TEST_TARGET)
+
+# Complete production validation
+production-ready: $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET)
+	@echo "🏆 COMPLETE PRODUCTION SYSTEM VALIDATION"
+	@echo "========================================"
+	@echo "Running cluster-Gecode integration validation..."
+	@./$(SIMPLE_VALIDATION_TARGET)
+	@echo ""
+	@echo "Running comprehensive production test suite..."
+	@./$(PRODUCTION_TEST_TARGET)
+	@echo ""
+	@echo "✅ PRODUCTION SYSTEM FULLY VALIDATED AND READY!"
 
 # Run examples
 test: $(TARGET)

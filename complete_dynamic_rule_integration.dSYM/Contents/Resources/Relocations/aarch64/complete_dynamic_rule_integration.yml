@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     complete_dynamic_rule_integration
-relocations:     []
-...
