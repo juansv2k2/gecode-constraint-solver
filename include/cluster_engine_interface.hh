@@ -106,6 +106,11 @@ struct SearchStatistics {
  * @brief Complete Cluster Engine implementation
  */
 class ClusterEngineInterface {
+public:
+    // Get access to core engine for advanced operations
+    ClusterEngineCore* get_core() { return core_.get(); }
+    const ClusterEngineCore* get_core() const { return core_.get(); }
+    
 private:
     std::unique_ptr<ClusterEngineCore> core_;
     std::unique_ptr<ForwardRuleManager> forward_manager_;

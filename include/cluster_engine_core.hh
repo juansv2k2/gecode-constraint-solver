@@ -124,6 +124,15 @@ public:
         weights_calculated_ = false;
     }
     
+    // Get candidates (const and non-const versions)
+    const std::vector<MusicalCandidate>& get_candidates() const {
+        return candidates_;
+    }
+    
+    std::vector<MusicalCandidate>& get_candidates() {
+        return candidates_;
+    }
+    
     void sort_by_heuristic_weights();
     
     void set_heuristic_weight(size_t index, double weight) {
@@ -133,7 +142,6 @@ public:
         }
     }
     
-    const std::vector<MusicalCandidate>& get_candidates() const { return candidates_; }
     EngineType get_type() const { return type_; }
     size_t size() const { return candidates_.size(); }
 };

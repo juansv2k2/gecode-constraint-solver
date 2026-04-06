@@ -8,6 +8,7 @@
 
 #include "cluster_engine_interface.hh"
 #include "cluster_engine_stop_rules.hh"
+#include "cluster_engine_backjump.hh"
 #include <iostream>
 #include <algorithm>
 #include <random>
@@ -898,7 +899,7 @@ bool StopCondition::evaluate_note_count_condition(const ClusterEngineCore& core)
 StopRuleManager::StopRuleManager(StopLogic logic)
     : logic_(logic), search_stopped_(false), evaluation_count_(0),
       time_stops_triggered_(0), index_stops_triggered_(0),
-      note_count_stops_triggered_(0), custom_stops_triggered_(0) {
+      note_count_stops_triggered_(0), measure_stops_triggered_(0), custom_stops_triggered_(0) {
 }
 
 void StopRuleManager::add_condition(const StopCondition& condition) {
@@ -975,6 +976,9 @@ bool StopRuleManager::should_stop_search(const ClusterEngineCore& core) {
                     break;
                 case StopConditionType::NOTE_COUNT_BASED:
                     note_count_stops_triggered_++;
+                    break;
+                case StopConditionType::MEASURE_BASED:
+                    measure_stops_triggered_++;
                     break;
                 case StopConditionType::CUSTOM_FUNCTION:
                     custom_stops_triggered_++;
@@ -1428,6 +1432,546 @@ std::vector<std::vector<int>> PitchPitchRule::extract_harmonic_slices(const Musi
     }
     
     return slices;
+}
+
+// ===== Advanced Backjumping Implementation =====
+
+// AdvancedLinearConverter implementation
+AdvancedLinearConverter::BackjumpSolutionState AdvancedLinearConverter::convert_solution_for_backjump(
+    const ClusterEngineCore& core, const std::vector<int>& changed_engines) {
+    
+    BackjumpSolutionState solution_state(core.get_num_engines());
+    
+    // Convert all engines, focusing on changed ones
+    for (int engine_id = 0; engine_id < core.get_num_engines(); ++engine_id) {
+        convert_one_engine_for_backjump(core, engine_id, solution_state);
+        
+        // Mark if this engine changed
+        auto it = std::find(changed_engines.begin(), changed_engines.end(), engine_id);
+        if (it != changed_engines.end()) {
+            solution_state.changed_engines[engine_id].push_back(engine_id);
+        }
+        
+        // Check if engine is locked (domain size <= 1)
+        const auto& engine = core.get_engine(engine_id);
+        solution_state.engine_locked[engine_id] = (engine.get_domain().get_candidates().size() <= 1);
+    }
+    
+    return solution_state;
+}
+
+void AdvancedLinearConverter::convert_one_engine_for_backjump(
+    const ClusterEngineCore& core, int engine_id, BackjumpSolutionState& solution_state) {
+    
+    const auto& engine = core.get_engine(engine_id);
+    
+    if (is_measure_layer(engine_id, core.get_num_engines())) {
+        // Measure layer handling - extract time signatures and measure data
+        solution_state.engine_count_values[engine_id].clear();
+        solution_state.engine_onset_values[engine_id].clear();
+        
+        // For measure engine, we track measure boundaries
+        int measure_count = 0;
+        for (int index = 0; index <= engine.get_index(); ++index) {
+            solution_state.engine_count_values[engine_id].push_back(++measure_count);
+            // Calculate cumulative time for measures
+            double cumulative_time = measure_count * 4.0; // Assume 4/4 for now
+            solution_state.engine_onset_values[engine_id].push_back(cumulative_time);
+        }
+    } else {
+        // Pitch and rhythm layers
+        solution_state.engine_count_values[engine_id] = get_engine_index_first_counts(engine);
+        
+        if (is_rhythm_layer(engine_id)) {
+            // Rhythm layer - extract onset timepoints
+            solution_state.engine_onset_values[engine_id] = get_engine_index_first_onsets(engine);
+        } else {
+            // Pitch layer - no onset data needed, use placeholder
+            solution_state.engine_onset_values[engine_id].clear();
+        }
+    }
+}
+
+std::vector<int> AdvancedLinearConverter::get_engine_index_first_counts(const MusicalEngine& engine) {
+    std::vector<int> count_values;
+    
+    // Extract cumulative count values for backjump analysis
+    int cumulative_count = 0;
+    for (int index = 0; index <= engine.get_index(); ++index) {
+        if (index < static_cast<int>(engine.get_domain().get_candidates().size())) {
+            const auto& candidate = engine.get_domain().get_candidates()[index];
+            if (candidate.absolute_value > 0) { // Only count non-rest notes
+                cumulative_count++;
+            }
+        }
+        count_values.push_back(cumulative_count);
+    }
+    
+    return count_values;
+}
+
+std::vector<double> AdvancedLinearConverter::get_engine_index_first_onsets(const MusicalEngine& engine) {
+    std::vector<double> onset_values;
+    
+    // Extract onset timepoints for rhythm engines
+    double cumulative_time = 0.0;
+    for (int index = 0; index <= engine.get_index(); ++index) {
+        onset_values.push_back(cumulative_time);
+        
+        if (index < static_cast<int>(engine.get_domain().get_candidates().size())) {
+            const auto& candidate = engine.get_domain().get_candidates()[index];
+            // Add duration to cumulative time (use absolute value as duration)
+            cumulative_time += std::abs(candidate.absolute_value / 1000.0); // Convert to seconds
+        }
+    }
+    
+    return onset_values;
+}
+
+// AdvancedBackjumpIndexCalculator implementation
+int AdvancedBackjumpIndexCalculator::find_index_for_count_value(
+    int count_value, const std::vector<int>& count_sequence) const {
+    
+    // Based on find-index-for-countvalue from 07.backjumping.lisp
+    if (count_sequence.empty()) {
+        return 0;
+    }
+    
+    // Find first position where current value < target count_value
+    auto it = std::find_if(count_sequence.begin(), count_sequence.end(),
+                          [count_value](int current) { return current >= count_value; });
+    
+    if (it != count_sequence.end()) {
+        return std::max(0, static_cast<int>(std::distance(count_sequence.begin(), it)) - 1);
+    } else {
+        return std::max(0, static_cast<int>(count_sequence.size()) - 1);
+    }
+}
+
+int AdvancedBackjumpIndexCalculator::find_index_for_timepoint(
+    double timepoint, const std::vector<double>& timepoint_sequence) const {
+    
+    // Based on find-index-for-timepoint from 07.backjumping.lisp
+    if (timepoint_sequence.empty()) {
+        return 0;
+    }
+    
+    // Find first position where current timepoint < target timepoint
+    auto it = std::find_if(timepoint_sequence.begin(), timepoint_sequence.end(),
+                          [timepoint](double current) { return current >= timepoint; });
+    
+    if (it != timepoint_sequence.end()) {
+        return std::max(0, static_cast<int>(std::distance(timepoint_sequence.begin(), it)) - 1);
+    } else {
+        return std::max(0, static_cast<int>(timepoint_sequence.size()) - 1);
+    }
+}
+
+int AdvancedBackjumpIndexCalculator::find_index_before_timepoint(
+    double timepoint, const std::vector<double>& timepoint_sequence) const {
+    
+    // Based on find-index-before-timepoint from 07.backjumping.lisp
+    if (timepoint_sequence.empty()) {
+        return 0;
+    }
+    
+    // Find first position where current timepoint <= target timepoint
+    auto it = std::find_if(timepoint_sequence.begin(), timepoint_sequence.end(),
+                          [timepoint](double current) { return current > timepoint; });
+    
+    if (it != timepoint_sequence.end()) {
+        return std::max(0, static_cast<int>(std::distance(timepoint_sequence.begin(), it)) - 1);
+    } else {
+        return std::max(0, static_cast<int>(timepoint_sequence.size()) - 1);
+    }
+}
+
+int AdvancedBackjumpIndexCalculator::find_index_for_position_in_duration_sequence(
+    int position, const LinearSolution& linear_solution,
+    const AdvancedLinearConverter::BackjumpSolutionState& backjump_state, int engine_id) const {
+    
+    // Based on find-index-for-position-in-durationseq from 07.backjumping.lisp
+    if (engine_id >= static_cast<int>(linear_solution.onset_times.size()) || 
+        position >= static_cast<int>(linear_solution.onset_times[engine_id].size())) {
+        return 0;
+    }
+    
+    // Get timepoint at the specified position
+    double timepoint = linear_solution.onset_times[engine_id][position];
+    
+    // Find index using the backjump onset values
+    if (engine_id < static_cast<int>(backjump_state.engine_onset_values.size())) {
+        return find_index_before_timepoint(timepoint, backjump_state.engine_onset_values[engine_id]);
+    }
+    
+    return 0;
+}
+
+void AdvancedBackjumpIndexCalculator::reset_backjump_indexes(
+    std::vector<std::vector<int>>& backjump_indexes) const {
+    
+    // Based on reset-vbackjump-indexes from 07.backjumping.lisp
+    for (auto& engine_indexes : backjump_indexes) {
+        engine_indexes.clear();
+    }
+}
+
+int AdvancedBackjumpIndexCalculator::safe_index_calculation(int candidate_index, int sequence_length) const {
+    return std::max(0, std::min(candidate_index, sequence_length - 1));
+}
+
+// AdvancedBackjumpCoordinator implementation
+void AdvancedBackjumpCoordinator::set_backjump_from_pitch_duration_failure(
+    int failed_count_value, int failed_engine, int rhythm_engine, int pitch_engine,
+    const AdvancedLinearConverter::BackjumpSolutionState& backjump_state) {
+    
+    // Based on set-vbackjump-indexes-from-failed-count-pitch-duration from 07.backjumping.lisp
+    current_backjump_state_.primary_failed_engine = failed_engine;
+    
+    if (failed_engine == rhythm_engine) {
+        // Rhythm engine failed, set backjump for pitch engine
+        if (pitch_engine < static_cast<int>(backjump_state.engine_count_values.size())) {
+            int backjump_index = calculator_.find_index_for_count_value(
+                failed_count_value, backjump_state.engine_count_values[pitch_engine]);
+            current_backjump_state_.engine_backjump_indexes[pitch_engine].push_back(backjump_index);
+            current_backjump_state_.engine_has_backjump_target[pitch_engine] = true;
+            current_backjump_state_.secondary_failed_engine = pitch_engine;
+        }
+    } else {
+        // Pitch engine failed, set backjump for rhythm engine
+        if (rhythm_engine < static_cast<int>(backjump_state.engine_count_values.size())) {
+            int backjump_index = calculator_.find_index_for_count_value(
+                failed_count_value, backjump_state.engine_count_values[rhythm_engine]);
+            current_backjump_state_.engine_backjump_indexes[rhythm_engine].push_back(backjump_index);
+            current_backjump_state_.engine_has_backjump_target[rhythm_engine] = true;
+            current_backjump_state_.secondary_failed_engine = rhythm_engine;
+        }
+    }
+}
+
+void AdvancedBackjumpCoordinator::set_backjump_from_multi_voice_failure(
+    const std::vector<int>& failed_note_counts, const std::vector<int>& voice_numbers,
+    const AdvancedLinearConverter::BackjumpSolutionState& backjump_state,
+    const LinearSolution& linear_solution) {
+    
+    // Based on set-vbackjump-indexes-from-failed-notecount-duration-pitch-in-voices
+    for (size_t i = 0; i < voice_numbers.size() && i < failed_note_counts.size(); ++i) {
+        int voice_number = voice_numbers[i];
+        int failed_note_count = failed_note_counts[i];
+        
+        // Skip if failed_note_count is 0 (simplified solution for rest cases)
+        if (failed_note_count <= 0) {
+            continue;
+        }
+        
+        // Calculate engine IDs for this voice (assuming 2 engines per voice: rhythm + pitch)
+        int rhythm_engine = voice_number * 2;
+        int pitch_engine = voice_number * 2 + 1;
+        
+        // Set backjump for rhythm engine in this voice
+        if (rhythm_engine < static_cast<int>(backjump_state.engine_count_values.size())) {
+            int rhythm_backjump_index = calculator_.find_index_for_count_value(
+                failed_note_count, backjump_state.engine_count_values[rhythm_engine]);
+            current_backjump_state_.engine_backjump_indexes[rhythm_engine].push_back(rhythm_backjump_index);
+            current_backjump_state_.engine_has_backjump_target[rhythm_engine] = true;
+        }
+        
+        // Set backjump for pitch engine in this voice
+        if (pitch_engine < static_cast<int>(backjump_state.engine_count_values.size())) {
+            int pitch_backjump_index = calculator_.find_index_for_count_value(
+                failed_note_count, backjump_state.engine_count_values[pitch_engine]);
+            current_backjump_state_.engine_backjump_indexes[pitch_engine].push_back(pitch_backjump_index);
+            current_backjump_state_.engine_has_backjump_target[pitch_engine] = true;
+        }
+    }
+}
+
+std::pair<int, int> AdvancedBackjumpCoordinator::get_optimal_backjump_target() const {
+    // Find the engine with the earliest backjump target
+    int target_engine = -1;
+    int target_index = -1;
+    int earliest_index = std::numeric_limits<int>::max();
+    
+    for (int engine = 0; engine < static_cast<int>(current_backjump_state_.engine_has_backjump_target.size()); ++engine) {
+        if (current_backjump_state_.engine_has_backjump_target[engine] && 
+            !current_backjump_state_.engine_backjump_indexes[engine].empty()) {
+            
+            int candidate_index = current_backjump_state_.engine_backjump_indexes[engine].front();
+            if (candidate_index < earliest_index) {
+                earliest_index = candidate_index;
+                target_engine = engine;
+                target_index = candidate_index;
+            }
+        }
+    }
+    
+    return std::make_pair(target_engine, target_index);
+}
+
+void AdvancedBackjumpCoordinator::reset_coordination() {
+    current_backjump_state_ = BackjumpIndexState(num_engines_);
+    calculator_.reset_backjump_indexes(current_backjump_state_.engine_backjump_indexes);
+}
+
+bool AdvancedBackjumpCoordinator::has_backjump_targets() const {
+    for (bool has_target : current_backjump_state_.engine_has_backjump_target) {
+        if (has_target) return true;
+    }
+    return false;
+}
+
+std::vector<int> AdvancedBackjumpCoordinator::get_engines_with_targets() const {
+    std::vector<int> engines_with_targets;
+    for (int engine = 0; engine < static_cast<int>(current_backjump_state_.engine_has_backjump_target.size()); ++engine) {
+        if (current_backjump_state_.engine_has_backjump_target[engine]) {
+            engines_with_targets.push_back(engine);
+        }
+    }
+    return engines_with_targets;
+}
+
+void AdvancedBackjumpCoordinator::update_after_engine_progress(int engine_id, int new_index) {
+    // Clear backjump target for this engine if it has progressed past the target
+    if (engine_id < static_cast<int>(current_backjump_state_.engine_has_backjump_target.size()) && 
+        current_backjump_state_.engine_has_backjump_target[engine_id]) {
+        
+        if (!current_backjump_state_.engine_backjump_indexes[engine_id].empty()) {
+            int target_index = current_backjump_state_.engine_backjump_indexes[engine_id].front();
+            if (new_index >= target_index) {
+                // Progress past target, clear the backjump
+                current_backjump_state_.engine_backjump_indexes[engine_id].clear();
+                current_backjump_state_.engine_has_backjump_target[engine_id] = false;
+            }
+        }
+    }
+}
+
+// AdvancedBackjumpManager implementation
+bool AdvancedBackjumpManager::process_constraint_failure(
+    int failed_engine, int failed_index, const std::string& constraint_type, 
+    const std::vector<int>& affected_engines) {
+    
+    if (!backjump_enabled_ || !core_) {
+        return false;
+    }
+    
+    // Update solution cache if needed
+    update_solution_cache();
+    
+    if (!current_solution_state_ || !current_linear_solution_) {
+        return false;
+    }
+    
+    // Analyze failure pattern and set appropriate backjump targets
+    analyze_failure_pattern(failed_engine, constraint_type, affected_engines);
+    
+    return coordinator_.has_backjump_targets();
+}
+
+bool AdvancedBackjumpManager::process_heuristic_exhaustion(int current_engine, int current_index) {
+    if (!backjump_enabled_ || !core_) {
+        return false;
+    }
+    
+    // For heuristic exhaustion, use a conservative backjump strategy
+    int backjump_distance = std::min(3, current_index);
+    int target_index = std::max(0, current_index - backjump_distance);
+    
+    coordinator_.get_backjump_state().engine_backjump_indexes[current_engine].push_back(target_index);
+    coordinator_.get_backjump_state().engine_has_backjump_target[current_engine] = true;
+    coordinator_.get_backjump_state().primary_failed_engine = current_engine;
+    
+    return true;
+}
+
+std::pair<int, int> AdvancedBackjumpManager::get_next_backjump_target() {
+    return coordinator_.get_optimal_backjump_target();
+}
+
+bool AdvancedBackjumpManager::execute_advanced_backjump(int target_engine, int target_index) {
+    if (!core_ || target_engine < 0 || target_index < 0) {
+        return false;
+    }
+    
+    // Execute the backjump by resetting the target engine to the specified index
+    auto& target_engine_obj = core_->get_engine(target_engine);
+    target_engine_obj.set_index(target_index);
+    
+    // Clear the backjump target for this engine
+    coordinator_.update_after_engine_progress(target_engine, target_index);
+    
+    return true;
+}
+
+void AdvancedBackjumpManager::update_solution_state(const std::vector<int>& changed_engines) {
+    if (!core_) return;
+    
+    // Update solution state cache
+    current_solution_state_ = std::make_unique<AdvancedLinearConverter::BackjumpSolutionState>(
+        converter_.convert_solution_for_backjump(*core_, changed_engines));
+}
+
+void AdvancedBackjumpManager::reset_for_new_search() {
+    coordinator_.reset_coordination();
+    current_solution_state_.reset();
+    current_linear_solution_.reset();
+}
+
+void AdvancedBackjumpManager::print_advanced_backjump_analysis() const {
+    std::cout << "\n🔄 Advanced Backjump Analysis:\n";
+    std::cout << "   Backjump enabled: " << (backjump_enabled_ ? "yes" : "no") << "\n";
+    std::cout << "   Intelligent analysis: " << (intelligent_analysis_ ? "yes" : "no") << "\n";
+    
+    if (coordinator_.has_backjump_targets()) {
+        auto engines_with_targets = coordinator_.get_engines_with_targets();
+        std::cout << "   Engines with backjump targets: ";
+        for (int engine : engines_with_targets) {
+            std::cout << engine << " ";
+        }
+        std::cout << "\n";
+        
+        auto target = coordinator_.get_optimal_backjump_target();
+        std::cout << "   Optimal backjump target: engine " << target.first << ", index " << target.second << "\n";
+    } else {
+        std::cout << "   No backjump targets set\n";
+    }
+}
+
+void AdvancedBackjumpManager::print_solution_state_summary() const {
+    if (!current_solution_state_) {
+        std::cout << "\n📊 No solution state cached\n";
+        return;
+    }
+    
+    std::cout << "\n📊 Solution State Summary:\n";
+    for (int engine = 0; engine < static_cast<int>(current_solution_state_->engine_count_values.size()); ++engine) {
+        std::cout << "   Engine " << engine << ": ";
+        std::cout << current_solution_state_->engine_count_values[engine].size() << " count values, ";
+        std::cout << current_solution_state_->engine_onset_values[engine].size() << " onset values";
+        std::cout << (current_solution_state_->engine_locked[engine] ? " (locked)" : "") << "\n";
+    }
+}
+
+void AdvancedBackjumpManager::update_solution_cache() {
+    if (!core_) return;
+    
+    // Create linear solution for analysis
+    current_linear_solution_ = std::make_unique<LinearSolution>();
+    
+    // Initialize linear solution arrays
+    current_linear_solution_->count_values.resize(core_->get_num_engines());
+    current_linear_solution_->onset_times.resize(core_->get_num_engines());
+    current_linear_solution_->pitch_values.resize(core_->get_num_engines());
+    current_linear_solution_->metric_values.resize(core_->get_num_engines());
+    
+    // Update for each engine
+    for (int engine = 0; engine < core_->get_num_engines(); ++engine) {
+        current_linear_solution_->update_for_engine(engine, core_->get_engine(engine));
+    }
+}
+
+void AdvancedBackjumpManager::analyze_failure_pattern(
+    int failed_engine, const std::string& constraint_type, const std::vector<int>& affected_engines) {
+    
+    if (!intelligent_analysis_ || !current_solution_state_) {
+        return;
+    }
+    
+    // Analyze failure type and set appropriate backjump strategy
+    if (constraint_type.find("pitch-duration") != std::string::npos ||
+        constraint_type.find("rhythm-pitch") != std::string::npos) {
+        
+        // Pitch-duration failure - use sophisticated voice-based backjump
+        int voice_number = failed_engine / 2; // Assume 2 engines per voice
+        int rhythm_engine = voice_number * 2;
+        int pitch_engine = voice_number * 2 + 1;
+        
+        // Get failed count value (use current engine progress)
+        int failed_count_value = failed_engine < static_cast<int>(current_solution_state_->engine_count_values.size()) ?
+                                 (current_solution_state_->engine_count_values[failed_engine].empty() ? 1 :
+                                  current_solution_state_->engine_count_values[failed_engine].back()) : 1;
+        
+        coordinator_.set_backjump_from_pitch_duration_failure(
+            failed_count_value, failed_engine, rhythm_engine, pitch_engine, *current_solution_state_);
+            
+    } else if (constraint_type.find("multi-voice") != std::string::npos ||
+               constraint_type.find("cross-voice") != std::string::npos) {
+        
+        // Multi-voice failure - use advanced multi-voice backjump coordination
+        std::vector<int> failed_note_counts;
+        std::vector<int> voice_numbers;
+        
+        // Extract voice information from affected engines
+        for (int engine : affected_engines) {
+            int voice_num = engine / 2;
+            voice_numbers.push_back(voice_num);
+            
+            // Get current note count for this voice
+            int note_count = engine < static_cast<int>(current_solution_state_->engine_count_values.size()) ?
+                            (current_solution_state_->engine_count_values[engine].empty() ? 1 :
+                             current_solution_state_->engine_count_values[engine].back()) : 1;
+            failed_note_counts.push_back(note_count);
+        }
+        
+        coordinator_.set_backjump_from_multi_voice_failure(
+            failed_note_counts, voice_numbers, *current_solution_state_, *current_linear_solution_);
+            
+    } else {
+        // Generic constraint failure - use conservative backjump
+        coordinator_.get_backjump_state().primary_failed_engine = failed_engine;
+        int backjump_distance = std::min(2, static_cast<int>(current_solution_state_->engine_count_values[failed_engine].size()));
+        int target_index = std::max(0, static_cast<int>(current_solution_state_->engine_count_values[failed_engine].size()) - backjump_distance);
+        
+        coordinator_.get_backjump_state().engine_backjump_indexes[failed_engine].push_back(target_index);
+        coordinator_.get_backjump_state().engine_has_backjump_target[failed_engine] = true;
+    }
+}
+
+} // namespace ClusterEngine
+
+namespace ClusterEngine {
+
+// LinearSolution implementation
+void LinearSolution::update_for_engine(int engine_id, const MusicalEngine& engine) {
+    // Ensure vectors are properly sized
+    if (engine_id >= static_cast<int>(count_values.size())) {
+        count_values.resize(engine_id + 1);
+        onset_times.resize(engine_id + 1);
+        pitch_values.resize(engine_id + 1);
+        metric_values.resize(engine_id + 1);
+    }
+    
+    // Clear existing data for this engine
+    count_values[engine_id].clear();
+    onset_times[engine_id].clear();
+    pitch_values[engine_id].clear();
+    metric_values[engine_id].clear();
+    
+    // Populate data based on current engine state
+    int cumulative_count = 0;
+    double cumulative_time = 0.0;
+    
+    for (int index = 0; index <= engine.get_index(); ++index) {
+        // Count values (cumulative note count)
+        if (index < static_cast<int>(engine.get_domain().get_candidates().size())) {
+            const auto& candidate = engine.get_domain().get_candidates()[index];
+            if (candidate.absolute_value > 0) { // Only count non-rest notes
+                cumulative_count++;
+            }
+            
+            // Pitch values
+            pitch_values[engine_id].push_back(candidate.absolute_value);
+            
+            // Duration to time conversion (for onset times)
+            cumulative_time += std::abs(candidate.absolute_value / 1000.0); // Convert to seconds
+            
+            // Metric values (default to 4/4 time)
+            metric_values[engine_id].push_back({4, 4});
+        }
+        
+        count_values[engine_id].push_back(cumulative_count);
+        onset_times[engine_id].push_back(cumulative_time);
+    }
 }
 
 } // namespace ClusterEngine

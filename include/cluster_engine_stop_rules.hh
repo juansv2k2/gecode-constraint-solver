@@ -122,6 +122,7 @@ private:
     int time_stops_triggered_;
     int index_stops_triggered_;
     int note_count_stops_triggered_;
+    int measure_stops_triggered_;
     int custom_stops_triggered_;
 
 public:

@@ -202,6 +202,223 @@ struct BackjumpSuggestions {
         int metric_engine, int rhythm_engine, int current_index, const std::string& reason);
 };
 
+/**
+ * @brief Advanced Linear Solution Converter
+ * 
+ * Based on convert-vsolution->linear-and-backjump from 07.backjumping.lisp
+ * Provides comprehensive solution state conversion for optimal backjumping.
+ */
+class AdvancedLinearConverter {
+public:
+    struct BackjumpSolutionState {
+        std::vector<std::vector<int>> engine_count_values;      // Count values for backjump analysis
+        std::vector<std::vector<double>> engine_onset_values;   // Onset timepoints for backjump analysis  
+        std::vector<std::vector<int>> changed_engines;          // Engines that changed in this step
+        std::vector<bool> engine_locked;                        // Which engines are locked/solved
+        
+        BackjumpSolutionState(int num_engines) {
+            engine_count_values.resize(num_engines);
+            engine_onset_values.resize(num_engines);
+            changed_engines.resize(num_engines);
+            engine_locked.resize(num_engines, false);
+        }
+    };
+    
+    AdvancedLinearConverter() = default;
+    
+    // Convert complete solution to linear format with backjump data
+    BackjumpSolutionState convert_solution_for_backjump(const ClusterEngineCore& core, 
+                                                        const std::vector<int>& changed_engines);
+    
+    // Convert single engine for incremental updates (based on convert-ONE-vsolution->linear-and-backjump)
+    void convert_one_engine_for_backjump(const ClusterEngineCore& core, int engine_id,
+                                         BackjumpSolutionState& solution_state);
+    
+    // Extract count values for specific engine (get-one-engine-index-first-counts)
+    std::vector<int> get_engine_index_first_counts(const MusicalEngine& engine);
+    
+    // Extract onset values for specific engine (get-one-engine-index-first-onsets)  
+    std::vector<double> get_engine_index_first_onsets(const MusicalEngine& engine);
+    
+    // Check if engine is measure layer (last engine)
+    bool is_measure_layer(int engine_id, int total_engines) const {
+        return engine_id == (total_engines - 1);
+    }
+    
+    // Check if engine is rhythm layer (even numbered)
+    bool is_rhythm_layer(int engine_id) const {
+        return (engine_id % 2) == 0;
+    }
+};
+
+/**
+ * @brief Advanced Backjump Index Calculator
+ * 
+ * Based on sophisticated index calculation functions from 07.backjumping.lisp
+ * Provides precise backjump target calculation with musical intelligence.
+ */
+class AdvancedBackjumpIndexCalculator {
+public:
+    AdvancedBackjumpIndexCalculator() = default;
+    
+    // Find index for count value failure (find-index-for-countvalue)
+    int find_index_for_count_value(int count_value, 
+                                   const std::vector<int>& count_sequence) const;
+    
+    // Find index for timepoint failure (find-index-for-timepoint) 
+    int find_index_for_timepoint(double timepoint,
+                                 const std::vector<double>& timepoint_sequence) const;
+    
+    // Find index before timepoint (find-index-before-timepoint)
+    int find_index_before_timepoint(double timepoint,
+                                    const std::vector<double>& timepoint_sequence) const;
+    
+    // Find index for position in duration sequence (find-index-for-position-in-durationseq)
+    int find_index_for_position_in_duration_sequence(int position, 
+                                                     const LinearSolution& linear_solution,
+                                                     const AdvancedLinearConverter::BackjumpSolutionState& backjump_state,
+                                                     int engine_id) const;
+    
+    // Reset backjump indexes for new search (reset-vbackjump-indexes)
+    void reset_backjump_indexes(std::vector<std::vector<int>>& backjump_indexes) const;
+    
+private:
+    // Helper for safe index calculation
+    int safe_index_calculation(int candidate_index, int sequence_length) const;
+};
+
+/**
+ * @brief Advanced Backjump Coordinator  
+ * 
+ * Based on sophisticated backjump coordination from 07.backjumping.lisp
+ * Handles multi-voice and cross-engine backjump coordination.
+ */
+class AdvancedBackjumpCoordinator {
+public:
+    struct BackjumpIndexState {
+        std::vector<std::vector<int>> engine_backjump_indexes;  // Backjump targets per engine
+        std::vector<bool> engine_has_backjump_target;           // Which engines have targets
+        int primary_failed_engine;                              // Main engine that caused failure
+        int secondary_failed_engine;                            // Secondary engine affected
+        
+        BackjumpIndexState(int num_engines) {
+            engine_backjump_indexes.resize(num_engines);
+            engine_has_backjump_target.resize(num_engines, false);
+            primary_failed_engine = -1;
+            secondary_failed_engine = -1;
+        }
+    };
+    
+    AdvancedBackjumpCoordinator(int num_engines) 
+        : num_engines_(num_engines), calculator_(), converter_(), 
+          current_backjump_state_(num_engines) {}
+    
+    // Set backjump indexes from pitch-duration failure (set-vbackjump-indexes-from-failed-count-pitch-duration)
+    void set_backjump_from_pitch_duration_failure(int failed_count_value, int failed_engine,
+                                                  int rhythm_engine, int pitch_engine,
+                                                  const AdvancedLinearConverter::BackjumpSolutionState& backjump_state);
+    
+    // Set backjump indexes from multi-voice failure (set-vbackjump-indexes-from-failed-notecount-duration-pitch-in-voices)  
+    void set_backjump_from_multi_voice_failure(const std::vector<int>& failed_note_counts,
+                                               const std::vector<int>& voice_numbers,
+                                               const AdvancedLinearConverter::BackjumpSolutionState& backjump_state,
+                                               const LinearSolution& linear_solution);
+    
+    // Get optimal backjump target for current situation
+    std::pair<int, int> get_optimal_backjump_target() const;
+    
+    // Reset backjump coordination for new search
+    void reset_coordination();
+    
+    // Check if any engine has backjump target
+    bool has_backjump_targets() const;
+    
+    // Get engines with pending backjump targets
+    std::vector<int> get_engines_with_targets() const;
+    
+    // Update backjump state after engine progress
+    void update_after_engine_progress(int engine_id, int new_index);
+    
+    // Get backjump state (const and non-const)
+    const BackjumpIndexState& get_backjump_state() const { return current_backjump_state_; }
+    BackjumpIndexState& get_backjump_state() { return current_backjump_state_; }
+    
+private:
+    int num_engines_;
+    AdvancedBackjumpIndexCalculator calculator_;
+    AdvancedLinearConverter converter_;
+    BackjumpIndexState current_backjump_state_;
+};
+
+/**
+ * @brief Comprehensive Advanced Backjump Manager
+ * 
+ * Integrates all advanced backjumping capabilities into a unified interface
+ * for the main search process. Provides the intelligence from the original
+ * Cluster Engine backjumping system.
+ */
+class AdvancedBackjumpManager {
+public:
+    AdvancedBackjumpManager(ClusterEngineCore* core)
+        : core_(core), coordinator_(core ? core->get_num_engines() : 0),
+          converter_(), calculator_(), backjump_enabled_(true),
+          intelligent_analysis_(true), current_linear_solution_() {}
+    
+    // Main backjump processing interface
+    bool process_constraint_failure(int failed_engine, int failed_index, 
+                                   const std::string& constraint_type,
+                                   const std::vector<int>& affected_engines = {});
+    
+    // Process heuristic exhaustion
+    bool process_heuristic_exhaustion(int current_engine, int current_index);
+    
+    // Get next backjump target
+    std::pair<int, int> get_next_backjump_target();
+    
+    // Execute backjump operation  
+    bool execute_advanced_backjump(int target_engine, int target_index);
+    
+    // Update solution state for backjump analysis
+    void update_solution_state(const std::vector<int>& changed_engines);
+    
+    // Configuration
+    void set_backjump_enabled(bool enabled) { backjump_enabled_ = enabled; }
+    void set_intelligent_analysis(bool enabled) { intelligent_analysis_ = enabled; }
+    
+    bool is_backjump_enabled() const { return backjump_enabled_; }
+    bool is_intelligent_analysis_enabled() const { return intelligent_analysis_; }
+    
+    // Reset for new search
+    void reset_for_new_search();
+    
+    // Statistics and debugging
+    void print_advanced_backjump_analysis() const;
+    void print_solution_state_summary() const;
+    
+    // Access to components for integration
+    AdvancedBackjumpCoordinator& get_coordinator() { return coordinator_; }
+    const AdvancedBackjumpCoordinator& get_coordinator() const { return coordinator_; }
+    
+private:
+    ClusterEngineCore* core_;
+    AdvancedBackjumpCoordinator coordinator_;
+    AdvancedLinearConverter converter_;
+    AdvancedBackjumpIndexCalculator calculator_;
+    bool backjump_enabled_;
+    bool intelligent_analysis_;
+    
+    // Current solution state cache
+    std::unique_ptr<AdvancedLinearConverter::BackjumpSolutionState> current_solution_state_;
+    std::unique_ptr<LinearSolution> current_linear_solution_;
+    
+    // Update solution state cache
+    void update_solution_cache();
+    
+    // Analyze failure pattern for optimal backjump strategy
+    void analyze_failure_pattern(int failed_engine, const std::string& constraint_type,
+                                const std::vector<int>& affected_engines);
+};
+
 } // namespace ClusterEngine
 
 #endif // CLUSTER_ENGINE_BACKJUMP_HH
