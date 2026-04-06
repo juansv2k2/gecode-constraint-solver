@@ -81,6 +81,11 @@ public:
     virtual PropCost cost(const Space& home, const ModEventDelta& med) const;
 
     /**
+     * @brief Reschedule propagator (required by Gecode)
+     */
+    virtual void reschedule(Space& home);
+
+    /**
      * @brief Size footprint
      */
     virtual size_t dispose(Space& home);
@@ -273,6 +278,11 @@ public:
      * @brief Set backjumping mode for search
      */
     void set_backjump_mode(AdvancedBackjumping::BackjumpMode mode);
+
+    /**
+     * @brief Constrain note variables to a specific MIDI range
+     */
+    void constrain_note_range(int min_note, int max_note);
 
     // ================================
     // Solution Access

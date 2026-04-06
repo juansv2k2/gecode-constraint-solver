@@ -12,6 +12,7 @@
 #include "enhanced_rule_architecture.hh"
 #include "advanced_backjumping_strategies.hh"
 #include "dual_solution_storage.hh"
+#include "gecode_cluster_integration.hh"
 #include <memory>
 #include <vector>
 #include <string>
@@ -152,7 +153,7 @@ class Solver {
 private:
     SolverConfig config_;
     std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>> rules_;
-    std::unique_ptr<AdvancedBackjumping::BackjumpStrategyCoordinator> coordinator_;
+    std::unique_ptr<AdvancedBackjumping::AdvancedBackjumpAnalyzer> backjump_analyzer_;
     std::unique_ptr<MusicalConstraints::DualSolutionStorage> solution_storage_;
     
     // Performance tracking

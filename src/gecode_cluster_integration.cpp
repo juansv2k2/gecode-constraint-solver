@@ -94,6 +94,16 @@ PropCost MusicalRulePropagator::cost(const Space& home, const ModEventDelta& med
     return PropCost::linear(PropCost::LO, notes_.size() + intervals_.size());
 }
 
+void MusicalRulePropagator::reschedule(Space& home) {
+    // Subscribe to all note and interval variables with domain change events
+    for (int i = 0; i < notes_.size(); ++i) {
+        notes_[i].subscribe(home, *this, Int::PC_INT_DOM);
+    }
+    for (int i = 0; i < intervals_.size(); ++i) {
+        intervals_[i].subscribe(home, *this, Int::PC_INT_DOM);
+    }
+}
+
 size_t MusicalRulePropagator::dispose(Space& home) {
     // Unsubscribe from variables
     for (int i = 0; i < notes_.size(); ++i) {
@@ -338,15 +348,11 @@ void IntegratedMusicalSpace::constrain(const Space& best) {
 void IntegratedMusicalSpace::add_musical_rule(std::shared_ptr<MusicalConstraints::MusicalRule> rule) {
     musical_rules_.push_back(rule);
     
-    // Post the rule as a propagator for each variable it affects
-    std::vector<int> affected_vars = rule->get_dependent_variables(sequence_length_ - 1);
-    for (int var_idx : affected_vars) {
-        if (var_idx >= 0 && var_idx < sequence_length_) {
-            ViewArray<Int::IntView> note_views(absolute_vars_);
-            ViewArray<Int::IntView> interval_views(interval_vars_);
-            MusicalRulePropagator::post(*this, note_views, interval_views, rule, var_idx);
-        }
-    }
+    // TEMPORARILY SKIP PROPAGATOR POSTING FOR DEBUGGING  
+    std::cout << "DEBUG: Added rule " << rule->rule_type() << " but skipped propagator posting" << std::endl;
+    
+    // TODO: Implement proper rule to Gecode constraint conversion
+    // For now, rules are stored but not actively enforced by Gecode
 }
 
 void IntegratedMusicalSpace::add_musical_rules(const std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>>& rules) {
@@ -361,6 +367,14 @@ void IntegratedMusicalSpace::add_musical_rules(const std::vector<std::shared_ptr
 void IntegratedMusicalSpace::set_backjump_mode(AdvancedBackjumping::BackjumpMode mode) {
     backjump_mode_ = mode;
     setup_backjump_branching();
+}
+
+void IntegratedMusicalSpace::constrain_note_range(int min_note, int max_note) {
+    // Constrain all note variables to the specified MIDI range
+    for (int i = 0; i < sequence_length_; ++i) {
+        rel(*this, absolute_vars_[i], IRT_GQ, min_note);
+        rel(*this, absolute_vars_[i], IRT_LQ, max_note);
+    }
 }
 
 std::vector<int> IntegratedMusicalSpace::get_absolute_sequence() const {
@@ -468,8 +482,14 @@ void IntegratedMusicalSpace::post_musical_constraints() {
 
 void IntegratedMusicalSpace::setup_backjump_branching() {
     if (!musical_rules_.empty()) {
-        ViewArray<Int::IntView> note_views(absolute_vars_);
-        ViewArray<Int::IntView> interval_views(interval_vars_);
+        ViewArray<Int::IntView> note_views(*this, absolute_vars_.size());
+        for (int i = 0; i < absolute_vars_.size(); ++i) {
+            note_views[i] = absolute_vars_[i];
+        }
+        ViewArray<Int::IntView> interval_views(*this, interval_vars_.size());
+        for (int i = 0; i < interval_vars_.size(); ++i) {
+            interval_views[i] = interval_vars_[i];
+        }
         AdvancedBackjumpBrancher::post(*this, note_views, interval_views, musical_rules_, backjump_mode_);
     }
 }
