@@ -117,7 +117,17 @@ MAIN_INTERFACE_TEST_TARGET = test-main-interface
 MAIN_INTERFACE_TEST_SOURCE = test_main_interface.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
 MAIN_INTERFACE_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
-all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET)
+# JSON Interface Test  
+JSON_INTERFACE_TEST_TARGET = test-cluster-json-interface
+JSON_INTERFACE_TEST_SOURCE = test_cluster_json_interface.cpp
+JSON_INTERFACE_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# Custom Consensus Test
+CUSTOM_CONSENSUS_TEST_TARGET = test-custom-consensus
+CUSTOM_CONSENSUS_TEST_SOURCE = test_custom_consensus.cpp
+CUSTOM_CONSENSUS_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET)
 
 # Production system - main interface
 $(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
@@ -134,6 +144,14 @@ $(SIMPLE_VALIDATION_TARGET): $(SIMPLE_VALIDATION_SOURCE) include/gecode_cluster_
 # Main interface test (lightweight)
 $(MAIN_INTERFACE_TEST_TARGET): $(MAIN_INTERFACE_TEST_SOURCE) include/musical_constraint_solver.hh
 	$(CXX) $(MAIN_INTERFACE_TEST_CXXFLAGS) $(GECODE_INC) -o $@ $(MAIN_INTERFACE_TEST_SOURCE) $(GECODE_LIB)
+
+# JSON interface test
+$(JSON_INTERFACE_TEST_TARGET): $(JSON_INTERFACE_TEST_SOURCE) include/cluster_engine_json_interface.hh
+	$(CXX) $(JSON_INTERFACE_TEST_CXXFLAGS) -o $@ $(JSON_INTERFACE_TEST_SOURCE)
+
+# Custom consensus test
+$(CUSTOM_CONSENSUS_TEST_TARGET): $(CUSTOM_CONSENSUS_TEST_SOURCE) include/cluster_engine_json_interface.hh
+	$(CXX) $(CUSTOM_CONSENSUS_TEST_CXXFLAGS) -o $@ $(CUSTOM_CONSENSUS_TEST_SOURCE)
 
 $(TARGET): $(SOURCE)
 	$(CXX) $(CXXFLAGS) $(GECODE_INC) -o $@ $< $(GECODE_LIB)
@@ -193,6 +211,24 @@ validate-production: $(SIMPLE_VALIDATION_TARGET)
 test-main-interface: $(MAIN_INTERFACE_TEST_TARGET)
 	@echo "🎼 TESTING MAIN MUSICAL CONSTRAINT SOLVER INTERFACE"
 	@echo "==================================================="
+
+# JSON interface test 
+test-json-interface: $(JSON_INTERFACE_TEST_TARGET)
+	@echo "🎼 TESTING CLUSTER ENGINE JSON INTERFACE"
+	@echo "========================================"
+	@./$(JSON_INTERFACE_TEST_TARGET)
+
+# XML export test
+test-xml-export:
+	@echo "🎼 TESTING XML EXPORT SYSTEM"
+	@echo "============================"
+	@python3 test_xml_export.py
+
+# Custom consensus backjump test
+test-custom-consensus: $(CUSTOM_CONSENSUS_TEST_TARGET)
+	@echo "🎼 TESTING CUSTOM CONSENSUS_BACKJUMP CONFIGURATION"
+	@echo "=================================================="
+	@./$(CUSTOM_CONSENSUS_TEST_TARGET)
 	@./$(MAIN_INTERFACE_TEST_TARGET)
 
 # Complete production validation

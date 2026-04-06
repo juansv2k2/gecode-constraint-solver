@@ -1,0 +1,85 @@
+{
+  "solution_length": 10,
+  "num_voices": 2,
+  "backtrack_method": "consensus",
+
+  "rules": [
+    {
+      "rule_type": "r-index-rhythms-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal",
+        "parameters": [0.25]
+      },
+      "indices": [0],
+      "voice": 0,
+      "engine_type": "rhythm",
+      "enabled": true,
+      "priority": 5,
+      "description": "Voice 0 index 0 must equal 1/4 duration"
+    },
+
+    {
+      "rule_type": "r-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "less_than",
+        "parameters": []
+      },
+      "indices": [0, 1],
+      "voice": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "Voice 1: pitch(x) < pitch(y) - ascending pitches"
+    }
+  ],
+
+  "domains": {
+    "metric_domain": {
+      "time_signatures": [[4, 4]],
+      "subdivisions": [[1, 2, 4]],
+      "beat_structures": [[]]
+    },
+
+    "voice_domains": [
+      {
+        "voice_index": 0,
+        "rhythm_domain": [
+          [1, 4],
+          [1, 8]
+        ],
+        "pitch_domain": [60, 61, 62, 63, 64]
+      },
+      {
+        "voice_index": 1,
+        "rhythm_domain": [[1, 16]],
+        "pitch_domain": [72, 74, 76, 78]
+      }
+    ]
+  },
+
+  "search_config": {
+    "max_iterations": 50000,
+    "timeout_seconds": 120.0,
+    "enable_heuristics": true,
+    "debug_mode": true
+  },
+
+  "metadata": {
+    "description": "Custom test configuration with CONSENSUS_BACKJUMP",
+    "test_name": "consensus_backjump_test",
+    "engine_mapping": {
+      "engine_0": "rhythm_voice_0",
+      "engine_1": "pitch_voice_0",
+      "engine_2": "rhythm_voice_1",
+      "engine_3": "pitch_voice_1",
+      "engine_4": "global_metric"
+    },
+    "test_parameters": {
+      "solution_length": 10,
+      "backjump_mode": "CONSENSUS_BACKJUMP",
+      "stop_condition": "first_voice_reaches_length_10"
+    }
+  }
+}

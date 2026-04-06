@@ -1,0 +1,207 @@
+{
+  "solution_length": 50,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "not_equal",
+        "parameters": []
+      },
+      "indices": [0, 1],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "Adjacent pitches in voice 0 must be different"
+    },
+
+    {
+      "rule_type": "r-index-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal",
+        "parameters": [65]
+      },
+      "indices": [0],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "First note of voice 0 must be F4 (MIDI 65)"
+    },
+
+    {
+      "rule_type": "r-index-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal",
+        "parameters": [60]
+      },
+      "indices": [1],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "Second note of voice 0 must be C4 (MIDI 60)"
+    },
+
+    {
+      "rule_type": "r-chords",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "consonant_interval",
+        "parameters": [2, 5, 7, 10, 12]
+      },
+      "indices": [0],
+      "voice": null,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "Harmonic intervals must be consonant"
+    },
+
+    {
+      "rule_type": "r-jbs-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "jump_resolution",
+        "parameters": [6.0, 2.0]
+      },
+      "indices": [],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "Jump resolution rule for voice 0"
+    },
+
+    {
+      "rule_type": "r-jbs-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "jump_resolution",
+        "parameters": [6.0, 2.0]
+      },
+      "indices": [],
+      "voice": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "Jump resolution rule for voice 1"
+    },
+
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal",
+        "parameters": []
+      },
+      "indices": [0, 1],
+      "voice": null,
+      "engine_type": "metric",
+      "enabled": true,
+      "priority": 5,
+      "description": "Metric hierarchy constraint"
+    },
+
+    {
+      "rule_type": "r-rhythm-hierarchy",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "greater_than",
+        "parameters": []
+      },
+      "indices": [1, 0],
+      "voice": null,
+      "engine_type": "rhythm",
+      "enabled": true,
+      "priority": 5,
+      "description": "Rhythm hierarchy: second > first"
+    }
+  ],
+
+  "domains": {
+    "metric_domain": {
+      "time_signatures": [
+        [4, 4],
+        [3, 4],
+        [2, 4],
+        [5, 8],
+        [7, 8]
+      ],
+      "subdivisions": [
+        [1, 2, 3, 4, 6],
+        [1, 2, 3, 4, 6],
+        [1, 2, 3, 4, 6],
+        [1, 2, 3, 4, 6],
+        [1, 2, 3, 4, 6]
+      ],
+      "beat_structures": [[], [], [], [], []]
+    },
+
+    "voice_domains": [
+      {
+        "voice_index": 0,
+        "rhythm_domain": [
+          [1, 12],
+          [1, 24],
+          [1, 16],
+          [1, 8],
+          [1, 4],
+          [1, 2],
+          [3, 8],
+          [3, 4],
+          [5, 8]
+        ],
+        "pitch_domain": [
+          60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+          77, 78, 79, 80, 81, 82, 83, 84
+        ]
+      },
+      {
+        "voice_index": 1,
+        "rhythm_domain": [
+          [1, 12],
+          [1, 24],
+          [1, 16],
+          [1, 8],
+          [1, 4],
+          [1, 2],
+          [3, 8],
+          [3, 4],
+          [5, 8]
+        ],
+        "pitch_domain": [
+          42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
+          59, 60, 61, 62, 63, 64, 65, 66
+        ]
+      }
+    ]
+  },
+
+  "search_config": {
+    "max_iterations": 50000,
+    "timeout_seconds": 120.0,
+    "enable_heuristics": true,
+    "debug_mode": true
+  },
+
+  "metadata": {
+    "description": "Translation of Lisp cluster engine example to JSON configuration",
+    "engine_mapping": {
+      "engine_0": "rhythm_voice_0",
+      "engine_1": "pitch_voice_0",
+      "engine_2": "rhythm_voice_1",
+      "engine_3": "pitch_voice_1",
+      "engine_4": "global_metric"
+    },
+    "original_lisp_length": 50,
+    "voices": 2,
+    "total_engines": 5
+  }
+}
