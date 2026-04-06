@@ -142,7 +142,32 @@ CLUSTER_MAIN_INTERFACE_FIXED_TARGET = cluster-engine-main-fixed
 CLUSTER_MAIN_INTERFACE_FIXED_SOURCE = cluster_engine_main_interface_fixed.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
 CLUSTER_MAIN_INTERFACE_FIXED_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
-all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET)
+# 12-Tone Row Generator (Serial Composition System)
+TWELVE_TONE_TARGET = test-twelve-tone
+TWELVE_TONE_SOURCE = test_twelve_tone_generator.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+TWELVE_TONE_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# Multiple 12-Tone Rows Generator (Variety Demonstration)
+MULTI_TWELVE_TONE_TARGET = test-multiple-twelve-tone
+MULTI_TWELVE_TONE_SOURCE = test_multiple_twelve_tone_rows.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+MULTI_TWELVE_TONE_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# 12-Tone System Demo (Complete Demonstration)
+DEMO_TWELVE_TONE_TARGET = demo-twelve-tone
+DEMO_TWELVE_TONE_SOURCE = demo_twelve_tone_system.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+DEMO_TWELVE_TONE_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# Dynamic Constraint Solver Main Interface (Command-Line JSON Config)
+CONSTRAINT_SOLVER_MAIN_TARGET = constraint-solver-main
+CONSTRAINT_SOLVER_MAIN_SOURCE = constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+CONSTRAINT_SOLVER_MAIN_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON)
+DYNAMIC_SOLVER_TARGET = dynamic-solver
+DYNAMIC_SOLVER_SOURCE = dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+DYNAMIC_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_TARGET) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET)
 
 # Production system - main interface
 $(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
@@ -179,6 +204,26 @@ $(CLUSTER_MAIN_INTERFACE_TARGET): $(CLUSTER_MAIN_INTERFACE_SOURCE) include/enhan
 # Cluster Engine Main Interface - Fixed Version (Modular System)
 $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET): $(CLUSTER_MAIN_INTERFACE_FIXED_SOURCE) include/enhanced_rule_architecture.hh include/advanced_backjumping_strategies.hh include/dual_solution_storage.hh include/gecode_cluster_integration.hh
 	$(CXX) $(CLUSTER_MAIN_INTERFACE_FIXED_CXXFLAGS) $(GECODE_INC) -o $@ $(CLUSTER_MAIN_INTERFACE_FIXED_SOURCE) $(GECODE_LIB)
+
+# 12-Tone Row Generator (Serial Composition System)
+$(TWELVE_TONE_TARGET): $(TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh
+	$(CXX) $(TWELVE_TONE_CXXFLAGS) $(GECODE_INC) -o $@ $(TWELVE_TONE_SOURCE) $(GECODE_LIB)
+
+# Multiple 12-Tone Rows Generator (Variety Demonstration)
+$(MULTI_TWELVE_TONE_TARGET): $(MULTI_TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh
+	$(CXX) $(MULTI_TWELVE_TONE_CXXFLAGS) $(GECODE_INC) -o $@ $(MULTI_TWELVE_TONE_SOURCE) $(GECODE_LIB)
+
+# 12-Tone System Demo (Complete Demonstration)
+$(DEMO_TWELVE_TONE_TARGET): $(DEMO_TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh
+	$(CXX) $(DEMO_TWELVE_TONE_CXXFLAGS) $(GECODE_INC) -o $@ $(DEMO_TWELVE_TONE_SOURCE) $(GECODE_LIB)
+
+# Dynamic Constraint Solver Main Interface (Command-Line JSON Config)
+$(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/musical_constraint_solver.hh
+	$(CXX) $(CONSTRAINT_SOLVER_MAIN_CXXFLAGS) $(GECODE_INC) -o $@ $(CONSTRAINT_SOLVER_MAIN_SOURCE) $(GECODE_LIB)
+
+# Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON)
+$(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh
+	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
 
 $(TARGET): $(SOURCE)
 	$(CXX) $(CXXFLAGS) $(GECODE_INC) -o $@ $< $(GECODE_LIB)

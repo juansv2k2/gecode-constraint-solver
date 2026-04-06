@@ -1,0 +1,19 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: custom_export_test.json
+Problem: Custom Export Path Test
+Description: Test configuration with custom export path
+
+Solution (6 notes):
+  1. C4 (MIDI 60)
+  2. C#4 (MIDI 61)
+  3. D4 (MIDI 62)
+  4. D#4 (MIDI 63)
+  5. E4 (MIDI 64)
+  6. F4 (MIDI 65)
+
+Performance:
+  Solve time: 3 ms
+  Rules applied: 2
+  Rules checked: 12

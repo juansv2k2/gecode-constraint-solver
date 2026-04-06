@@ -1,0 +1,25 @@
+{
+  "name": "Relative Export Path Example",
+  "description": "Example using a relative export path",
+  "solution_length": 4,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "export_path": "results/music",
+  
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "not_equal",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "All different pitches"
+    }
+  ]
+}

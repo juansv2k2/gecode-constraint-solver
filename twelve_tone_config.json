@@ -1,0 +1,147 @@
+{
+  "name": "12-Tone Row Generator",
+  "description": "Generate a 12-tone row and its retrograde inversion in two voices",
+  "solution_length": 12,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "not_equal",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 0: All 12 notes must be different (12-tone row)"
+    },
+
+    {
+      "rule_type": "r-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "not_equal",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "voice": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 1: All 12 notes must be different (retrograde inversion)"
+    },
+
+    {
+      "rule_type": "r-custom",
+      "constraint_function": {
+        "type": "lambda",
+        "variables": ["voice0_pitches", "voice1_pitches"],
+        "expression": "voice1_pitches = retrograde_inversion(voice0_pitches)"
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "voices": [0, 1],
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 9,
+      "description": "Voice 1 must be retrograde inversion of Voice 0"
+    },
+
+    {
+      "rule_type": "r-index-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal",
+        "parameters": [60]
+      },
+      "indices": [0],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 8,
+      "description": "Voice 0 starts with C4 (MIDI 60)"
+    }
+  ],
+
+  "domains": {
+    "metric_domain": {
+      "time_signatures": [[4, 4]],
+      "subdivisions": [[1]],
+      "beat_structures": [[]]
+    },
+
+    "voice_domains": [
+      {
+        "voice_index": 0,
+        "rhythm_domain": [[1, 4]],
+        "pitch_domain": {
+          "type": "chromatic",
+          "min_note": 60,
+          "max_note": 71,
+          "note_names": [
+            "C4",
+            "C#4",
+            "D4",
+            "D#4",
+            "E4",
+            "F4",
+            "F#4",
+            "G4",
+            "G#4",
+            "A4",
+            "A#4",
+            "B4"
+          ],
+          "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
+        }
+      },
+      {
+        "voice_index": 1,
+        "rhythm_domain": [[1, 4]],
+        "pitch_domain": {
+          "type": "chromatic",
+          "min_note": 60,
+          "max_note": 71,
+          "note_names": [
+            "C4",
+            "C#4",
+            "D4",
+            "D#4",
+            "E4",
+            "F4",
+            "F#4",
+            "G4",
+            "G#4",
+            "A4",
+            "A#4",
+            "B4"
+          ],
+          "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
+        }
+      }
+    ]
+  },
+
+  "search_options": {
+    "timeout_ms": 30000,
+    "max_solutions": 1,
+    "search_strategy": "breadth_first",
+    "variable_ordering": "sequential",
+    "value_ordering": "random"
+  },
+
+  "output_options": {
+    "format": "both",
+    "include_analysis": true,
+    "export_midi": false,
+    "export_xml": true,
+    "show_statistics": true,
+    "show_intervals": true,
+    "show_pitch_classes": true
+  }
+}

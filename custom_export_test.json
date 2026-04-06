@@ -1,0 +1,39 @@
+{
+  "name": "Custom Export Path Test",
+  "description": "Test configuration with custom export path",
+  "solution_length": 6,
+  "num_voices": 1,
+  "backtrack_method": "intelligent", 
+  "export_path": "/Users/juanvassallo/GitHub/gecode-constraint-solver/custom_results",
+  
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "not_equal",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "All different pitches for one voice"
+    },
+    {
+      "rule_type": "r-index-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal",
+        "parameters": [60, 0]
+      },
+      "indices": [0],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 5,
+      "description": "Start with C4"
+    }
+  ]
+}

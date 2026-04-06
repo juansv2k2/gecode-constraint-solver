@@ -1,0 +1,39 @@
+{
+  "name": "Simple Test",
+  "description": "Simple test with two rules",
+  "solution_length": 8,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "not_equal",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "voice": 0,
+      "engine_type": "pitch", 
+      "enabled": true,
+      "priority": 10,
+      "description": "All notes must be different"
+    },
+    
+    {
+      "rule_type": "r-index-pitches-one-voice",
+      "constraint_function": {
+        "type": "builtin", 
+        "function": "equal",
+        "parameters": [60]
+      },
+      "indices": [0],
+      "voice": 0,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 8,
+      "description": "First note must be C4"
+    }
+  ]
+}

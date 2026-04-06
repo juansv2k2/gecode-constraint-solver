@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: relative_path_example.json
+Problem: Relative Export Path Example
+Description: Example using a relative export path
+
+Solution (4 notes):
+  1. C4 (MIDI 60)
+  2. C#4 (MIDI 61)
+  3. D4 (MIDI 62)
+  4. D#4 (MIDI 63)
+
+Performance:
+  Solve time: 0 ms
+  Rules applied: 1
+  Rules checked: 4
