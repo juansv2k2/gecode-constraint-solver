@@ -1,130 +1,176 @@
 {
-  "name": "12-Tone Row Generator",
-  "description": "Generate a 12-tone row and its retrograde inversion in two voices",
+  "name": "Dual Voice 12-Tone Rows - No Unisons",
+  "description": "Generate two different 12-tone rows with no unisons, quarter note rhythms, 3/4 time",
   "solution_length": 12,
   "num_voices": 2,
+  "num_engines": 5,
+  "engine_architecture": {
+    "voice_0": { "rhythm_engine": 0, "pitch_engine": 1 },
+    "voice_1": { "rhythm_engine": 2, "pitch_engine": 3 },
+    "metric_engine": 4
+  },
   "backtrack_method": "intelligent",
   "export_path": "tests/output",
 
   "rules": [
     {
-      "rule_type": "r-pitches-one-voice",
+      "rule_type": "r-pitches-one-engine",
       "constraint_function": {
         "type": "builtin",
-        "function": "not_equal",
+        "function": "all_different",
         "parameters": []
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "voice": 0,
+      "target_engine": 1,
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Voice 0: All 12 notes must be different (12-tone row)"
+      "description": "Engine 1 (Voice 0 pitch): All 12 pitch classes different (12-tone row)"
     },
 
     {
-      "rule_type": "r-pitches-one-voice",
+      "rule_type": "r-pitches-one-engine",
       "constraint_function": {
         "type": "builtin",
-        "function": "not_equal",
+        "function": "all_different",
         "parameters": []
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "voice": 1,
+      "target_engine": 3,
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Voice 1: All 12 notes must be different (retrograde inversion)"
+      "description": "Engine 3 (Voice 1 pitch): All 12 pitch classes different (12-tone row)"
     },
 
     {
-      "rule_type": "r-custom",
+      "rule_type": "r-cross-voice-no-unisons",
       "constraint_function": {
-        "type": "lambda",
-        "variables": ["voice0_pitches", "voice1_pitches"],
-        "expression": "voice1_pitches = retrograde_inversion(voice0_pitches)"
+        "type": "builtin",
+        "function": "no_unisons_between_engines",
+        "parameters": [1, 3]
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "voices": [0, 1],
+      "target_engine": -1,
+      "target_engines": [1, 3],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 9,
-      "description": "Voice 1 must be retrograde inversion of Voice 0"
+      "description": "No unisons between Voice 0 and Voice 1 at any index"
     },
 
     {
-      "rule_type": "r-index-pitches-one-voice",
+      "rule_type": "r-rhythmic-uniformity",
       "constraint_function": {
         "type": "builtin",
-        "function": "equal",
-        "parameters": [60]
+        "function": "equal_values",
+        "parameters": [4]
       },
-      "indices": [0],
-      "voice": 0,
-      "engine_type": "pitch",
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_engine": 0,
+      "engine_type": "rhythm",
       "enabled": true,
       "priority": 8,
-      "description": "Voice 0 starts with C4 (MIDI 60)"
+      "description": "Engine 0 (Voice 0 rhythm): All quarter notes (duration = 4)"
+    },
+
+    {
+      "rule_type": "r-rhythmic-uniformity",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": [4]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_engine": 2,
+      "engine_type": "rhythm",
+      "enabled": true,
+      "priority": 8,
+      "description": "Engine 2 (Voice 1 rhythm): All quarter notes (duration = 4)"
+    },
+
+    {
+      "rule_type": "r-metric-signature",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": [3]
+      },
+      "indices": [0],
+      "target_engine": 4,
+      "engine_type": "metric",
+      "enabled": true,
+      "priority": 7,
+      "description": "Engine 4 (Metric): 3/4 time signature"
     }
   ],
 
   "domains": {
-    "metric_domain": {
-      "time_signatures": [[4, 4]],
-      "subdivisions": [[1]],
-      "beat_structures": [[]]
-    },
-
-    "voice_domains": [
-      {
-        "voice_index": 0,
-        "rhythm_domain": [[1, 4]],
-        "pitch_domain": {
-          "type": "chromatic",
-          "min_note": 60,
-          "max_note": 71,
-          "note_names": [
-            "C4",
-            "C#4",
-            "D4",
-            "D#4",
-            "E4",
-            "F4",
-            "F#4",
-            "G4",
-            "G#4",
-            "A4",
-            "A#4",
-            "B4"
-          ],
-          "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
-        }
+    "engine_domains": {
+      "engine_0": {
+        "type": "rhythm",
+        "voice": 0,
+        "values": [1.0],
+        "duration_type": "quarter_note",
+        "description": "Voice 0 rhythm: quarter notes only"
       },
-      {
-        "voice_index": 1,
-        "rhythm_domain": [[1, 4]],
-        "pitch_domain": {
-          "type": "chromatic",
-          "min_note": 60,
-          "max_note": 71,
-          "note_names": [
-            "C4",
-            "C#4",
-            "D4",
-            "D#4",
-            "E4",
-            "F4",
-            "F#4",
-            "G4",
-            "G#4",
-            "A4",
-            "A#4",
-            "B4"
-          ],
-          "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
-        }
+      "engine_1": {
+        "type": "pitch",
+        "voice": 0,
+        "chromatic_range": [60, 71],
+        "note_names": [
+          "C4",
+          "C#4",
+          "D4",
+          "D#4",
+          "E4",
+          "F4",
+          "F#4",
+          "G4",
+          "G#4",
+          "A4",
+          "A#4",
+          "B4"
+        ],
+        "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+        "description": "Voice 0 pitch: chromatic twelve-tone row"
+      },
+      "engine_2": {
+        "type": "rhythm",
+        "voice": 1,
+        "values": [1.0],
+        "duration_type": "quarter_note",
+        "description": "Voice 1 rhythm: quarter notes only"
+      },
+      "engine_3": {
+        "type": "pitch",
+        "voice": 1,
+        "chromatic_range": [60, 71],
+        "note_names": [
+          "C4",
+          "C#4",
+          "D4",
+          "D#4",
+          "E4",
+          "F4",
+          "F#4",
+          "G4",
+          "G#4",
+          "A4",
+          "A#4",
+          "B4"
+        ],
+        "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+        "description": "Voice 1 pitch: retrograde inversion of Engine 1"
+      },
+      "engine_4": {
+        "type": "metric",
+        "time_signatures": [[3, 4]],
+        "subdivisions": [1, 2, 4],
+        "beat_structures": [["strong", "weak", "weak"]],
+        "description": "Global metric engine: 3/4 time with beat hierarchy"
       }
-    ]
+    }
   },
 
   "search_options": {

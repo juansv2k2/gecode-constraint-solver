@@ -1,9 +1,0 @@
-{
-  "config_file": "custom_export_test.json",
-  "problem_name": "Custom Export Path Test",
-  "solution": [60, 61, 62, 63, 64, 65],
-  "note_names": ["C4", "C#4", "D4", "D#4", "E4", "F4"],
-  "solve_time_ms": 3,
-  "rules_applied": 2,
-  "rules_checked": 12
-}

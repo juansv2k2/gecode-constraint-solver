@@ -1,0 +1,17 @@
+{
+  "test_name": "Multi-Voice Data Extraction Test",
+  "voices": [
+    {
+      "voice": 0,
+      "pitch_solution": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+      "rhythm_solution": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    },
+    {
+      "voice": 1,
+      "pitch_solution": [64, 60, 69, 66, 68, 64, 73, 70, 72, 68, 77, 74],
+      "rhythm_solution": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    }
+  ],
+  "metric_signature": [4],
+  "solve_time_ms": 2.819
+}

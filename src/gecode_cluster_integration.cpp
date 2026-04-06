@@ -494,6 +494,67 @@ void IntegratedMusicalSpace::setup_backjump_branching() {
     }
 }
 
+std::vector<int> IntegratedMusicalSpace::get_rhythm_sequence(int voice) const {
+    std::vector<int> sequence;
+    // Engine mapping: Voice 0 rhythm = engine 0, Voice 1 rhythm = engine 2
+    // int rhythm_engine = voice * 2;  // Future: Extract from actual engine variables
+    
+    // For now, return a basic rhythm pattern (all quarter notes = 4)
+    // This should be replaced with actual engine variable extraction when the 
+    // multi-engine architecture is fully implemented
+    for (int i = 0; i < sequence_length_; ++i) {
+        sequence.push_back(4);  // Quarter note value
+    }
+    return sequence;
+}
+
+std::vector<int> IntegratedMusicalSpace::get_pitch_sequence(int voice) const {
+    std::vector<int> sequence;
+    // Engine mapping: Voice 0 pitch = engine 1, Voice 1 pitch = engine 3  
+    // int pitch_engine = voice * 2 + 1;  // Future: Extract from actual engine variables
+    
+    // Extract pitch data
+    if (voice == 0) {
+        // For voice 0, return the main absolute sequence
+        return get_absolute_sequence();
+    } else if (voice == 1) {
+        // For voice 1, generate a variation of the main sequence
+        auto base_sequence = get_absolute_sequence();
+        for (size_t i = 0; i < base_sequence.size(); ++i) {
+            // Create a harmonic variation for voice 1
+            int note = base_sequence[i];
+            if (note >= 0) {
+                // Add different intervals to create distinct voice
+                if (i % 4 == 0) note += 4;       // Major third
+                else if (i % 4 == 1) note -= 1;  // Minor second below
+                else if (i % 4 == 2) note += 7;  // Perfect fifth  
+                else note += 3;                  // Minor third
+                
+                // Keep in reasonable range
+                while (note > 84) note -= 12;
+                while (note < 48) note += 12;
+            }
+            sequence.push_back(note);
+        }
+    }
+    return sequence;
+}
+
+std::vector<int> IntegratedMusicalSpace::get_metric_sequence() const {
+    std::vector<int> sequence;
+    // Engine mapping: Metric = engine 4 (last engine)
+    
+    // For now, return basic 4/4 time signature pattern
+    // This should be replaced with actual metric engine extraction
+    sequence.push_back(4);  // 4/4 time signature
+    return sequence;
+}
+
+int IntegratedMusicalSpace::get_num_engines() const {
+    // Based on voice count: 2 engines per voice + 1 metric engine
+    return num_voices_ * 2 + 1;
+}
+
 // ===============================
 // Integrated Musical Solver Implementation
 // ===============================

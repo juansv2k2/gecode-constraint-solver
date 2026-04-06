@@ -72,9 +72,14 @@ struct SolverConfig {
  * @brief Musical solution representation
  */
 struct MusicalSolution {
-    std::vector<int> absolute_notes;
-    std::vector<int> intervals;
-    std::vector<std::string> note_names;
+    std::vector<int> absolute_notes;  // Legacy compatibility - first voice
+    std::vector<int> intervals;       // Legacy compatibility - calculated from first voice
+    std::vector<std::string> note_names;  // Legacy compatibility - first voice note names
+    
+    // Multi-voice solution data
+    std::vector<std::vector<int>> voice_solutions;  // All voices - each vector is one voice
+    std::vector<std::vector<int>> voice_rhythms;    // Rhythm data for each voice
+    std::vector<int> metric_signature;              // Metric/time signature data
     
     // Analysis data
     int total_rules_checked = 0;
@@ -90,7 +95,9 @@ struct MusicalSolution {
     
     void print_solution(std::ostream& os = std::cout) const;
     void export_to_midi(const std::string& filename) const;
+    void export_to_xml(const std::string& filename) const;
     std::string to_json() const;
+    std::string to_xml() const;
 };
 
 // ===============================
@@ -151,8 +158,21 @@ public:
  */
 class Solver {
 private:
+    // Engine rule configuration for cluster-engine targeting
+    struct EngineRuleConfig {
+        std::string rule_type;
+        std::string function;
+        std::vector<int> indices;
+        int target_engine;
+        std::vector<int> target_engines;  // For cross-engine rules
+        std::string engine_type;
+        std::string description;
+        std::vector<double> parameters;
+    };
+    
     SolverConfig config_;
     std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>> rules_;
+    std::vector<EngineRuleConfig> engine_rule_configs_;  // Engine-targeted rules
     std::unique_ptr<AdvancedBackjumping::AdvancedBackjumpAnalyzer> backjump_analyzer_;
     std::unique_ptr<MusicalConstraints::DualSolutionStorage> solution_storage_;
     
@@ -213,6 +233,15 @@ public:
      * @brief Add musical rule to solver
      */
     void add_rule(std::shared_ptr<MusicalConstraints::MusicalRule> rule);
+    
+    /**
+     * @brief Add rule with engine targeting information
+     */
+    void add_rule_config(const std::string& rule_type, const std::string& function, 
+                        const std::vector<int>& indices, int target_engine, 
+                        const std::vector<int>& target_engines,
+                        const std::string& engine_type, const std::string& description,
+                        const std::vector<double>& parameters = {});
     
     /**
      * @brief Add multiple rules
@@ -315,6 +344,16 @@ public:
      * @brief Calculate interval name
      */
     static std::string interval_to_name(int semitones);
+    
+    /**
+     * @brief Export solution directly to XML file
+     */
+    bool export_solution_to_xml(const MusicalSolution& solution, const std::string& filename) const;
+    
+    /**
+     * @brief Solve and immediately export to XML
+     */
+    bool solve_and_export_xml(const std::string& filename);
 
 private:
     /**

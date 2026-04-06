@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<musical_solution>
+  <metadata>
+    <config_file>twelve_tone_config.json</config_file>
+    <problem_name>Dual Voice 12-Tone Rows - No Unisons</problem_name>
+    <solve_time_ms>2</solve_time_ms>
+    <rules_applied>6</rules_applied>
+    <rules_checked>36</rules_checked>
+  </metadata>
+  <voices>
+    <voice id="0">
+      <pitch_sequence>
+        <note position="1" midi="60" name="C4"/>
+        <note position="2" midi="61" name="C#4"/>
+        <note position="3" midi="62" name="D4"/>
+        <note position="4" midi="63" name="D#4"/>
+        <note position="5" midi="64" name="E4"/>
+        <note position="6" midi="65" name="F4"/>
+        <note position="7" midi="66" name="F#4"/>
+        <note position="8" midi="67" name="G4"/>
+        <note position="9" midi="68" name="G#4"/>
+        <note position="10" midi="69" name="A4"/>
+        <note position="11" midi="70" name="A#4"/>
+        <note position="12" midi="71" name="B4"/>
+      </pitch_sequence>
+      <rhythm_sequence>
+        <duration position="1" value="4" note_type="1/4"/>
+        <duration position="2" value="4" note_type="1/4"/>
+        <duration position="3" value="4" note_type="1/4"/>
+        <duration position="4" value="4" note_type="1/4"/>
+        <duration position="5" value="4" note_type="1/4"/>
+        <duration position="6" value="4" note_type="1/4"/>
+        <duration position="7" value="4" note_type="1/4"/>
+        <duration position="8" value="4" note_type="1/4"/>
+        <duration position="9" value="4" note_type="1/4"/>
+        <duration position="10" value="4" note_type="1/4"/>
+        <duration position="11" value="4" note_type="1/4"/>
+        <duration position="12" value="4" note_type="1/4"/>
+      </rhythm_sequence>
+    </voice>
+    <voice id="1">
+      <pitch_sequence>
+        <note position="1" midi="64" name="E4"/>
+        <note position="2" midi="60" name="C4"/>
+        <note position="3" midi="69" name="A4"/>
+        <note position="4" midi="66" name="F#4"/>
+        <note position="5" midi="68" name="G#4"/>
+        <note position="6" midi="64" name="E4"/>
+        <note position="7" midi="73" name="C#5"/>
+        <note position="8" midi="70" name="A#4"/>
+        <note position="9" midi="72" name="C5"/>
+        <note position="10" midi="68" name="G#4"/>
+        <note position="11" midi="77" name="F5"/>
+        <note position="12" midi="74" name="D5"/>
+      </pitch_sequence>
+      <rhythm_sequence>
+        <duration position="1" value="4" note_type="1/4"/>
+        <duration position="2" value="4" note_type="1/4"/>
+        <duration position="3" value="4" note_type="1/4"/>
+        <duration position="4" value="4" note_type="1/4"/>
+        <duration position="5" value="4" note_type="1/4"/>
+        <duration position="6" value="4" note_type="1/4"/>
+        <duration position="7" value="4" note_type="1/4"/>
+        <duration position="8" value="4" note_type="1/4"/>
+        <duration position="9" value="4" note_type="1/4"/>
+        <duration position="10" value="4" note_type="1/4"/>
+        <duration position="11" value="4" note_type="1/4"/>
+        <duration position="12" value="4" note_type="1/4"/>
+      </rhythm_sequence>
+    </voice>
+  </voices>
+  <metric_signature>
+    <time_signature numerator="4" denominator="4"/>
+  </metric_signature>
+</musical_solution>

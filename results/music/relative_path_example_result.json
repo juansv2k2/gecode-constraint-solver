@@ -1,9 +1,0 @@
-{
-  "config_file": "relative_path_example.json",
-  "problem_name": "Relative Export Path Example",
-  "solution": [60, 61, 62, 63],
-  "note_names": ["C4", "C#4", "D4", "D#4"],
-  "solve_time_ms": 0,
-  "rules_applied": 1,
-  "rules_checked": 4
-}

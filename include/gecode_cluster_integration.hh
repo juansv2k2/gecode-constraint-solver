@@ -308,6 +308,26 @@ public:
      */
     MusicalConstraints::DualSolutionStorage export_to_dual_storage() const;
 
+    /**
+     * @brief Get rhythm sequence for specific voice
+     */
+    std::vector<int> get_rhythm_sequence(int voice) const;
+
+    /**
+     * @brief Get pitch sequence for specific voice  
+     */
+    std::vector<int> get_pitch_sequence(int voice) const;
+
+    /**
+     * @brief Get metric sequence (time signatures)
+     */
+    std::vector<int> get_metric_sequence() const;
+
+    /**
+     * @brief Get number of engines (for debugging)
+     */
+    int get_num_engines() const;
+
 private:
     /**
      * @brief Initialize constraint posting

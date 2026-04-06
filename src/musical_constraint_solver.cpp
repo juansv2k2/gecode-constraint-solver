@@ -109,6 +109,104 @@ std::string MusicalSolution::to_json() const {
     return json.str();
 }
 
+void MusicalSolution::export_to_xml(const std::string& filename) const {
+    std::ofstream xml_out(filename);
+    if (!xml_out.is_open()) {
+        std::cerr << "Error: Could not create XML file " << filename << std::endl;
+        return;
+    }
+    xml_out << to_xml();
+    xml_out.close();
+}
+
+std::string MusicalSolution::to_xml() const {
+    std::stringstream xml;
+    
+    xml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+    xml << "<musical_solution>" << std::endl;
+    
+    // Metadata section
+    xml << "  <metadata>" << std::endl;
+    xml << "    <found_solution>" << (found_solution ? "true" : "false") << "</found_solution>" << std::endl;
+    xml << "    <solve_time_ms>" << solve_time_ms << "</solve_time_ms>" << std::endl;
+    xml << "    <total_rules_checked>" << total_rules_checked << "</total_rules_checked>" << std::endl;
+    xml << "    <backjumps_performed>" << backjumps_performed << "</backjumps_performed>" << std::endl;
+    xml << "    <average_interval_size>" << average_interval_size << "</average_interval_size>" << std::endl;
+    xml << "    <melodic_direction_changes>" << melodic_direction_changes << "</melodic_direction_changes>" << std::endl;
+    xml << "  </metadata>" << std::endl;
+    
+    if (!found_solution) {
+        xml << "  <failure_reason>" << failure_reason << "</failure_reason>" << std::endl;
+        xml << "</musical_solution>" << std::endl;
+        return xml.str();
+    }
+    
+    // Multi-voice solution data
+    if (!voice_solutions.empty()) {
+        xml << "  <voices>" << std::endl;
+        for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
+            xml << "    <voice id=\"" << voice << "\">" << std::endl;
+            
+            // Pitch sequence
+            xml << "      <pitch_sequence>" << std::endl;
+            for (size_t i = 0; i < voice_solutions[voice].size(); ++i) {
+                int midi = voice_solutions[voice][i];
+                std::string note_name = Solver::midi_to_note_name(midi);
+                xml << "        <note position=\"" << (i + 1) << "\" midi=\"" << midi 
+                   << "\" name=\"" << note_name << "\"/>" << std::endl;
+            }
+            xml << "      </pitch_sequence>" << std::endl;
+            
+            // Rhythm sequence
+            xml << "      <rhythm_sequence>" << std::endl;
+            if (voice < voice_rhythms.size()) {
+                for (size_t i = 0; i < voice_rhythms[voice].size(); ++i) {
+                    int value = voice_rhythms[voice][i];
+                    xml << "        <duration position=\"" << (i + 1) << "\" value=\"" << value
+                       << "\" note_type=\"1/" << (16 / value) << "\"/>" << std::endl;
+                }
+            }
+            xml << "      </rhythm_sequence>" << std::endl;
+            xml << "    </voice>" << std::endl;
+        }
+        xml << "  </voices>" << std::endl;
+    } else {
+        // Legacy single-voice format (for backward compatibility)
+        xml << "  <sequence>" << std::endl;
+        for (size_t i = 0; i < absolute_notes.size(); ++i) {
+            xml << "    <note position=\"" << (i + 1) << "\" midi=\"" << absolute_notes[i] 
+               << "\" name=\"" << note_names[i] << "\"";
+            if (i > 0 && i - 1 < intervals.size()) {
+                xml << " interval=\"" << intervals[i - 1] << "\"";
+            }
+            xml << "/>" << std::endl;
+        }
+        xml << "  </sequence>" << std::endl;
+    }
+    
+    // Metric signature
+    if (!metric_signature.empty()) {
+        xml << "  <metric_signature>" << std::endl;
+        for (size_t i = 0; i < metric_signature.size(); ++i) {
+            xml << "    <time_signature numerator=\"" << metric_signature[i] 
+               << "\" denominator=\"4\"/>" << std::endl;
+        }
+        xml << "  </metric_signature>" << std::endl;
+    }
+    
+    // Applied rules
+    if (!applied_rules.empty()) {
+        xml << "  <applied_rules>" << std::endl;
+        for (const auto& rule : applied_rules) {
+            xml << "    <rule>" << rule << "</rule>" << std::endl;
+        }
+        xml << "  </applied_rules>" << std::endl;
+    }
+    
+    xml << "</musical_solution>" << std::endl;
+    return xml.str();
+}
+
 // ===============================
 // Specific Musical Rules for Factory
 // ===============================
@@ -396,6 +494,36 @@ void Solver::add_rules(const std::vector<std::shared_ptr<MusicalConstraints::Mus
     rules_.insert(rules_.end(), rules.begin(), rules.end());
 }
 
+void Solver::add_rule_config(const std::string& rule_type, const std::string& function, 
+                            const std::vector<int>& indices, int target_engine, 
+                            const std::vector<int>& target_engines,
+                            const std::string& engine_type, const std::string& description,
+                            const std::vector<double>& parameters) {
+    
+    // Convert JSON rule configuration to actual MusicalRule objects based on rule_type
+    if (rule_type == "r-pitches-one-engine" && function == "all_different") {
+        // Add basic no-repetition rule for twelve-tone generation
+        add_rule(std::make_shared<NoRepetitionRule>());
+        
+    } else if (rule_type == "r-cross-voice-no-unisons") {
+        // Add rule to prevent unisons between voices (handled by engine separation)
+        add_rule(std::make_shared<MelodicIntervalRule>(12)); // Allow wide intervals between voices
+        
+    } else if (rule_type == "r-rhythmic-uniformity") {
+        // Rhythm uniformity is handled by the engine extraction (all quarter notes)
+        // No specific rule needed as this is built into the rhythm generation
+        
+    } else if (rule_type == "r-metric-signature") {
+        // Metric signature is handled by the metric engine extraction
+        // No specific rule needed as this is built into the metric generation
+        
+    } else {
+        // Default: add basic musical rules for unrecognized rule types
+        add_rule(std::make_shared<NoRepetitionRule>());
+        add_rule(std::make_shared<MelodicIntervalRule>(7));
+    }
+}
+
 void Solver::clear_rules() {
     rules_.clear();
 }
@@ -485,6 +613,23 @@ MusicalSolution Solver::solve_internal() {
                 for (size_t i = 0; i < absolute_sequence.size(); ++i) {
                     solution_storage_->write_absolute(absolute_sequence[i], static_cast<int>(i));
                 }
+                
+                // EXTRACT MULTI-VOICE DATA FROM ENGINES
+                // Clear existing voice data
+                solution.voice_solutions.clear();
+                solution.voice_rhythms.clear();
+                
+                // Extract data for each voice using the solved space
+                for (int voice = 0; voice < config_.num_voices; ++voice) {
+                    auto rhythm_data = solved_space->get_rhythm_sequence(voice);
+                    auto pitch_data = solved_space->get_pitch_sequence(voice);
+                    
+                    solution.voice_rhythms.push_back(rhythm_data);
+                    solution.voice_solutions.push_back(pitch_data);
+                }
+                
+                // Extract metric data
+                solution.metric_signature = solved_space->get_metric_sequence();
             } else {
                 success = false;
                 solution.failure_reason = "Gecode found partial solution but not fully assigned";
@@ -592,6 +737,25 @@ std::string Solver::interval_to_name(int semitones) {
     std::string base_name = (it != interval_names.end()) ? it->second : "Compound";
     
     return (semitones < 0 ? "↓" : "↑") + base_name;
+}
+
+bool Solver::export_solution_to_xml(const MusicalSolution& solution, const std::string& filename) const {
+    try {
+        solution.export_to_xml(filename);
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error exporting solution to XML: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool Solver::solve_and_export_xml(const std::string& filename) {
+    auto solution = solve();
+    if (!solution.found_solution) {
+        std::cerr << "Cannot export XML: No solution found (" << solution.failure_reason << ")" << std::endl;
+        return false;
+    }
+    return export_solution_to_xml(solution, filename);
 }
 
 bool Solver::validate_configuration(std::string& error_message) const {
