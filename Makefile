@@ -81,18 +81,18 @@ gecode_cluster_integration: test_gecode_cluster_integration.cpp include/gecode_c
 	$(CXX) -std=c++17 $(GECODE_INC) -I./include -I./src test_gecode_cluster_integration.cpp src/gecode_cluster_integration.cpp src/advanced_backjumping_strategies.cpp $(GECODE_LIB) -o gecode_cluster_integration
 
 # PRODUCTION MUSICAL CONSTRAINT SOLVER (COMPLETE SYSTEM)
-PRODUCTION_SOLVER_TARGET = musical-constraint-solver
+PRODUCTION_SOLVER_TARGET = bin/musical-constraint-solver
 PRODUCTION_SOLVER_SOURCE = src/musical_constraint_solver.cpp
 PRODUCTION_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 PRODUCTION_SOLVER_LIBS = -lgecode -lgecodeminimodel -lgecodekernel -lgecodeint -lgecodesupport -lgecodeflatzinc
 
 # Production Test Suite
-PRODUCTION_TEST_TARGET = test-musical-solver
+PRODUCTION_TEST_TARGET = bin/test-musical-solver
 PRODUCTION_TEST_SOURCE = test_musical_constraint_solver.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
 PRODUCTION_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Simple Validation System
-SIMPLE_VALIDATION_TARGET = validate-cluster-gecode
+SIMPLE_VALIDATION_TARGET = bin/validate-cluster-gecode
 SIMPLE_VALIDATION_SOURCE = simple_gecode_cluster_validation.cpp src/advanced_backjumping_strategies.cpp
 SIMPLE_VALIDATION_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
@@ -107,7 +107,7 @@ WORKING_DEMO_SOURCE = test_working_gecode_demo.cpp src/musical_constraint_solver
 WORKING_DEMO_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # JSON Interface Test  
-JSON_INTERFACE_TEST_TARGET = test-cluster-json-interface
+JSON_INTERFACE_TEST_TARGET = bin/test-cluster-json-interface
 JSON_INTERFACE_TEST_SOURCE = test_cluster_json_interface.cpp
 JSON_INTERFACE_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
@@ -147,8 +147,8 @@ CONSTRAINT_SOLVER_MAIN_SOURCE = constraint_solver_main.cpp src/musical_constrain
 CONSTRAINT_SOLVER_MAIN_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
-DYNAMIC_SOLVER_TARGET = dynamic-solver
-DYNAMIC_SOLVER_SOURCE = dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+DYNAMIC_SOLVER_TARGET = bin/dynamic-solver
+DYNAMIC_SOLVER_SOURCE = src/dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 DYNAMIC_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET) $(WILDCARD_TEST_TARGET) $(ENHANCED_SOLVER_TARGET)
