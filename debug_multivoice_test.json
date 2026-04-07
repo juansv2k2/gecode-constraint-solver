@@ -1,0 +1,37 @@
+{
+  "name": "Debug Multi-Voice Test",
+  "description": "Test just multi-voice arithmetic without complex features",
+  "solution_length": 4,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "voice1_start_C4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": { "value": 60 }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: Start on C4"
+    },
+    {
+      "id": "voice2_perfect_fifth",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 7 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: Perfect fifth above voice 1"
+    }
+  ]
+}

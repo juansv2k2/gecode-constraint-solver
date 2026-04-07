@@ -13,6 +13,9 @@
 #include "advanced_backjumping_strategies.hh"
 #include "dual_solution_storage.hh"
 #include "gecode_cluster_integration.hh"
+#include "dynamic_rule_compiler.hh"
+#include "rule_expression_parser.hh"
+#include <nlohmann/json.hpp>
 #include <memory>
 #include <vector>
 #include <string>
@@ -186,6 +189,15 @@ private:
     // Retrograde Inversion tracking
     bool retrograde_inversion_enabled_ = false;
     int retrograde_inversion_center_ = 65;
+    
+    // Advanced constraint flags 
+    bool perfect_fifth_intervals_enabled_ = false;
+    bool twelve_tone_row_enabled_ = false;
+    bool palindrome_voices_enabled_ = false;
+    
+    // Dynamic rule system (NEW)
+    std::unique_ptr<DynamicRules::CompiledRuleSet> compiled_rules_;
+    std::vector<nlohmann::json> dynamic_rule_configs_;
 
 public:
     /**
@@ -268,6 +280,41 @@ public:
      * @brief Auto-configure rules based on style
      */
     void auto_configure_rules();
+    
+    // ===============================
+    // Dynamic Rule Management (NEW)
+    // ===============================
+    
+    /**
+     * @brief Add dynamic rule from JSON configuration
+     */
+    void add_dynamic_rule(const nlohmann::json& rule_json);
+    
+    /**
+     * @brief Add dynamic rule from JSON string
+     */
+    void add_dynamic_rule(const std::string& rule_json_string);
+    
+    /**
+     * @brief Load dynamic rules from JSON configuration array
+     */
+    void load_dynamic_rules(const std::vector<nlohmann::json>& rules_array);
+    
+    /**
+     * @brief Clear all dynamic rules
+     */
+    void clear_dynamic_rules();
+    
+    /**
+     * @brief Apply compiled wildcard constraint directly to solver
+     * @param compiled_constraint The pre-compiled wildcard constraint to apply
+     */
+    void apply_compiled_constraint(std::unique_ptr<DynamicRules::CompiledConstraint> compiled_constraint);
+    
+    /**
+     * @brief Get count of compiled dynamic rules
+     */
+    size_t get_dynamic_rules_count() const;
     
     // ===============================
     // Solving Interface

@@ -1,0 +1,24 @@
+{
+  "sequence_length": 4,
+  "num_voices": 2,
+  "note_domain": [60, 61, 62, 63, 64, 65, 66, 67],
+  "search_config": {
+    "backjump_mode": "intelligent_backjump",
+    "solution_limit": 1
+  },
+  "dynamic_rules": [
+    {
+      "id": "simple_test_constraint",
+      "description": "Simple test constraint: first note is C (60)",
+      "type": "pitch_constraint",
+      "scope": "voice[0].pitch[0]",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": {
+          "value": 60
+        }
+      }
+    }
+  ]
+}

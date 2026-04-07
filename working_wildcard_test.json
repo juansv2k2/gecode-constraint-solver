@@ -1,0 +1,17 @@
+{
+  "configuration": {
+    "num_voices": 2,
+    "sequence_length": 4,
+    "pitch_range": [60, 67],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": [
+    {
+      "rule_id": "force_variety",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[pos] != 60",
+      "description": "Force variety - voice 0 cannot be C4"
+    }
+  ]
+}

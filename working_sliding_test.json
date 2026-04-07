@@ -1,0 +1,30 @@
+{
+  "configuration": {
+    "name": "Working Sliding Window Test",
+    "description": "Test sliding window without arithmetic",
+    "num_voices": 1,
+    "sequence_length": 5,
+    "pitch_range": [60, 80],
+    "rhythm_values": [1],
+    "time_signature": "4/4"
+  },
+  "rules": [
+    {
+      "id": "starts_c4",
+      "rule_id": "starts_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Start with C4"
+    },
+    {
+      "id": "sliding_equality",
+      "rule_id": "sliding_equality",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[1] == voice[0].pitch[0]",
+      "description": "SLIDING WINDOW: all notes equal"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: extended_range_example.json
+Problem: Two Voice Pattern - Extended Range
+Description: Voice 1: starts C4, +2-1 intervals. Voice 2: 7 semitones below. Full MIDI range.
+
+Complete Multi-Voice Solution:
+
+Voice 0:
+  Pitch Sequence (12 notes):
+    1. C4 (MIDI 60)
+    2. D#4 (MIDI 63)
+    3. F#4 (MIDI 66)
+    4. A4 (MIDI 69)
+    5. C5 (MIDI 72)
+    6. D#5 (MIDI 75)
+    7. F#5 (MIDI 78)
+    8. A5 (MIDI 81)
+    9. C6 (MIDI 84)
+    10. D#6 (MIDI 87)
+    11. F#6 (MIDI 90)
+    12. A6 (MIDI 93)
+  Rhythm Sequence:
+    1. 1/4 note (duration 4)
+    2. 1/4 note (duration 4)
+    3. 1/4 note (duration 4)
+    4. 1/4 note (duration 4)
+    5. 1/4 note (duration 4)
+    6. 1/4 note (duration 4)
+    7. 1/4 note (duration 4)
+    8. 1/4 note (duration 4)
+    9. 1/4 note (duration 4)
+    10. 1/4 note (duration 4)
+    11. 1/4 note (duration 4)
+    12. 1/4 note (duration 4)
+
+Voice 1:
+  Pitch Sequence (12 notes):
+    1. F3 (MIDI 53)
+    2. G#3 (MIDI 56)
+    3. B3 (MIDI 59)
+    4. D4 (MIDI 62)
+    5. F4 (MIDI 65)
+    6. G#4 (MIDI 68)
+    7. B4 (MIDI 71)
+    8. D5 (MIDI 74)
+    9. F5 (MIDI 77)
+    10. G#5 (MIDI 80)
+    11. B5 (MIDI 83)
+    12. D6 (MIDI 86)
+  Rhythm Sequence:
+    1. 1/4 note (duration 4)
+    2. 1/4 note (duration 4)
+    3. 1/4 note (duration 4)
+    4. 1/4 note (duration 4)
+    5. 1/4 note (duration 4)
+    6. 1/4 note (duration 4)
+    7. 1/4 note (duration 4)
+    8. 1/4 note (duration 4)
+    9. 1/4 note (duration 4)
+    10. 1/4 note (duration 4)
+    11. 1/4 note (duration 4)
+    12. 1/4 note (duration 4)
+
+Metric Signature:
+  Time signature: 4/4
+
+Performance:
+  Solve time: 7 ms
+  Rules applied: 3
+  Rules checked: 72

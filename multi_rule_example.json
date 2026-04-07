@@ -1,0 +1,47 @@
+{
+  "sequence_length": 4,
+  "num_voices": 2,
+  "note_domain": [60, 62, 64, 65, 67, 69, 71, 72],
+  "search_config": {
+    "backjump_mode": "intelligent_backjump",
+    "solution_limit": 1
+  },
+  "dynamic_rules": [
+    {
+      "id": "first_note_constraint",
+      "description": "First note of voice 0 must be C (60)",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": {
+          "value": 60
+        }
+      }
+    },
+    {
+      "id": "last_note_constraint",
+      "description": "Last note of voice 0 must be high C (72)",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[3]",
+        "right": {
+          "value": 72
+        }
+      }
+    },
+    {
+      "id": "voice_relationship",
+      "description": "Second voice mirrors first voice with offset",
+      "type": "relationship_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "value": 67
+        }
+      }
+    }
+  ]
+}

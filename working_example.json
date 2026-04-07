@@ -1,0 +1,23 @@
+{
+  "sequence_length": 4,
+  "num_voices": 1,
+  "note_domain": [60, 62, 64, 65, 67, 69, 71, 72],
+  "search_config": {
+    "backjump_mode": "intelligent_backjump",
+    "solution_limit": 1
+  },
+  "dynamic_rules": [
+    {
+      "id": "ascending_melody",
+      "description": "Create an ascending C major scale fragment",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": {
+          "value": 60
+        }
+      }
+    }
+  ]
+}

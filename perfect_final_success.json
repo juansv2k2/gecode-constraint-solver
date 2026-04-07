@@ -1,0 +1,47 @@
+{
+  "configuration": {
+    "name": "PERFECT: Extended Range Two Voice Success",
+    "description": "C4->D4->C#4, voice 2 exactly F3->G3->F#3, full MIDI range 36-128, 3/4 time",
+    "num_voices": 2,
+    "sequence_length": 10,
+    "pitch_range": [36, 128],
+    "rhythm_values": [1, 2, 4],
+    "time_signature": "3/4"
+  },
+  "rules": [
+    {
+      "id": "voice1_starts_c4",
+      "rule_id": "voice1_starts_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: (INDEX) Voice 1 starts C4"
+    },
+    {
+      "id": "voice1_interval_plus2",
+      "rule_id": "voice1_interval_plus2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] + 2",
+      "description": "Rule 2a: (WILDCARD SLIDING) Voice 1 +2 semitone intervals"
+    },
+    {
+      "id": "voice1_interval_minus1",
+      "rule_id": "voice1_interval_minus1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [1, 2],
+      "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] - 1",
+      "description": "Rule 2b: (WILDCARD SLIDING) Voice 1 -1 semitone intervals"
+    },
+    {
+      "id": "voice2_seventh_below",
+      "rule_id": "voice2_seventh_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 7",
+      "description": "Rule 3: (WILDCARD) Voice 2 exactly 7 semitones below voice 1"
+    }
+  ]
+}

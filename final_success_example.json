@@ -1,0 +1,45 @@
+{
+  "configuration": {
+    "name": "FINAL: Two Voice Pattern Success",
+    "description": "Simple working example: Voice 1 fixed pattern, Voice 2 simple relationship",
+    "num_voices": 2,
+    "sequence_length": 3,
+    "pitch_range": [60, 72],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": [
+    {
+      "id": "voice1_first_c4",
+      "rule_id": "voice1_first_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: (INDEX) Voice 1 starts with pitch 60 (C4)"
+    },
+    {
+      "id": "voice1_interval_plus2",
+      "rule_id": "voice1_interval_plus2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] + 2",
+      "description": "Rule 2: (WILDCARD) First interval +2 semitones"
+    },
+    {
+      "id": "voice1_third_note",
+      "rule_id": "voice1_third_note",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[2] == 61",
+      "description": "Rule 2b: (WILDCARD) Third note C#4 (-1 from D4)"
+    },
+    {
+      "id": "voice2_below",
+      "rule_id": "voice2_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 3",
+      "description": "Rule 3: (WILDCARD) Voice 2 is 3 semitones below voice 1"
+    }
+  ]
+}

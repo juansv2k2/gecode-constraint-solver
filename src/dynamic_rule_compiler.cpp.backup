@@ -1,0 +1,457 @@
+/**
+ * @file dynamic_rule_compiler.cpp
+ * @brief Implementation of dynamic rule compiler
+ */
+
+#include "dynamic_rule_compiler.hh"
+#include "gecode_cluster_integration.hh"
+#include <iostream>
+#include <stdexcept>
+
+using namespace Gecode;
+using namespace GecodeClusterIntegration;
+
+namespace DynamicRules {
+
+std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_rule(const RuleAST& rule_ast) {
+    auto compiled = std::make_unique<CompiledConstraint>(rule_ast.rule_id, rule_ast.description);
+    
+    compiled->is_heuristic = rule_ast.is_heuristic();
+    compiled->weight = rule_ast.weight;
+    
+    // Create the constraint posting function
+    compiled->post_constraint = [&rule_ast](ConstraintContext& ctx) {
+        try {
+            std::cout << "  🔧 Compiling rule: " << rule_ast.rule_id << std::endl;
+            
+            if (!rule_ast.root) {
+                throw RuleCompileException("Rule has no root expression");
+            }
+            
+            // Handle different types of rules
+            if (rule_ast.rule_type == "distinctness_constraint") {
+                // Special handling for all_different constraints
+                if (rule_ast.scope.find("voice[0].pitches") != std::string::npos) {
+                    // Get pitch variables for voice 0
+                    int voice_start = 0 * ctx.sequence_length;
+                    int voice_end = voice_start + ctx.sequence_length;
+                    
+                    IntVarArray voice_vars(*ctx.space, ctx.sequence_length);
+                    for (int i = 0; i < ctx.sequence_length; ++i) {
+                        voice_vars[i] = (*ctx.pitch_vars)[voice_start + i];
+                    }
+                    
+                    distinct(*ctx.space, voice_vars);
+                    std::cout << "    ✅ Posted distinct constraint for voice 0" << std::endl;
+                }
+            } else if (rule_ast.rule_type == "voice_relationship_constraint") {
+                // Handle palindrome and other voice relationships
+                if (rule_ast.rule_id.find("palindrome") != std::string::npos) {
+                    // Palindrome constraint: voice[1][i] == voice[0][length-1-i]
+                    int voice0_start = 0 * ctx.sequence_length;
+                    int voice1_start = 1 * ctx.sequence_length;
+                    
+                    for (int i = 0; i < ctx.sequence_length; ++i) {
+                        int voice0_retro_idx = voice0_start + (ctx.sequence_length - 1 - i);
+                        int voice1_idx = voice1_start + i;
+                        
+                        rel(*ctx.space, (*ctx.pitch_vars)[voice1_idx], IRT_EQ, 
+                            (*ctx.pitch_vars)[voice0_retro_idx]);
+                    }
+                    std::cout << "    ✅ Posted palindrome relationship constraint" << std::endl;
+                }
+            } else {
+                // General expression-based constraints
+                if (rule_ast.root->type == ASTNodeType::ALL_DIFFERENT) {
+                    // Handle all_different function
+                    const FunctionNode* func_node = dynamic_cast<const FunctionNode*>(rule_ast.root.get());
+                    if (func_node) {
+                        compile_function_constraint(*func_node, ctx);
+                    }
+                } else {
+                    // Compile general boolean expression
+                    BoolExpr constraint = compile_boolean_expression(*rule_ast.root, ctx);
+                    rel(*ctx.space, constraint);
+                    std::cout << "    ✅ Posted general boolean constraint" << std::endl;
+                }
+            }
+            
+        } catch (const std::exception& e) {
+            throw RuleCompileException("Failed to compile rule '" + rule_ast.rule_id + "': " + e.what());
+        }
+    };
+    
+    return compiled;
+}
+
+std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const nlohmann::json& rule_json) {
+    auto rule_ast = RuleExpressionParser::parse_rule(rule_json);
+    return compile_rule(*rule_ast);
+}
+
+BoolExpr DynamicRuleCompiler::compile_expression(const ASTNode& node, ConstraintContext& ctx) {
+    return compile_boolean_expression(node, ctx);
+}
+
+IntExpr DynamicRuleCompiler::compile_arithmetic_expression(const ASTNode& node, ConstraintContext& ctx) {
+    switch (node.type) {
+        case ASTNodeType::CONSTANT: {
+            const ConstantNode& const_node = static_cast<const ConstantNode&>(node);
+            try {
+                int value = const_node.get_value<int>();
+                return value; // Direct integer constant 
+            } catch (const std::exception&) {
+                throw RuleCompileException("Invalid constant in arithmetic expression");
+            }
+        }
+        
+        case ASTNodeType::VARIABLE: {
+            const VariableNode& var_node = static_cast<const VariableNode&>(node);
+            return compile_variable(var_node, ctx);
+        }
+        
+        case ASTNodeType::VOICE_ACCESS: {
+            const VoiceAccessNode& voice_node = static_cast<const VoiceAccessNode&>(node);
+            return compile_voice_access(voice_node, ctx);
+        }
+        
+        case ASTNodeType::PLUS:
+        case ASTNodeType::MINUS:
+        case ASTNodeType::MULTIPLY:
+        case ASTNodeType::DIVIDE: {
+            const BinaryOpNode& binary_node = static_cast<const BinaryOpNode&>(node);
+            if (binary_node.children.size() != 2) {
+                throw RuleCompileException("Binary arithmetic operator requires 2 operands");
+            }
+            
+            IntExpr left = compile_arithmetic_expression(*binary_node.children[0], ctx);
+            IntExpr right = compile_arithmetic_expression(*binary_node.children[1], ctx);
+            
+            switch (node.type) {
+                case ASTNodeType::PLUS: return left + right;
+                case ASTNodeType::MINUS: return left - right;
+                case ASTNodeType::MULTIPLY: return left * right;
+                case ASTNodeType::DIVIDE: return left / right;
+                default: break;
+            }
+        }
+        
+        case ASTNodeType::ABS: {
+            const UnaryOpNode& unary_node = static_cast<const UnaryOpNode&>(node);
+            if (unary_node.children.size() != 1) {
+                throw RuleCompileException("ABS requires 1 operand");
+            }
+            
+            IntExpr operand = compile_arithmetic_expression(*unary_node.children[0], ctx);
+            return abs(operand);
+        }
+        
+        case ASTNodeType::MOD: {
+            const FunctionNode& func_node = static_cast<const FunctionNode&>(node);
+            if (func_node.children.size() != 2) {
+                throw RuleCompileException("MOD requires 2 operands");
+            }
+            
+            IntExpr dividend = compile_arithmetic_expression(*func_node.children[0], ctx);
+            IntExpr divisor = compile_arithmetic_expression(*func_node.children[1], ctx);
+            return dividend % divisor;
+        }
+        
+        default:
+            throw RuleCompileException("Unsupported arithmetic expression type");
+    }
+}
+
+BoolExpr DynamicRuleCompiler::compile_boolean_expression(const ASTNode& node, ConstraintContext& ctx) {
+    switch (node.type) {
+        case ASTNodeType::CONSTANT: {
+            const ConstantNode& const_node = static_cast<const ConstantNode&>(node);
+            try {
+                bool value = const_node.get_value<bool>();
+                // Create a BoolExpr from a constant boolean value
+                if (value) {
+                    // Always true constraint: use 1 == 1
+                    return (1 == 1);
+                } else {
+                    // Always false constraint: use 1 == 0  
+                    return (1 == 0);
+                }
+            } catch (const std::exception&) {
+                throw RuleCompileException("Invalid boolean constant");
+            }
+        }
+        
+        case ASTNodeType::EQUALS:
+        case ASTNodeType::NOT_EQUALS:
+        case ASTNodeType::LESS_THAN:
+        case ASTNodeType::LESS_EQUAL:
+        case ASTNodeType::GREATER_THAN:
+        case ASTNodeType::GREATER_EQUAL: {
+            const BinaryOpNode& binary_node = static_cast<const BinaryOpNode&>(node);
+            return compile_binary_operation(binary_node, ctx);
+        }
+        
+        case ASTNodeType::AND:
+        case ASTNodeType::OR: {
+            const BinaryOpNode& binary_node = static_cast<const BinaryOpNode&>(node);
+            if (binary_node.children.size() != 2) {
+                throw RuleCompileException("Logical operator requires 2 operands");
+            }
+            
+            BoolExpr left = compile_boolean_expression(*binary_node.children[0], ctx);
+            BoolExpr right = compile_boolean_expression(*binary_node.children[1], ctx);
+            
+            switch (node.type) {
+                case ASTNodeType::AND: return left && right;
+                case ASTNodeType::OR: return left || right;
+                default: break;
+            }
+        }
+        
+        case ASTNodeType::NOT: {
+            const UnaryOpNode& unary_node = static_cast<const UnaryOpNode&>(node);
+            if (unary_node.children.size() != 1) {
+                throw RuleCompileException("NOT requires 1 operand");
+            }
+            
+            BoolExpr operand = compile_boolean_expression(*unary_node.children[0], ctx);
+            return !operand;
+        }
+        
+        case ASTNodeType::IN:
+        case ASTNodeType::NOT_IN: {
+            const BinaryOpNode& binary_node = static_cast<const BinaryOpNode&>(node);
+            if (binary_node.children.size() != 2) {
+                throw RuleCompileException("Membership operator requires 2 operands");
+            }
+            
+            IntExpr expr = compile_arithmetic_expression(*binary_node.children[0], ctx);
+            
+            // Get the set values from the right operand
+            const ConstantNode* const_node = dynamic_cast<const ConstantNode*>(binary_node.children[1].get());
+            if (!const_node) {
+                throw RuleCompileException("Right operand of membership must be constant set");
+            }
+            
+            try {
+                std::vector<int> values = const_node->get_value<std::vector<int>>();
+                BoolExpr membership = create_membership_constraint(expr, values, ctx);
+                
+                return (node.type == ASTNodeType::IN) ? membership : !membership;
+            } catch (const std::exception&) {
+                throw RuleCompileException("Invalid set values in membership constraint");
+            }
+        }
+        
+        case ASTNodeType::IF_THEN_ELSE: {
+            const ConditionalNode& cond_node = static_cast<const ConditionalNode&>(node);
+            return compile_conditional(cond_node, ctx);
+        }
+        
+        default:
+            throw RuleCompileException("Unsupported boolean expression type");
+    }
+}
+
+IntExpr DynamicRuleCompiler::compile_variable(const VariableNode& var_node, ConstraintContext& ctx) {
+    std::string var_name = var_node.variable_name;
+    
+    if (var_name == "?current" || var_name == "current") {
+        // Return current position variable - this needs context-specific handling
+        int current_idx = ctx.current_voice * ctx.sequence_length + resolve_variable_index(var_name, ctx);
+        return (*ctx.pitch_vars)[current_idx]; // Direct IntVar to IntExpr conversion
+    }
+    
+    if (var_name == "?previous" || var_name == "previous") {
+        // Return previous position variable
+        int prev_idx = ctx.current_voice * ctx.sequence_length + resolve_variable_index(var_name, ctx);
+        if (prev_idx >= 0) {
+            return (*ctx.pitch_vars)[prev_idx]; // Direct IntVar to IntExpr conversion
+        }
+    }
+    
+    // Handle numbered variables like ?1, ?2
+    if (var_name.front() == '?' && std::isdigit(var_name[1])) {
+        int index = std::stoi(var_name.substr(1)) - 1; // Convert to 0-based
+        if (index >= 0 && index < static_cast<int>(ctx.pitch_vars->size())) {
+            return (*ctx.pitch_vars)[index]; // Direct IntVar to IntExpr conversion
+        }
+    }
+    
+    throw RuleCompileException("Unknown variable: " + var_name);
+}
+
+IntExpr DynamicRuleCompiler::compile_voice_access(const VoiceAccessNode& voice_node, ConstraintContext& ctx) {
+    int voice_index = voice_node.voice_index;
+    std::string property = voice_node.property;
+    
+    if (voice_index >= ctx.num_voices) {
+        throw RuleCompileException("Voice index " + std::to_string(voice_index) + " out of range");
+    }
+    
+    // Determine position
+    int position = 0;
+    if (voice_node.position_expr) {
+        if (voice_node.position_expr->type == ASTNodeType::CONSTANT) {
+            const ConstantNode* const_node = dynamic_cast<const ConstantNode*>(voice_node.position_expr.get());
+            if (const_node) {
+                position = const_node->get_value<int>();
+            }
+        } else if (voice_node.position_expr->type == ASTNodeType::VARIABLE) {
+            const VariableNode* var_node = dynamic_cast<const VariableNode*>(voice_node.position_expr.get());
+            if (var_node) {
+                position = resolve_variable_index(var_node->variable_name, ctx);
+            }
+        }
+    }
+    
+    // Calculate actual index in the variable arrays
+    int var_index = voice_index * ctx.sequence_length + position;
+    
+    if (property == "pitch") {
+        if (var_index >= 0 && var_index < static_cast<int>(ctx.pitch_vars->size())) {
+            return (*ctx.pitch_vars)[var_index]; // Direct IntVar to IntExpr conversion
+        }
+    } else if (property == "rhythm") {
+        if (ctx.rhythm_vars && var_index >= 0 && var_index < static_cast<int>(ctx.rhythm_vars->size())) {
+            return (*ctx.rhythm_vars)[var_index]; // Direct IntVar to IntExpr conversion
+        }
+    }
+    
+    throw RuleCompileException("Invalid voice access: voice[" + std::to_string(voice_index) + "]." + property + "[" + std::to_string(position) + "]");
+}
+
+BoolExpr DynamicRuleCompiler::compile_binary_operation(const BinaryOpNode& binary_node, ConstraintContext& ctx) {
+    if (binary_node.children.size() != 2) {
+        throw RuleCompileException("Binary operation requires 2 operands");
+    }
+    
+    IntExpr left = compile_arithmetic_expression(*binary_node.children[0], ctx);
+    IntExpr right = compile_arithmetic_expression(*binary_node.children[1], ctx);
+    
+    switch (binary_node.type) {
+        case ASTNodeType::EQUALS: return left == right;
+        case ASTNodeType::NOT_EQUALS: return left != right;
+        case ASTNodeType::LESS_THAN: return left < right;
+        case ASTNodeType::LESS_EQUAL: return left <= right;
+        case ASTNodeType::GREATER_THAN: return left > right;
+        case ASTNodeType::GREATER_EQUAL: return left >= right;
+        default:
+            throw RuleCompileException("Unsupported binary operation");
+    }
+}
+
+IntExpr DynamicRuleCompiler::compile_unary_operation(const UnaryOpNode& unary_node, ConstraintContext& ctx) {
+    if (unary_node.children.size() != 1) {
+        throw RuleCompileException("Unary operation requires 1 operand");
+    }
+    
+    IntExpr operand = compile_arithmetic_expression(*unary_node.children[0], ctx);
+    
+    switch (unary_node.type) {
+        case ASTNodeType::ABS: return abs(operand);
+        default:
+            throw RuleCompileException("Unsupported unary operation");
+    }
+}
+
+void DynamicRuleCompiler::compile_function_constraint(const FunctionNode& func_node, ConstraintContext& ctx) {
+    if (func_node.function_name == "all_different") {
+        // Apply all_different to specified variables
+        // For now, apply to current voice pitch variables
+        int voice_start = ctx.current_voice * ctx.sequence_length;
+        IntVarArray voice_vars(*ctx.space, ctx.sequence_length);
+        
+        for (int i = 0; i < ctx.sequence_length; ++i) {
+            voice_vars[i] = (*ctx.pitch_vars)[voice_start + i];
+        }
+        
+        distinct(*ctx.space, voice_vars);
+        std::cout << "    ✅ Posted all_different constraint" << std::endl;
+    } else {
+        throw RuleCompileException("Unsupported function: " + func_node.function_name);
+    }
+}
+
+BoolExpr DynamicRuleCompiler::compile_conditional(const ConditionalNode& cond_node, ConstraintContext& ctx) {
+    if (cond_node.children.size() != 3) {
+        throw RuleCompileException("Conditional requires 3 operands (condition, then, else)");
+    }
+    
+    BoolExpr condition = compile_boolean_expression(*cond_node.children[0], ctx);
+    BoolExpr then_expr = compile_boolean_expression(*cond_node.children[1], ctx);
+    BoolExpr else_expr = compile_boolean_expression(*cond_node.children[2], ctx);
+    
+    // Create implication: condition -> then_expr && !condition -> else_expr
+    return (condition >> then_expr) && (!condition >> else_expr);
+}
+
+BoolExpr DynamicRuleCompiler::create_membership_constraint(
+    const IntExpr& expr, const std::vector<int>& values, ConstraintContext& ctx) {
+    
+    if (values.empty()) {
+        // Always false: use 1 == 0
+        return (1 == 0);
+    }
+    
+    if (values.size() == 1) {
+        return expr == values[0];
+    }
+    
+    // Create disjunction for multiple values: expr == val1 || expr == val2 || ...
+    BoolExpr membership = expr == values[0];
+    for (size_t i = 1; i < values.size(); ++i) {
+        membership = membership || (expr == values[i]);
+    }
+    
+    return membership;
+}
+
+void DynamicRuleCompiler::create_distinctness_constraint(const std::vector<IntVar>& vars, ConstraintContext& ctx) {
+    IntVarArray var_array(*ctx.space, static_cast<int>(vars.size()));
+    for (size_t i = 0; i < vars.size(); ++i) {
+        var_array[static_cast<int>(i)] = vars[i];
+    }
+    distinct(*ctx.space, var_array);
+}
+
+int DynamicRuleCompiler::resolve_variable_index(const std::string& var_name, ConstraintContext& ctx) {
+    // This is a simplified implementation - in practice, this would need
+    // more sophisticated context tracking for current position, etc.
+    
+    if (var_name == "?current" || var_name == "current") {
+        return 0; // Placeholder - would be current position in constraint posting
+    }
+    
+    if (var_name == "?previous" || var_name == "previous") {
+        return -1; // Previous position
+    }
+    
+    if (var_name == "i") {
+        return 0; // Loop variable - context-dependent
+    }
+    
+    // Handle numbered variables
+    if (var_name.front() == '?' && std::isdigit(var_name[1])) {
+        return std::stoi(var_name.substr(1)) - 1;
+    }
+    
+    return 0; // Default
+}
+
+std::vector<IntVar>& DynamicRuleCompiler::get_voice_vars(
+    int voice_index, const std::string& property, ConstraintContext& ctx) {
+    
+    if (property == "pitch" || property == "pitches") {
+        return *ctx.pitch_vars;
+    } else if (property == "rhythm" || property == "rhythms") {
+        if (!ctx.rhythm_vars) {
+            throw RuleCompileException("Rhythm variables not available");
+        }
+        return *ctx.rhythm_vars;
+    }
+    
+    throw RuleCompileException("Unknown property: " + property);
+}
+
+} // namespace DynamicRules

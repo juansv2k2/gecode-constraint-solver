@@ -1,0 +1,35 @@
+{
+  "configuration": {
+    "name": "Extended Range Test",
+    "num_voices": 2,
+    "sequence_length": 3,
+    "export_path": "tests/output"
+  },
+  "domains": [
+    {
+      "type": "pitch",
+      "values": [
+        36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+        54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "voice1_c4",
+      "rule_id": "voice1_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Voice 1 starts C4"
+    },
+    {
+      "id": "voice2_below",
+      "rule_id": "voice2_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 7",
+      "description": "Voice 2 is 7 semitones below voice 1"
+    }
+  ]
+}

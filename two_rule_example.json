@@ -1,0 +1,35 @@
+{
+  "sequence_length": 4,
+  "num_voices": 2,
+  "note_domain": [60, 61, 62, 63, 64, 65, 66, 67],
+  "search_config": {
+    "backjump_mode": "intelligent_backjump",
+    "solution_limit": 1
+  },
+  "dynamic_rules": [
+    {
+      "id": "first_note_c",
+      "description": "First note is C (60)",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": {
+          "value": 60
+        }
+      }
+    },
+    {
+      "id": "second_note_d",
+      "description": "Second note is D (62)",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[1]",
+        "right": {
+          "value": 62
+        }
+      }
+    }
+  ]
+}

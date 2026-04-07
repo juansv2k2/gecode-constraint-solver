@@ -1,0 +1,36 @@
+{
+  "configuration": {
+    "name": "SIMPLE SUCCESS: Two Voice C4->D4",
+    "description": "Minimal working: Voice 1 C4->D4, Voice 2 follows below",
+    "num_voices": 2,
+    "sequence_length": 2,
+    "pitch_range": [60, 72],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": [
+    {
+      "id": "voice1_c4_first",
+      "rule_id": "voice1_c4_first",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: Voice 1 starts with C4"
+    },
+    {
+      "id": "voice1_d4_second",
+      "rule_id": "voice1_d4_second",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 62",
+      "description": "Rule 2: Voice 1 second note is D4 (+2 semitones)"
+    },
+    {
+      "id": "voice2_above_voice1",
+      "rule_id": "voice2_above_voice1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] + 3",
+      "description": "Rule 3: Voice 2 is 3 semitones above voice 1"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "configuration": {
+    "name": "Manual +3 Pattern Test",
+    "description": "Manual constraints to verify +3 logic works",
+    "num_voices": 1,
+    "sequence_length": 5,
+    "pitch_range": [60, 80],
+    "rhythm_values": [1],
+    "time_signature": "4/4"
+  },
+  "rules": [
+    {
+      "id": "pos0",
+      "rule_id": "pos0",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Position 0: C4"
+    },
+    {
+      "id": "pos1",
+      "rule_id": "pos1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 63",
+      "description": "Position 1: D#4 (60+3)"
+    },
+    {
+      "id": "pos2",
+      "rule_id": "pos2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[2] == 66",
+      "description": "Position 2: F#4 (63+3)"
+    }
+  ]
+}

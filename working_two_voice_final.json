@@ -1,0 +1,53 @@
+{
+  "configuration": {
+    "name": "Two Voice Working Pattern Example",
+    "description": "Voice 1: C4->D4->C#4 pattern, Voice 2: 7 semitones below",
+    "num_voices": 2,
+    "sequence_length": 4,
+    "pitch_range": [50, 75],
+    "rhythm_values": [1, 2, 4]
+  },
+  "domains": [
+    {
+      "type": "pitch",
+      "values": [
+        50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
+        68, 69, 70, 71, 72, 73, 74, 75
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "voice1_start_c4",
+      "rule_id": "voice1_start_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: (INDEX as WILDCARD) Voice 1 starts with C4"
+    },
+    {
+      "id": "voice1_second_d4",
+      "rule_id": "voice1_second_d4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 62",
+      "description": "Rule 2a: (INDEX as WILDCARD) Voice 1 second note is D4 (+2)"
+    },
+    {
+      "id": "voice1_third_cs4",
+      "rule_id": "voice1_third_cs4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[2] == 61",
+      "description": "Rule 2b: (INDEX as WILDCARD) Voice 1 third note is C#4 (-1)"
+    },
+    {
+      "id": "voice2_seventh_below",
+      "rule_id": "voice2_seventh_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 7",
+      "description": "Rule 3: (WILDCARD) Voice 2 is exactly 7 semitones below voice 1"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "configuration": {
+    "name": "Two Voice Pattern - Extended Range",
+    "description": "Voice 1: starts C4, +2-1 intervals. Voice 2: 7 semitones below. Full MIDI range.",
+    "num_voices": 2,
+    "sequence_length": 10,
+    "pitch_range": [36, 128],
+    "rhythm_values": [1, 2, 4],
+    "time_signature": "3/4"
+  },
+  "rules": [
+    {
+      "id": "voice1_starts_c4",
+      "rule_id": "voice1_starts_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: Voice 1 starts with C4 (60)"
+    },
+    {
+      "id": "voice1_plus3_pattern",
+      "rule_id": "voice1_plus3_pattern",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3",
+      "description": "Rule 2: SLIDING WINDOW +3 semitones between consecutive notes"
+    },
+    {
+      "id": "voice2_seventh_below",
+      "rule_id": "voice2_seventh_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 7",
+      "description": "Rule 3: Voice 2 is exactly 7 semitones below voice 1"
+    }
+  ]
+}

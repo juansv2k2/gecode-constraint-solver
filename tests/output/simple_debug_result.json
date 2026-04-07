@@ -1,0 +1,26 @@
+{
+  "config_file": "simple_debug.json",
+  "problem_name": "Minimal Wildcard Test",
+  "voices": [
+    {
+      "voice": 0,
+      "pitch_solution": [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60],
+      "rhythm_solution": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "pitch_names": ["C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4"],
+      "rhythm_names": ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4"]
+    },
+    {
+      "voice": 1,
+      "pitch_solution": [62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62],
+      "rhythm_solution": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "pitch_names": ["D4", "D4", "D4", "D4", "D4", "D4", "D4", "D4", "D4", "D4", "D4", "D4"],
+      "rhythm_names": ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4"]
+    }
+  ],
+  "metric_signature": [4],
+  "solution": [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60],
+  "note_names": ["C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4"],
+  "solve_time_ms": 1,
+  "rules_applied": 2,
+  "rules_checked": 48
+}

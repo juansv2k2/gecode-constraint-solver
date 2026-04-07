@@ -1,0 +1,62 @@
+{
+  "configuration": {
+    "num_voices": 2,
+    "pitch_range": [
+      60,
+      72
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ],
+    "sequence_length": 8
+  },
+  "rules": [
+    {
+      "constraint": "abs(voice[v].pitch[i] - voice[v].pitch[i+1]) <= 2",
+      "description": "Prefer stepwise motion in all voices",
+      "pattern_offsets": [
+        0,
+        1
+      ],
+      "rule_id": "stepwise_motion",
+      "rule_type": "wildcard_constraint",
+      "scope": "each_voice",
+      "wildcard_type": "sliding_window"
+    },
+    {
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
+      "description": "No immediate repetitions in any voice",
+      "pattern_offsets": [
+        0,
+        1
+      ],
+      "rule_id": "no_repeated_notes",
+      "rule_type": "wildcard_constraint",
+      "scope": "each_voice",
+      "wildcard_type": "sliding_window"
+    },
+    {
+      "constraint": "not (voice[v].pitch[i] == voice[v].pitch[i+1] and voice[v].pitch[i+1] == voice[v].pitch[i+2])",
+      "description": "No three identical consecutive pitches",
+      "pattern_offsets": [
+        0,
+        1,
+        2
+      ],
+      "rule_id": "pitch_variety",
+      "rule_type": "wildcard_constraint",
+      "scope": "each_voice",
+      "wildcard_type": "sequence_pattern"
+    },
+    {
+      "constraint": "not ((voice[i].pitch[pos] - voice[j].pitch[pos]) % 12 == 7 and (voice[i].pitch[pos+1] - voice[j].pitch[pos+1]) % 12 == 7)",
+      "description": "No parallel perfect fifths between any voices",
+      "rule_id": "no_parallel_fifths",
+      "rule_type": "wildcard_constraint",
+      "scope": "cross_voices",
+      "wildcard_type": "for_all_pairs"
+    }
+  ]
+}

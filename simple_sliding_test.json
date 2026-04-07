@@ -1,0 +1,30 @@
+{
+  "configuration": {
+    "name": "Simple Sliding Window Test",
+    "description": "Test sliding window with direct variable substitution",
+    "num_voices": 1,
+    "sequence_length": 5,
+    "pitch_range": [60, 80],
+    "rhythm_values": [1],
+    "time_signature": "4/4"
+  },
+  "rules": [
+    {
+      "id": "starts_c4",
+      "rule_id": "starts_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Start with C4"
+    },
+    {
+      "id": "sliding_relation",
+      "rule_id": "sliding_relation",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[1] == voice[0].pitch[0] + 3",
+      "description": "SLIDING WINDOW: next = current + 3"
+    }
+  ]
+}

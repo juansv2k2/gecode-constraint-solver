@@ -1,0 +1,16 @@
+{
+  "configuration": {
+    "num_voices": 2,
+    "sequence_length": 3
+  },
+  "rules": [
+    {
+      "id": "simple_test",
+      "rule_id": "simple_test",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Voice 1 starts at C4"
+    }
+  ]
+}

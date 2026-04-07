@@ -1,0 +1,52 @@
+{
+  "name": "Forced Variety Example",
+  "description": "Constraints that force musical variety",
+  "solution_length": 4,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "voice1_start_C4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": { "value": 60 }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: Start on C4"
+    },
+    {
+      "id": "voice1_step_up",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[1]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 2 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: Second note is D4 (C4 + 2 semitones)"
+    },
+    {
+      "id": "voice2_harmonizes",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 4 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: First note is major third above voice 1 (E4)"
+    }
+  ]
+}

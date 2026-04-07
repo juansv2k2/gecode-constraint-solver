@@ -1,0 +1,47 @@
+{
+  "sequence_length": 4,
+  "num_voices": 2,
+  "note_domain": [60, 62, 64, 65, 67, 69, 71, 72],
+  "search_config": {
+    "backjump_mode": "intelligent_backjump",
+    "solution_limit": 1
+  },
+  "dynamic_rules": [
+    {
+      "id": "c_major_start",
+      "description": "Both voices start with C (60)",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": {
+          "value": 60
+        }
+      }
+    },
+    {
+      "id": "voice1_start_c",
+      "description": "Voice 1 also starts with C",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "value": 60
+        }
+      }
+    },
+    {
+      "id": "voice1_harmony",
+      "description": "Voice 1 second note is E (64) - harmonizing",
+      "type": "pitch_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[1]",
+        "right": {
+          "value": 64
+        }
+      }
+    }
+  ]
+}

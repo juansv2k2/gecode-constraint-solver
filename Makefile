@@ -146,12 +146,12 @@ CONSTRAINT_SOLVER_MAIN_TARGET = constraint-solver-main
 CONSTRAINT_SOLVER_MAIN_SOURCE = constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
 CONSTRAINT_SOLVER_MAIN_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
-# Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON)
+# Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
 DYNAMIC_SOLVER_TARGET = dynamic-solver
-DYNAMIC_SOLVER_SOURCE = dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+DYNAMIC_SOLVER_SOURCE = dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 DYNAMIC_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
-all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET)
+all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET) $(WILDCARD_TEST_TARGET) $(ENHANCED_SOLVER_TARGET)
 
 # Production system - main interface
 $(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
@@ -205,9 +205,25 @@ $(DEMO_TWELVE_TONE_TARGET): $(DEMO_TWELVE_TONE_SOURCE) include/musical_constrain
 $(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/musical_constraint_solver.hh
 	$(CXX) $(CONSTRAINT_SOLVER_MAIN_CXXFLAGS) $(GECODE_INC) -o $@ $(CONSTRAINT_SOLVER_MAIN_SOURCE) $(GECODE_LIB)
 
-# Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON)
-$(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh
-	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
+# Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
+$(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh
+	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
+
+# Wildcard Rule Extension Test Program
+WILDCARD_TEST_TARGET = wildcard-test
+WILDCARD_TEST_SOURCE = wildcard_rule_test.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
+WILDCARD_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+$(WILDCARD_TEST_TARGET): $(WILDCARD_TEST_SOURCE) include/wildcard_rule_extension.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh
+	$(CXX) $(WILDCARD_TEST_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(WILDCARD_TEST_SOURCE) $(GECODE_LIB)
+
+# Enhanced Dynamic Solver with Wildcard Support
+ENHANCED_SOLVER_TARGET = enhanced-dynamic-solver
+ENHANCED_SOLVER_SOURCE = enhanced_dynamic_solver.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
+ENHANCED_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+$(ENHANCED_SOLVER_TARGET): $(ENHANCED_SOLVER_SOURCE) include/wildcard_rule_extension.hh include/dynamic_rule_compiler.hh include/musical_constraint_solver.hh
+	$(CXX) $(ENHANCED_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(ENHANCED_SOLVER_SOURCE) $(GECODE_LIB)
 
 $(TARGET): $(SOURCE)
 	$(CXX) $(CXXFLAGS) $(GECODE_INC) -o $@ $< $(GECODE_LIB)

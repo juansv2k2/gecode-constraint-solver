@@ -1,0 +1,33 @@
+{
+  "name": "Test All Different with Extended Range",
+  "description": "Test all different constraint with notes from 24 to 36.",
+  "solution_length": 4,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "rules": [
+    {
+      "rule_type": "r-pitches-all-different",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3],
+      "target_engine": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "All 4 pitches different"
+    }
+  ],
+
+  "domains": [
+    {
+      "type": "pitch",
+      "values": [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36],
+      "description": "Extended low range"
+    }
+  ]
+}

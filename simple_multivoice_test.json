@@ -1,0 +1,22 @@
+{
+  "name": "Simple Multi-Voice Test",
+  "description": "Test most basic multi-voice constraint",
+  "solution_length": 4,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "voice2_G4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": { "value": 67 }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: First note is G4"
+    }
+  ]
+}

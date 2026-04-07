@@ -1,0 +1,43 @@
+{
+  "configuration": {
+    "name": "Arithmetic Debug Test",
+    "description": "Test if arithmetic expressions work in constraints",
+    "num_voices": 1,
+    "sequence_length": 3,
+    "pitch_range": [60, 70],
+    "rhythm_values": [1],
+    "time_signature": "4/4"
+  },
+  "rules": [
+    {
+      "id": "arithmetic_test",
+      "rule_id": "arithmetic_test",
+      "rule_type": "constraint",
+      "constraint": {
+        "type": "binary_operator",
+        "operator": "==",
+        "left": {
+          "type": "voice_access",
+          "voice": 0,
+          "property": "pitch",
+          "position": 1
+        },
+        "right": {
+          "type": "binary_operator",
+          "operator": "+",
+          "left": {
+            "type": "voice_access",
+            "voice": 0,
+            "property": "pitch",
+            "position": 0
+          },
+          "right": {
+            "type": "constant",
+            "value": 3
+          }
+        }
+      },
+      "description": "Test: pitch[1] == pitch[0] + 3"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Enhanced Dynamic Rule System Test",
+  "description": "Test new features: IN, ABS, MOD, multi-voice",
+  "solution_length": 6,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "voice1_c_major_notes",
+      "type": "membership_constraint",
+      "expression": {
+        "operator": "in",
+        "left": {
+          "function": "mod",
+          "args": ["voice[0].pitch[0]", { "value": 12 }]
+        },
+        "right": { "value": [0, 2, 4, 5, 7, 9, 11] }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: First note must be in C Major scale"
+    },
+    {
+      "id": "voice2_perfect_fifth",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 7 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: First note is perfect fifth above voice 1"
+    },
+    {
+      "id": "voice1_start_C4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": { "value": 60 }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: Start on C4"
+    }
+  ]
+}

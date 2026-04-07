@@ -1,0 +1,9 @@
+{
+  "configuration": {
+    "num_voices": 1,
+    "sequence_length": 4,
+    "pitch_range": [60, 72],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": []
+}

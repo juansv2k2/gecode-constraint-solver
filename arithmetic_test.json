@@ -1,0 +1,21 @@
+{
+  "configuration": {
+    "name": "Arithmetic Test",
+    "description": "Test arithmetic in wildcard constraints",
+    "num_voices": 1,
+    "sequence_length": 3,
+    "pitch_range": [60, 70],
+    "rhythm_values": [1],
+    "time_signature": "4/4"
+  },
+  "rules": [
+    {
+      "id": "arithmetic",
+      "rule_id": "arithmetic",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 63",
+      "description": "Position 1 should be 63 (D#4)"
+    }
+  ]
+}

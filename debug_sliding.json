@@ -1,0 +1,22 @@
+{
+  "configuration": {
+    "name": "Debug Sliding Window",
+    "description": "Debug what sliding window actually does",
+    "num_voices": 1,
+    "sequence_length": 3,
+    "pitch_range": [60, 65],
+    "rhythm_values": [1],
+    "time_signature": "4/4"
+  },
+  "rules": [
+    {
+      "id": "sliding_equal",
+      "rule_id": "sliding_equal",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[1] == voice[0].pitch[0]",
+      "description": "SLIDING WINDOW: next == current (all same)"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: pattern_var_test.json
+Problem: Pattern Variable Test
+Description: Test pattern variable substitution
+
+Complete Multi-Voice Solution:
+
+Voice 0:
+  Pitch Sequence (12 notes):
+    1. C4 (MIDI 60)
+    2. C4 (MIDI 60)
+    3. C4 (MIDI 60)
+    4. C4 (MIDI 60)
+    5. C4 (MIDI 60)
+    6. C4 (MIDI 60)
+    7. C4 (MIDI 60)
+    8. C4 (MIDI 60)
+    9. C4 (MIDI 60)
+    10. C4 (MIDI 60)
+    11. C4 (MIDI 60)
+    12. C4 (MIDI 60)
+  Rhythm Sequence:
+    1. 1/4 note (duration 4)
+    2. 1/4 note (duration 4)
+    3. 1/4 note (duration 4)
+    4. 1/4 note (duration 4)
+    5. 1/4 note (duration 4)
+    6. 1/4 note (duration 4)
+    7. 1/4 note (duration 4)
+    8. 1/4 note (duration 4)
+    9. 1/4 note (duration 4)
+    10. 1/4 note (duration 4)
+    11. 1/4 note (duration 4)
+    12. 1/4 note (duration 4)
+
+Metric Signature:
+  Time signature: 4/4
+
+Performance:
+  Solve time: 4 ms
+  Rules applied: 1
+  Rules checked: 24

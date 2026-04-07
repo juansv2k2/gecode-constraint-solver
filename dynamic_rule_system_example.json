@@ -1,0 +1,101 @@
+{
+  "name": "Dynamic Rule System Example",
+  "description": "Demonstration of the new JSON-based dynamic rule system",
+  "solution_length": 8,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "stepwise_motion_voice1",
+      "type": "sequential_constraint",
+      "expression": {
+        "operator": "<=",
+        "left": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "voice[0].pitch[?i+1]",
+              "right": "voice[0].pitch[?i]"
+            }
+          ]
+        },
+        "right": { "value": 2 }
+      },
+      "scope": "voice[0].pitches[0..length-2]",
+      "mode": "constraint",
+      "description": "Voice 1: Allow only stepwise motion (max 2 semitones)"
+    },
+    {
+      "id": "c_major_scale_constraint",
+      "type": "membership_constraint",
+      "expression": {
+        "operator": "in",
+        "left": {
+          "function": "mod",
+          "args": ["voice[0].pitch[?i]", { "value": 12 }]
+        },
+        "right": { "value": [0, 2, 4, 5, 7, 9, 11] }
+      },
+      "scope": "voice[0].pitches",
+      "mode": "constraint",
+      "description": "Voice 1: All notes must be in C Major scale"
+    },
+    {
+      "id": "voice1_all_different",
+      "type": "distinctness_constraint",
+      "expression": {
+        "operator": "all_different",
+        "scope": "voice[0].pitches"
+      },
+      "mode": "constraint",
+      "description": "Voice 1: All pitches must be different (12-tone style)"
+    },
+    {
+      "id": "parallel_perfect_fifths",
+      "type": "voice_relationship_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[?i]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[?i]",
+          "right": { "value": 7 }
+        }
+      },
+      "scope": "both_voices[0..length-1]",
+      "mode": "constraint",
+      "description": "Voice 2: Perfect fifth above Voice 1"
+    },
+    {
+      "id": "prefer_ascending_motion",
+      "type": "heuristic_constraint",
+      "expression": {
+        "operator": ">",
+        "left": "voice[0].pitch[?i+1]",
+        "right": "voice[0].pitch[?i]"
+      },
+      "scope": "voice[0].pitches[0..length-2]",
+      "mode": "heuristic",
+      "weight": 5,
+      "description": "Voice 1: Prefer ascending melodic motion (soft constraint)"
+    }
+  ],
+
+  "domains": [
+    {
+      "engine_id": 1,
+      "type": "pitch",
+      "values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84],
+      "description": "Voice 1: C Major scale notes from C4 to C6"
+    },
+    {
+      "engine_id": 3,
+      "type": "pitch",
+      "values": [67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86, 88, 90, 91],
+      "description": "Voice 2: Perfect fifths above Voice 1 domain"
+    }
+  ]
+}

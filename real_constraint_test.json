@@ -1,0 +1,17 @@
+{
+  "configuration": {
+    "num_voices": 2,
+    "sequence_length": 4,
+    "pitch_range": [60, 67],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": [
+    {
+      "rule_id": "real_constraint",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[v].pitch[i] > 60",
+      "description": "All pitches must be higher than MIDI 60 (C4)"
+    }
+  ]
+}

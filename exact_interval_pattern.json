@@ -1,0 +1,43 @@
+{
+  "configuration": {
+    "name": "Two Voice Interval Pattern - Exact Specification",
+    "description": "Voice 1: starts C4, +2-1 intervals. Voice 2: exactly 7 semitones below.",
+    "num_voices": 2,
+    "sequence_length": 4,
+    "pitch_range": [50, 75],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": [
+    {
+      "rule_id": "voice1_starts_c4",
+      "rule_type": "index_constraint",
+      "voice": 0,
+      "index": 0,
+      "constraint": "pitch == 60",
+      "description": "Rule 1: (INDEX) Voice 1 starts with pitch 60 (C4)"
+    },
+    {
+      "rule_id": "interval_plus2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] + 2",
+      "description": "Rule 2a: (WILDCARD) First interval is always +2 semitones"
+    },
+    {
+      "rule_id": "interval_minus1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [1, 2],
+      "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] - 1",
+      "description": "Rule 2b: (WILDCARD) Second interval is always -1 semitones"
+    },
+    {
+      "rule_id": "voice2_seventh_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 7",
+      "description": "Rule 3: (WILDCARD) Voice 2 is exactly 7 semitones below voice 1"
+    }
+  ]
+}

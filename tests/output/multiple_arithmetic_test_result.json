@@ -1,0 +1,19 @@
+{
+  "config_file": "multiple_arithmetic_test.json",
+  "problem_name": "Multiple Arithmetic Test",
+  "voices": [
+    {
+      "voice": 0,
+      "pitch_solution": [60, 64, 67, 72, 60, 60, 60, 60, 60, 60, 60, 60],
+      "rhythm_solution": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "pitch_names": ["C4", "E4", "G4", "C5", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4"],
+      "rhythm_names": ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4"]
+    }
+  ],
+  "metric_signature": [4],
+  "solution": [60, 64, 67, 72, 60, 60, 60, 60, 60, 60, 60, 60],
+  "note_names": ["C4", "E4", "G4", "C5", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4"],
+  "solve_time_ms": 5,
+  "rules_applied": 4,
+  "rules_checked": 96
+}

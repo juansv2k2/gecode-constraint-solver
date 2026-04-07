@@ -1,0 +1,45 @@
+{
+  "configuration": {
+    "name": "FINAL: Two Voice Extended Range Success",
+    "description": "C4->D4->C#4, voice 2 exactly 7 semitones below, full MIDI range, 3/4 time",
+    "num_voices": 2,
+    "sequence_length": 3,
+    "pitch_range": [36, 128],
+    "rhythm_values": [1, 2, 4],
+    "time_signature": "3/4"
+  },
+  "rules": [
+    {
+      "id": "voice1_c4",
+      "rule_id": "voice1_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: (INDEX) Voice 1 starts with pitch 60 (C4)"
+    },
+    {
+      "id": "voice1_d4",
+      "rule_id": "voice1_d4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 62",
+      "description": "Rule 2a: (WILDCARD) Voice 1 second note +2 semitones (D4)"
+    },
+    {
+      "id": "voice1_cs4",
+      "rule_id": "voice1_cs4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[2] == 61",
+      "description": "Rule 2b: (WILDCARD) Voice 1 third note -1 semitone (C#4)"
+    },
+    {
+      "id": "voice2_seventh_below",
+      "rule_id": "voice2_seventh_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 7",
+      "description": "Rule 3: (WILDCARD) Voice 2 exactly 7 semitones below voice 1"
+    }
+  ]
+}

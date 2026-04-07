@@ -27,6 +27,45 @@ using namespace Gecode;
 
 namespace GecodeClusterIntegration {
 
+// Forward declarations and base classes for compiled rule system
+class MusicalRule {
+public:
+    enum class RuleType {
+        SINGLE_ENGINE_RHYTHM,
+        SINGLE_ENGINE_PITCH,
+        DUAL_ENGINE_RHYTHM_PITCH,
+        MULTI_ENGINE_HARMONIC,
+        RETROGRADE_INVERSION,
+        CUSTOM
+    };
+    
+protected:
+    std::string name_;
+    RuleType type_;
+    std::vector<int> target_engines_;
+    std::vector<int> backtrack_route_;
+    int priority_;
+    bool enabled_;
+    
+public:
+    MusicalRule(const std::string& name, RuleType type, 
+                const std::vector<int>& engines, const std::vector<int>& backtrack_route,
+                int priority = 1)
+        : name_(name), type_(type), target_engines_(engines), 
+          backtrack_route_(backtrack_route), priority_(priority), enabled_(true) {}
+
+    virtual ~MusicalRule() = default;
+    virtual bool is_enabled() const { return enabled_; }
+    virtual std::string get_name() const { return name_; }
+    virtual RuleType get_type() const { return type_; }
+    virtual const std::vector<int>& get_target_engines() const { return target_engines_; }
+    virtual const std::vector<int>& get_backtrack_route() const { return backtrack_route_; }
+    virtual int get_priority() const { return priority_; }
+    virtual void set_enabled(bool enabled) { enabled_ = enabled; }
+};
+
+class RuleCompiler;
+
 // ===============================
 // Musical Rule Propagator
 // ===============================
@@ -253,6 +292,8 @@ protected:
     IntVarArray interval_vars_;
     /// Musical rules for constraint solving
     std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>> musical_rules_;
+    /// Compiled rule system from Cluster sources
+    std::vector<std::unique_ptr<GecodeClusterIntegration::MusicalRule>> compiled_rules_;
     /// Backjumping mode
     AdvancedBackjumping::BackjumpMode backjump_mode_;
     /// Dual solution storage
@@ -266,7 +307,8 @@ public:
      */
     IntegratedMusicalSpace(int length, int voices, 
                           AdvancedBackjumping::BackjumpMode mode = 
-                          AdvancedBackjumping::BackjumpMode::INTELLIGENT_BACKJUMP);
+                          AdvancedBackjumping::BackjumpMode::INTELLIGENT_BACKJUMP,
+                          const std::vector<int>& note_domain = {});
 
     /**
      * @brief Constructor for cloning
@@ -297,8 +339,11 @@ public:
      */
     void add_musical_rules(const std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>>& rules);
 
-    /**
-     * @brief Set backjumping mode for search
+    /**     * @brief Add compiled musical rule from Cluster rule system
+     */
+    void add_compiled_musical_rule(std::unique_ptr<GecodeClusterIntegration::MusicalRule> rule);
+
+    /**     * @brief Set backjumping mode for search
      */
     void set_backjump_mode(AdvancedBackjumping::BackjumpMode mode);
 
@@ -312,6 +357,21 @@ public:
      * @param inversion_center MIDI note value used as inversion center
      */
     void add_retrograde_inversion_constraint(int inversion_center);
+    
+    /**
+     * @brief Post 12-tone row constraint (all different pitches in voice 0)
+     */
+    void post_twelve_tone_row_constraint();
+    
+    /**
+     * @brief Post perfect fifth interval constraint between consecutive notes in voice 0
+     */
+    void post_perfect_fifth_intervals_constraint();
+    
+    /**
+     * @brief Post palindrome constraint (voice 1 is reverse of voice 0)
+     */
+    void post_palindrome_voices_constraint();
 
     // ================================
     // Solution Access
@@ -336,6 +396,20 @@ public:
      * @brief Export to DualSolutionStorage for compatibility
      */
     MusicalConstraints::DualSolutionStorage export_to_dual_storage() const;
+
+    // ================================
+    // Variable Access (for Dynamic Rules)
+    // ================================
+    
+    /**
+     * @brief Get absolute pitch variables
+     */
+    IntVarArray& get_absolute_vars() { return absolute_vars_; }
+    
+    /**
+     * @brief Get interval variables 
+     */
+    IntVarArray& get_interval_vars() { return interval_vars_; }
 
     /**
      * @brief Get rhythm sequence for specific voice

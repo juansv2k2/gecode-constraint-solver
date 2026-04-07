@@ -1,0 +1,19 @@
+{
+  "config_file": "debug_sliding.json",
+  "problem_name": "Debug Sliding Window",
+  "voices": [
+    {
+      "voice": 0,
+      "pitch_solution": [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60],
+      "rhythm_solution": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "pitch_names": ["C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4"],
+      "rhythm_names": ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4"]
+    }
+  ],
+  "metric_signature": [4],
+  "solution": [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60],
+  "note_names": ["C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4", "C4"],
+  "solve_time_ms": 4,
+  "rules_applied": 1,
+  "rules_checked": 24
+}

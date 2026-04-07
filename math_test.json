@@ -1,0 +1,28 @@
+{
+  "configuration": {
+    "name": "Simple Math Test",
+    "description": "Test basic math: 60-7=53",
+    "num_voices": 2,
+    "sequence_length": 1,
+    "pitch_range": [36, 128],
+    "rhythm_values": [1]
+  },
+  "rules": [
+    {
+      "id": "voice1_c4",
+      "rule_id": "voice1_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Voice 0 = C4 (60)"
+    },
+    {
+      "id": "voice2_f3",
+      "rule_id": "voice2_f3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[0] == 53",
+      "description": "Voice 1 = F3 (53) = 60-7"
+    }
+  ]
+}

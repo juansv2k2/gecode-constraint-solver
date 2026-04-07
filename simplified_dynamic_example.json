@@ -1,0 +1,63 @@
+{
+  "name": "Simplified Dynamic Rule System Example",
+  "description": "Working example that uses only implemented features",
+  "solution_length": 8,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "first_note_c4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": { "value": 60 }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: First note is C4"
+    },
+    {
+      "id": "second_note_higher",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": ">=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[0].pitch[0]"
+      },
+      "mode": "constraint",
+      "description": "Voice 1: Second note >= first note"
+    },
+    {
+      "id": "voice2_perfect_fifth",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 7 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: First note is perfect fifth above voice 1"
+    }
+  ],
+
+  "domains": [
+    {
+      "engine_id": 1,
+      "type": "pitch",
+      "values": [60, 62, 64, 65, 67, 69, 71, 72],
+      "description": "Voice 1: C Major scale C4-C5"
+    },
+    {
+      "engine_id": 3,
+      "type": "pitch",
+      "values": [67, 69, 71, 72, 74, 76, 77, 79],
+      "description": "Voice 2: Perfect fifths above voice 1"
+    }
+  ]
+}

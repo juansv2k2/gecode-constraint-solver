@@ -7,6 +7,10 @@
  */
 
 #include "musical_constraint_solver.hh"
+#include "dynamic_rule_compiler.hh"
+#include "wildcard_rule_extension.hh"
+#include "rule_expression_parser.hh"
+#include <nlohmann/json.hpp>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -16,6 +20,9 @@
 #include <memory>
 #include <set>
 #include <regex>
+#include <algorithm>
+
+using namespace DynamicRules;
 
 // Data structure for parsed rule configuration
 struct RuleConfig {
@@ -51,6 +58,9 @@ private:
         std::string description;
     };
     std::vector<DomainConfig> domains_;
+    
+    // Configuration options
+    std::vector<int> pitch_range_; // User-specified [min, max] pitch range
     
     // Output options
     bool export_xml_;
@@ -207,6 +217,13 @@ private:
             if (pos != std::string::npos) {
                 std::string value = removeQuotesAndComma(line.substr(pos + 1));
                 include_analysis_ = (value == "true");
+            }
+        } else if (line.find("\"pitch_range\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = line.substr(pos + 1);
+                pitch_range_ = parseIntArray(value);
+                std::cout << "DEBUG: Parsed pitch_range [" << pitch_range_[0] << ", " << pitch_range_[1] << "]" << std::endl;
             }
         }
     }
@@ -410,8 +427,9 @@ public:
                 // Domain ends with standalone closing brace
                 else if (line == "}" && in_domain_object) {
                     in_domain_object = false;
-                    if (current_domain.engine_id != -1) {
+                    if (!current_domain.type.empty()) {  // Add domain if it has a type
                         domains_.push_back(current_domain);
+                        std::cout << "DEBUG: Added domain with " << current_domain.values.size() << " values" << std::endl;
                     }
                 }
                 // Parse domain properties
@@ -477,6 +495,11 @@ public:
     
     // Get pitch domain range for solver configuration
     std::pair<int, int> getPitchDomainRange() const {
+        // First check if user specified pitch_range in configuration
+        if (pitch_range_.size() >= 2) {
+            return {pitch_range_[0], pitch_range_[1]};
+        }
+        
         int min_pitch = 60; // Default C4
         int max_pitch = 71; // Default B4
         
@@ -489,6 +512,41 @@ public:
         }
         
         return {min_pitch, max_pitch};
+    }
+    
+    // Get full array of pitch domain values
+    std::vector<int> getPitchDomainValues() const {
+        std::vector<int> all_values;
+        
+        // First check if user specified pitch_range in configuration
+        if (pitch_range_.size() >= 2) {
+            int min_pitch = pitch_range_[0];
+            int max_pitch = pitch_range_[1];
+            for (int i = min_pitch; i <= max_pitch; ++i) {
+                all_values.push_back(i);
+            }
+            return all_values;
+        }
+        
+        for (const auto& domain : domains_) {
+            if (domain.type == "pitch" && !domain.values.empty()) {
+                // Concatenate all pitch domain values
+                all_values.insert(all_values.end(), domain.values.begin(), domain.values.end());
+            }
+        }
+        
+        // If no domains found, return default range
+        if (all_values.empty()) {
+            for (int i = 60; i <= 71; ++i) {
+                all_values.push_back(i);
+            }
+        }
+        
+        // Remove duplicates and sort
+        std::sort(all_values.begin(), all_values.end());
+        all_values.erase(std::unique(all_values.begin(), all_values.end()), all_values.end());
+        
+        return all_values;
     }
     
     const std::vector<RuleConfig>& getRules() const { return rules_; }
@@ -540,12 +598,26 @@ public:
     static std::shared_ptr<MusicalConstraints::MusicalRule> createFromConfig(
         const RuleConfig& ruleConfig) {
         
-        if (ruleConfig.function == "not_equal" && ruleConfig.rule_type.find("pitches") != std::string::npos) {
+        if (ruleConfig.function == "all_different" || (ruleConfig.function == "not_equal" && ruleConfig.rule_type.find("pitches") != std::string::npos)) {
             return std::make_shared<AllDifferentPitchRule>(ruleConfig.description, ruleConfig.indices.size());
+        }
+        else if (ruleConfig.function == "consecutive_perfect_fifths") {
+            int interval_size = !ruleConfig.parameters.empty() ? static_cast<int>(ruleConfig.parameters[0]) : 7;
+            return std::make_shared<PerfectFifthIntervalRule>(ruleConfig.description, interval_size);
+        }
+        else if (ruleConfig.function == "palindrome_of_engine") {
+            // Parameters: [source_engine, target_engine]
+            int source_engine = !ruleConfig.parameters.empty() ? static_cast<int>(ruleConfig.parameters[0]) : 1;
+            int target_engine = ruleConfig.parameters.size() > 1 ? static_cast<int>(ruleConfig.parameters[1]) : 3;
+            return std::make_shared<PalindromeRule>(ruleConfig.description, source_engine, target_engine);
         }
         else if (ruleConfig.function == "retrograde_inversion_relationship" && ruleConfig.rule_type.find("cross-voice") != std::string::npos) {
             int center = !ruleConfig.parameters.empty() ? static_cast<int>(ruleConfig.parameters[0]) : 65;
             return std::make_shared<RetrogradeInversionRule>(ruleConfig.description, center, ruleConfig.indices.size());
+        }
+        else if (ruleConfig.function == "equal_values" && !ruleConfig.parameters.empty()) {
+            int target_value = static_cast<int>(ruleConfig.parameters[0]);
+            return std::make_shared<FixedValueRule>(ruleConfig.description, target_value);
         }
         else if (ruleConfig.function == "equal" && !ruleConfig.parameters.empty()) {
             int target_value = static_cast<int>(ruleConfig.parameters[0]);
@@ -683,6 +755,98 @@ private:
         std::string rule_type() const override { return "FixedValueRule"; }
     };
     
+    // Perfect Fifth Interval Rule - Consecutive notes must differ by perfect fifth (7 semitones)
+    class PerfectFifthIntervalRule : public MusicalConstraints::MusicalRule {
+    private:
+        std::string description_;
+        int interval_size_;
+        
+    public:
+        PerfectFifthIntervalRule(const std::string& desc, int interval_size = 7) 
+            : description_(desc), interval_size_(interval_size) {}
+        
+        MusicalConstraints::RuleResult check_rule(
+            const MusicalConstraints::DualSolutionStorage& storage, 
+            int current_index) const override {
+            
+            if (current_index >= 1) {
+                int current_note = storage.absolute(current_index);
+                int previous_note = storage.absolute(current_index - 1);
+                
+                // Calculate interval (mod 12 for pitch class)
+                int interval_up = (current_note - previous_note) % 12;
+                if (interval_up < 0) interval_up += 12;
+                
+                int interval_down = (previous_note - current_note) % 12;
+                if (interval_down < 0) interval_down += 12;
+                
+                // Perfect fifth is 7 semitones up or 5 semitones down (which is 7 up in opposite direction)
+                if (interval_up != interval_size_ && interval_down != (12 - interval_size_)) {
+                    auto result = MusicalConstraints::RuleResult::Failure(2, "Interval not perfect fifth");
+                    MusicalConstraints::BackjumpSuggestion suggestion(current_index, 1);
+                    suggestion.explanation = "Note " + std::to_string(current_note) + " after " + 
+                                           std::to_string(previous_note) + " is not a perfect fifth away";
+                    result.add_suggestion(suggestion);
+                    return result;
+                }
+            }
+            
+            return MusicalConstraints::RuleResult::Success();
+        }
+        
+        std::string description() const override { return description_; }
+        std::vector<int> get_dependent_variables(int current_index) const override {
+            std::vector<int> deps;
+            if (current_index >= 1) {
+                deps.push_back(current_index - 1);
+                deps.push_back(current_index);
+            }
+            return deps;
+        }
+        std::string rule_type() const override { return "PerfectFifthIntervalRule"; }
+    };
+    
+    // Palindrome Rule - One engine must be exact reverse of another
+    class PalindromeRule : public MusicalConstraints::MusicalRule {
+    private:
+        std::string description_;
+        int source_engine_;
+        int target_engine_;
+        
+    public:
+        PalindromeRule(const std::string& desc, int source_eng, int target_eng) 
+            : description_(desc), source_engine_(source_eng), target_engine_(target_eng) {}
+        
+        MusicalConstraints::RuleResult check_rule(
+            const MusicalConstraints::DualSolutionStorage& storage, 
+            int current_index) const override {
+            
+            // For now, this is a placeholder that validates the basic constraint structure
+            // The actual palindrome constraint would need multi-engine coordination
+            // This could be implemented with custom propagators in the solver
+            
+            // Basic validation: ensure we're within valid range
+            int current_value = storage.absolute(current_index);
+            if (current_value < 60 || current_value > 71) {
+                auto result = MusicalConstraints::RuleResult::Failure(1, "Value out of range");
+                MusicalConstraints::BackjumpSuggestion suggestion(current_index, 1);
+                suggestion.explanation = "Palindrome engine value " + std::to_string(current_value) + " out of range";
+                result.add_suggestion(suggestion);
+                return result;
+            }
+            
+            return MusicalConstraints::RuleResult::Success();
+        }
+        
+        std::string description() const override { return description_; }
+        std::vector<int> get_dependent_variables(int current_index) const override {
+            std::vector<int> deps;
+            deps.push_back(current_index);
+            return deps;
+        }
+        std::string rule_type() const override { return "PalindromeRule"; }
+    };
+    
     // Generic constraint rule
     class GenericConstraintRule : public MusicalConstraints::MusicalRule {
     private:
@@ -742,12 +906,13 @@ int main(int argc, char* argv[]) {
         MusicalConstraintSolver::SolverConfig solver_config;
         solver_config.sequence_length = parser.getSolutionLength();
         
-        // Get pitch range from domains configuration
+        // Get pitch domain values from configuration  
+        auto pitch_domain = parser.getPitchDomainValues();
         auto pitch_range = parser.getPitchDomainRange();
         solver_config.min_note = pitch_range.first;
         solver_config.max_note = pitch_range.second;
         
-        std::cout << "   Using pitch range: [" << solver_config.min_note << ", " << solver_config.max_note << "] from domains" << std::endl;
+        std::cout << "   Using pitch domain: " << pitch_domain.size() << " values [" << pitch_domain.front() << "..." << pitch_domain.back() << "] from config" << std::endl;
         
         solver_config.num_voices = parser.getNumVoices();
         solver_config.allow_repetitions = false;
@@ -782,7 +947,79 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        std::cout << "\n📊 Solver configured with " << solver.get_rules_count() << " dynamic rules" << std::endl;
+        // Load dynamic rules (NEW SYSTEM)
+        std::cout << "\n🎯 Loading Dynamic Rules (New System)" << std::endl;
+        try {
+            std::ifstream file(config_file);
+            if (file.is_open()) {
+                nlohmann::json config;
+                file >> config;
+                
+                if (config.contains("dynamic_rules") && config["dynamic_rules"].is_array()) {
+                    std::vector<nlohmann::json> dynamic_rules = config["dynamic_rules"];
+                    std::cout << "   Found " << dynamic_rules.size() << " dynamic rules to compile" << std::endl;
+                    
+                    solver.load_dynamic_rules(dynamic_rules);
+                } else {
+                    std::cout << "   No dynamic_rules section found (using legacy rules only)" << std::endl;
+                }
+                
+                // NEW: Process enhanced rules array (includes wildcard rules)
+                if (config.contains("rules") && config["rules"].is_array()) {
+                    std::vector<nlohmann::json> enhanced_rules = config["rules"];
+                    std::cout << "   Found " << enhanced_rules.size() << " enhanced rules (including wildcards)" << std::endl;
+                    
+                    int regular_count = 0;
+                    int wildcard_count = 0;
+                    std::vector<nlohmann::json> compiled_rules; // Store for later application
+                    
+                    for (const auto& rule_json : enhanced_rules) {
+                        try {
+                            std::string rule_type = rule_json.value("rule_type", "unknown");
+                            
+                            if (rule_type == "wildcard_constraint") {
+                                // Process wildcard rule - apply directly using new integration method
+                                auto compiled = DynamicRules::WildcardRuleCompiler::compile_wildcard_from_json(rule_json);
+                                if (compiled) {
+                                    wildcard_count++;
+                                    std::cout << "     ✅ Compiled wildcard rule: " << compiled->rule_id << std::endl;
+                                    
+                                    // Apply the compiled constraint directly to the solver
+                                    solver.apply_compiled_constraint(std::move(compiled));
+                                }
+                            } else {
+                                // Process regular dynamic rule
+                                auto compiled = DynamicRules::DynamicRuleCompiler::compile_from_json(rule_json);
+                                if (compiled) {
+                                    regular_count++;
+                                    std::cout << "     ✅ Compiled regular rule: " << compiled->rule_id << std::endl;
+                                    // Add regular dynamic rules to solver
+                                    std::vector<nlohmann::json> single_rule = {rule_json};
+                                    solver.load_dynamic_rules(single_rule);
+                                }
+                            }
+                        } catch (const std::exception& e) {
+                            std::cout << "     ❌ Failed to compile rule: " << e.what() << std::endl;
+                        }
+                    }
+                    
+                    std::cout << "   Compiled: " << regular_count << " regular + " << wildcard_count << " wildcard rules" << std::endl;
+                    
+                    if (wildcard_count > 0) {
+                        std::cout << "   ✅ Applied " << wildcard_count << " wildcard constraints to solver" << std::endl;
+                    }
+                }
+            }
+        } catch (const std::exception& e) {
+            std::cout << "   ⚠️  Could not parse dynamic rules: " << e.what() << std::endl;
+            std::cout << "   Continuing with legacy rules only..." << std::endl;
+        }
+        
+        std::cout << "\n📊 Solver configured with " << solver.get_rules_count() << " legacy rules";
+        if (solver.get_dynamic_rules_count() > 0) {
+            std::cout << " + " << solver.get_dynamic_rules_count() << " dynamic rules";
+        }
+        std::cout << std::endl;
         
         // Solve the constraint problem
         std::cout << "\n🎯 Solving Constraint Problem" << std::endl;

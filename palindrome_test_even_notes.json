@@ -1,0 +1,50 @@
+{
+  "name": "Extended Palindrome Test",
+  "description": "Test palindrome constraint with a different MIDI range and longer sequence.",
+  "solution_length": 8,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "rules": [
+    {
+      "rule_type": "r-twelve-tone-voice1",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_engine": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 1: 8 different pitches"
+    },
+    {
+      "rule_type": "r-palindrome-voice2",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "palindrome_of_engine",
+        "parameters": [1, 3]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_engine": 3,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 9,
+      "description": "Voice 2: Exact palindrome of Voice 1"
+    }
+  ],
+
+  "domains": [
+    {
+      "type": "pitch",
+      "values": [
+        48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82,
+        84
+      ],
+      "description": "Even-numbered MIDI notes from C3 to C6"
+    }
+  ]
+}

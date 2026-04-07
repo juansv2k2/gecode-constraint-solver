@@ -1,0 +1,70 @@
+{
+  "configuration": {
+    "num_voices": 2,
+    "sequence_length": 8,
+    "pitch_range": [60, 72],
+    "rhythm_values": [1, 2, 4],
+    "search_timeout": 30,
+    "export_path": "tests/output"
+  },
+  "rules": [
+    {
+      "rule_id": "stepwise_motion_everywhere",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "abs(voice[v].pitch[i] - voice[v].pitch[i+1]) <= 2",
+      "scope": "each_voice",
+      "weight": 7,
+      "description": "Prefer stepwise motion between all consecutive notes in each voice"
+    },
+    {
+      "rule_id": "no_repetitions_anywhere",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
+      "scope": "each_voice",
+      "weight": 8,
+      "description": "No immediate pitch repetitions in any voice"
+    },
+    {
+      "rule_id": "no_three_identical",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sequence_pattern",
+      "pattern_offsets": [0, 1, 2],
+      "constraint": "not (voice[v].pitch[i] == voice[v].pitch[i+1] and voice[v].pitch[i+1] == voice[v].pitch[i+2])",
+      "scope": "each_voice",
+      "weight": 9,
+      "description": "No three consecutive identical pitches in any voice"
+    },
+    {
+      "rule_id": "phrase_strong_endings",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "(pos % 4 == 3) implies (voice[0].pitch[pos] % 12 in [0, 4, 7])",
+      "scope": "phrase_structure",
+      "weight": 6,
+      "description": "End 4-beat phrases on tonic triad notes (C, E, G)"
+    },
+    {
+      "rule_id": "no_parallel_fifths",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "not ((voice[0].pitch[i] - voice[1].pitch[i]) % 12 == 7 and (voice[0].pitch[i+1] - voice[1].pitch[i+1]) % 12 == 7)",
+      "scope": "cross_voices",
+      "weight": 10,
+      "description": "Avoid parallel perfect fifths between voices"
+    },
+    {
+      "rule_id": "maintain_ranges",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[pos] >= 60 and voice[0].pitch[pos] <= 72 and voice[1].pitch[pos] >= 55 and voice[1].pitch[pos] <= 67",
+      "scope": "voice_ranges",
+      "weight": 10,
+      "description": "Maintain appropriate pitch ranges for each voice"
+    }
+  ]
+}

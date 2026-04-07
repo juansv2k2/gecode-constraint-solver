@@ -1,0 +1,33 @@
+{
+  "name": "Minimal Dynamic Rule System Example",
+  "description": "Absolute minimal example to isolate the issue",
+  "solution_length": 4,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "voice1_first_c4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": { "value": 60 }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: First note is C4"
+    },
+    {
+      "id": "voice2_first_g4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": { "value": 67 }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: First note is G4"
+    }
+  ]
+}

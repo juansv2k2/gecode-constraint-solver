@@ -8,6 +8,8 @@
 
 #include "musical_constraint_solver.hh"
 #include "gecode_cluster_integration.hh"
+#include "dynamic_rule_compiler.hh"
+#include "rule_expression_parser.hh"
 #include <gecode/driver.hh>
 #include <gecode/int.hh>
 #include <gecode/minimodel.hh>
@@ -672,7 +674,11 @@ void Solver::initialize_solver() {
     
     // Create solution storage
     solution_storage_ = std::make_unique<MusicalConstraints::DualSolutionStorage>(
-        config_.sequence_length, MusicalConstraints::DomainType::ABSOLUTE_DOMAIN, config_.min_note);
+        config_.sequence_length * config_.num_voices, MusicalConstraints::DomainType::ABSOLUTE_DOMAIN, config_.min_note);
+    
+    // Initialize dynamic rule system
+    compiled_rules_ = std::make_unique<DynamicRules::CompiledRuleSet>();
+    dynamic_rule_configs_.clear();
     
     // Auto-configure rules if needed
     if (rules_.empty()) {
@@ -747,10 +753,23 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
                             const std::string& engine_type, const std::string& description,
                             const std::vector<double>& parameters) {
     
-    // Convert JSON rule configuration to actual MusicalRule objects based on rule_type
-    if (rule_type == "r-pitches-one-engine" && function == "all_different") {
+    // Convert JSON rule configuration to actual MusicalRule objects based on rule_type or function
+    if ((rule_type == "r-pitches-one-engine" || rule_type == "r-pitches-all-different" || 
+         rule_type == "r-twelve-tone-voice1") && function == "all_different") {
         // Add basic no-repetition rule for twelve-tone generation
+        twelve_tone_row_enabled_ = true;
         add_rule(std::make_shared<NoRepetitionRule>());
+        
+    } else if (rule_type == "r-perfect-fifth-intervals" && function == "consecutive_perfect_fifths") {
+        // Enable perfect fifth intervals constraint
+        perfect_fifth_intervals_enabled_ = true;
+        add_rule(std::make_shared<MelodicIntervalRule>(7));  // Add basic interval rule
+        
+    } else if ((rule_type == "r-palindrome-voice" || rule_type == "r-palindrome-voice2") && 
+               function == "palindrome_of_engine") {
+        // Enable palindrome voices constraint  
+        palindrome_voices_enabled_ = true;
+        add_rule(std::make_shared<NoRepetitionRule>());  // Add basic rule
         
     } else if (rule_type == "r-cross-voice-retrograde-inversion" && function == "retrograde_inversion_relationship") {
         // SPECIAL CASE: Retrograde Inversion Constraint
@@ -793,6 +812,87 @@ void Solver::auto_configure_rules() {
     add_rules(MusicalRuleFactory::get_style_rules(config_.style));
 }
 
+// ===============================
+// Dynamic Rule Management (NEW)
+// ===============================
+
+void Solver::add_dynamic_rule(const nlohmann::json& rule_json) {
+    try {
+        std::cout << "🎯 Adding dynamic rule: " << rule_json.value("id", "unknown") << std::endl;
+        
+        // Store rule config for later access
+        dynamic_rule_configs_.push_back(rule_json);
+        
+        // Compile and add to rule set
+        auto compiled_rule = DynamicRules::DynamicRuleCompiler::compile_from_json(rule_json);
+        compiled_rules_->add_constraint(std::move(compiled_rule));
+        
+        std::cout << "   ✅ Dynamic rule compiled successfully" << std::endl;
+        
+    } catch (const std::exception& e) {
+        std::cout << "   ❌ Failed to compile dynamic rule: " << e.what() << std::endl;
+        throw;
+    }
+}
+
+void Solver::add_dynamic_rule(const std::string& rule_json_string) {
+    try {
+        auto rule_json = nlohmann::json::parse(rule_json_string);
+        add_dynamic_rule(rule_json);
+    } catch (const std::exception& e) {
+        std::cout << "❌ Failed to parse dynamic rule JSON: " << e.what() << std::endl;
+        throw;
+    }
+}
+
+void Solver::load_dynamic_rules(const std::vector<nlohmann::json>& rules_array) {
+    std::cout << "📋 Loading " << rules_array.size() << " dynamic rules..." << std::endl;
+    
+    for (const auto& rule_json : rules_array) {
+        try {
+            add_dynamic_rule(rule_json);
+        } catch (const std::exception& e) {
+            std::cout << "⚠️  Skipped rule due to error: " << e.what() << std::endl;
+        }
+    }
+    
+    std::cout << "✅ Loaded dynamic rules. Total in system: " << get_dynamic_rules_count() << std::endl;
+}
+
+void Solver::clear_dynamic_rules() {
+    compiled_rules_ = std::make_unique<DynamicRules::CompiledRuleSet>();
+    dynamic_rule_configs_.clear();
+    std::cout << "🧹 Cleared all dynamic rules" << std::endl;
+}
+
+void Solver::apply_compiled_constraint(std::unique_ptr<DynamicRules::CompiledConstraint> compiled_constraint) {
+    if (!compiled_constraint) {
+        std::cout << "   ⚠️  Null compiled constraint, skipping" << std::endl;
+        return;
+    }
+    
+    try {
+        std::cout << "🎯 Applying compiled wildcard constraint: " << compiled_constraint->rule_id << std::endl;
+        
+        // Add to the compiled rule set directly
+        if (!compiled_rules_) {
+            compiled_rules_ = std::make_unique<DynamicRules::CompiledRuleSet>();
+        }
+        
+        compiled_rules_->add_constraint(std::move(compiled_constraint));
+        
+        std::cout << "   ✅ Wildcard constraint applied successfully" << std::endl;
+        
+    } catch (const std::exception& e) {
+        std::cout << "   ❌ Failed to apply compiled constraint: " << e.what() << std::endl;
+        throw;
+    }
+}
+
+size_t Solver::get_dynamic_rules_count() const {
+    return compiled_rules_ ? compiled_rules_->total_count() : 0;
+}
+
 MusicalSolution Solver::solve() {
     total_solve_attempts_++;
     return solve_internal();
@@ -825,14 +925,48 @@ MusicalSolution Solver::solve_internal() {
     MusicalSolution solution;
     
     try {
-        // CREATE GECODE CONSTRAINT SPACE
+        // CREATE GECODE CONSTRAINT SPACE WITH PITCH DOMAIN
+        // For now, use min/max range - this needs to be modified to accept domain array
+        std::vector<int> pitch_domain;
+        for (int i = config_.min_note; i <= config_.max_note; ++i) {
+            pitch_domain.push_back(i);
+        }
         auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
-            config_.sequence_length, config_.num_voices, config_.backjump_mode);
+            config_.sequence_length, config_.num_voices, config_.backjump_mode, pitch_domain);
         
         // ADD MUSICAL RULES AS GECODE CONSTRAINTS
         if (!rules_.empty()) {
             gecode_space->add_musical_rules(rules_);
             std::cout << "DEBUG: Added " << rules_.size() << " musical rules" << std::endl;
+        }
+        
+        // POST ADVANCED CONSTRAINTS BASED ON FLAGS
+        if (twelve_tone_row_enabled_) {
+            gecode_space->post_twelve_tone_row_constraint();
+            std::cout << "Posted 12-tone row constraint" << std::endl; 
+        }
+        
+        if (perfect_fifth_intervals_enabled_) {
+            gecode_space->post_perfect_fifth_intervals_constraint();
+            std::cout << "Posted perfect fifth intervals constraint" << std::endl;
+        }
+        
+        if (palindrome_voices_enabled_) {
+            gecode_space->post_palindrome_voices_constraint();
+            std::cout << "Posted palindrome voices constraint" << std::endl;
+        }
+        
+        // POST DYNAMIC RULES (NEW SYSTEM)
+        if (compiled_rules_ && compiled_rules_->constraint_count() > 0) {
+            std::cout << "🎯 Applying " << compiled_rules_->total_count() << " dynamic rules" << std::endl;
+            
+            // Create constraint context
+            DynamicRules::ConstraintContext ctx(gecode_space.get(), &gecode_space->get_absolute_vars(), 
+                                               &gecode_space->get_interval_vars(), config_.num_voices, config_.sequence_length);
+            
+            // Post all compiled constraints
+            compiled_rules_->post_all_constraints(ctx);
+            compiled_rules_->apply_all_heuristics(ctx);
         }
         
         // Add basic range constraints BEFORE retrograde inversion

@@ -1,0 +1,16 @@
+{
+  "configuration": {
+    "num_voices": 1,
+    "sequence_length": 2,
+    "pitch_range": [60, 67]
+  },
+  "rules": [
+    {
+      "rule_id": "simple_debug",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "65 > 60",
+      "description": "Simple numeric comparison without voice access"
+    }
+  ]
+}

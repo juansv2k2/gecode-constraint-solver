@@ -1,0 +1,86 @@
+{
+  "name": "Working Dynamic Rule System Example",
+  "description": "Balanced constraints that allow valid solutions",
+  "solution_length": 6,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "stepwise_motion_voice1",
+      "type": "sequential_constraint",
+      "expression": {
+        "operator": "<=",
+        "left": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "voice[0].pitch[1]",
+              "right": "voice[0].pitch[0]"
+            }
+          ]
+        },
+        "right": { "value": 2 }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: First interval is stepwise (max 2 semitones)"
+    },
+    {
+      "id": "c_major_scale_constraint",
+      "type": "membership_constraint",
+      "expression": {
+        "operator": "in",
+        "left": {
+          "function": "mod",
+          "args": ["voice[0].pitch[0]", { "value": 12 }]
+        },
+        "right": { "value": [0, 2, 4, 5, 7, 9, 11] }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: First note must be in C Major scale"
+    },
+    {
+      "id": "parallel_perfect_fifths",
+      "type": "voice_relationship_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 7 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: First note is perfect fifth above Voice 1"
+    },
+    {
+      "id": "voice1_ascending_tendency",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": ">=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[0].pitch[0]"
+      },
+      "mode": "constraint",
+      "description": "Voice 1: Second note >= first note (ascending tendency)"
+    }
+  ],
+
+  "domains": [
+    {
+      "engine_id": 1,
+      "type": "pitch",
+      "values": [60, 62, 64, 65, 67, 69, 71],
+      "description": "Voice 1: C Major scale C4-B4"
+    },
+    {
+      "engine_id": 3,
+      "type": "pitch",
+      "values": [67, 69, 71, 72, 74, 76, 78],
+      "description": "Voice 2: Perfect fifths above Voice 1"
+    }
+  ]
+}

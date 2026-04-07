@@ -1,0 +1,38 @@
+{
+  "configuration": {
+    "name": "SLIDING WINDOW DEMO: Extended Sequence",
+    "description": "Demonstrate sliding window +2/-1 pattern across 10 notes, extended MIDI range",
+    "num_voices": 2,
+    "sequence_length": 10,
+    "pitch_range": [36, 128],
+    "rhythm_values": [1, 2, 4],
+    "time_signature": "3/4"
+  },
+  "rules": [
+    {
+      "id": "voice1_starts_c4",
+      "rule_id": "voice1_starts_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: (INDEX) Voice 1 starts C4"
+    },
+    {
+      "id": "voice1_stepwise_up",
+      "rule_id": "voice1_stepwise_up",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] + 1",
+      "description": "Rule 2: (WILDCARD SLIDING) Voice 1 stepwise motion +1 semitone"
+    },
+    {
+      "id": "voice2_seventh_below",
+      "rule_id": "voice2_seventh_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 7",
+      "description": "Rule 3: (WILDCARD) Voice 2 exactly 7 semitones below voice 1"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "name": "Complete Dynamic Rule System Demo",
+  "description": "Comprehensive demonstration of working dynamic rule system",
+  "solution_length": 8,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "voice1_C_major",
+      "type": "membership_constraint",
+      "expression": {
+        "operator": "in",
+        "left": {
+          "function": "mod",
+          "args": ["voice[0].pitch[0]", { "value": 12 }]
+        },
+        "right": { "value": [0, 2, 4, 5, 7, 9, 11] }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: First note in C Major scale"
+    },
+    {
+      "id": "voice2_perfect_fifth",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 7 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Voice 2: Perfect fifth harmony"
+    },
+    {
+      "id": "voice1_melodic_step",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "<=",
+        "left": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "voice[0].pitch[1]",
+              "right": "voice[0].pitch[0]"
+            }
+          ]
+        },
+        "right": { "value": 3 }
+      },
+      "mode": "constraint",
+      "description": "Voice 1: Melodic step motion (max 3 semitones)"
+    }
+  ]
+}

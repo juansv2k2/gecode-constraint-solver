@@ -1,0 +1,37 @@
+{
+  "name": "Arithmetic Test Example",
+  "description": "Test arithmetic expressions in dynamic rules",
+  "solution_length": 4,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "dynamic_rules": [
+    {
+      "id": "first_note_c4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": { "value": 60 }
+      },
+      "mode": "constraint",
+      "description": "First note is C4"
+    },
+    {
+      "id": "second_note_arithmetic",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[1]",
+        "right": {
+          "operator": "+",
+          "left": "voice[0].pitch[0]",
+          "right": { "value": 2 }
+        }
+      },
+      "mode": "constraint",
+      "description": "Second note = first note + 2 semitones"
+    }
+  ]
+}

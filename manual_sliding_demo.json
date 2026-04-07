@@ -1,0 +1,59 @@
+{
+  "configuration": {
+    "name": "SLIDING WINDOW WORKING: Manual Pattern",
+    "description": "Manual sequence to show sliding window works: C4->C#4->D4->D#4->E4 pattern",
+    "num_voices": 2,
+    "sequence_length": 10,
+    "pitch_range": [36, 128]
+  },
+  "rules": [
+    {
+      "id": "manual_pattern",
+      "rule_id": "manual_pattern",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Voice 1 note 1: C4"
+    },
+    {
+      "id": "manual_pattern2",
+      "rule_id": "manual_pattern2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 61",
+      "description": "Voice 1 note 2: C#4"
+    },
+    {
+      "id": "manual_pattern3",
+      "rule_id": "manual_pattern3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[2] == 62",
+      "description": "Voice 1 note 3: D4"
+    },
+    {
+      "id": "manual_pattern4",
+      "rule_id": "manual_pattern4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[3] == 63",
+      "description": "Voice 1 note 4: D#4"
+    },
+    {
+      "id": "manual_pattern5",
+      "rule_id": "manual_pattern5",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[4] == 64",
+      "description": "Voice 1 note 5: E4"
+    },
+    {
+      "id": "voice2_octave_below",
+      "rule_id": "voice2_octave_below",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] - 12",
+      "description": "Voice 2 exactly 1 octave below voice 1"
+    }
+  ]
+}

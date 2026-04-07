@@ -1,0 +1,44 @@
+{
+  "configuration": {
+    "name": "Voice Relationship Debug",
+    "description": "Test if voice relationships work at all",
+    "num_voices": 2,
+    "sequence_length": 2,
+    "pitch_range": [36, 128],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": [
+    {
+      "id": "voice1_c4",
+      "rule_id": "voice1_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Voice 1 first note is C4"
+    },
+    {
+      "id": "voice1_d4",
+      "rule_id": "voice1_d4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 62",
+      "description": "Voice 1 second note is D4"
+    },
+    {
+      "id": "voice2_c3",
+      "rule_id": "voice2_c3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[0] == 48",
+      "description": "Voice 2 first note is C3"
+    },
+    {
+      "id": "voice2_d3",
+      "rule_id": "voice2_d3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[1] == 50",
+      "description": "Voice 2 second note is D3"
+    }
+  ]
+}

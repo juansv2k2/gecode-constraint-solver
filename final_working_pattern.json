@@ -1,0 +1,44 @@
+{
+  "configuration": {
+    "name": "FINAL WORKING: Two Voice Pattern Success",
+    "description": "C4->D4->C#4 pattern, voice 2 stays in domain [60-71]",
+    "num_voices": 2,
+    "sequence_length": 3,
+    "pitch_range": [36, 128],
+    "rhythm_values": [1, 2, 4]
+  },
+  "rules": [
+    {
+      "id": "voice1_starts_c4",
+      "rule_id": "voice1_starts_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Rule 1: (INDEX) Voice 1 starts with pitch 60 (C4)"
+    },
+    {
+      "id": "voice1_second_d4",
+      "rule_id": "voice1_second_d4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[1] == 62",
+      "description": "Rule 2a: (WILDCARD) Voice 1 second note is D4 (+2 semitones)"
+    },
+    {
+      "id": "voice1_third_cs4",
+      "rule_id": "voice1_third_cs4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[2] == 61",
+      "description": "Rule 2b: (WILDCARD) Voice 1 third note is C#4 (-1 semitone)"
+    },
+    {
+      "id": "voice2_above_voice1",
+      "rule_id": "voice2_above_voice1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] + 3",
+      "description": "Rule 3: (WILDCARD) Voice 2 is 3 semitones above voice 1 (within domain)"
+    }
+  ]
+}

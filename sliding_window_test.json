@@ -1,0 +1,30 @@
+{
+  "configuration": {
+    "name": "Sliding Window Test",
+    "description": "Simple test of sliding window +3 constraint",
+    "num_voices": 1,
+    "sequence_length": 5,
+    "pitch_range": [60, 80],
+    "rhythm_values": [1],
+    "time_signature": "4/4"
+  },
+  "rules": [
+    {
+      "id": "starts_c4",
+      "rule_id": "starts_c4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "constraint": "voice[0].pitch[0] == 60",
+      "description": "Start with C4"
+    },
+    {
+      "id": "plus3_sliding",
+      "rule_id": "plus3_sliding",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3",
+      "description": "SLIDING WINDOW +3 semitones"
+    }
+  ]
+}
