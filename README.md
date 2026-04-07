@@ -117,6 +117,7 @@ ls tests/output/
 ### 🧮 Arithmetic Constraint Examples
 
 **Simple Addition:**
+
 ```json
 {
   "constraint": "voice[0].pitch[1] == voice[0].pitch[0] + 3",
@@ -125,6 +126,7 @@ ls tests/output/
 ```
 
 **Sliding Window Pattern:**
+
 ```json
 {
   "wildcard_type": "sliding_window",
@@ -134,6 +136,7 @@ ls tests/output/
 ```
 
 **Complex Arithmetic:**
+
 ```json
 {
   "constraint": "voice[0].pitch[3] == voice[0].pitch[0] + 12",
@@ -150,19 +153,22 @@ ls tests/output/
 The system now supports **full arithmetic expressions** in constraint rules, enabling sophisticated mathematical relationships between musical elements:
 
 #### **Pattern Variables**
+
 - `i` → Current position index (0, 1, 2, ...)
 - `v` → Current voice index (0, 1, 2, ...)
 - `i+1`, `i-1`, `i+N` → Position arithmetic (array indexing)
 
-#### **Constraint Arithmetic** 
+#### **Constraint Arithmetic**
+
 - `voice[v].pitch[i] + 3` → Add 3 semitones
-- `voice[v].pitch[i] - 5` → Subtract 5 semitones  
+- `voice[v].pitch[i] - 5` → Subtract 5 semitones
 - `voice[v].pitch[i] * 2` → Multiply (harmonic intervals)
 - `voice[0].pitch[0] + 12` → Octave relationships
 
 #### **Wildcard Constraint Types**
 
 **Sliding Window:**
+
 ```json
 {
   "wildcard_type": "sliding_window",
@@ -170,44 +176,54 @@ The system now supports **full arithmetic expressions** in constraint rules, ena
   "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3"
 }
 ```
+
 Applied across sequence: `pos[0→1], pos[1→2], pos[2→3]...`
 
 **For All Positions:**
+
 ```json
 {
-  "wildcard_type": "for_all_positions", 
+  "wildcard_type": "for_all_positions",
   "constraint": "voice[0].pitch[i] >= 60"
 }
 ```
+
 Applied to every position: `pos[0], pos[1], pos[2]...`
 
 **Cross-Voice:**
+
 ```json
 {
   "wildcard_type": "for_all_voices",
-  "constraint": "voice[v].pitch[0] != voice[v].pitch[1]"  
+  "constraint": "voice[v].pitch[0] != voice[v].pitch[1]"
 }
 ```
+
 Applied to every voice: `voice[0], voice[1], voice[2]...`
 
 ### 🎯 Real Examples That Work
 
 **Musical Progression (C4 → E4 → G4 → C5):**
+
 ```bash
 ./dynamic-solver multiple_arithmetic_test.json
 ```
 
 **Sliding Window (+3 semitones):**
-```bash  
+
+```bash
 ./dynamic-solver working_sliding_window.json
 ```
 
 **Complex Harmonic Relations:**
+
 ```bash
 ./dynamic-solver direct_arithmetic_test.json
 ```
+
 # → twelve_tone_config_result.xml (via json_to_xml.py)
-```
+
+````
 
 ---
 
@@ -225,7 +241,7 @@ The primary interface is the `dynamic-solver` executable, which processes JSON c
 ./dynamic-solver twelve_tone_config.json        # 12-tone row generation
 ./dynamic-solver example_cluster_config.json    # Multi-voice harmony
 ./dynamic-solver simple_test_config.json        # Basic melody generation
-```
+````
 
 ### 📋 JSON Configuration Format
 
@@ -251,7 +267,7 @@ The primary interface is the `dynamic-solver` executable, which processes JSON c
     },
     {
       "id": "ascending_thirds",
-      "rule_type": "wildcard_constraint", 
+      "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
       "pattern_offsets": [0, 1],
       "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3",
@@ -260,7 +276,7 @@ The primary interface is the `dynamic-solver` executable, which processes JSON c
     {
       "id": "cross_voice_harmony",
       "rule_type": "wildcard_constraint",
-      "wildcard_type": "for_all_positions", 
+      "wildcard_type": "for_all_positions",
       "constraint": "voice[1].pitch[i] == voice[0].pitch[i] + 7",
       "description": "Voice 1 perfect fifth above voice 0"
     }
@@ -319,7 +335,7 @@ python3 json_to_xml.py tests/output/[config-name]_result.json
 ### 🎵 Complex Musical Progressions
 
 ```bash
-./dynamic-solver multiple_arithmetic_test.json  
+./dynamic-solver multiple_arithmetic_test.json
 ```
 
 - **Output**: `C4 → E4 → G4 → C5` (60 → 64 → 67 → 72)
@@ -391,13 +407,13 @@ make test-builtin-xml        # XML export validation
 
 ### 🧮 Arithmetic Constraint Performance
 
-| Operation                    | Typical Time | Performance Level  |
-| ---------------------------- | ------------ | ------------------ |
-| Parse algebraic expression   | <1ms         | ⚡ Instant         |
-| Compile pattern variables    | <1ms         | ⚡ Real-time       |
-| Post arithmetic constraint   | <1µs         | ⚡ Immediate       |
-| Solve simple arithmetic      | 0-3ms        | ⚡ Sub-millisecond |
-| Complex multi-constraint     | 3-6ms        | ⚡ Real-time ready |
+| Operation                  | Typical Time | Performance Level  |
+| -------------------------- | ------------ | ------------------ |
+| Parse algebraic expression | <1ms         | ⚡ Instant         |
+| Compile pattern variables  | <1ms         | ⚡ Real-time       |
+| Post arithmetic constraint | <1µs         | ⚡ Immediate       |
+| Solve simple arithmetic    | 0-3ms        | ⚡ Sub-millisecond |
+| Complex multi-constraint   | 3-6ms        | ⚡ Real-time ready |
 
 ---
 
@@ -455,7 +471,7 @@ make dynamic-solver
 # 2. Test arithmetic constraints
 ./dynamic-solver direct_arithmetic_test.json
 
-# 3. Test complex progressions  
+# 3. Test complex progressions
 ./dynamic-solver multiple_arithmetic_test.json
 
 # 4. Test sliding window patterns
