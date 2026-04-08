@@ -11,6 +11,7 @@ A C++ implementation of a polyphonic musical constraint solving with dynamic rul
 - **Dynamic rules using Algebraic Expressions**: For example `voice[v].pitch[i+1] == voice[v].pitch[i] + 3`
 - **Wildcard Constraint Rules**: Sliding window patterns on single- and cross-voice relationships.
 - **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + global metric engine.
+- **DualSolutionStorage**: Absolute and interval representation
 - **JSON Configuration**: Configuration interface with dynamic constraints
 - **MusicXML Export**: Direct export to standard notation format
 - **Fast Performance**: Sub-millisecond constraint solving
@@ -18,48 +19,48 @@ A C++ implementation of a polyphonic musical constraint solving with dynamic rul
 ### Core Components
 
 - **MusicalConstraintSolver**: Main interface and configuration
+- **GecodeClusterIntegration**: Constraint programming bridge between Cluster and Gecode
 - **AdvancedBackjumping**: backjumping system (TODO)
-- **DualSolutionStorage**: Absolute and interval representation
-- **EnhancedRuleArchitecture**: Professional musical rule system
-- **GecodeClusterIntegration**: Modern constraint programming bridge
 
-**Test Status**: Interface Working | Configuration Working | Utilities Working | Solving Algorithm Needs debugging
+**Test Status**: Interface Working | Configuration Working | Utilities Working | Solving Algorithm On Development
 
 ## Cluster Engine Architecture
 
-The implementation follows the authentic Cluster-Engine v4.05 architecture with:
+The implementation follows the authentic Cluster-Engine architecture with:
 
-- **Multi-Engine Coordination**: Rhythm and pitch engines working in concert
-- **Musical Domain Intelligence**: Onset grids, beat structures, musical domains
+- **Multi-Engine Coordination**: Rhythm and pitch engines working
+- **Musical Domain Intelligence**: Onset grids, beat structures, musical domains (TO DO)
 - **Heuristic Guidance System**: Musical intelligence for candidate sorting
 - **Advanced Backjumping**: Musical context-aware search strategies
 - **Rule Interface System**: Specialized musical constraint types
 
 ### Constraint Types
 
+- **Single- and Multi-voice Constraints**: Sophisticated multi-voice relation rules.
 - **Arithmetic Relations**: Mathematical relationships between musical elements.
 - **Interval Constraints**: Control melodic steps and harmonic intervals.
-- **Single- and Multi-voice Constraints**: Sophisticated multi-voice relation rules.
 - **Temporal Patterns**: Rhythmic and metric constraint systems
 
 ## Extending the Solver
 
 To add new musical constraints:
 
-1. **Study Cluster Engine patterns**: Examine rule types in `cluster-engine-sources/`
-2. **Refine constraint configuration**: Create new rules in JSON configuration
-3. **Implement constraint logic**: Add algebraic expression using pattern variables
-4. **Test and iterate**: Use `make test` to verify the constraint behavior
+1. **Cluster Engine advanced rule structures**: Examine rule types in `cluster-engine-sources/`
+2. **Refine constraint configuration**: Investigate rule creation in JSON configuration.
+3. **Investigate heuristic constraints logic**: Add weights, perhaps corpus-based integrations.
 
 ## Next Steps
 
-Potential extensions inspired by the JBS library:
+Potential extension by adding pre-compiled rules (for example JBS library)
 
-- Rhythmic constraints (duration patterns)
-- Harmonic constraints (chord progressions)
-- Voice leading rules (multiple melodic lines)
-- Modular arithmetic constraints (pitch classes)
-- Advanced search strategies and heuristics
+- Generic rules (repetition, difference, etc.)
+- Interval rules
+- Pitch/MOD rules
+- Shaping rules
+- Distance rules
+- Structure rules
+- Matrix rules
+- Markov rules
 
 ## Repository Structure
 
