@@ -11,35 +11,35 @@ A C++ implementation of a polyphonic musical constraint solving with dynamic rul
 - **Dynamic rules using Algebraic Expressions**: For example `voice[v].pitch[i+1] == voice[v].pitch[i] + 3`
 - **Wildcard Constraint Rules**: Sliding window patterns on single- and cross-voice relationships.
 - **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + global metric engine.
-- **DualSolutionStorage**: Absolute and interval representation
-- **JSON Configuration**: Configuration interface with dynamic constraints
-- **MusicXML Export**: Direct export to standard notation format
-- **Fast Performance**: Sub-millisecond constraint solving
+- **DualSolutionStorage**: Absolute and interval representation.
+- **JSON Configuration**: Configuration interface with dynamic constraints.
+- **MusicXML Export**: Direct export to standard notation format.
+- **Fast Performance**: Sub-millisecond constraint solving.
 
 ### Core Components
 
-- **MusicalConstraintSolver**: Main interface and configuration
-- **GecodeClusterIntegration**: Constraint programming bridge between Cluster and Gecode
-- **AdvancedBackjumping**: backjumping system (TODO)
+- **MusicalConstraintSolver**: Main interface and configuration.
+- **GecodeClusterIntegration**: Constraint programming bridge between Cluster and Gecode.
+- **AdvancedBackjumping**: backjumping system (TODO).
 
-**Test Status**: Interface Working | Configuration Working | Utilities Working | Solving Algorithm On Development
+**Test Status**: Interface Working | Configuration Working | Utilities Working | Solving Algorithm On Development.
 
 ## Cluster Engine Architecture
 
-The implementation follows the authentic Cluster-Engine architecture with:
+The implementation follows the Cluster-Engine architecture with:
 
-- **Multi-Engine Coordination**: Rhythm and pitch engines working
-- **Musical Domain Intelligence**: Onset grids, beat structures, musical domains (TO DO)
-- **Heuristic Guidance System**: Musical intelligence for candidate sorting
-- **Advanced Backjumping**: Musical context-aware search strategies
-- **Rule Interface System**: Specialized musical constraint types
+- **Multi-Engine Coordination**: Rhythm and pitch engines working.
+- **Musical Domain Intelligence**: Onset grids, beat structures, musical domains (TO DO).
+- **Heuristic Guidance System**: Musical intelligence for candidate sorting.
+- **Advanced Backjumping**: Musical context-aware search strategies.
+- **Rule Interface System**: Specialized musical constraint types.
 
 ### Constraint Types
 
 - **Single- and Multi-voice Constraints**: Sophisticated multi-voice relation rules.
 - **Arithmetic Relations**: Mathematical relationships between musical elements.
 - **Interval Constraints**: Control melodic steps and harmonic intervals.
-- **Temporal Patterns**: Rhythmic and metric constraint systems
+- **Temporal Patterns**: Rhythmic and metric constraint systems.
 
 ## Extending the Solver
 
@@ -51,7 +51,7 @@ To add new musical constraints:
 
 ## Next Steps
 
-Potential extension by adding pre-compiled rules (for example JBS library)
+Potential extension by adding pre-compiled rules (for example JBS library):
 
 - Generic rules (repetition, difference, etc.)
 - Interval rules
