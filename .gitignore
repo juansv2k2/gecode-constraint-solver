@@ -1,6 +1,6 @@
-cluster-engine-sources
-new-cluster-sources
-jbs-constraints
+cluster-engine-sources/
+new-cluster-sources/
+jbs-constraints/
 Gecode documentation.pdf
 
 # Build artifacts
