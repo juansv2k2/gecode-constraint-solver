@@ -7,7 +7,6 @@ A C++ implementation of a polyphonic musical constraint solving with dynamic rul
 ## Features
 
 - **Dynamic rules using Algebraic Expressions**: For example `voice[v].pitch[i+1] == voice[v].pitch[i] + 3`
-- **Pattern Variables**: Dynamic substitution of `i` (position) and `v` (voice) variables.
 - **Wildcard Constraint Rules**: Sliding window patterns on single- and cross-voice relationships.
 - **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + global metric engine.
 - **JSON Configuration**: Configuration interface with dynamic constraints
@@ -31,8 +30,74 @@ A C++ implementation of a polyphonic musical constraint solving with dynamic rul
 
 ### Prerequisites
 
-- C++ compiler with C++11 support
-- Gecode constraint programming library
+#### Core System Requirements
+
+- **C++ Compiler**: g++ with C++17 support (GCC 7+ or Clang 5+)
+- **Build System**: GNU Make
+- **Package Manager**: pkg-config for library detection
+
+#### Required Dependencies
+
+- **Gecode**: Constraint programming library (version 6.0+)
+  - Libraries: libgecodeminimodel, libgecodeint, libgecodesearch, libgecodekernel, libgecodesupport, libgecodeflatzinc
+
+#### Python Dependencies (for XML export)
+
+- **Python 3**: Version 3.7 or higher
+- **music21**: Python library for music analysis and generation
+  ```bash
+  pip install music21
+  ```
+
+#### Installation Commands
+
+**macOS (Homebrew):**
+
+```bash
+# Install Gecode
+brew install gecode
+
+# Install Python dependencies
+pip3 install music21
+```
+
+**Ubuntu/Debian:**
+
+```bash
+# Install build tools and Gecode
+sudo apt-get update
+sudo apt-get install build-essential pkg-config libgecode-dev
+
+# Install Python and dependencies
+sudo apt-get install python3 python3-pip
+pip3 install music21
+```
+
+**Fedora/Red Hat:**
+
+```bash
+# Install build tools and Gecode
+sudo dnf install gcc-c++ make pkg-config gecode-devel
+
+# Install Python dependencies
+sudo dnf install python3 python3-pip
+pip3 install music21
+```
+
+#### Verification
+
+Test your installation:
+
+```bash
+# Check Gecode installation
+pkg-config --exists gecode && echo "Gecode found" || echo "Gecode not found"
+
+# Check Python dependencies
+python3 -c "import music21; print('music21 available')" 2>/dev/null || echo "music21 not found"
+
+# Check build system
+make --version && echo "Make available" || echo "Make not found"
+```
 
 ### Build & Run
 
