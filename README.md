@@ -1,23 +1,23 @@
 # Gecode Musical Constraint Solver
 
-**Advanced Dynamic Musical Constraint System with Algebraic Expression Support**
+**Polyphonic Musical Constraint System**
 
-A modern C++ implementation of sophisticated musical constraint solving with full arithmetic expression parsing, combining the advanced capabilities of Cluster-Engine v4.05 with Gecode constraint programming.
+A C++ implementation of a polyphonic musical constraint solving with dynamic rule system, music intelligence and full arithmetic expression parsing. Inspired on the advanced capabilities of Cluster-Engine by Örjan Sandred, optimized for the Gecode constraint programming.
 
 ## Features
 
-- **Algebraic Expressions**: Native support for `voice[v].pitch[i+1] == voice[v].pitch[i] + 3`
-- **Pattern Variables**: Dynamic substitution of `i` (position) and `v` (voice) variables
-- **Wildcard Constraints**: Sliding window patterns, cross-voice relationships
-- **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + global metric engine
-- **JSON Configuration**: Professional configuration interface with dynamic constraints
+- **Dynamic rules using Algebraic Expressions**: For example `voice[v].pitch[i+1] == voice[v].pitch[i] + 3`
+- **Pattern Variables**: Dynamic substitution of `i` (position) and `v` (voice) variables.
+- **Wildcard Constraint Rules**: Sliding window patterns on single- and cross-voice relationships.
+- **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + global metric engine.
+- **JSON Configuration**: Configuration interface with dynamic constraints
 - **MusicXML Export**: Direct export to standard notation format
-- **Real-time Performance**: Sub-millisecond constraint solving
+- **Fast Performance**: Sub-millisecond constraint solving
 
 ## Repository Structure
 
 ```
-├── bin/                    # Compiled executables
+├── bin/                   # Compiled executables
 ├── configs/               # JSON configuration files
 ├── docs/                  # Documentation and guides
 ├── include/               # Header files
@@ -31,17 +31,12 @@ A modern C++ implementation of sophisticated musical constraint solving with ful
 
 ### Prerequisites
 
-```bash
-# macOS
-brew install gecode
-
-# Ubuntu/Debian
-sudo apt-get install libgecode-dev
-```
+- C++ compiler with C++11 support
+- Gecode constraint programming library
 
 ### Build & Run
 
-```bash
+````bash
 # Build
 make bin/dynamic-solver
 
@@ -50,10 +45,6 @@ bin/dynamic-solver configs/direct_arithmetic_test.json
 
 # Test complex progressions
 bin/dynamic-solver configs/multiple_arithmetic_test.json
-
-# Export to XML
-python3 scripts/json_to_xml.py output/result.json
-```
 
 ## Configuration Format
 
@@ -73,7 +64,7 @@ python3 scripts/json_to_xml.py output/result.json
     }
   ]
 }
-```
+````
 
 ## Examples
 
@@ -106,20 +97,6 @@ bin/dynamic-solver configs/twelve_tone_config.json
 | Arithmetic solving | 0-6ms        |
 | XML export         | <10ms        |
 
-## Integration
-
-### Supported Formats
-
-- **JSON**: Structured musical data
-- **MusicXML**: Industry-standard notation format
-- **MIDI**: Standard pitch representation (C4 = 60)
-
-### Compatible Software
-
-- **MuseScore**: File → Open → Select `.xml` file
-- **Sibelius**: File → Open → Import MusicXML
-- **Finale**: File → Import → Select MusicXML
-
 ## Documentation
 
 - [Twelve-Tone Usage Guide](docs/TWELVE_TONE_USAGE.md)
@@ -129,23 +106,10 @@ bin/dynamic-solver configs/twelve_tone_config.json
 ## Development
 
 ```bash
-make bin/dynamic-solver      # Main interface
+make bin/dynamic-solver     # Main interface
 make test-all               # Run all tests
 make clean                  # Clean build artifacts
 ```
-
-**Status**: Production Ready | **API**: Stable
-
-## Performance Characteristics
-
-| Operation            | Typical Time   | Performance Level |
-| -------------------- | -------------- | ----------------- |
-| Solver setup         | <1ms           | Instant           |
-| Style configuration  | <1ms           | Instant           |
-| Rule creation        | <1µs           | Immediate         |
-| Rule validation      | 13µs/100 rules | Sub-millisecond   |
-| Utility functions    | <1µs           | Immediate         |
-| Interface operations | <1ms           | Real-time ready   |
 
 ### Working Tests (SAFE TO RUN)
 
@@ -163,7 +127,7 @@ make validate-production && ./simple-gecode-cluster-validation
 ### Tests with Known Issues
 
 ```bash
-# Full production test (Has solver bounds issues - fixable)
+# Has solver bounds issues - fixable
 make test-production && ./test-musical-constraint-solver
 ```
 
@@ -181,21 +145,12 @@ make test-production && ./test-musical-constraint-solver
 - **Arithmetic Constraints**: Native `voice[v].pitch[i] + 3` support
 - **Pattern Variables**: Dynamic `i`, `v` substitution
 - **Sliding Window**: Sequential constraint application
-- **Musical Progressions**: C4→E4→G4→C5 generation
 
 ### Complete Usage Examples
 
 - **[test_main_interface.cpp](test_main_interface.cpp)** - Interface test covering all functionality
 - **[main_interface_example.cpp](main_interface_example.cpp)** - Comprehensive usage examples
 - **[simple_gecode_cluster_validation.cpp](simple_gecode_cluster_validation.cpp)** - Core validation
-
-### API Documentation
-
-- **Musical styles and preset configurations**
-- **Custom configuration options and parameters**
-- **Rule factory system and custom rule creation**
-- **Performance monitoring and statistics**
-- **Utility functions for MIDI and interval analysis**
 
 ### Adding Musical Rules
 
@@ -217,13 +172,6 @@ class CustomStrategy : public BackjumpStrategy {
 };
 ```
 
-### Adding Musical Styles
-
-```cpp
-// Extend MusicalRuleFactory
-class CustomRuleFactory : public MusicalRuleFactory {
-    void setup_custom_style(SolverConfig& config);
-};
 ```
 
 ## Technical Architecture
@@ -247,38 +195,9 @@ class CustomRuleFactory : public MusicalRuleFactory {
 
 **Test Status**: Interface Working | Configuration Working | Utilities Working | Solving Algorithm Needs debugging
 
-```bash
-# Get help and see all options
-./musical-solver -help
-
-# Generate more/fewer solutions
-./musical-solver -solutions 10 -model basic
-
 # Re-compile after changes (if you modify the code)
 make clean && make
 ```
-
-## Overview
-
-This project implements musical constraints using the Gecode constraint programming toolkit. It demonstrates how to translate musical rules from the Cluster-Engine v4.05 architecture into efficient C++ constraint programs.
-
-## Current Implementation
-
-The `dynamic-solver` implements a sophisticated musical constraint solver with algebraic expression support:
-
-### Dynamic Constraint System
-
-- **Algebraic Expressions**: Native `voice[v].pitch[i+1] == voice[v].pitch[i] + 3` support
-- **Pattern Variables**: Automatic substitution of position (`i`) and voice (`v`) indices
-- **Wildcard Constraints**: Sliding window patterns and cross-voice relationships
-- **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + metric engine
-
-### Constraint Types
-
-- **Arithmetic Relations**: Mathematical relationships between musical elements
-- **Interval Constraints**: Control melodic steps and harmonic intervals
-- **Voice Leading**: Sophisticated multi-voice coordination rules
-- **Temporal Patterns**: Rhythmic and metric constraint systems
 
 ## Cluster Engine Architecture
 
@@ -290,86 +209,19 @@ The implementation follows the authentic Cluster-Engine v4.05 architecture with:
 - **Advanced Backjumping**: Musical context-aware search strategies
 - **Rule Interface System**: Specialized musical constraint types
 
-## Building and Running
+### Constraint Types
 
-### Prerequisites
-
-- C++ compiler with C++11 support
-- Gecode constraint programming library
-
-### Installation on macOS:
-
-```bash
-# Install Gecode via Homebrew
-make install-deps-macos
-
-# Build the solver
-make
-
-# Run tests
-make test
-```
-
-### Installation on Ubuntu/Debian:
-
-```bash
-# Install Gecode
-make install-deps-ubuntu
-
-# Build the solver
-make
-
-# Run tests
-make test
-```
-
-### Manual Installation:
-
-```bash
-# Check if Gecode is installed
-make check-gecode
-
-# Build manually if needed
-g++ -std=c++11 -O3 musical-solver.cpp -lgecode -lgecodedriver -lgecodeminimodel -lgecodeint -lgecodesearch -lgecodekernel -lgecodesupport -o musical-solver
-```
-
-## Usage Examples
-
-```bash
-# Generate 5 solutions with basic no-repetition constraint
-./musical-solver -solutions 5 -model basic
-
-# Generate melodic sequences with interval constraints
-./musical-solver -solutions 3 -model intervals
-
-# Generate musically smooth sequences
-./musical-solver -solutions 3 -model melodic
-
-# Get help on all options
-./musical-solver -help
-```
-
-## Sample Output
-
-```
-Musical Sequence (MIDI notes): 60 -> 64 -> 67 -> 71 -> 74 -> 77 -> 79 -> 83
-Intervals: 4, 3, 4, 3, 3, 2, 4
-Note names: C4 -> E4 -> G4 -> B4 -> D5 -> F5 -> G5 -> B5
-```
-
-## Architecture
-
-- **`dynamic-solver`**: Main dynamic constraint solver with algebraic expression support
-- **`cluster-engine-sources/`**: Original Cluster Engine codebase for architectural reference
-- **`gecode/`**: Gecode constraint programming library
-- **`configs/`**: JSON configuration files for musical generation
+- **Arithmetic Relations**: Mathematical relationships between musical elements.
+- **Interval Constraints**: Control melodic steps and harmonic intervals.
+- **Single- and Multi-voice Constraints**: Sophisticated multi-voice relation rules.
+- **Temporal Patterns**: Rhythmic and metric constraint systems
 
 ## Extending the Solver
 
 To add new musical constraints:
 
 1. **Study Cluster Engine patterns**: Examine rule types in `cluster-engine-sources/`
-2. **Add constraint configuration**: Create new rule in JSON configuration
+2. **Refine constraint configuration**: Create new rules in JSON configuration
 3. **Implement constraint logic**: Add algebraic expression using pattern variables
 4. **Test and iterate**: Use `make test` to verify the constraint behavior
 
