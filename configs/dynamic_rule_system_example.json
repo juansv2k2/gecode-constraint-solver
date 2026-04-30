@@ -1,7 +1,7 @@
 {
   "name": "Dynamic Rule System Example",
   "description": "Voice 0: C major notes, stepwise motion, all different. Voice 1: always a perfect fifth above Voice 0.",
-  "solution_length": 8,
+  "solution_length": 12,
   "num_voices": 2,
   "backtrack_method": "intelligent",
   "export_path": "tests/output",
@@ -12,10 +12,20 @@
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
       "pattern_offsets": [0, 1],
-      "constraint": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) == 4",
+      "constraint": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) == 2",
       "enabled": true,
       "priority": 9,
       "description": "Voice 0: consecutive notes must be X semitones apart"
+    },
+    {
+      "id": "different_consecutive_rhythms_voice0",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].rhythm[i+1] !=  voice[0].rhythm[i]",
+      "enabled": true,
+      "priority": 9,
+      "description": "Voice 0: consecutive rhythms must be different"
     },
 
     {
@@ -36,7 +46,7 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "target_engine": 1,
       "engine_type": "pitch",
       "enabled": true,
@@ -46,6 +56,12 @@
   ],
 
   "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": [2, 4],
+      "description": "Voice 0: quarter and half notes"
+    },
     "engine_1": {
       "type": "pitch",
       "voice": 0,
@@ -54,6 +70,12 @@
         78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95
       ],
       "description": "Voice 0: chromatic scale two octaves"
+    },
+    "engine_2": {
+      "type": "rhythm",
+      "voice": 1,
+      "duration_values": [2, 4],
+      "description": "Voice 1: half notes only"
     },
     "engine_3": {
       "type": "pitch",

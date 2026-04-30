@@ -97,6 +97,7 @@ private:
     // Musical variables
     IntVarArray absolute_vars_;
     IntVarArray interval_vars_;
+    IntVarArray rhythm_vars_;  // Per-voice duration variables (empty if not configured)
     
     // Per-voice state
     int num_voices_;
@@ -126,6 +127,12 @@ public:
                            AdvancedBackjumping::BackjumpMode mode,
                            const std::vector<std::vector<int>>& voice_domains);
 
+    // Constructor with per-voice pitch AND rhythm domains
+    IntegratedMusicalSpace(int length, int voices,
+                           AdvancedBackjumping::BackjumpMode mode,
+                           const std::vector<std::vector<int>>& voice_domains,
+                           const std::vector<std::vector<int>>& voice_rhythm_domains);
+
     // Copy constructor for search (Gecode 6: single argument)
     IntegratedMusicalSpace(IntegratedMusicalSpace& s);
 
@@ -138,8 +145,11 @@ public:
     // ---- Accessors ----
     IntVarArray& get_absolute_vars() { return absolute_vars_; }
     IntVarArray& get_interval_vars() { return interval_vars_; }
+    IntVarArray& get_rhythm_vars() { return rhythm_vars_; }
     const IntVarArray& get_absolute_vars() const { return absolute_vars_; }
     const IntVarArray& get_interval_vars() const { return interval_vars_; }
+    const IntVarArray& get_rhythm_vars() const { return rhythm_vars_; }
+    bool has_rhythm_vars() const { return rhythm_vars_.size() > 0; }
 
     // ---- Rule system ----
     void add_musical_rules(const std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>>& rules);
@@ -159,6 +169,7 @@ public:
     std::vector<int> get_absolute_sequence() const;
     std::vector<int> get_interval_sequence() const;
     std::vector<int> get_pitch_sequence(int voice) const;
+    std::vector<int> get_rhythm_sequence_from_vars(int voice) const;
     std::vector<int> get_rhythm_sequence(int voice) const;
     std::vector<int> get_metric_sequence() const;
     MusicalConstraints::DualSolutionStorage export_to_dual_storage() const;

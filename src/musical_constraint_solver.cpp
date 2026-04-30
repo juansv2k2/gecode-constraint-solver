@@ -947,7 +947,8 @@ MusicalSolution Solver::solve_internal() {
         }
 
         auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
-            config_.sequence_length, config_.num_voices, config_.backjump_mode, all_voice_domains);
+            config_.sequence_length, config_.num_voices, config_.backjump_mode,
+            all_voice_domains, config_.voice_rhythm_domains);
         
         // ADD MUSICAL RULES AS GECODE CONSTRAINTS
         if (!rules_.empty()) {
@@ -977,7 +978,7 @@ MusicalSolution Solver::solve_internal() {
             
             // Create constraint context
             DynamicRules::ConstraintContext ctx(gecode_space.get(), &gecode_space->get_absolute_vars(), 
-                                               &gecode_space->get_interval_vars(), config_.num_voices, config_.sequence_length);
+                                               &gecode_space->get_rhythm_vars(), config_.num_voices, config_.sequence_length);
             
             // Post all compiled constraints
             compiled_rules_->post_all_constraints(ctx);
@@ -1040,7 +1041,25 @@ MusicalSolution Solver::solve_internal() {
                 
                 // Extract data for each voice using the solved space
                 for (int voice = 0; voice < config_.num_voices; ++voice) {
-                    auto rhythm_data = solved_space->get_rhythm_sequence(voice);
+                    // Rhythm: use the configured domain (no fallback)
+                    if (config_.voice_rhythm_domains.empty() ||
+                        voice >= (int)config_.voice_rhythm_domains.size() ||
+                        config_.voice_rhythm_domains[voice].empty()) {
+                        throw std::runtime_error(
+                            "Voice " + std::to_string(voice) + " has no rhythm domain. "
+                            "Add 'duration_values' for engine_" + std::to_string(voice * 2) +
+                            " in engine_domains.");
+                    }
+                    const auto& rhythm_domain = config_.voice_rhythm_domains[voice];
+                    // Read actual rhythm values solved by Gecode; fall back to domain[0] only if
+                    // the space has no rhythm vars (e.g. legacy single-domain constructor was used).
+                    auto solved_rhythms = solved_space->get_rhythm_sequence_from_vars(voice);
+                    std::vector<int> rhythm_data;
+                    if (!solved_rhythms.empty()) {
+                        rhythm_data = solved_rhythms;
+                    } else {
+                        rhythm_data.assign(config_.sequence_length, rhythm_domain[0]);
+                    }
                     auto pitch_data = solved_space->get_pitch_sequence(voice);
                     
                     solution.voice_rhythms.push_back(rhythm_data);

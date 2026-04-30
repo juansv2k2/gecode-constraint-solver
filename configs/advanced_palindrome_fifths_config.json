@@ -105,8 +105,7 @@
     "engine_0": {
       "type": "rhythm",
       "voice": 0,
-      "values": [1.0],
-      "duration_type": "quarter_note",
+      "duration_values": [4],
       "description": "Voice 0 rhythm: quarter notes only"
     },
     "engine_1": {
@@ -123,8 +122,7 @@
     "engine_2": {
       "type": "rhythm",
       "voice": 1,
-      "values": [1.0],
-      "duration_type": "quarter_note",
+      "duration_values": [4],
       "description": "Voice 1 rhythm: quarter notes only"
     },
     "engine_3": {

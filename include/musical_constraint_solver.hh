@@ -64,6 +64,11 @@ struct SolverConfig {
     // instead of the global min_note..max_note range.
     std::vector<std::vector<int>> voice_domains;
 
+    // Per-voice rhythm domains. voice_rhythm_domains[v] = allowed duration values
+    // for voice v (integer units: 16=whole, 8=half, 4=quarter, 2=eighth, 1=sixteenth).
+    // Required — no fallback. Throws at solve time if empty.
+    std::vector<std::vector<int>> voice_rhythm_domains;
+
     // Domain constraints
     int max_interval_size = 12;  // Octave
     bool allow_repetitions = false;

@@ -590,6 +590,60 @@ public:
         return result;
     }
 
+    // Returns per-voice rhythm domains from engine_domains section.
+    // voice_rhythm_domains[v] = list of allowed duration values (ints) for voice v.
+    // Throws with a clear message if any voice is missing a rhythm engine entry.
+    std::vector<std::vector<int>> getVoiceRhythmDomains(const std::string& config_file) const {
+        std::vector<std::vector<int>> result(num_voices_);
+
+        std::ifstream f(config_file);
+        if (!f.is_open())
+            throw std::runtime_error("Cannot open config file: " + config_file);
+        nlohmann::json cfg;
+        f >> cfg;
+
+        if (!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object())
+            throw std::runtime_error("Config is missing required 'engine_domains' section");
+
+        for (auto& [key, val] : cfg["engine_domains"].items()) {
+            std::string type = val.value("type", "");
+            if (type != "rhythm") continue;
+
+            int voice = val.value("voice", -1);
+            if (voice < 0 || voice >= num_voices_)
+                throw std::runtime_error("engine_domains['" + key + "']: invalid or missing 'voice' field");
+
+            if (!val.contains("duration_values") || !val["duration_values"].is_array())
+                throw std::runtime_error(
+                    "engine_domains['" + key + "']: rhythm engine must have 'duration_values' array "
+                    "(integer duration units: 16=whole, 8=half, 4=quarter, 2=eighth, 1=sixteenth). "
+                    "Example: \"duration_values\": [4]");
+
+            std::vector<int> domain_values;
+            for (int v : val["duration_values"]) domain_values.push_back(v);
+            if (domain_values.empty())
+                throw std::runtime_error("engine_domains['" + key + "']: 'duration_values' must not be empty");
+            result[voice] = std::move(domain_values);
+        }
+
+        for (int v = 0; v < num_voices_; ++v) {
+            if (result[v].empty()) {
+                int rhythm_engine_idx = v * 2;
+                throw std::runtime_error(
+                    "Voice " + std::to_string(v) + " has no rhythm domain. "
+                    "Add an entry to 'engine_domains' with:\n"
+                    "  \"engine_" + std::to_string(rhythm_engine_idx) + "\": {\n"
+                    "    \"type\": \"rhythm\",\n"
+                    "    \"voice\": " + std::to_string(v) + ",\n"
+                    "    \"duration_values\": [4],\n"
+                    "    \"description\": \"Voice " + std::to_string(v) + " rhythm\"\n"
+                    "  }");
+            }
+        }
+
+        return result;
+    }
+
     const std::vector<RuleConfig>& getRules() const { return rules_; }
     
     void printLoadedConfig() const {
@@ -949,6 +1003,9 @@ int main(int argc, char* argv[]) {
         
         // Load per-voice pitch domains from engine_domains midi_values (required, no fallback)
         solver_config.voice_domains = parser.getVoicePitchDomains(config_file);
+
+        // Load per-voice rhythm domains from engine_domains duration_values (required, no fallback)
+        solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
 
         // Derive global min/max from the union of all voice domains
         {
