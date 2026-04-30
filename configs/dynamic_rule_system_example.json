@@ -59,7 +59,7 @@
     "engine_0": {
       "type": "rhythm",
       "voice": 0,
-      "duration_values": [2, 4],
+      "duration_values": ["1/8", "1/4"],
       "description": "Voice 0: quarter and half notes"
     },
     "engine_1": {
@@ -74,7 +74,7 @@
     "engine_2": {
       "type": "rhythm",
       "voice": 1,
-      "duration_values": [2, 4],
+      "duration_values": ["1/8", "1/4"],
       "description": "Voice 1: half notes only"
     },
     "engine_3": {

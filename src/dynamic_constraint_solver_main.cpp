@@ -593,6 +593,34 @@ public:
     // Returns per-voice rhythm domains from engine_domains section.
     // voice_rhythm_domains[v] = list of allowed duration values (ints) for voice v.
     // Throws with a clear message if any voice is missing a rhythm engine entry.
+
+    // Converts a fraction string like "1/4" to the internal duration unit (16=whole, 8=half,
+    // 4=quarter, 2=eighth, 1=sixteenth). Formula: internal = 16 * numerator / denominator.
+    static int parse_duration_fraction(const std::string& s, const std::string& context) {
+        auto slash = s.find('/');
+        if (slash == std::string::npos)
+            throw std::runtime_error(context + ": invalid duration value '" + s +
+                "'. Use note-value fractions like \"1/4\" (quarter), \"1/8\" (eighth), "
+                "\"1/2\" (half), \"1/1\" (whole), \"1/16\" (sixteenth).");
+        int num = 0, den = 0;
+        try {
+            num = std::stoi(s.substr(0, slash));
+            den = std::stoi(s.substr(slash + 1));
+        } catch (...) {
+            throw std::runtime_error(context + ": cannot parse duration fraction '" + s + "'");
+        }
+        if (den == 0)
+            throw std::runtime_error(context + ": denominator cannot be zero in '" + s + "'");
+        if ((16 * num) % den != 0)
+            throw std::runtime_error(context + ": '" + s +
+                "' does not map to a whole number of sixteenth notes. "
+                "Supported values: \"1/16\", \"1/8\", \"1/4\", \"1/2\", \"1/1\", \"3/8\" (dotted quarter), \"3/4\" (dotted half), etc.");
+        int internal = 16 * num / den;
+        if (internal < 1 || internal > 32)
+            throw std::runtime_error(context + ": '" + s + "' is out of supported range.");
+        return internal;
+    }
+
     std::vector<std::vector<int>> getVoiceRhythmDomains(const std::string& config_file) const {
         std::vector<std::vector<int>> result(num_voices_);
 
@@ -615,12 +643,21 @@ public:
 
             if (!val.contains("duration_values") || !val["duration_values"].is_array())
                 throw std::runtime_error(
-                    "engine_domains['" + key + "']: rhythm engine must have 'duration_values' array "
-                    "(integer duration units: 16=whole, 8=half, 4=quarter, 2=eighth, 1=sixteenth). "
-                    "Example: \"duration_values\": [4]");
+                    "engine_domains['" + key + "']: rhythm engine must have 'duration_values' array. "
+                    "Use note-value fractions, e.g. \"duration_values\": [\"1/4\"] for quarter notes.");
 
+            std::string ctx = "engine_domains['" + key + "']";
             std::vector<int> domain_values;
-            for (int v : val["duration_values"]) domain_values.push_back(v);
+            for (const auto& item : val["duration_values"]) {
+                if (item.is_string()) {
+                    domain_values.push_back(parse_duration_fraction(item.get<std::string>(), ctx));
+                } else if (item.is_number_integer()) {
+                    // Legacy integer support (16=whole, 8=half, 4=quarter, 2=eighth, 1=sixteenth)
+                    domain_values.push_back(item.get<int>());
+                } else {
+                    throw std::runtime_error(ctx + ": duration_values entries must be fraction strings like \"1/4\".");
+                }
+            }
             if (domain_values.empty())
                 throw std::runtime_error("engine_domains['" + key + "']: 'duration_values' must not be empty");
             result[voice] = std::move(domain_values);
@@ -635,7 +672,7 @@ public:
                     "  \"engine_" + std::to_string(rhythm_engine_idx) + "\": {\n"
                     "    \"type\": \"rhythm\",\n"
                     "    \"voice\": " + std::to_string(v) + ",\n"
-                    "    \"duration_values\": [4],\n"
+                    "    \"duration_values\": [\"1/4\"],\n"
                     "    \"description\": \"Voice " + std::to_string(v) + " rhythm\"\n"
                     "  }");
             }
