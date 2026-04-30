@@ -161,12 +161,12 @@ Both pitch and rhythm engines **must** declare explicit domains. There are no de
 
 **Rhythm domain fields:**
 
-| Field             | Required | Description                                                                          |
-| ----------------- | -------- | ------------------------------------------------------------------------------------ |
-| `type`            | yes      | `"rhythm"`                                                                           |
-| `voice`           | yes      | Voice index this engine belongs to (0-based)                                         |
+| Field             | Required | Description                                                                                                                                                      |
+| ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`            | yes      | `"rhythm"`                                                                                                                                                       |
+| `voice`           | yes      | Voice index this engine belongs to (0-based)                                                                                                                     |
 | `duration_values` | yes      | Note-value fractions: `"1/1"` (whole), `"1/2"` (half), `"1/4"` (quarter), `"1/8"` (eighth), `"1/16"` (sixteenth). Dotted values like `"3/8"` are also supported. |
-| `description`     | no       | Free-text label                                                                      |
+| `description`     | no       | Free-text label                                                                                                                                                  |
 
 > **Note:** Multi-value rhythm domains (e.g. `["1/4", "1/8", "1/2"]`) allow the solver to freely choose a duration for each note position within those options.
 
@@ -730,13 +730,13 @@ Voice 0 Pitch: C4(60) → D4(62) → E4(64) → ...
 
 ## 12. Common Errors
 
-| Error message                                                                 | Cause                                              | Fix                                                                                                                                           |
-| ----------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Config is missing required 'engine_domains' section`                         | No `engine_domains` in the JSON                    | Add the `engine_domains` object                                                                                                               |
-| `engine_domains['engine_N']: pitch engine must have 'midi_values' array`      | A pitch engine entry is missing `midi_values`      | Add the `midi_values` array to that entry                                                                                                     |
-| `Voice N has no midi_values in engine_domains`                                | No pitch engine found for voice N                  | Add an entry for `engine_(2N+1)` in `engine_domains`                                                                                          |
-| `Voice N has no rhythm domain. Add an entry to 'engine_domains' with: ...`             | No rhythm engine found for voice N                   | Add `engine_(2N)` with `"type": "rhythm"` and `"duration_values": ["1/4"]` to `engine_domains` (the error message shows the exact snippet to add) |
-| `engine_domains['engine_N']: rhythm engine must have 'duration_values' array`          | A rhythm engine entry is missing `duration_values`   | Add `"duration_values": ["1/4"]` (or any note-value fraction array) to that entry                                                                   |
-| `Invalid voice access expression: voice[0].pitch[i])`                         | Tokenizer bug with nested parentheses (now fixed)  | Make sure you are running the latest build                                                                                                    |
-| `No solution found`                                                           | The combined constraints are infeasible            | Check that the domains are wide enough to satisfy all rules simultaneously; try relaxing or removing one rule to isolate the conflict         |
-| `Failed to compile rule`                                                      | Syntax error in a constraint expression            | Check operator syntax (use `==` not `=`), and that voice/index references are correct                                                         |
+| Error message                                                                 | Cause                                              | Fix                                                                                                                                               |
+| ----------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Config is missing required 'engine_domains' section`                         | No `engine_domains` in the JSON                    | Add the `engine_domains` object                                                                                                                   |
+| `engine_domains['engine_N']: pitch engine must have 'midi_values' array`      | A pitch engine entry is missing `midi_values`      | Add the `midi_values` array to that entry                                                                                                         |
+| `Voice N has no midi_values in engine_domains`                                | No pitch engine found for voice N                  | Add an entry for `engine_(2N+1)` in `engine_domains`                                                                                              |
+| `Voice N has no rhythm domain. Add an entry to 'engine_domains' with: ...`    | No rhythm engine found for voice N                 | Add `engine_(2N)` with `"type": "rhythm"` and `"duration_values": ["1/4"]` to `engine_domains` (the error message shows the exact snippet to add) |
+| `engine_domains['engine_N']: rhythm engine must have 'duration_values' array` | A rhythm engine entry is missing `duration_values` | Add `"duration_values": ["1/4"]` (or any note-value fraction array) to that entry                                                                 |
+| `Invalid voice access expression: voice[0].pitch[i])`                         | Tokenizer bug with nested parentheses (now fixed)  | Make sure you are running the latest build                                                                                                        |
+| `No solution found`                                                           | The combined constraints are infeasible            | Check that the domains are wide enough to satisfy all rules simultaneously; try relaxing or removing one rule to isolate the conflict             |
+| `Failed to compile rule`                                                      | Syntax error in a constraint expression            | Check operator syntax (use `==` not `=`), and that voice/index references are correct                                                             |
