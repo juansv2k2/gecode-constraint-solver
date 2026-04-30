@@ -426,6 +426,14 @@ std::vector<std::string> RuleExpressionParser::tokenize_expression(const std::st
                 current_token.clear();
             }
         }
+        // Parentheses are always separate tokens (check before two-char ops)
+        else if (c == '(' || c == ')') {
+            if (!current_token.empty()) {
+                tokens.push_back(current_token);
+                current_token.clear();
+            }
+            tokens.push_back(std::string(1, c));
+        }
         // Handle multi-character operators
         else if (i < expr.length() - 1) {
             std::string two_char = expr.substr(i, 2);
@@ -442,8 +450,7 @@ std::vector<std::string> RuleExpressionParser::tokenize_expression(const std::st
             }
         }
         // Handle single-character operators
-        else if (c == '>' || c == '<' || c == '+' || c == '-' || c == '*' || c == '/' || 
-                c == '(' || c == ')') {
+        else if (c == '>' || c == '<' || c == '+' || c == '-' || c == '*' || c == '/') {
             if (!current_token.empty()) {
                 tokens.push_back(current_token);
                 current_token.clear();
@@ -467,7 +474,51 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
     if (tokens.size() == 1) {
         return parse_single_token(tokens[0]);
     }
-    
+
+    // Handle function calls: funcname ( args... )
+    if (tokens.size() >= 3 && tokens[1] == "(") {
+        // Find matching closing paren
+        int depth = 0;
+        int close_idx = -1;
+        for (size_t i = 1; i < tokens.size(); ++i) {
+            if (tokens[i] == "(") depth++;
+            else if (tokens[i] == ")") {
+                depth--;
+                if (depth == 0) { close_idx = (int)i; break; }
+            }
+        }
+        if (close_idx != -1) {
+            std::string func_name = tokens[0];
+            auto func_it = function_types_.find(func_name);
+            ASTNodeType func_type = (func_it != function_types_.end()) ? func_it->second : ASTNodeType::ABS;
+            auto func_node = std::make_unique<FunctionNode>(func_type, func_name);
+            // Parse the argument(s) inside parens
+            std::vector<std::string> args(tokens.begin() + 2, tokens.begin() + close_idx);
+            if (!args.empty()) {
+                func_node->add_child(parse_tokens(args));
+            }
+            // If there are tokens after the closing paren, wrap in a binary op
+            if (close_idx + 1 < (int)tokens.size()) {
+                std::string op = tokens[close_idx + 1];
+                auto bin_it = binary_operators_.find(op);
+                if (bin_it != binary_operators_.end()) {
+                    auto binary_node = std::make_unique<BinaryOpNode>(bin_it->second);
+                    binary_node->add_child(std::move(func_node));
+                    std::vector<std::string> right(tokens.begin() + close_idx + 2, tokens.end());
+                    binary_node->add_child(parse_tokens(right));
+                    return std::move(binary_node);
+                }
+            }
+            return std::move(func_node);
+        }
+    }
+
+    // Strip outer parens: ( expr )
+    if (tokens.front() == "(" && tokens.back() == ")") {
+        std::vector<std::string> inner(tokens.begin() + 1, tokens.end() - 1);
+        if (!inner.empty()) return parse_tokens(inner);
+    }
+
     // Parse with operator precedence (lower precedence first)
     // 1. Comparison operators (lowest precedence)
     std::vector<std::string> comparison_ops = {">=", "<=", "!=", "==", ">", "<"};

@@ -925,14 +925,29 @@ MusicalSolution Solver::solve_internal() {
     MusicalSolution solution;
     
     try {
-        // CREATE GECODE CONSTRAINT SPACE WITH PITCH DOMAIN
-        // For now, use min/max range - this needs to be modified to accept domain array
-        std::vector<int> pitch_domain;
-        for (int i = config_.min_note; i <= config_.max_note; ++i) {
-            pitch_domain.push_back(i);
+        // BUILD PER-VOICE DOMAINS: use voice_domains if provided, fall back to min_note..max_note
+        std::vector<std::vector<int>> all_voice_domains = config_.voice_domains;
+        if (all_voice_domains.empty()) {
+            std::vector<int> global_domain;
+            for (int i = config_.min_note; i <= config_.max_note; ++i) {
+                global_domain.push_back(i);
+            }
+            for (int v = 0; v < config_.num_voices; ++v) {
+                all_voice_domains.push_back(global_domain);
+            }
+        } else {
+            // Fill any missing voices with the global fallback
+            std::vector<int> global_domain;
+            for (int i = config_.min_note; i <= config_.max_note; ++i) {
+                global_domain.push_back(i);
+            }
+            while ((int)all_voice_domains.size() < config_.num_voices) {
+                all_voice_domains.push_back(global_domain);
+            }
         }
+
         auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
-            config_.sequence_length, config_.num_voices, config_.backjump_mode, pitch_domain);
+            config_.sequence_length, config_.num_voices, config_.backjump_mode, all_voice_domains);
         
         // ADD MUSICAL RULES AS GECODE CONSTRAINTS
         if (!rules_.empty()) {

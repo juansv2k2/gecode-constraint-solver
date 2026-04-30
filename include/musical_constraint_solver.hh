@@ -60,6 +60,10 @@ struct SolverConfig {
     bool show_backjump_analysis = false;
     bool show_rule_statistics = false;
     
+    // Per-voice pitch domains. If non-empty, voice_domains[v] is used for voice v
+    // instead of the global min_note..max_note range.
+    std::vector<std::vector<int>> voice_domains;
+
     // Domain constraints
     int max_interval_size = 12;  // Octave
     bool allow_repetitions = false;

@@ -548,7 +548,48 @@ public:
         
         return all_values;
     }
-    
+
+    // Returns per-voice pitch domains from engine_domains section.
+    // voice_domains[v] = sorted unique midi values for voice v.
+    // Falls back to getPitchDomainValues() for any voice not covered.
+    std::vector<std::vector<int>> getVoicePitchDomains(const std::string& config_file) const {
+        std::vector<std::vector<int>> result(num_voices_);
+
+        std::ifstream f(config_file);
+        if (!f.is_open())
+            throw std::runtime_error("Cannot open config file: " + config_file);
+        nlohmann::json cfg;
+        f >> cfg;
+
+        if (!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object())
+            throw std::runtime_error("Config is missing required 'engine_domains' section");
+
+        for (auto& [key, val] : cfg["engine_domains"].items()) {
+            std::string type = val.value("type", "");
+            if (type != "pitch") continue;
+
+            int voice = val.value("voice", -1);
+            if (voice < 0 || voice >= num_voices_)
+                throw std::runtime_error("engine_domains['" + key + "']: invalid or missing 'voice' field");
+
+            if (!val.contains("midi_values") || !val["midi_values"].is_array())
+                throw std::runtime_error("engine_domains['" + key + "']: pitch engine must have 'midi_values' array");
+
+            std::vector<int> domain_values;
+            for (int v : val["midi_values"]) domain_values.push_back(v);
+            std::sort(domain_values.begin(), domain_values.end());
+            domain_values.erase(std::unique(domain_values.begin(), domain_values.end()), domain_values.end());
+            result[voice] = std::move(domain_values);
+        }
+
+        for (int v = 0; v < num_voices_; ++v) {
+            if (result[v].empty())
+                throw std::runtime_error("Voice " + std::to_string(v) + " has no midi_values in engine_domains");
+        }
+
+        return result;
+    }
+
     const std::vector<RuleConfig>& getRules() const { return rules_; }
     
     void printLoadedConfig() const {
@@ -906,13 +947,25 @@ int main(int argc, char* argv[]) {
         MusicalConstraintSolver::SolverConfig solver_config;
         solver_config.sequence_length = parser.getSolutionLength();
         
-        // Get pitch domain values from configuration  
-        auto pitch_domain = parser.getPitchDomainValues();
-        auto pitch_range = parser.getPitchDomainRange();
-        solver_config.min_note = pitch_range.first;
-        solver_config.max_note = pitch_range.second;
-        
-        std::cout << "   Using pitch domain: " << pitch_domain.size() << " values [" << pitch_domain.front() << "..." << pitch_domain.back() << "] from config" << std::endl;
+        // Load per-voice pitch domains from engine_domains midi_values (required, no fallback)
+        solver_config.voice_domains = parser.getVoicePitchDomains(config_file);
+
+        // Derive global min/max from the union of all voice domains
+        {
+            int global_min = INT_MAX, global_max = INT_MIN;
+            for (const auto& vd : solver_config.voice_domains) {
+                global_min = std::min(global_min, vd.front());
+                global_max = std::max(global_max, vd.back());
+            }
+            solver_config.min_note = global_min;
+            solver_config.max_note = global_max;
+            std::cout << "   Global pitch range (derived from voice domains): [" << global_min << "..." << global_max << "]" << std::endl;
+            for (int v = 0; v < (int)solver_config.voice_domains.size(); ++v) {
+                const auto& vd = solver_config.voice_domains[v];
+                std::cout << "     Voice " << v << ": " << vd.size() << " values ["
+                          << vd.front() << "..." << vd.back() << "]" << std::endl;
+            }
+        }
         
         solver_config.num_voices = parser.getNumVoices();
         solver_config.allow_repetitions = false;
@@ -987,8 +1040,8 @@ int main(int argc, char* argv[]) {
                                     // Apply the compiled constraint directly to the solver
                                     solver.apply_compiled_constraint(std::move(compiled));
                                 }
-                            } else {
-                                // Process regular dynamic rule
+                            } else if (rule_json.contains("id") && rule_json.contains("expression")) {
+                                // Process regular dynamic rule (expression-based format)
                                 auto compiled = DynamicRules::DynamicRuleCompiler::compile_from_json(rule_json);
                                 if (compiled) {
                                     regular_count++;
@@ -997,6 +1050,8 @@ int main(int argc, char* argv[]) {
                                     std::vector<nlohmann::json> single_rule = {rule_json};
                                     solver.load_dynamic_rules(single_rule);
                                 }
+                            } else {
+                                // Legacy-format rule (constraint_function style) — handled by the legacy system, skip here
                             }
                         } catch (const std::exception& e) {
                             std::cout << "     ❌ Failed to compile rule: " << e.what() << std::endl;
@@ -1232,7 +1287,8 @@ int main(int argc, char* argv[]) {
                 std::cout << "Voice " << voice << " Pitch: ";
                 for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
                     if (i > 0) std::cout << " → ";
-                    std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[voice][i]);
+                    int midi = solution.voice_solutions[voice][i];
+                    std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(midi) << "(" << midi << ")";
                 }
                 std::cout << std::endl;
                 
@@ -1258,7 +1314,8 @@ int main(int argc, char* argv[]) {
             std::cout << "Notes: ";
             for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
                 if (i > 0) std::cout << " → ";
-                std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(solution.absolute_notes[i]);
+                int midi = solution.absolute_notes[i];
+                std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(midi) << "(" << midi << ")";
             }
             std::cout << std::endl;
         }

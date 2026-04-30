@@ -1,101 +1,82 @@
 {
   "name": "Dynamic Rule System Example",
-  "description": "Demonstration of the new JSON-based dynamic rule system",
+  "description": "Voice 0: C major notes, stepwise motion, all different. Voice 1: always a perfect fifth above Voice 0.",
   "solution_length": 8,
   "num_voices": 2,
   "backtrack_method": "intelligent",
   "export_path": "tests/output",
 
-  "dynamic_rules": [
+  "rules": [
     {
-      "id": "stepwise_motion_voice1",
-      "type": "sequential_constraint",
-      "expression": {
-        "operator": "<=",
-        "left": {
-          "function": "abs",
-          "args": [
-            {
-              "operator": "-",
-              "left": "voice[0].pitch[?i+1]",
-              "right": "voice[0].pitch[?i]"
-            }
-          ]
-        },
-        "right": { "value": 2 }
-      },
-      "scope": "voice[0].pitches[0..length-2]",
-      "mode": "constraint",
-      "description": "Voice 1: Allow only stepwise motion (max 2 semitones)"
+      "id": "step_motion_voice0",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) == 4",
+      "enabled": true,
+      "priority": 9,
+      "description": "Voice 0: consecutive notes must be X semitones apart"
     },
+
     {
-      "id": "c_major_scale_constraint",
-      "type": "membership_constraint",
-      "expression": {
-        "operator": "in",
-        "left": {
-          "function": "mod",
-          "args": ["voice[0].pitch[?i]", { "value": 12 }]
-        },
-        "right": { "value": [0, 2, 4, 5, 7, 9, 11] }
-      },
-      "scope": "voice[0].pitches",
-      "mode": "constraint",
-      "description": "Voice 1: All notes must be in C Major scale"
+      "id": "parallel_intervals",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[i] == voice[0].pitch[i] + 6",
+      "enabled": true,
+      "priority": 8,
+      "description": "Voice 1: always X semitones above Voice 0 at every position"
     },
+
     {
-      "id": "voice1_all_different",
-      "type": "distinctness_constraint",
-      "expression": {
-        "operator": "all_different",
-        "scope": "voice[0].pitches"
+      "rule_type": "r-pitches-one-engine",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
       },
-      "mode": "constraint",
-      "description": "Voice 1: All pitches must be different (12-tone style)"
-    },
-    {
-      "id": "parallel_perfect_fifths",
-      "type": "voice_relationship_constraint",
-      "expression": {
-        "operator": "==",
-        "left": "voice[1].pitch[?i]",
-        "right": {
-          "operator": "+",
-          "left": "voice[0].pitch[?i]",
-          "right": { "value": 7 }
-        }
-      },
-      "scope": "both_voices[0..length-1]",
-      "mode": "constraint",
-      "description": "Voice 2: Perfect fifth above Voice 1"
-    },
-    {
-      "id": "prefer_ascending_motion",
-      "type": "heuristic_constraint",
-      "expression": {
-        "operator": ">",
-        "left": "voice[0].pitch[?i+1]",
-        "right": "voice[0].pitch[?i]"
-      },
-      "scope": "voice[0].pitches[0..length-2]",
-      "mode": "heuristic",
-      "weight": 5,
-      "description": "Voice 1: Prefer ascending melodic motion (soft constraint)"
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_engine": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 0: all 8 pitches must be different"
     }
   ],
 
-  "domains": [
-    {
-      "engine_id": 1,
+  "engine_domains": {
+    "engine_1": {
       "type": "pitch",
-      "values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84],
-      "description": "Voice 1: C Major scale notes from C4 to C6"
+      "voice": 0,
+      "midi_values": [
+        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
+        78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95
+      ],
+      "description": "Voice 0: chromatic scale two octaves"
     },
-    {
-      "engine_id": 3,
+    "engine_3": {
       "type": "pitch",
-      "values": [67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86, 88, 90, 91],
-      "description": "Voice 2: Perfect fifths above Voice 1 domain"
+      "voice": 1,
+      "midi_values": [
+        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
+        78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95
+      ],
+      "description": "Voice 1: chromatic scale two octaves"
     }
-  ]
+  },
+
+  "search_options": {
+    "timeout_ms": 30000,
+    "max_solutions": 3,
+    "branching": "first_fail"
+  },
+
+  "output_options": {
+    "export_xml": true,
+    "export_png": false,
+    "export_midi": true,
+    "show_statistics": true,
+    "include_analysis": true
+  }
 }

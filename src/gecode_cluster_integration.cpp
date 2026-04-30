@@ -38,8 +38,7 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
             int int_idx = voice * (length - 1) + (i - 1);
             
             // interval[i] = absolute[i] - absolute[i-1]
-            rel(*this, interval_vars_[int_idx], IRT_EQ, 
-                expr(*this, absolute_vars_[abs_idx] - absolute_vars_[prev_abs_idx]));
+            rel(*this, interval_vars_[int_idx] == absolute_vars_[abs_idx] - absolute_vars_[prev_abs_idx]);
         }
     }
     
@@ -47,6 +46,43 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     post_musical_constraints();
     
     // CRITICAL: Set up branching strategy to force variable assignment
+    branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+}
+
+// Per-voice domain constructor: each voice gets its own pitch domain
+IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
+                                              AdvancedBackjumping::BackjumpMode mode,
+                                              const std::vector<std::vector<int>>& voice_domains)
+    : Space(),
+      sequence_length_(length),
+      num_voices_(voices),
+      absolute_vars_(*this, length * voices, IntSet(0, 127)),  // Wide domain, narrowed below
+      interval_vars_(*this, (length * voices) - voices, -12, 12),
+      backjump_mode_(mode),
+      solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
+      vocal_space_configured_(false) {
+
+    // Narrow each voice's variables to its specific domain
+    for (int v = 0; v < voices; ++v) {
+        if (v < (int)voice_domains.size() && !voice_domains[v].empty()) {
+            IntSet voice_dom(voice_domains[v].data(), voice_domains[v].size());
+            for (int i = 0; i < length; ++i) {
+                dom(*this, absolute_vars_[v * length + i], voice_dom);
+            }
+        }
+    }
+
+    // Setup interval constraints
+    for (int voice = 0; voice < voices; ++voice) {
+        for (int i = 1; i < length; ++i) {
+            int abs_idx = voice * length + i;
+            int prev_abs_idx = voice * length + (i - 1);
+            int int_idx = voice * (length - 1) + (i - 1);
+            rel(*this, interval_vars_[int_idx] == absolute_vars_[abs_idx] - absolute_vars_[prev_abs_idx]);
+        }
+    }
+
+    post_musical_constraints();
     branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
 }
 
@@ -97,7 +133,7 @@ void IntegratedMusicalSpace::add_musical_rule(std::shared_ptr<MusicalConstraints
         // Perfect fifth intervals: consecutive notes must differ by 7 semitones
         for (int i = 1; i < sequence_length_; ++i) {
             // Force a specific interval of +7 semitones (perfect fifth up)
-            rel(*this, absolute_vars_[i], IRT_EQ, expr(*this, absolute_vars_[i-1] + 7));
+            rel(*this, absolute_vars_[i] == absolute_vars_[i-1] + 7);
         }
         std::cout << "Posted Perfect Fifth interval constraints" << std::endl;
         
@@ -148,9 +184,8 @@ void IntegratedMusicalSpace::add_retrograde_inversion_constraint(int inversion_c
         int voice2_idx = sequence_length_ + i;
         int voice1_retro_idx = sequence_length_ - 1 - i;  // Retrograde index in voice 1
         
-        // voice2[i] = 2 * center - voice1[retro_idx]
-        rel(*this, absolute_vars_[voice2_idx], IRT_EQ, 
-            expr(*this, 2 * inversion_center - absolute_vars_[voice1_retro_idx]));
+        // voice2[i] + voice1[retro_idx] = 2 * center
+        rel(*this, absolute_vars_[voice2_idx] + absolute_vars_[voice1_retro_idx] == 2 * inversion_center);
     }
 }
 
@@ -167,7 +202,7 @@ void IntegratedMusicalSpace::post_perfect_fifth_intervals_constraint() {
     // Perfect fifth intervals: consecutive notes must differ by 7 semitones
     for (int i = 1; i < sequence_length_; ++i) {
         // Force a specific interval of +7 semitones (perfect fifth up)
-        rel(*this, absolute_vars_[i], IRT_EQ, expr(*this, absolute_vars_[i-1] + 7));
+        rel(*this, absolute_vars_[i] == absolute_vars_[i-1] + 7);
     }
 }
 
