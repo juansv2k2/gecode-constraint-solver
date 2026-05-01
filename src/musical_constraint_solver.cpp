@@ -873,7 +873,7 @@ void Solver::apply_compiled_constraint(std::unique_ptr<DynamicRules::CompiledCon
     }
     
     try {
-        std::cout << "🎯 Applying compiled wildcard constraint: " << compiled_constraint->rule_id << std::endl;
+        std::cout << "🎯 Applying compiled constraint: " << compiled_constraint->rule_id << std::endl;
         
         // Add to the compiled rule set directly
         if (!compiled_rules_) {

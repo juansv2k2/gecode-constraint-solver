@@ -1,0 +1,63 @@
+{
+  "name": "Index Rule Test",
+  "description": "2 voices, 4 positions. Voice 0 fully free. Voice 1 has specific events pinned via index rule.",
+  "solution_length": 4,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+
+  "engine_domains": {
+    "engine_0": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65, 67],
+      "description": "Voice 0: C D E F G"
+    },
+    "engine_1": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/4"],
+      "description": "Voice 0: quarter notes"
+    },
+    "engine_2": {
+      "type": "pitch",
+      "voice": 1,
+      "midi_values": [60, 62, 64, 65, 67],
+      "description": "Voice 1: C D E F G"
+    },
+    "engine_3": {
+      "type": "rhythm",
+      "voice": 1,
+      "duration_values": ["1/4", "-1/4"],
+      "description": "Voice 1: quarter notes and quarter rests"
+    }
+  },
+
+  "rules": [
+    {
+      "id": "fix_voice1",
+      "type": "index",
+      "voice": 1,
+      "events": [
+        [0, "1/4", 60],
+        [1, "-1/4", null],
+        [3, "1/4", 67]
+      ],
+      "description": "Pin voice 1: pos0=C4 quarter, pos1=quarter rest, pos3=G4 quarter"
+    }
+  ],
+
+  "search_options": {
+    "timeout_ms": 5000,
+    "max_solutions": 5,
+    "branching": "first_fail"
+  },
+
+  "output_options": {
+    "export_path": "output",
+    "export_json": true,
+    "export_txt": true,
+    "export_xml": false,
+    "export_png": false,
+    "export_midi": false
+  }
+}

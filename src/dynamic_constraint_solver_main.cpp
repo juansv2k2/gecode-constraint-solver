@@ -1193,11 +1193,13 @@ int main(int argc, char* argv[]) {
                     
                     int regular_count = 0;
                     int wildcard_count = 0;
+                    int index_count = 0;
                     std::vector<nlohmann::json> compiled_rules; // Store for later application
                     
                     for (const auto& rule_json : enhanced_rules) {
                         try {
                             std::string rule_type = rule_json.value("rule_type", "unknown");
+                            std::string type_field = rule_json.value("type", "");
                             
                             if (rule_type == "wildcard_constraint") {
                                 // Process wildcard rule - apply directly using new integration method
@@ -1209,6 +1211,74 @@ int main(int argc, char* argv[]) {
                                     // Apply the compiled constraint directly to the solver
                                     solver.apply_compiled_constraint(std::move(compiled));
                                 }
+                            } else if (type_field == "index") {
+                                // ── INDEX RULE ───────────────────────────────────────────────
+                                // Pins specific voice positions to fixed pitch + rhythm values.
+                                // Format:
+                                //   { "id": "...", "type": "index", "voice": V,
+                                //     "events": [ [pos, "rhythm_fraction", pitch_or_null], ... ] }
+                                // pitch_or_null == null  →  rest  (rhythm must be negative)
+                                // pitch_or_null == int   →  note  (rhythm must be positive)
+                                std::string rule_id = rule_json.value("id", "index_rule");
+                                if (!rule_json.contains("voice") || !rule_json["voice"].is_number_integer())
+                                    throw std::runtime_error("index rule '" + rule_id + "': missing or invalid 'voice' field");
+                                if (!rule_json.contains("events") || !rule_json["events"].is_array())
+                                    throw std::runtime_error("index rule '" + rule_id + "': missing or invalid 'events' array");
+
+                                int voice = rule_json["voice"].get<int>();
+                                int rhythm_base = solver_config.rhythm_base;
+
+                                // Collect events: {pos, rhythm_ticks, pitch_or_sentinel}
+                                struct IndexEvent { int pos; int rhythm_ticks; int pitch; };
+                                std::vector<IndexEvent> events;
+
+                                for (size_t ei = 0; ei < rule_json["events"].size(); ++ei) {
+                                    const auto& ev = rule_json["events"][ei];
+                                    if (!ev.is_array() || ev.size() != 3)
+                                        throw std::runtime_error("index rule '" + rule_id + "': event[" + std::to_string(ei) + "] must be [pos, rhythm, pitch_or_null]");
+
+                                    int pos = ev[0].get<int>();
+                                    std::string rhythm_str = ev[1].get<std::string>();
+                                    bool pitch_is_null = ev[2].is_null();
+                                    int pitch_midi = pitch_is_null ? IntegratedMusicalSpace::REST_PITCH_SENTINEL : ev[2].get<int>();
+
+                                    auto [r_num, r_den] = ConstraintSolverJSONParser::parse_duration_fraction(
+                                        rhythm_str, "index rule '" + rule_id + "' event[" + std::to_string(ei) + "]");
+                                    int rhythm_ticks = rhythm_base * r_num / r_den;
+
+                                    bool is_rest = (rhythm_ticks < 0);
+                                    if (is_rest && !pitch_is_null)
+                                        throw std::runtime_error("index rule '" + rule_id + "' event[" + std::to_string(ei) + "]: rest rhythm (negative) requires null pitch");
+                                    if (!is_rest && pitch_is_null)
+                                        throw std::runtime_error("index rule '" + rule_id + "' event[" + std::to_string(ei) + "]: note rhythm (positive) requires a non-null pitch");
+
+                                    events.push_back({pos, rhythm_ticks, pitch_midi});
+                                }
+
+                                auto compiled = std::make_unique<DynamicRules::CompiledConstraint>(rule_id, "index rule: pin voice " + std::to_string(voice));
+                                compiled->post_constraint = [voice, events, rule_id](DynamicRules::ConstraintContext& ctx) {
+                                    if (voice < 0 || voice >= ctx.num_voices)
+                                        throw std::runtime_error("index rule '" + rule_id + "': voice " + std::to_string(voice) + " out of range (num_voices=" + std::to_string(ctx.num_voices) + ")");
+                                    for (const auto& ev : events) {
+                                        if (ev.pos < 0 || ev.pos >= ctx.sequence_length)
+                                            throw std::runtime_error("index rule '" + rule_id + "': position " + std::to_string(ev.pos) + " out of range (sequence_length=" + std::to_string(ctx.sequence_length) + ")");
+                                        int idx = voice * ctx.sequence_length + ev.pos;
+                                        // Pin rhythm variable
+                                        if (ctx.rhythm_vars && idx < (int)ctx.rhythm_vars->size())
+                                            Gecode::dom(*ctx.space, (*ctx.rhythm_vars)[idx], Gecode::IntSet(ev.rhythm_ticks, ev.rhythm_ticks));
+                                        // Pin pitch variable (notes only; rests use sentinel which is handled by gecode_cluster_integration)
+                                        if (ev.pitch != IntegratedMusicalSpace::REST_PITCH_SENTINEL) {
+                                            if (ctx.pitch_vars && idx < (int)ctx.pitch_vars->size())
+                                                Gecode::dom(*ctx.space, (*ctx.pitch_vars)[idx], Gecode::IntSet(ev.pitch, ev.pitch));
+                                        }
+                                    }
+                                };
+
+                                index_count++;
+                                std::cout << "     ✅ Compiled index rule: " << rule_id
+                                          << " (" << events.size() << " event(s) on voice " << voice << ")" << std::endl;
+                                solver.apply_compiled_constraint(std::move(compiled));
+                                // ─────────────────────────────────────────────────────────────
                             } else if (rule_json.contains("id") && rule_json.contains("expression")) {
                                 // Process regular dynamic rule (expression-based format)
                                 auto compiled = DynamicRules::DynamicRuleCompiler::compile_from_json(rule_json);
@@ -1227,10 +1297,13 @@ int main(int argc, char* argv[]) {
                         }
                     }
                     
-                    std::cout << "   Compiled: " << regular_count << " regular + " << wildcard_count << " wildcard rules" << std::endl;
+                    std::cout << "   Compiled: " << regular_count << " regular + " << wildcard_count << " wildcard + " << index_count << " index rules" << std::endl;
                     
                     if (wildcard_count > 0) {
                         std::cout << "   ✅ Applied " << wildcard_count << " wildcard constraints to solver" << std::endl;
+                    }
+                    if (index_count > 0) {
+                        std::cout << "   ✅ Applied " << index_count << " index constraints to solver" << std::endl;
                     }
                 }
             }
