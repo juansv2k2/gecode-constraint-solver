@@ -101,7 +101,8 @@ struct MusicalSolution {
     
     // Multi-voice solution data
     std::vector<std::vector<int>> voice_solutions;  // All voices - each vector is one voice
-    std::vector<std::vector<int>> voice_rhythms;    // Rhythm data for each voice
+                                                    // -1 (REST_PITCH_SENTINEL) means rest at that position
+    std::vector<std::vector<int>> voice_rhythms;    // Rhythm data for each voice; negative = rest duration
     std::vector<int> metric_signature;              // Metric/time signature data
     
     // Analysis data

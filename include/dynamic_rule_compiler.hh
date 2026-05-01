@@ -52,6 +52,14 @@ struct ConstraintContext {
                      int voices, int length)
         : space(s), pitch_vars(p_vars), rhythm_vars(r_vars), 
           num_voices(voices), sequence_length(length) {}
+
+    // Returns true if the rhythm domain at (voice, pos) allows a rest (negative tick).
+    bool position_can_be_rest(int voice, int pos) const {
+        if (!rhythm_vars) return false;
+        int idx = voice * sequence_length + pos;
+        if (idx < 0 || idx >= (int)rhythm_vars->size()) return false;
+        return (*rhythm_vars)[idx].min() < 0;
+    }
 };
 
 /**

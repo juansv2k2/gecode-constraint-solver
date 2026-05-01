@@ -168,6 +168,19 @@ public:
     void add_retrograde_inversion_constraint(int inversion_center);
     void constrain_note_range(int min_note, int max_note);
 
+    // ---- Rest support ----
+    // Pitch value stored in voice_solutions when a position is a rest.
+    static constexpr int REST_PITCH_SENTINEL = -1;
+
+    // Returns true if the rhythm variable at (voice, pos) can be a rest
+    // (i.e. its domain contains a negative value).
+    bool position_can_be_rest(int voice, int pos) const {
+        if (rhythm_vars_.size() == 0) return false;
+        int idx = voice * sequence_length_ + pos;
+        if (idx < 0 || idx >= (int)rhythm_vars_.size()) return false;
+        return rhythm_vars_[idx].min() < 0;
+    }
+
     // ---- Solution access ----
     std::vector<int> get_absolute_sequence() const;
     std::vector<int> get_interval_sequence() const;

@@ -111,7 +111,7 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
       num_voices_(voices),
       absolute_vars_(*this, length * voices, IntSet(0, 127)),
       interval_vars_(*this, (length * voices) - voices, -12, 12),
-      rhythm_vars_(*this, length * voices, 1, 100000),  // Wide range; narrowed by dom() below
+      rhythm_vars_(*this, length * voices, -100000, 100000),  // Wide range including negatives for rests; narrowed by dom() below
       backjump_mode_(mode),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
@@ -126,23 +126,34 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
         }
     }
 
-    // Narrow each voice's rhythm variables to allowed duration values
+    // Narrow each voice's rhythm variables to allowed duration values and exclude 0.
     for (int v = 0; v < voices; ++v) {
         if (v < (int)voice_rhythm_domains.size() && !voice_rhythm_domains[v].empty()) {
             IntSet rhythm_dom(voice_rhythm_domains[v].data(), voice_rhythm_domains[v].size());
             for (int i = 0; i < length; ++i) {
                 dom(*this, rhythm_vars_[v * length + i], rhythm_dom);
             }
+        } else {
+            // No explicit domain: exclude 0 (0 is not a valid duration)
+            for (int i = 0; i < length; ++i)
+                rel(*this, rhythm_vars_[v * length + i], IRT_NQ, 0);
         }
     }
 
-    // Setup interval constraints between consecutive pitches within each voice
+    // Interval constraints: only enforce when BOTH consecutive positions are notes (rhythm > 0).
+    // Uses implication reification: if both_notes then interval == diff.
     for (int voice = 0; voice < voices; ++voice) {
         for (int i = 1; i < length; ++i) {
-            int abs_idx = voice * length + i;
+            int abs_idx      = voice * length + i;
             int prev_abs_idx = voice * length + (i - 1);
-            int int_idx = voice * (length - 1) + (i - 1);
-            rel(*this, interval_vars_[int_idx] == absolute_vars_[abs_idx] - absolute_vars_[prev_abs_idx]);
+            int int_idx      = voice * (length - 1) + (i - 1);
+            int r_cur        = voice * length + i;
+            int r_prev       = voice * length + (i - 1);
+            BoolVar cur_note  = expr(*this, rhythm_vars_[r_cur]  > 0);
+            BoolVar prev_note = expr(*this, rhythm_vars_[r_prev] > 0);
+            BoolVar both_notes = expr(*this, cur_note && prev_note);
+            IntVar diff = expr(*this, absolute_vars_[abs_idx] - absolute_vars_[prev_abs_idx]);
+            rel(*this, interval_vars_[int_idx], IRT_EQ, diff, Reify(both_notes, RM_IMP));
         }
     }
 
@@ -377,9 +388,17 @@ std::vector<int> IntegratedMusicalSpace::get_pitch_sequence(int voice) const {
     std::vector<int> sequence;
     int start_idx = voice * sequence_length_;
     int end_idx = std::min(start_idx + sequence_length_, (int)absolute_vars_.size());
-    
+
+    // Check if rhythm vars are available to detect rests
+    bool has_rhythm = (rhythm_vars_.size() > 0);
+
     for (int i = start_idx; i < end_idx; ++i) {
-        if (absolute_vars_[i].assigned()) {
+        int pos = i - start_idx;
+        int r_idx = voice * sequence_length_ + pos;
+        if (has_rhythm && r_idx < (int)rhythm_vars_.size() &&
+                rhythm_vars_[r_idx].assigned() && rhythm_vars_[r_idx].val() < 0) {
+            sequence.push_back(REST_PITCH_SENTINEL);
+        } else if (absolute_vars_[i].assigned()) {
             sequence.push_back(absolute_vars_[i].val());
         } else {
             sequence.push_back(60); // Default middle C

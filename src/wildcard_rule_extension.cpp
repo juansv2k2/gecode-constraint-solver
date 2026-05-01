@@ -104,6 +104,16 @@ std::function<void(ConstraintContext&)> WildcardRuleCompiler::create_for_all_pos
                 }
                 
                 if (can_apply) {
+                    // Skip if any position in the pattern could be a rest
+                    for (int offset : spec.pattern_offsets) {
+                        if (ctx.position_can_be_rest(voice, pos + offset)) {
+                            can_apply = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (can_apply) {
                     apply_constraint_at_position(*constraint_ast->root, ctx, voice, pos, spec.pattern_offsets);
                     total_constraints++;
                 }
@@ -152,6 +162,16 @@ std::function<void(ConstraintContext&)> WildcardRuleCompiler::create_for_all_voi
                 }
                 
                 if (can_apply) {
+                    // Skip if any position in the pattern could be a rest
+                    for (int offset : spec.pattern_offsets) {
+                        if (ctx.position_can_be_rest(voice, pos + offset)) {
+                            can_apply = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (can_apply) {
                     apply_constraint_at_position(*constraint_ast->root, ctx, voice, pos, spec.pattern_offsets);
                     total_constraints++;
                 }
@@ -196,6 +216,16 @@ std::function<void(ConstraintContext&)> WildcardRuleCompiler::create_sliding_win
         // Apply sliding window across each voice
         for (int voice = 0; voice < ctx.num_voices; ++voice) {
             for (int pos = 0; pos <= ctx.sequence_length - max_offset - 1; pos += spec.step_size) {
+                // Skip if any position in the window could be a rest
+                bool can_apply = true;
+                for (int offset : spec.pattern_offsets) {
+                    if (ctx.position_can_be_rest(voice, pos + offset)) {
+                        can_apply = false;
+                        break;
+                    }
+                }
+                if (!can_apply) continue;
+
                 std::cout << "    🆔 About to call apply_constraint_at_position for voice=" << voice 
                           << " pos=" << pos << std::endl;
                 apply_constraint_at_position(*constraint_ast->root, ctx, voice, pos, spec.pattern_offsets);

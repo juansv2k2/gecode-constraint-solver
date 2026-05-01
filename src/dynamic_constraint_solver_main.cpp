@@ -636,21 +636,23 @@ public:
     // Parses a fraction string "N/D" and validates it; returns {N, D}.
     // No divisibility restriction — any positive integer N and D are accepted.
     static std::pair<int,int> parse_duration_fraction(const std::string& s, const std::string& context) {
-        auto slash = s.find('/');
-        if (slash == std::string::npos)
+        // Strip optional leading '-' for rests; restore sign after parsing.
+        bool is_rest = (!s.empty() && s[0] == '-');
+        std::string abs_s = is_rest ? s.substr(1) : s;
+        auto abs_slash = abs_s.find('/');
+        if (abs_slash == std::string::npos)
             throw std::runtime_error(context + ": invalid duration value '" + s +
-                "'. Use note-value fractions like \"1/4\" (quarter), \"1/8\" (eighth), "
-                "\"1/3\" (triplet quarter), \"3/8\" (dotted quarter), etc.");
+                "'. Use note-value fractions like \"1/4\" (quarter), \"-1/4\" (rest quarter), etc.");
         int num = 0, den = 0;
         try {
-            num = std::stoi(s.substr(0, slash));
-            den = std::stoi(s.substr(slash + 1));
+            num = std::stoi(abs_s.substr(0, abs_slash));
+            den = std::stoi(abs_s.substr(abs_slash + 1));
         } catch (...) {
             throw std::runtime_error(context + ": cannot parse duration fraction '" + s + "'");
         }
         if (num <= 0 || den <= 0)
-            throw std::runtime_error(context + ": numerator and denominator must be positive integers in '" + s + "'");
-        return {num, den};
+            throw std::runtime_error(context + ": numerator and denominator must be positive in '" + s + "'");
+        return {is_rest ? -num : num, den};
     }
 
     // GCD (C++11-compatible).
@@ -661,11 +663,14 @@ public:
     // Formats an internal tick value back to a fraction string "N/D"
     // given the LCM base (whole note = base ticks).
     static std::string format_duration(int ticks, int base) {
-        if (ticks <= 0 || base <= 0) return "?";
-        int g = gcd_helper(ticks, base);
-        int num = ticks / g;
+        if (ticks == 0 || base <= 0) return "?";
+        bool is_rest = (ticks < 0);
+        int abs_ticks = std::abs(ticks);
+        int g = gcd_helper(abs_ticks, base);
+        int num = abs_ticks / g;
         int den = base / g;
-        return std::to_string(num) + "/" + std::to_string(den);
+        std::string frac = std::to_string(num) + "/" + std::to_string(den);
+        return is_rest ? ("R:" + frac) : frac;
     }
 
     std::vector<std::vector<int>> getVoiceRhythmDomains(const std::string& config_file) const {
@@ -728,14 +733,16 @@ public:
         }
 
         // Step 2: compute LCM of all denominators so every fraction maps to an integer tick count.
+        // Use abs(n) — sign encodes rest vs note, not relevant for LCM.
         int base = 1;
         for (auto& fracs : raw_per_voice)
             for (auto& [n, d] : fracs)
-                base = lcm_helper(base, d);
+                base = lcm_helper(base, d);  // d is always positive
 
         rhythm_base_ = base;  // stored for display
 
         // Step 3: convert each fraction to ticks = base * numerator / denominator.
+        // Negative numerator (rest) produces a negative tick value.
         std::vector<std::vector<int>> result(num_voices_);
         for (int v = 0; v < num_voices_; ++v) {
             for (auto& [n, d] : raw_per_voice[v])
@@ -1264,8 +1271,11 @@ int main(int argc, char* argv[]) {
                     for (size_t i = 0; i < sol.voice_solutions[voice].size(); ++i) {
                         if (i > 0) std::cout << " → ";
                         int midi = sol.voice_solutions[voice][i];
-                        std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(midi)
-                                  << "(" << midi << ")";
+                        if (midi < 0)
+                            std::cout << "R";
+                        else
+                            std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(midi)
+                                      << "(" << midi << ")";
                     }
                     std::cout << std::endl;
                     if (voice < sol.voice_rhythms.size()) {
@@ -1356,7 +1366,8 @@ int main(int argc, char* argv[]) {
                         json_out << "          \"pitch_names\": [";
                         for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
                             if (i > 0) json_out << ", ";
-                            json_out << "\"" << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[voice][i]) << "\"";
+                            int midi = solution.voice_solutions[voice][i];
+                            json_out << "\"" << (midi < 0 ? "R" : MusicalConstraintSolver::Solver::midi_to_note_name(midi)) << "\"";
                         }
                         json_out << "],\n";
                         json_out << "          \"rhythm_names\": [";
@@ -1411,7 +1422,8 @@ int main(int argc, char* argv[]) {
                         txt_out << "  Pitches: ";
                         for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
                             if (i > 0) txt_out << " → ";
-                            txt_out << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[voice][i]);
+                            int midi = solution.voice_solutions[voice][i];
+                            txt_out << (midi < 0 ? "R" : MusicalConstraintSolver::Solver::midi_to_note_name(midi));
                         }
                         txt_out << "\n";
                         if (voice < solution.voice_rhythms.size()) {
