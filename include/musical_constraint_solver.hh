@@ -75,6 +75,11 @@ struct SolverConfig {
     // Updated by getVoiceRhythmDomains(); used by display logic.
     int rhythm_base = 1;
 
+    // Random search seed. 0 = deterministic (sequential domain order).
+    // Any non-zero value enables random value selection with that seed,
+    // so the solver explores solutions in a shuffled order (reproducible).
+    unsigned int random_seed = 0;
+
     // Domain constraints
     int max_interval_size = 12;  // Octave
     bool allow_repetitions = false;

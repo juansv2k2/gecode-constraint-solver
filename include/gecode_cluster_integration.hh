@@ -120,18 +120,21 @@ public:
     // Single global domain for all voices
     IntegratedMusicalSpace(int length, int voices,
                            AdvancedBackjumping::BackjumpMode mode,
-                           const std::vector<int>& note_domain);
+                           const std::vector<int>& note_domain,
+                           unsigned int random_seed = 0);
 
     // Constructor with per-voice domains (voice_domains[v] = domain for voice v)
     IntegratedMusicalSpace(int length, int voices,
                            AdvancedBackjumping::BackjumpMode mode,
-                           const std::vector<std::vector<int>>& voice_domains);
+                           const std::vector<std::vector<int>>& voice_domains,
+                           unsigned int random_seed = 0);
 
     // Constructor with per-voice pitch AND rhythm domains
     IntegratedMusicalSpace(int length, int voices,
                            AdvancedBackjumping::BackjumpMode mode,
                            const std::vector<std::vector<int>>& voice_domains,
-                           const std::vector<std::vector<int>>& voice_rhythm_domains);
+                           const std::vector<std::vector<int>>& voice_rhythm_domains,
+                           unsigned int random_seed = 0);
 
     // Copy constructor for search (Gecode 6: single argument)
     IntegratedMusicalSpace(IntegratedMusicalSpace& s);

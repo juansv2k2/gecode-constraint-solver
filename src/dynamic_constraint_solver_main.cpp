@@ -518,6 +518,15 @@ public:
         const auto& so = cfg["search_options"];
         return so.value("timeout_ms", 30000);
     }
+
+    unsigned int getRandomSeed(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return 0;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return 0; }
+        if (!cfg.contains("search_options")) return 0;
+        return cfg["search_options"].value("random_seed", 0u);
+    }
     bool getIncludeAnalysis() const { return include_analysis_; }
     
     // Domain getters
@@ -1101,6 +1110,7 @@ int main(int argc, char* argv[]) {
         // Load per-voice rhythm domains from engine_domains duration_values (required, no fallback)
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
         solver_config.rhythm_base = parser.getVoiceRhythmBase();
+        solver_config.random_seed = parser.getRandomSeed(config_file);
 
         // Derive global min/max from the union of all voice domains
         {
@@ -1236,7 +1246,10 @@ int main(int argc, char* argv[]) {
         int timeout_ms = parser.getTimeoutMs(config_file);
         std::string max_sol_label = (max_sol < 0) ? "all" : std::to_string(max_sol);
         std::cout << "   Searching for " << max_sol_label << " solution(s)"
-                  << " (timeout: " << timeout_ms << " ms)..." << std::endl;
+                  << " (timeout: " << timeout_ms << " ms)";
+        if (solver_config.random_seed != 0)
+            std::cout << " 🎲 random seed: " << solver_config.random_seed;
+        std::cout << std::endl;
 
         auto start_time = std::chrono::high_resolution_clock::now();
 

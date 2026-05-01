@@ -967,7 +967,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
     auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
         config_.sequence_length, config_.num_voices, config_.backjump_mode,
-        all_voice_domains, config_.voice_rhythm_domains);
+        all_voice_domains, config_.voice_rhythm_domains, config_.random_seed);
 
     // ADD MUSICAL RULES
     if (!rules_.empty()) {

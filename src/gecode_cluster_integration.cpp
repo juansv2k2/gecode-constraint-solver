@@ -19,7 +19,8 @@ namespace GecodeClusterIntegration {
 
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices, 
                                               AdvancedBackjumping::BackjumpMode mode,
-                                              const std::vector<int>& note_domain)
+                                              const std::vector<int>& note_domain,
+                                              unsigned int random_seed)
     : Space(), 
       sequence_length_(length), 
       num_voices_(voices),
@@ -46,14 +47,20 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     // Setup basic musical constraints
     post_musical_constraints();
     
-    // CRITICAL: Set up branching strategy to force variable assignment
-    branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    // Branching strategy: random value selection when a seed is provided
+    if (random_seed != 0) {
+        Gecode::Rnd rng(random_seed);
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+    } else {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
 }
 
 // Per-voice domain constructor: each voice gets its own pitch domain
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
                                               AdvancedBackjumping::BackjumpMode mode,
-                                              const std::vector<std::vector<int>>& voice_domains)
+                                              const std::vector<std::vector<int>>& voice_domains,
+                                              unsigned int random_seed)
     : Space(),
       sequence_length_(length),
       num_voices_(voices),
@@ -85,14 +92,20 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    if (random_seed != 0) {
+        Gecode::Rnd rng(random_seed);
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+    } else {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
 }
 
 // Per-voice pitch AND rhythm domain constructor
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
                                               AdvancedBackjumping::BackjumpMode mode,
                                               const std::vector<std::vector<int>>& voice_domains,
-                                              const std::vector<std::vector<int>>& voice_rhythm_domains)
+                                              const std::vector<std::vector<int>>& voice_rhythm_domains,
+                                              unsigned int random_seed)
     : Space(),
       sequence_length_(length),
       num_voices_(voices),
@@ -134,8 +147,14 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    if (random_seed != 0) {
+        Gecode::Rnd rng(random_seed);
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+        branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+    } else {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+        branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
 }
 
 IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)

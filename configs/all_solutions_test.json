@@ -41,7 +41,8 @@
   "search_options": {
     "timeout_ms": 5000,
     "max_solutions": "all",
-    "branching": "first_fail"
+    "branching": "first_fail",
+    "random_seed": 42
   },
 
   "output_options": {
