@@ -98,7 +98,7 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
       num_voices_(voices),
       absolute_vars_(*this, length * voices, IntSet(0, 127)),
       interval_vars_(*this, (length * voices) - voices, -12, 12),
-      rhythm_vars_(*this, length * voices, 1, 16),  // Wide initial domain, narrowed below
+      rhythm_vars_(*this, length * voices, 1, 100000),  // Wide range; narrowed by dom() below
       backjump_mode_(mode),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {

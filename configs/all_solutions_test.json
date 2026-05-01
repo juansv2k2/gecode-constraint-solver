@@ -1,0 +1,54 @@
+{
+  "name": "All Solutions Test",
+  "description": "Single voice, 4 notes from C major, all different. Exactly 4! = 24 permutations.",
+  "solution_length": 4,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-engine",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3],
+      "target_engine": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "All 4 notes must be different — gives 4! = 24 solutions"
+    }
+  ],
+
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/4"],
+      "description": "Voice 0: quarter notes only (rhythm fixed, not the interesting variable)"
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65],
+      "description": "Voice 0: C D E F (4 notes only)"
+    }
+  },
+
+  "search_options": {
+    "timeout_ms": 5000,
+    "max_solutions": "all",
+    "branching": "first_fail"
+  },
+
+  "output_options": {
+    "export_xml": false,
+    "export_png": false,
+    "export_midi": false,
+    "show_statistics": true,
+    "include_analysis": false
+  }
+}

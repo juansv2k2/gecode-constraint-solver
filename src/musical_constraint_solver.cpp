@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <limits>
 #include <fstream>
 
 namespace MusicalConstraintSolver {
@@ -898,239 +899,231 @@ MusicalSolution Solver::solve() {
     return solve_internal();
 }
 
-std::vector<MusicalSolution> Solver::solve_multiple(int max_solutions) {
+std::vector<MusicalSolution> Solver::solve_multiple(
+        int max_solutions, int timeout_ms,
+        std::function<void(const MusicalSolution&, int)> on_solution) {
     std::vector<MusicalSolution> solutions;
-    
-    for (int i = 0; i < max_solutions; ++i) {
-        MusicalSolution solution = solve();
-        if (solution.found_solution) {
-            solutions.push_back(solution);
-        } else {
-            break; // No more solutions possible
-        }
-    }
-    
-    return solutions;
-}
-
-MusicalSolution Solver::solve_with_starting_note(int starting_note) {
-    // Set the starting note in solution storage
-    solution_storage_->write_absolute(starting_note, 0);
-    return solve_internal();
-}
-
-MusicalSolution Solver::solve_internal() {
-    auto start_time = std::chrono::high_resolution_clock::now();
-    
-    MusicalSolution solution;
-    
     try {
-        // BUILD PER-VOICE DOMAINS: use voice_domains if provided, fall back to min_note..max_note
-        std::vector<std::vector<int>> all_voice_domains = config_.voice_domains;
-        if (all_voice_domains.empty()) {
-            std::vector<int> global_domain;
-            for (int i = config_.min_note; i <= config_.max_note; ++i) {
-                global_domain.push_back(i);
-            }
-            for (int v = 0; v < config_.num_voices; ++v) {
-                all_voice_domains.push_back(global_domain);
-            }
-        } else {
-            // Fill any missing voices with the global fallback
-            std::vector<int> global_domain;
-            for (int i = config_.min_note; i <= config_.max_note; ++i) {
-                global_domain.push_back(i);
-            }
-            while ((int)all_voice_domains.size() < config_.num_voices) {
-                all_voice_domains.push_back(global_domain);
-            }
-        }
+        auto* raw_space = build_configured_space_();
 
-        auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
-            config_.sequence_length, config_.num_voices, config_.backjump_mode,
-            all_voice_domains, config_.voice_rhythm_domains);
-        
-        // ADD MUSICAL RULES AS GECODE CONSTRAINTS
-        if (!rules_.empty()) {
-            gecode_space->add_musical_rules(rules_);
-            std::cout << "DEBUG: Added " << rules_.size() << " musical rules" << std::endl;
-        }
-        
-        // POST ADVANCED CONSTRAINTS BASED ON FLAGS
-        if (twelve_tone_row_enabled_) {
-            gecode_space->post_twelve_tone_row_constraint();
-            std::cout << "Posted 12-tone row constraint" << std::endl; 
-        }
-        
-        if (perfect_fifth_intervals_enabled_) {
-            gecode_space->post_perfect_fifth_intervals_constraint();
-            std::cout << "Posted perfect fifth intervals constraint" << std::endl;
-        }
-        
-        if (palindrome_voices_enabled_) {
-            gecode_space->post_palindrome_voices_constraint();
-            std::cout << "Posted palindrome voices constraint" << std::endl;
-        }
-        
-        // POST DYNAMIC RULES (NEW SYSTEM)
-        if (compiled_rules_ && compiled_rules_->constraint_count() > 0) {
-            std::cout << "🎯 Applying " << compiled_rules_->total_count() << " dynamic rules" << std::endl;
-            
-            // Create constraint context
-            DynamicRules::ConstraintContext ctx(gecode_space.get(), &gecode_space->get_absolute_vars(), 
-                                               &gecode_space->get_rhythm_vars(), config_.num_voices, config_.sequence_length);
-            
-            // Post all compiled constraints
-            compiled_rules_->post_all_constraints(ctx);
-            compiled_rules_->apply_all_heuristics(ctx);
-        }
-        
-        // Add basic range constraints BEFORE retrograde inversion
-        gecode_space->constrain_note_range(config_.min_note, config_.max_note);
-        
-        // SPECIAL HANDLING FOR RETROGRADE INVERSION
-        if (retrograde_inversion_enabled_) {
-            std::cout << "🎯 APPLYING RETROGRADE INVERSION CONSTRAINT!" << std::endl;
-            std::cout << "   Inversion center: " << retrograde_inversion_center_ << " (MIDI)" << std::endl;
-            
-            // Post special retrograde inversion constraint
-            gecode_space->add_retrograde_inversion_constraint(retrograde_inversion_center_);
-            std::cout << "✅ Posted retrograde inversion constraint in Gecode space" << std::endl;
-        }
-        
-        // PERFORM GECODE CONSTRAINT SOLVING
         Gecode::Search::Options search_opts;
         search_opts.threads = 1;
         search_opts.nogoods_limit = 128;
-        
-        // Use DFS search with restart for musical problems
-        auto raw_space = gecode_space.release();
+
         Gecode::DFS<GecodeClusterIntegration::IntegratedMusicalSpace> search_engine(raw_space, search_opts);
-        
-        // FIND SOLUTION
-        auto solved_space = search_engine.next();
-        
-        int rules_checked = 0;  // Count from propagation statistics
-        int backjumps = 0;      // Count from search statistics
-        bool success = (solved_space != nullptr);
-        
-        if (success) {
-            // EXTRACT GECODE SOLUTION
-            auto absolute_sequence = solved_space->get_absolute_sequence();
-            auto interval_sequence = solved_space->get_interval_sequence();
-            
-            // Verify solution is fully assigned
-            bool fully_assigned = true;
-            for (int note : absolute_sequence) {
-                if (note == -1) {
-                    fully_assigned = false;
+
+        int limit = (max_solutions < 0) ? std::numeric_limits<int>::max() : max_solutions;
+        auto wall_start = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < limit; ++i) {
+            // Check wall-clock timeout before each next()
+            if (timeout_ms > 0) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::high_resolution_clock::now() - wall_start).count();
+                if (elapsed >= timeout_ms) {
+                    std::cout << "   ⏱️  Timeout after " << elapsed << " ms — returning "
+                              << solutions.size() << " solution(s) found so far" << std::endl;
                     break;
                 }
             }
-            
-            if (fully_assigned) {
-                // Update solution storage with Gecode results
-                for (size_t i = 0; i < absolute_sequence.size(); ++i) {
-                    solution_storage_->write_absolute(absolute_sequence[i], static_cast<int>(i));
-                }
-                
-                // EXTRACT MULTI-VOICE DATA FROM ENGINES
-                // Clear existing voice data
-                solution.voice_solutions.clear();
-                solution.voice_rhythms.clear();
-                
-                // Extract data for each voice using the solved space
-                for (int voice = 0; voice < config_.num_voices; ++voice) {
-                    // Rhythm: use the configured domain (no fallback)
-                    if (config_.voice_rhythm_domains.empty() ||
-                        voice >= (int)config_.voice_rhythm_domains.size() ||
-                        config_.voice_rhythm_domains[voice].empty()) {
-                        throw std::runtime_error(
-                            "Voice " + std::to_string(voice) + " has no rhythm domain. "
-                            "Add 'duration_values' for engine_" + std::to_string(voice * 2) +
-                            " in engine_domains.");
-                    }
-                    const auto& rhythm_domain = config_.voice_rhythm_domains[voice];
-                    // Read actual rhythm values solved by Gecode; fall back to domain[0] only if
-                    // the space has no rhythm vars (e.g. legacy single-domain constructor was used).
-                    auto solved_rhythms = solved_space->get_rhythm_sequence_from_vars(voice);
-                    std::vector<int> rhythm_data;
-                    if (!solved_rhythms.empty()) {
-                        rhythm_data = solved_rhythms;
-                    } else {
-                        rhythm_data.assign(config_.sequence_length, rhythm_domain[0]);
-                    }
-                    auto pitch_data = solved_space->get_pitch_sequence(voice);
-                    
-                    solution.voice_rhythms.push_back(rhythm_data);
-                    solution.voice_solutions.push_back(pitch_data);
-                }
-                
-                // Extract metric data
-                solution.metric_signature = solved_space->get_metric_sequence();
-            } else {
-                success = false;
-                solution.failure_reason = "Gecode found partial solution but not fully assigned";
+
+            auto* solved_space = search_engine.next();
+            if (!solved_space) break;  // search space exhausted
+
+            MusicalSolution sol = extract_solution_from_space_(solved_space);
+            if (sol.found_solution) {
+                solutions.push_back(sol);
+                if (on_solution) on_solution(sol, static_cast<int>(solutions.size()) - 1);
             }
-            
-            // Get constraint propagation statistics
-            rules_checked = static_cast<int>(rules_.size() * config_.sequence_length);
-            solution.applied_rules.push_back("Gecode constraint propagation completed successfully");
-            
-            delete solved_space;
-        } else {
-            solution.failure_reason = "Gecode constraint solver found no solution";
         }
-        
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-        
-        solution.solve_time_ms = duration.count() / 1000.0;
-        solution.total_rules_checked = rules_checked;
-        solution.backjumps_performed = backjumps;
-        solution.found_solution = success;
-        
-        if (success) {
-            // Extract solution from storage
-            for (int i = 0; i < config_.sequence_length; ++i) {
-                solution.absolute_notes.push_back(solution_storage_->absolute(i));
-                solution.note_names.push_back(midi_to_note_name(solution_storage_->absolute(i)));
-                if (i > 0) {
-                    solution.intervals.push_back(solution_storage_->interval(i));
-                }
-            }
-            
-            // Calculate musical statistics
-            double sum_intervals = 0;
-            int direction_changes = 0;
-            int last_direction = 0;
-            
-            for (int interval : solution.intervals) {
-                sum_intervals += std::abs(interval);
-                
-                int direction = (interval > 0) ? 1 : (interval < 0) ? -1 : 0;
-                if (direction != 0 && direction != last_direction) {
-                    direction_changes++;
-                    last_direction = direction;
-                }
-            }
-            
-            if (!solution.intervals.empty()) {
-                solution.average_interval_size = sum_intervals / solution.intervals.size();
-            }
-            solution.melodic_direction_changes = direction_changes;
-            
-            total_solutions_found_++;
-        }
-        
-        update_stats("gecode_solve", solution.solve_time_ms);
-        
     } catch (const std::exception& e) {
-        solution.found_solution = false;
-        solution.failure_reason = "Exception during solving: " + std::string(e.what());
+        MusicalSolution failed;
+        failed.found_solution = false;
+        failed.failure_reason = "Exception during multi-solve: " + std::string(e.what());
+        if (solutions.empty()) solutions.push_back(failed);
     }
-    
+    return solutions;
+}
+
+// ---------------------------------------------------------------------------
+// Build a fully-configured Gecode space (all constraints posted, no search).
+// ---------------------------------------------------------------------------
+GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space_() {
+    // BUILD PER-VOICE DOMAINS
+    std::vector<std::vector<int>> all_voice_domains = config_.voice_domains;
+    if (all_voice_domains.empty()) {
+        std::vector<int> global_domain;
+        for (int i = config_.min_note; i <= config_.max_note; ++i)
+            global_domain.push_back(i);
+        for (int v = 0; v < config_.num_voices; ++v)
+            all_voice_domains.push_back(global_domain);
+    } else {
+        std::vector<int> global_domain;
+        for (int i = config_.min_note; i <= config_.max_note; ++i)
+            global_domain.push_back(i);
+        while ((int)all_voice_domains.size() < config_.num_voices)
+            all_voice_domains.push_back(global_domain);
+    }
+
+    auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
+        config_.sequence_length, config_.num_voices, config_.backjump_mode,
+        all_voice_domains, config_.voice_rhythm_domains);
+
+    // ADD MUSICAL RULES
+    if (!rules_.empty()) {
+        gecode_space->add_musical_rules(rules_);
+        std::cout << "DEBUG: Added " << rules_.size() << " musical rules" << std::endl;
+    }
+
+    // POST ADVANCED CONSTRAINTS
+    if (twelve_tone_row_enabled_) {
+        gecode_space->post_twelve_tone_row_constraint();
+        std::cout << "Posted 12-tone row constraint" << std::endl;
+    }
+    if (perfect_fifth_intervals_enabled_) {
+        gecode_space->post_perfect_fifth_intervals_constraint();
+        std::cout << "Posted perfect fifth intervals constraint" << std::endl;
+    }
+    if (palindrome_voices_enabled_) {
+        gecode_space->post_palindrome_voices_constraint();
+        std::cout << "Posted palindrome voices constraint" << std::endl;
+    }
+
+    // POST DYNAMIC RULES
+    if (compiled_rules_ && compiled_rules_->constraint_count() > 0) {
+        std::cout << "🎯 Applying " << compiled_rules_->total_count() << " dynamic rules" << std::endl;
+        DynamicRules::ConstraintContext ctx(gecode_space.get(), &gecode_space->get_absolute_vars(),
+                                           &gecode_space->get_rhythm_vars(), config_.num_voices, config_.sequence_length);
+        compiled_rules_->post_all_constraints(ctx);
+        compiled_rules_->apply_all_heuristics(ctx);
+    }
+
+    gecode_space->constrain_note_range(config_.min_note, config_.max_note);
+
+    if (retrograde_inversion_enabled_) {
+        std::cout << "🎯 APPLYING RETROGRADE INVERSION CONSTRAINT!" << std::endl;
+        std::cout << "   Inversion center: " << retrograde_inversion_center_ << " (MIDI)" << std::endl;
+        gecode_space->add_retrograde_inversion_constraint(retrograde_inversion_center_);
+        std::cout << "✅ Posted retrograde inversion constraint in Gecode space" << std::endl;
+    }
+
+    return gecode_space.release();
+}
+
+// ---------------------------------------------------------------------------
+// Extract a MusicalSolution from a solved Gecode space.
+// Takes ownership and deletes solved_space. nullptr → no solution found.
+// ---------------------------------------------------------------------------
+MusicalSolution Solver::extract_solution_from_space_(
+        GecodeClusterIntegration::IntegratedMusicalSpace* solved_space) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    MusicalSolution solution;
+    int rules_checked = 0;
+    bool success = (solved_space != nullptr);
+
+    if (success) {
+        auto absolute_sequence = solved_space->get_absolute_sequence();
+
+        bool fully_assigned = true;
+        for (int note : absolute_sequence) {
+            if (note == -1) { fully_assigned = false; break; }
+        }
+
+        if (fully_assigned) {
+            for (size_t i = 0; i < absolute_sequence.size(); ++i)
+                solution_storage_->write_absolute(absolute_sequence[i], static_cast<int>(i));
+
+            solution.voice_solutions.clear();
+            solution.voice_rhythms.clear();
+
+            for (int voice = 0; voice < config_.num_voices; ++voice) {
+                if (config_.voice_rhythm_domains.empty() ||
+                    voice >= (int)config_.voice_rhythm_domains.size() ||
+                    config_.voice_rhythm_domains[voice].empty()) {
+                    throw std::runtime_error(
+                        "Voice " + std::to_string(voice) + " has no rhythm domain.");
+                }
+                const auto& rhythm_domain = config_.voice_rhythm_domains[voice];
+                auto solved_rhythms = solved_space->get_rhythm_sequence_from_vars(voice);
+                std::vector<int> rhythm_data;
+                if (!solved_rhythms.empty()) {
+                    rhythm_data = solved_rhythms;
+                } else {
+                    rhythm_data.assign(config_.sequence_length, rhythm_domain[0]);
+                }
+                solution.voice_rhythms.push_back(rhythm_data);
+                solution.voice_solutions.push_back(solved_space->get_pitch_sequence(voice));
+            }
+
+            solution.metric_signature = solved_space->get_metric_sequence();
+        } else {
+            success = false;
+            solution.failure_reason = "Gecode found partial solution but not fully assigned";
+        }
+
+        rules_checked = static_cast<int>(rules_.size() * config_.sequence_length);
+        solution.applied_rules.push_back("Gecode constraint propagation completed successfully");
+        delete solved_space;
+    } else {
+        solution.failure_reason = "Gecode constraint solver found no solution";
+    }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+    solution.solve_time_ms = duration.count() / 1000.0;
+    solution.total_rules_checked = rules_checked;
+    solution.backjumps_performed = 0;
+    solution.found_solution = success;
+
+    if (success) {
+        for (int i = 0; i < config_.sequence_length; ++i) {
+            solution.absolute_notes.push_back(solution_storage_->absolute(i));
+            solution.note_names.push_back(midi_to_note_name(solution_storage_->absolute(i)));
+            if (i > 0)
+                solution.intervals.push_back(solution_storage_->interval(i));
+        }
+
+        double sum_intervals = 0;
+        int direction_changes = 0;
+        int last_direction = 0;
+        for (int interval : solution.intervals) {
+            sum_intervals += std::abs(interval);
+            int direction = (interval > 0) ? 1 : (interval < 0) ? -1 : 0;
+            if (direction != 0 && direction != last_direction) {
+                direction_changes++;
+                last_direction = direction;
+            }
+        }
+        if (!solution.intervals.empty())
+            solution.average_interval_size = sum_intervals / solution.intervals.size();
+        solution.melodic_direction_changes = direction_changes;
+
+        total_solutions_found_++;
+    }
+
+    update_stats("gecode_solve", solution.solve_time_ms);
     return solution;
+}
+
+MusicalSolution Solver::solve_internal() {
+    total_solve_attempts_++;
+    try {
+        auto* raw_space = build_configured_space_();
+
+        Gecode::Search::Options search_opts;
+        search_opts.threads = 1;
+        search_opts.nogoods_limit = 128;
+
+        Gecode::DFS<GecodeClusterIntegration::IntegratedMusicalSpace> search_engine(raw_space, search_opts);
+        return extract_solution_from_space_(search_engine.next());
+    } catch (const std::exception& e) {
+        MusicalSolution failed;
+        failed.found_solution = false;
+        failed.failure_reason = "Exception during solving: " + std::string(e.what());
+        return failed;
+    }
 }
 
 std::map<std::string, double> Solver::get_performance_stats() const {

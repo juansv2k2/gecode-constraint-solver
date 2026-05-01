@@ -65,9 +65,15 @@ struct SolverConfig {
     std::vector<std::vector<int>> voice_domains;
 
     // Per-voice rhythm domains. voice_rhythm_domains[v] = allowed duration values
-    // for voice v (integer units: 16=whole, 8=half, 4=quarter, 2=eighth, 1=sixteenth).
+    // for voice v, expressed as multiples of one tick (tick = 1/rhythm_base of a whole note).
     // Required — no fallback. Throws at solve time if empty.
     std::vector<std::vector<int>> voice_rhythm_domains;
+
+    // Base (LCM of all duration denominators) used for rhythm_vars encoding.
+    // e.g. if all durations are simple fractions (1/4, 1/8) rhythm_base = 8 and
+    // a quarter note = 2, an eighth note = 1.
+    // Updated by getVoiceRhythmDomains(); used by display logic.
+    int rhythm_base = 1;
 
     // Domain constraints
     int max_interval_size = 12;  // Octave
@@ -335,9 +341,15 @@ public:
     MusicalSolution solve();
     
     /**
-     * @brief Solve for multiple solutions
+     * @brief Solve for multiple solutions.
+     * @param max_solutions Number of solutions to find, or -1 for all.
+     * @param timeout_ms    Stop after this many milliseconds (0 = no limit).
+     * @param on_solution   Optional callback invoked immediately when each solution is found.
      */
-    std::vector<MusicalSolution> solve_multiple(int max_solutions = 5);
+    std::vector<MusicalSolution> solve_multiple(
+        int max_solutions = 1,
+        int timeout_ms = 0,
+        std::function<void(const MusicalSolution&, int)> on_solution = nullptr);
     
     /**
      * @brief Solve with custom starting note
@@ -431,9 +443,23 @@ private:
     void initialize_solver();
     
     /**
-     * @brief Perform actual constraint solving
+     * @brief Perform actual constraint solving (single solution)
      */
     MusicalSolution solve_internal();
+
+    /**
+     * @brief Build a fully-configured Gecode space with all constraints posted.
+     * Caller (or the DFS engine) takes ownership of the returned pointer.
+     */
+    GecodeClusterIntegration::IntegratedMusicalSpace* build_configured_space_();
+
+    /**
+     * @brief Extract a MusicalSolution from an already-solved Gecode space.
+     * Takes ownership of solved_space and deletes it. Pass nullptr to signal
+     * that the search engine found no solution.
+     */
+    MusicalSolution extract_solution_from_space_(
+        GecodeClusterIntegration::IntegratedMusicalSpace* solved_space);
     
     /**
      * @brief Update performance statistics

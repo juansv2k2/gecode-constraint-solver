@@ -1,0 +1,84 @@
+{
+  "name": "Wildcard Types Test",
+  "description": "Three rules, one per wildcard_type, so the behaviour of each can be observed in isolation.",
+  "solution_length": 6,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "export_path": "tests/output",
+
+  "rules": [
+    {
+      "id": "no_repeated_pitch_window",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[0].pitch[i+1] != voice[0].pitch[i]",
+      "enabled": true,
+      "priority": 10,
+      "description": "SLIDING_WINDOW: posts the constraint at i=0,1,2,3,4 (stops before the last note has no successor). 5 constraints total."
+    },
+
+    {
+      "id": "voices_not_unison",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[i] != voice[1].pitch[i]",
+      "enabled": true,
+      "priority": 9,
+      "description": "FOR_ALL_POSITIONS: posts the constraint at every position i=0..5. 6 constraints total."
+    },
+
+    {
+      "id": "voice1_above_voice0",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[i] > voice[0].pitch[i]",
+      "enabled": true,
+      "priority": 8,
+      "description": "FOR_ALL_VOICES: posts the constraint at every position, framed as a per-voice ordering rule. Also 6 constraints."
+    }
+  ],
+
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/4"],
+      "description": "Voice 0: quarter notes only"
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72],
+      "description": "Voice 0: C major scale C4-C5"
+    },
+    "engine_2": {
+      "type": "rhythm",
+      "voice": 1,
+      "duration_values": ["1/4"],
+      "description": "Voice 1: quarter notes only"
+    },
+    "engine_3": {
+      "type": "pitch",
+      "voice": 1,
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76],
+      "description": "Voice 1: C major scale C4-D5 (extended so it can always sit above voice 0)"
+    }
+  },
+
+  "search_options": {
+    "timeout_ms": 10000,
+    "max_solutions": 5,
+    "branching": "first_fail"
+  },
+
+  "output_options": {
+    "export_xml": false,
+    "export_png": false,
+    "export_midi": false,
+    "show_statistics": true,
+    "include_analysis": true
+  }
+}

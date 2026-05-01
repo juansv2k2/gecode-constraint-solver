@@ -49,6 +49,7 @@ private:
     std::string backtrack_method_;
     std::string export_path_;
     std::vector<RuleConfig> rules_;
+    mutable int rhythm_base_ = 1;  // LCM of all duration denominators, set by getVoiceRhythmDomains()
     
     // Domain configuration
     struct DomainConfig {
@@ -482,12 +483,41 @@ public:
     int getNumVoices() const { return num_voices_; }
     std::string getBacktrackMethod() const { return backtrack_method_; }
     std::string getExportPath() const { return export_path_; }
+
+    // Returns max_solutions from search_options. Returns -1 for "all".
+    int getMaxSolutions(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return 1;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return 1; }
+        if (!cfg.contains("search_options")) return 1;
+        const auto& so = cfg["search_options"];
+        if (!so.contains("max_solutions")) return 1;
+        const auto& v = so["max_solutions"];
+        if (v.is_string()) {
+            std::string s = v.get<std::string>();
+            if (s == "all") return -1;
+            try { return std::stoi(s); } catch (...) { return 1; }
+        }
+        if (v.is_number_integer()) return v.get<int>();
+        return 1;
+    }
     
     // Output options getters
     bool getExportXML() const { return export_xml_; }
     bool getExportPNG() const { return export_png_; }
     bool getExportMIDI() const { return export_midi_; }
     bool getShowStatistics() const { return show_statistics_; }
+
+    int getTimeoutMs(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return 30000;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return 30000; }
+        if (!cfg.contains("search_options")) return 30000;
+        const auto& so = cfg["search_options"];
+        return so.value("timeout_ms", 30000);
+    }
     bool getIncludeAnalysis() const { return include_analysis_; }
     
     // Domain getters
@@ -594,14 +624,14 @@ public:
     // voice_rhythm_domains[v] = list of allowed duration values (ints) for voice v.
     // Throws with a clear message if any voice is missing a rhythm engine entry.
 
-    // Converts a fraction string like "1/4" to the internal duration unit (16=whole, 8=half,
-    // 4=quarter, 2=eighth, 1=sixteenth). Formula: internal = 16 * numerator / denominator.
-    static int parse_duration_fraction(const std::string& s, const std::string& context) {
+    // Parses a fraction string "N/D" and validates it; returns {N, D}.
+    // No divisibility restriction — any positive integer N and D are accepted.
+    static std::pair<int,int> parse_duration_fraction(const std::string& s, const std::string& context) {
         auto slash = s.find('/');
         if (slash == std::string::npos)
             throw std::runtime_error(context + ": invalid duration value '" + s +
                 "'. Use note-value fractions like \"1/4\" (quarter), \"1/8\" (eighth), "
-                "\"1/2\" (half), \"1/1\" (whole), \"1/16\" (sixteenth).");
+                "\"1/3\" (triplet quarter), \"3/8\" (dotted quarter), etc.");
         int num = 0, den = 0;
         try {
             num = std::stoi(s.substr(0, slash));
@@ -609,20 +639,29 @@ public:
         } catch (...) {
             throw std::runtime_error(context + ": cannot parse duration fraction '" + s + "'");
         }
-        if (den == 0)
-            throw std::runtime_error(context + ": denominator cannot be zero in '" + s + "'");
-        if ((16 * num) % den != 0)
-            throw std::runtime_error(context + ": '" + s +
-                "' does not map to a whole number of sixteenth notes. "
-                "Supported values: \"1/16\", \"1/8\", \"1/4\", \"1/2\", \"1/1\", \"3/8\" (dotted quarter), \"3/4\" (dotted half), etc.");
-        int internal = 16 * num / den;
-        if (internal < 1 || internal > 32)
-            throw std::runtime_error(context + ": '" + s + "' is out of supported range.");
-        return internal;
+        if (num <= 0 || den <= 0)
+            throw std::runtime_error(context + ": numerator and denominator must be positive integers in '" + s + "'");
+        return {num, den};
+    }
+
+    // GCD (C++11-compatible).
+    static int gcd_helper(int a, int b) { return b == 0 ? a : gcd_helper(b, a % b); }
+    // LCM; returns a/gcd*b to avoid overflow for typical musical values.
+    static int lcm_helper(int a, int b) { return a / gcd_helper(a, b) * b; }
+
+    // Formats an internal tick value back to a fraction string "N/D"
+    // given the LCM base (whole note = base ticks).
+    static std::string format_duration(int ticks, int base) {
+        if (ticks <= 0 || base <= 0) return "?";
+        int g = gcd_helper(ticks, base);
+        int num = ticks / g;
+        int den = base / g;
+        return std::to_string(num) + "/" + std::to_string(den);
     }
 
     std::vector<std::vector<int>> getVoiceRhythmDomains(const std::string& config_file) const {
-        std::vector<std::vector<int>> result(num_voices_);
+        // Step 1: collect raw (numerator, denominator) pairs per voice.
+        std::vector<std::vector<std::pair<int,int>>> raw_per_voice(num_voices_);
 
         std::ifstream f(config_file);
         if (!f.is_open())
@@ -647,24 +686,25 @@ public:
                     "Use note-value fractions, e.g. \"duration_values\": [\"1/4\"] for quarter notes.");
 
             std::string ctx = "engine_domains['" + key + "']";
-            std::vector<int> domain_values;
+            std::vector<std::pair<int,int>> raw_fractions;
             for (const auto& item : val["duration_values"]) {
                 if (item.is_string()) {
-                    domain_values.push_back(parse_duration_fraction(item.get<std::string>(), ctx));
+                    raw_fractions.push_back(parse_duration_fraction(item.get<std::string>(), ctx));
                 } else if (item.is_number_integer()) {
-                    // Legacy integer support (16=whole, 8=half, 4=quarter, 2=eighth, 1=sixteenth)
-                    domain_values.push_back(item.get<int>());
+                    // Legacy integer: treat as N/1
+                    raw_fractions.push_back({item.get<int>(), 1});
                 } else {
                     throw std::runtime_error(ctx + ": duration_values entries must be fraction strings like \"1/4\".");
                 }
             }
-            if (domain_values.empty())
-                throw std::runtime_error("engine_domains['" + key + "']: 'duration_values' must not be empty");
-            result[voice] = std::move(domain_values);
+            if (raw_fractions.empty())
+                throw std::runtime_error(ctx + ": 'duration_values' must not be empty");
+            raw_per_voice[voice] = std::move(raw_fractions);
         }
 
+        // Check every voice has a rhythm domain.
         for (int v = 0; v < num_voices_; ++v) {
-            if (result[v].empty()) {
+            if (raw_per_voice[v].empty()) {
                 int rhythm_engine_idx = v * 2;
                 throw std::runtime_error(
                     "Voice " + std::to_string(v) + " has no rhythm domain. "
@@ -678,8 +718,25 @@ public:
             }
         }
 
+        // Step 2: compute LCM of all denominators so every fraction maps to an integer tick count.
+        int base = 1;
+        for (auto& fracs : raw_per_voice)
+            for (auto& [n, d] : fracs)
+                base = lcm_helper(base, d);
+
+        rhythm_base_ = base;  // stored for display
+
+        // Step 3: convert each fraction to ticks = base * numerator / denominator.
+        std::vector<std::vector<int>> result(num_voices_);
+        for (int v = 0; v < num_voices_; ++v) {
+            for (auto& [n, d] : raw_per_voice[v])
+                result[v].push_back(base * n / d);
+        }
+
         return result;
     }
+
+    int getVoiceRhythmBase() const { return rhythm_base_; }
 
     const std::vector<RuleConfig>& getRules() const { return rules_; }
     
@@ -1043,6 +1100,7 @@ int main(int argc, char* argv[]) {
 
         // Load per-voice rhythm domains from engine_domains duration_values (required, no fallback)
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
+        solver_config.rhythm_base = parser.getVoiceRhythmBase();
 
         // Derive global min/max from the union of all voice domains
         {
@@ -1173,252 +1231,229 @@ int main(int argc, char* argv[]) {
         // Solve the constraint problem
         std::cout << "\n🎯 Solving Constraint Problem" << std::endl;
         std::cout << std::string(50, '-') << std::endl;
-        
+
+        int max_sol = parser.getMaxSolutions(config_file);
+        int timeout_ms = parser.getTimeoutMs(config_file);
+        std::string max_sol_label = (max_sol < 0) ? "all" : std::to_string(max_sol);
+        std::cout << "   Searching for " << max_sol_label << " solution(s)"
+                  << " (timeout: " << timeout_ms << " ms)..." << std::endl;
+
         auto start_time = std::chrono::high_resolution_clock::now();
-        MusicalConstraintSolver::MusicalSolution solution = solver.solve();
+
+        std::vector<MusicalConstraintSolver::MusicalSolution> found_solutions;
+
+        // Streaming callback: print each solution to console immediately as it's found.
+        auto on_solution = [&](const MusicalConstraintSolver::MusicalSolution& sol, int idx) {
+            std::cout << "\n── Solution " << (idx + 1) << " ──" << std::endl;
+            if (!sol.voice_solutions.empty()) {
+                for (size_t voice = 0; voice < sol.voice_solutions.size(); ++voice) {
+                    std::cout << "Voice " << voice << " Pitch: ";
+                    for (size_t i = 0; i < sol.voice_solutions[voice].size(); ++i) {
+                        if (i > 0) std::cout << " → ";
+                        int midi = sol.voice_solutions[voice][i];
+                        std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(midi)
+                                  << "(" << midi << ")";
+                    }
+                    std::cout << std::endl;
+                    if (voice < sol.voice_rhythms.size()) {
+                        std::cout << "Voice " << voice << " Rhythm: ";
+                        for (size_t i = 0; i < sol.voice_rhythms[voice].size(); ++i) {
+                            if (i > 0) std::cout << " + ";
+                            std::cout << ConstraintSolverJSONParser::format_duration(
+                                sol.voice_rhythms[voice][i], solver_config.rhythm_base);
+                        }
+                        std::cout << std::endl;
+                    }
+                }
+            } else {
+                std::cout << "Notes: ";
+                for (size_t i = 0; i < sol.absolute_notes.size(); ++i) {
+                    if (i > 0) std::cout << " → ";
+                    std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(sol.absolute_notes[i]);
+                }
+                std::cout << std::endl;
+            }
+        };
+
+        auto all_solutions = solver.solve_multiple(max_sol, timeout_ms, on_solution);
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-        
-        if (!solution.found_solution) {
-            std::cout << "❌ No solution found: " << solution.failure_reason << std::endl;
+
+        // Filter to successful solutions
+        for (auto& sol : all_solutions)
+            if (sol.found_solution) found_solutions.push_back(sol);
+
+        if (found_solutions.empty()) {
+            std::string reason = all_solutions.empty() ? "no solutions" : all_solutions[0].failure_reason;
+            std::cout << "❌ No solution found: " << reason << std::endl;
             return 1;
         }
-        
-        std::cout << "✅ Solution found in " << duration.count() << " ms" << std::endl;
-        
+
+        std::cout << "✅ Found " << found_solutions.size() << " solution(s) in "
+                  << duration.count() << " ms" << std::endl;
+
         // Export results
         std::cout << "\n💾 Exporting Results" << std::endl;
         std::cout << std::string(50, '-') << std::endl;
-        
-        // Generate output filenames using configured export path
+
         std::string base_name = config_file;
         size_t dot_pos = base_name.find_last_of('.');
-        if (dot_pos != std::string::npos) {
-            base_name = base_name.substr(0, dot_pos);
-        }
-        
+        if (dot_pos != std::string::npos) base_name = base_name.substr(0, dot_pos);
+
         std::string export_dir = parser.getExportPath();
-        std::string json_file = export_dir + "/" + base_name + "_result.json";
-        std::string txt_file = export_dir + "/" + base_name + "_result.txt";
-        
-        // Ensure export directory exists
         std::string mkdir_cmd = "mkdir -p \"" + export_dir + "\"";
         system(mkdir_cmd.c_str());
-        
-        // Export JSON
+
+        // ---- JSON export ----
+        std::string json_file = export_dir + "/" + base_name + "_result.json";
         std::ofstream json_out(json_file);
         if (json_out.is_open()) {
-            json_out << "{" << std::endl;
-            json_out << "  \"config_file\": \"" << config_file << "\"," << std::endl;
-            json_out << "  \"problem_name\": \"" << parser.getName() << "\"," << std::endl;
-            
-            // Export all voices with rhythm and metric data
-            if (!solution.voice_solutions.empty()) {
-                json_out << "  \"voices\": [" << std::endl;
-                for (size_t voice = 0; voice < solution.voice_solutions.size(); ++voice) {
-                    if (voice > 0) json_out << "," << std::endl;
-                    json_out << "    {" << std::endl;
-                    json_out << "      \"voice\": " << voice << "," << std::endl;
-                    json_out << "      \"pitch_solution\": [";
-                    for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
-                        if (i > 0) json_out << ", ";
-                        json_out << solution.voice_solutions[voice][i];
-                    }
-                    json_out << "]," << std::endl;
-                    json_out << "      \"rhythm_solution\": [";
-                    if (voice < solution.voice_rhythms.size()) {
-                        for (size_t i = 0; i < solution.voice_rhythms[voice].size(); ++i) {
+            json_out << "{\n";
+            json_out << "  \"config_file\": \"" << config_file << "\",\n";
+            json_out << "  \"problem_name\": \"" << parser.getName() << "\",\n";
+            json_out << "  \"solutions_found\": " << found_solutions.size() << ",\n";
+            json_out << "  \"solve_time_ms\": " << duration.count() << ",\n";
+            json_out << "  \"rules_applied\": " << rules.size() << ",\n";
+            json_out << "  \"solutions\": [\n";
+            for (size_t si = 0; si < found_solutions.size(); ++si) {
+                const auto& solution = found_solutions[si];
+                if (si > 0) json_out << ",\n";
+                json_out << "    {\n";
+                json_out << "      \"solution_index\": " << si << ",\n";
+                if (!solution.voice_solutions.empty()) {
+                    json_out << "      \"voices\": [\n";
+                    for (size_t voice = 0; voice < solution.voice_solutions.size(); ++voice) {
+                        if (voice > 0) json_out << ",\n";
+                        json_out << "        {\n";
+                        json_out << "          \"voice\": " << voice << ",\n";
+                        json_out << "          \"pitch_solution\": [";
+                        for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
                             if (i > 0) json_out << ", ";
-                            json_out << solution.voice_rhythms[voice][i];
+                            json_out << solution.voice_solutions[voice][i];
                         }
-                    }
-                    json_out << "]," << std::endl;
-                    json_out << "      \"pitch_names\": [";
-                    for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
-                        if (i > 0) json_out << ", ";
-                        json_out << "\"" << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[voice][i]) << "\"";
-                    }
-                    json_out << "]," << std::endl;
-                    json_out << "      \"rhythm_names\": [";
-                    if (voice < solution.voice_rhythms.size()) {
-                        for (size_t i = 0; i < solution.voice_rhythms[voice].size(); ++i) {
+                        json_out << "],\n";
+                        json_out << "          \"rhythm_solution\": [";
+                        if (voice < solution.voice_rhythms.size()) {
+                            for (size_t i = 0; i < solution.voice_rhythms[voice].size(); ++i) {
+                                if (i > 0) json_out << ", ";
+                                json_out << solution.voice_rhythms[voice][i];
+                            }
+                        }
+                        json_out << "],\n";
+                        json_out << "          \"pitch_names\": [";
+                        for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
                             if (i > 0) json_out << ", ";
-                            json_out << "\"" << "1/" << (16 / solution.voice_rhythms[voice][i]) << "\"";
+                            json_out << "\"" << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[voice][i]) << "\"";
                         }
+                        json_out << "],\n";
+                        json_out << "          \"rhythm_names\": [";
+                        if (voice < solution.voice_rhythms.size()) {
+                            for (size_t i = 0; i < solution.voice_rhythms[voice].size(); ++i) {
+                                if (i > 0) json_out << ", ";
+                                json_out << "\"" << ConstraintSolverJSONParser::format_duration(
+                                    solution.voice_rhythms[voice][i], solver_config.rhythm_base) << "\"";
+                            }
+                        }
+                        json_out << "]\n";
+                        json_out << "        }";
                     }
-                    json_out << "]" << std::endl;
-                    json_out << "    }";
+                    json_out << "\n      ],\n";
+                    json_out << "      \"metric_signature\": [";
+                    for (size_t i = 0; i < solution.metric_signature.size(); ++i) {
+                        if (i > 0) json_out << ", ";
+                        json_out << solution.metric_signature[i];
+                    }
+                    json_out << "]\n";
+                } else {
+                    json_out << "      \"note_names\": [";
+                    for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
+                        if (i > 0) json_out << ", ";
+                        json_out << "\"" << MusicalConstraintSolver::Solver::midi_to_note_name(solution.absolute_notes[i]) << "\"";
+                    }
+                    json_out << "]\n";
                 }
-                json_out << std::endl << "  ]," << std::endl;
-                
-                // Add metric data
-                json_out << "  \"metric_signature\": [";
-                for (size_t i = 0; i < solution.metric_signature.size(); ++i) {
-                    if (i > 0) json_out << ", ";
-                    json_out << solution.metric_signature[i];
-                }
-                json_out << "]," << std::endl;
+                json_out << "    }";
             }
-            
-            // Keep legacy single solution for compatibility (first voice)
-            if (!solution.voice_solutions.empty()) {
-                json_out << "  \"solution\": [";
-                for (size_t i = 0; i < solution.voice_solutions[0].size(); ++i) {
-                    if (i > 0) json_out << ", ";
-                    json_out << solution.voice_solutions[0][i];
-                }
-                json_out << "]," << std::endl;
-                json_out << "  \"note_names\": [";
-                for (size_t i = 0; i < solution.voice_solutions[0].size(); ++i) {
-                    if (i > 0) json_out << ", ";
-                    json_out << "\"" << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[0][i]) << "\"";
-                }
-                json_out << "]," << std::endl;
-            } else {
-                json_out << "  \"solution\": [";
-                for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
-                    if (i > 0) json_out << ", ";
-                    json_out << solution.absolute_notes[i];
-                }
-                json_out << "]," << std::endl;
-                json_out << "  \"note_names\": [";
-                for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
-                    if (i > 0) json_out << ", ";
-                    json_out << "\"" << MusicalConstraintSolver::Solver::midi_to_note_name(solution.absolute_notes[i]) << "\"";
-                }
-                json_out << "]," << std::endl;
-            }
-            json_out << "  \"solve_time_ms\": " << duration.count() << "," << std::endl;
-            json_out << "  \"rules_applied\": " << rules.size() << "," << std::endl;
-            json_out << "  \"rules_checked\": " << solution.total_rules_checked << std::endl;
-            json_out << "}" << std::endl;
+            json_out << "\n  ]\n}\n";
             json_out.close();
             std::cout << "✅ JSON: " << json_file << std::endl;
         }
-        
-        // Export text
+
+        // ---- TXT export ----
+        std::string txt_file = export_dir + "/" + base_name + "_result.txt";
         std::ofstream txt_out(txt_file);
         if (txt_out.is_open()) {
-            txt_out << "DYNAMIC CONSTRAINT SOLVER RESULTS" << std::endl;
-            txt_out << "==================================" << std::endl << std::endl;
-            txt_out << "Configuration: " << config_file << std::endl;
-            txt_out << "Problem: " << parser.getName() << std::endl;
-            txt_out << "Description: " << parser.getDescription() << std::endl << std::endl;
-            
-            // Export all voice solutions with rhythm and metric data
-            if (!solution.voice_solutions.empty()) {
-                txt_out << "Complete Multi-Voice Solution:" << std::endl;
-                for (size_t voice = 0; voice < solution.voice_solutions.size(); ++voice) {
-                    txt_out << "\nVoice " << voice << ":" << std::endl;
-                    txt_out << "  Pitch Sequence (" << solution.voice_solutions[voice].size() << " notes):" << std::endl;
-                    for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
-                        txt_out << "    " << (i + 1) << ". " 
-                               << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[voice][i])
-                               << " (MIDI " << solution.voice_solutions[voice][i] << ")" << std::endl;
-                    }
-                    
-                    if (voice < solution.voice_rhythms.size()) {
-                        txt_out << "  Rhythm Sequence:" << std::endl;
-                        for (size_t i = 0; i < solution.voice_rhythms[voice].size(); ++i) {
-                            txt_out << "    " << (i + 1) << ". " 
-                                   << "1/" << (16 / solution.voice_rhythms[voice][i])
-                                   << " note (duration " << solution.voice_rhythms[voice][i] << ")" << std::endl;
+            txt_out << "DYNAMIC CONSTRAINT SOLVER RESULTS\n";
+            txt_out << "==================================\n\n";
+            txt_out << "Configuration: " << config_file << "\n";
+            txt_out << "Problem: " << parser.getName() << "\n";
+            txt_out << "Description: " << parser.getDescription() << "\n";
+            txt_out << "Solutions found: " << found_solutions.size() << "\n\n";
+            for (size_t si = 0; si < found_solutions.size(); ++si) {
+                const auto& solution = found_solutions[si];
+                txt_out << "--- Solution " << (si + 1) << " ---\n";
+                if (!solution.voice_solutions.empty()) {
+                    for (size_t voice = 0; voice < solution.voice_solutions.size(); ++voice) {
+                        txt_out << "\nVoice " << voice << ":\n";
+                        txt_out << "  Pitches: ";
+                        for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
+                            if (i > 0) txt_out << " → ";
+                            txt_out << MusicalConstraintSolver::Solver::midi_to_note_name(solution.voice_solutions[voice][i]);
+                        }
+                        txt_out << "\n";
+                        if (voice < solution.voice_rhythms.size()) {
+                            txt_out << "  Rhythm:  ";
+                            for (size_t i = 0; i < solution.voice_rhythms[voice].size(); ++i) {
+                                if (i > 0) txt_out << " + ";
+                                txt_out << ConstraintSolverJSONParser::format_duration(
+                                    solution.voice_rhythms[voice][i], solver_config.rhythm_base);
+                            }
+                            txt_out << "\n";
                         }
                     }
-                }
-                
-                if (!solution.metric_signature.empty()) {
-                    txt_out << "\nMetric Signature:" << std::endl;
-                    for (size_t i = 0; i < solution.metric_signature.size(); ++i) {
-                        txt_out << "  Time signature: " << solution.metric_signature[i] << "/4" << std::endl;
+                } else {
+                    txt_out << "  Notes: ";
+                    for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
+                        if (i > 0) txt_out << " → ";
+                        txt_out << MusicalConstraintSolver::Solver::midi_to_note_name(solution.absolute_notes[i]);
                     }
+                    txt_out << "\n";
                 }
-            } else {
-                txt_out << "Solution (" << solution.absolute_notes.size() << " notes):" << std::endl;
-                for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
-                    txt_out << "  " << (i + 1) << ". " 
-                           << MusicalConstraintSolver::Solver::midi_to_note_name(solution.absolute_notes[i])
-                           << " (MIDI " << solution.absolute_notes[i] << ")" << std::endl;
-                }
+                txt_out << "\n";
             }
-            
-            txt_out << std::endl << "Performance:" << std::endl;
-            txt_out << "  Solve time: " << duration.count() << " ms" << std::endl;
-            txt_out << "  Rules applied: " << rules.size() << std::endl;
-            txt_out << "  Rules checked: " << solution.total_rules_checked << std::endl;
-            
+            txt_out << "Performance:\n";
+            txt_out << "  Total solve time: " << duration.count() << " ms\n";
+            txt_out << "  Rules applied: " << rules.size() << "\n";
             txt_out.close();
             std::cout << "✅ Text: " << txt_file << std::endl;
         }
-        
-        // Export XML if requested
-        if (parser.getExportXML()) {
-            std::string xml_file = export_dir + "/" + base_name + "_result.xml";
-            if (solver.export_solution_to_xml(solution, xml_file)) {
-                std::cout << "✅ XML: " << xml_file << std::endl;
-            } else {
-                std::cout << "❌ XML export failed" << std::endl;
+
+        // ---- XML / PNG (per solution) ----
+        for (size_t si = 0; si < found_solutions.size(); ++si) {
+            const auto& solution = found_solutions[si];
+            std::string suffix = (found_solutions.size() > 1) ? "_sol" + std::to_string(si + 1) : "";
+            if (parser.getExportXML()) {
+                std::string xml_file = export_dir + "/" + base_name + suffix + "_result.xml";
+                if (solver.export_solution_to_xml(solution, xml_file))
+                    std::cout << "✅ XML: " << xml_file << std::endl;
+                else
+                    std::cout << "❌ XML export failed for solution " << (si + 1) << std::endl;
+            }
+            if (parser.getExportPNG()) {
+                std::string png_file = export_dir + "/" + base_name + suffix + "_result.png";
+                if (solver.export_solution_to_png(solution, png_file))
+                    std::cout << "✅ PNG: " << png_file << std::endl;
+                else
+                    std::cout << "❌ PNG export failed for solution " << (si + 1) << std::endl;
             }
         }
-        
-        // Export PNG if requested
-        if (parser.getExportPNG()) {
-            std::string png_file = export_dir + "/" + base_name + "_result.png";
-            if (solver.export_solution_to_png(solution, png_file)) {
-                std::cout << "✅ PNG: " << png_file << std::endl;
-            } else {
-                std::cout << "❌ PNG export failed" << std::endl;
-            }
-        }
-        
-        // Display solution
-        std::cout << "\n🎼 SOLUTION" << std::endl;
-        std::cout << std::string(50, '-') << std::endl;
-        
-        if (!solution.voice_solutions.empty()) {
-            std::cout << "Complete Multi-Voice Solution:" << std::endl;
-            for (size_t voice = 0; voice < solution.voice_solutions.size(); ++voice) {
-                std::cout << "Voice " << voice << " Pitch: ";
-                for (size_t i = 0; i < solution.voice_solutions[voice].size(); ++i) {
-                    if (i > 0) std::cout << " → ";
-                    int midi = solution.voice_solutions[voice][i];
-                    std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(midi) << "(" << midi << ")";
-                }
-                std::cout << std::endl;
-                
-                if (voice < solution.voice_rhythms.size()) {
-                    std::cout << "Voice " << voice << " Rhythm: ";
-                    for (size_t i = 0; i < solution.voice_rhythms[voice].size(); ++i) {
-                        if (i > 0) std::cout << " + ";
-                        std::cout << "1/" << (16 / solution.voice_rhythms[voice][i]);
-                    }
-                    std::cout << std::endl;
-                }
-            }
-            
-            if (!solution.metric_signature.empty()) {
-                std::cout << "Metric: ";
-                for (size_t i = 0; i < solution.metric_signature.size(); ++i) {
-                    if (i > 0) std::cout << ", ";
-                    std::cout << solution.metric_signature[i] << "/4";
-                }
-                std::cout << std::endl;
-            }
-        } else {
-            std::cout << "Notes: ";
-            for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
-                if (i > 0) std::cout << " → ";
-                int midi = solution.absolute_notes[i];
-                std::cout << MusicalConstraintSolver::Solver::midi_to_note_name(midi) << "(" << midi << ")";
-            }
-            std::cout << std::endl;
-        }
-        
+
+        // Solutions already printed by the streaming callback above.
         std::cout << "\n📈 Performance:" << std::endl;
         std::cout << "   Solve time: " << duration.count() << " ms" << std::endl;
+        std::cout << "   Solutions found: " << found_solutions.size() << std::endl;
         std::cout << "   Rules applied: " << rules.size() << std::endl;
-        std::cout << "   Rules checked: " << solution.total_rules_checked << std::endl;
-        
+
         std::cout << "\n🎉 Dynamic constraint solving complete!" << std::endl;
         return 0;
         
