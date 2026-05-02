@@ -1,0 +1,76 @@
+🎼 DYNAMIC MUSICAL CONSTRAINT SOLVER
+====================================
+📋 Loading configuration: /tmp/gecode_equiv_bench.json
+--------------------------------------------------
+📋 Loaded Configuration:
+   Name: Equivalent Polyphonic Benchmark
+   Description: 2 voices x 12 notes, each voice all-different, no cross-voice unisons, quarter-note rhythm
+   Solution Length: 12
+   Number of Voices: 2
+   Backtrack Method: intelligent
+   Rules: 3 configured
+   Domains: 0 configured
+   Export Options: XML=❌, PNG=❌, MIDI=❌
+
+📝 Parsed Rules:
+   1. r-pitches-one-engine
+      Function: 
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   2. r-pitches-one-engine
+      Function: 
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   3. r-cross-voice-no-unisons
+      Function: 
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   Global pitch range (derived from voice domains): [60...71]
+     Voice 0: 12 values [60...71]
+     Voice 1: 12 values [60...71]
+
+🔧 Creating Dynamic Constraint Solver
+--------------------------------------------------
+✅ Added engine rule:  (target_engine: 1)
+✅ Added engine rule:  (target_engine: 3)
+✅ Added engine rule:  (target_engine: -1)
+
+🎯 Loading Dynamic Rules (New System)
+   No dynamic_rules section found (using legacy rules only)
+   Found 3 enhanced rules (including wildcards)
+   Compiled: 0 regular + 0 wildcard + 0 index rules
+
+📊 Solver configured with 5 legacy rules
+
+🎯 Solving Constraint Problem
+--------------------------------------------------
+   Searching for 1 solution(s) (timeout: 30000 ms)
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): MelodicIntervalRule
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): MelodicIntervalRule
+Adding musical rule (no specific constraint): MelodicIntervalRule
+DEBUG: Added 5 musical rules
+
+── Solution 1 ──
+Voice 0 Pitch: C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60)
+Voice 0 Rhythm: 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+Voice 1 Pitch: C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60)
+Voice 1 Rhythm: 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+✅ Found 1 solution(s) in 4 ms
+
+💾 Exporting Results
+--------------------------------------------------
+
+📈 Performance:
+   Solve time: 4 ms
+   Solutions found: 1
+   Rules applied: 3
+
+🎉 Dynamic constraint solving complete!
+real 0.06
+user 0.01
+sys 0.01

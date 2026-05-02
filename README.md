@@ -211,6 +211,38 @@ bin/dynamic-solver configs/twelve_tone_config.json
 | Arithmetic solving | 0-6ms        |
 | XML export         | <10ms        |
 
+## Benchmark Results (May 2026)
+
+The following results were measured from logs in `benchmark-test/`.
+
+### Cross-Engine Benchmarks
+
+| Benchmark Scenario                                                | Gecode Solver                                   | Lisp Cluster Engine                                                          |
+| ----------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| Equivalent benchmark (single solution)                            | 4 ms (`gecode_equiv.log`)                       | 0.002 s = 2 ms engine time (`lisp_equiv.log`)                                |
+| 12-tone retrograde random benchmark (exact retrograde, v2 script) | 5 ms (`gecode_retrograde_random_benchmark.log`) | 6.653 s = 6653 ms engine time (`cluster_retrograde_random_benchmark_v2.log`) |
+
+### Stress and Repeated Runs (Gecode)
+
+| Benchmark                                                            | Result                        |
+| -------------------------------------------------------------------- | ----------------------------- |
+| Stress run (`gecode_stress_run.log`)                                 | 29 ms                         |
+| Balanced stress run (`gecode_balanced.log`)                          | 17 ms                         |
+| Balanced repeated runs (`gecode_bal_1.log` ... `gecode_bal_5.log`)   | 9 ms each run (avg 9 ms)      |
+| Polyphonic repeated runs (`gecode_run_1.log` ... `gecode_run_5.log`) | 3, 2, 2, 2, 3 ms (avg 2.4 ms) |
+
+### Seeded Randomization Validation (Gecode Retrograde)
+
+`search_options.random_seed` changes candidate order and produces different valid retrograde rows:
+
+| Seed   | Solve Time | Log                                |
+| ------ | ---------- | ---------------------------------- |
+| 1      | 5 ms       | `gecode_retrograde_seed1.log`      |
+| 2      | 0 ms       | `gecode_retrograde_seed2.log`      |
+| 424242 | 4 ms       | `gecode_retrograde_seed424242.log` |
+
+Reference solutions for seed runs are recorded in each seed log. A Lisp solution dump is also available in `cluster_retrograde_solution_dump.log`.
+
 ## Documentation
 
 - [Twelve-Tone Usage Guide](docs/TWELVE_TONE_USAGE.md)

@@ -1,0 +1,356 @@
+
+; file: /Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/02.engine.lisp
+; in: DEFUN POLY-ENGINE
+;     (FORMAT NIL "The engine needed to backtrack ~D times."
+;             CLUSTER-ENGINE::*DEBUG-COUNT-BACKTRACK*)
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-COUNT-BACKTRACK*
+
+;     (AND CLUSTER-ENGINE::*DEBUG-FILENAME*
+;          (= (MOD CLUSTER-ENGINE::LOOP-COUNTER 100) 0))
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-FILENAME*
+
+;     (IF CLUSTER-ENGINE::*DEBUG-INDEXES-FILENAME*
+;         (CLUSTER-ENGINE::CLEAR-DEBUG-INDEX-VECTORS-TO-FILE))
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-INDEXES-FILENAME*
+; 
+; compilation unit finished
+;   Undefined functions:
+;     CLEAR-DEBUG-INDEX-VECTORS-TO-FILE CLEAR-DEBUG-VECTOR CONVERT-VSOLUTION->LINEAR-AND-BACKJUMP DEBUG-PRINT-AND-UPDATE-MAXINDEX FAIL GET-ALL-ENGINES INITIATE-NEW-VARIABLE PUT-DOMAINS-IN-VECTOR RESET-VBACKJUMP-INDEXES SET-DEFAULT-ENGINEORDER SORT-CANDIDATES-HEURISTICALLY-AND-SET-LINEAR-SOLUTION STORE-TEMP-SOLUTION-TO-DEBUG-VECTOR TEST-RULES WRITE-DEBUGVECTORS-TO-FILE
+;   Undefined variables:
+;     *DEBUG-COUNT-BACKTRACK* *DEBUG-FILENAME* *DEBUG-INDEXES-FILENAME*
+;   caught 3 WARNING conditions
+
+; file: /Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/02.engine.lisp
+; in: DEFUN PRINT-AND-UPDATE-MAXINDEX
+;     (IF CLUSTER-ENGINE::*DEBUG-INDEXES-FILENAME*
+;         (CLUSTER-ENGINE::WRITE-DEBUG-INDEX-VECTORS-TO-FILE))
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-INDEXES-FILENAME*
+; 
+; compilation unit finished
+;   Undefined function:
+;     WRITE-DEBUG-INDEX-VECTORS-TO-FILE
+;   Undefined variable:
+;     *DEBUG-INDEXES-FILENAME*
+;   caught 1 WARNING condition
+
+; file: /Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/02.engine.lisp
+; in: DEFUN DEBUG-PRINT-AND-UPDATE-MAXINDEX
+;     (WHEN CLUSTER-ENGINE::*DEBUG-FILENAME*
+;       (CLUSTER-ENGINE::WRITE-DEBUGVECTORS-TO-FILE))
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-FILENAME*
+
+;     (IF CLUSTER-ENGINE::*DEBUG-INDEXES-FILENAME*
+;         (CLUSTER-ENGINE::WRITE-DEBUG-INDEX-VECTORS-TO-FILE))
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-INDEXES-FILENAME*
+; 
+; compilation unit finished
+;   Undefined functions:
+;     GET-ALL-ENGINES STORE-TEMP-SOLUTION-TO-DEBUG-VECTOR2 WRITE-DEBUG-INDEX-VECTORS-TO-FILE WRITE-DEBUGVECTORS-TO-FILE
+;   Undefined variables:
+;     *DEBUG-FILENAME* *DEBUG-INDEXES-FILENAME*
+;   caught 2 WARNING conditions
+
+; file: /Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/02.engine.lisp
+; in: DEFUN FAIL
+;     (1+ CLUSTER-ENGINE::*DEBUG-COUNT-BACKTRACK*)
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-COUNT-BACKTRACK*
+
+;     (SETF CLUSTER-ENGINE::*DEBUG-COUNT-BACKTRACK*
+;             (1+ CLUSTER-ENGINE::*DEBUG-COUNT-BACKTRACK*))
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::*DEBUG-COUNT-BACKTRACK*
+; 
+; compilation unit finished
+;   Undefined functions:
+;     BACKJUMP-ENGINE RESET-VBACKJUMP-INDEXES SET-VBACKTRACK-HISTORY SORT-CANDIDATES-HEURISTICALLY-AND-SET-LINEAR-SOLUTION
+;   Undefined variable:
+;     *DEBUG-COUNT-BACKTRACK*
+;   caught 2 WARNING conditions
+; in:
+;      LAMBDA (VSOLUTION VLINEAR-SOLUTION VINDEX VSOLUTION-FOR-BACKJUMP
+;          VBACKJUMP-INDEXES ENGINE)
+;     (TYPE FIXNUM CLUSTER-ENGINE::I)
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::I
+
+;     (TYPE LIST CLUSTER-ENGINE::ALL-TIMEPOINTS CLUSTER-ENGINE::FILTERED-TIMEPOINTS
+;      CLUSTER-ENGINE::ALL-PITCHES-FOR-NOTECOUNTS
+;      CLUSTER-ENGINE::NOTECOUNTS-ALL-VOICE CLUSTER-ENGINE::ALL-PITCH-SLICES
+;      CLUSTER-ENGINE::PITCHES)
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::PITCHES
+; 
+; compilation unit finished
+;   Undefined variables:
+;     I PITCHES
+;   caught 2 WARNING conditions
+
+"----" 
+"Cluster-Engine by Orjan Sandred (Studio FLAT, University of Manitoba)" 
+"Initiate search with 5 engines: backjumping is on." 
+"Search running..." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 50000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 100000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 150000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 200000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 250000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 300000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 350000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 400000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 450000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 500000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 550000." 
+"Current indexes:  #(11 10 11 0 3). Number of testloops: 600000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 650000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 700000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 750000." 
+"Current indexes:  #(11 11 11 6 3). Number of testloops: 800000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 850000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 900000." 
+"Current indexes:  #(11 10 11 1 3). Number of testloops: 950000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 1000000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 1050000." 
+"Current indexes:  #(11 11 11 6 3). Number of testloops: 1100000." 
+"Current indexes:  #(11 2 11 11 3). Number of testloops: 1150000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 1200000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 1250000." 
+"Current indexes:  #(11 2 11 11 3). Number of testloops: 1300000." 
+"Current indexes:  #(11 2 11 11 3). Number of testloops: 1350000." 
+"Current indexes:  #(11 5 11 11 3). Number of testloops: 1400000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 1450000." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 1500000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 1550000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 1600000." 
+"Current indexes:  #(11 11 11 5 3). Number of testloops: 1650000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 1700000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 1750000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 1800000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 1850000." 
+"Current indexes:  #(11 11 11 6 3). Number of testloops: 1900000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 1950000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 2000000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 2050000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 2100000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 2150000." 
+"Current indexes:  #(11 2 11 11 3). Number of testloops: 2200000." 
+"Current indexes:  #(11 11 11 5 3). Number of testloops: 2250000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 2300000." 
+"Current indexes:  #(11 1 11 10 3). Number of testloops: 2350000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 2400000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 2450000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 2500000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 2550000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 2600000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 2650000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 2700000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 2750000." 
+"Current indexes:  #(11 11 11 4 3). Number of testloops: 2800000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 2850000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 2900000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 2950000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 3000000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 3050000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 3100000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 3150000." 
+"Current indexes:  #(11 11 11 2 3). Number of testloops: 3200000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 3250000." 
+"Current indexes:  #(11 11 11 3 3). Number of testloops: 3300000." 
+"Current indexes:  #(11 5 11 11 3). Number of testloops: 3350000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 3400000." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 3450000." 
+"Current indexes:  #(11 2 11 11 3). Number of testloops: 3500000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 3550000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 3600000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 3650000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 3700000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 3750000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 3800000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 3850000." 
+"Current indexes:  #(11 11 11 5 3). Number of testloops: 3900000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 3950000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 4000000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 4050000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 4100000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 4150000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 4200000." 
+"Current indexes:  #(11 2 11 11 3). Number of testloops: 4250000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 4300000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 4350000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 4400000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 4450000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 4500000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 4550000." 
+"Current indexes:  #(11 11 11 6 3). Number of testloops: 4600000." 
+"Current indexes:  #(11 11 11 6 3). Number of testloops: 4650000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 4700000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 4750000." 
+"Current indexes:  #(11 11 11 3 3). Number of testloops: 4800000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 4850000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 4900000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 4950000." 
+"Current indexes:  #(11 6 11 11 3). Number of testloops: 5000000." 
+"Current indexes:  #(11 5 11 11 3). Number of testloops: 5050000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 5100000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 5150000." 
+"Current indexes:  #(11 1 11 10 3). Number of testloops: 5200000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 5250000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 5300000." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 5350000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 5400000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 5450000." 
+"Current indexes:  #(11 4 11 11 3). Number of testloops: 5500000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 5550000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 5600000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 5650000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 5700000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 5750000." 
+"Current indexes:  #(11 11 11 3 3). Number of testloops: 5800000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 5850000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 5900000." 
+"Current indexes:  #(11 2 11 11 3). Number of testloops: 5950000." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 6000000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 6050000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 6100000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 6150000." 
+"Current indexes:  #(11 6 11 11 3). Number of testloops: 6200000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 6250000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 6300000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 6350000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 6400000." 
+"Current indexes:  #(11 11 11 3 3). Number of testloops: 6450000." 
+"Current indexes:  #(11 4 11 11 3). Number of testloops: 6500000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 6550000." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 6600000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 6650000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 6700000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 6750000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 6800000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 6850000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 6900000." 
+"Current indexes:  #(11 6 11 11 3). Number of testloops: 6950000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 7000000." 
+"Current indexes:  #(11 6 11 11 3). Number of testloops: 7050000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 7100000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 7150000." 
+"Current indexes:  #(11 11 11 2 3). Number of testloops: 7200000." 
+"Current indexes:  #(11 11 11 3 3). Number of testloops: 7250000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 7300000." 
+"Current indexes:  #(11 11 11 8 3). Number of testloops: 7350000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 7400000." 
+"Current indexes:  #(11 11 11 3 3). Number of testloops: 7450000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 7500000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 7550000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 7600000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 7650000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 7700000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 7750000." 
+"Current indexes:  #(11 9 11 11 3). Number of testloops: 7800000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 7850000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 7900000." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 7950000." 
+"Current indexes:  #(11 11 11 2 3). Number of testloops: 8000000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 8050000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 8100000." 
+"Current indexes:  #(11 4 11 11 3). Number of testloops: 8150000." 
+"Current indexes:  #(11 11 11 2 3). Number of testloops: 8200000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 8250000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 8300000." 
+"Current indexes:  #(11 11 11 6 3). Number of testloops: 8350000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 8400000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 8450000." 
+"Current indexes:  #(11 11 11 7 3). Number of testloops: 8500000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 8550000." 
+"Current indexes:  #(11 10 11 1 3). Number of testloops: 8600000." 
+"Current indexes:  #(11 11 11 3 3). Number of testloops: 8650000." 
+"Current indexes:  #(11 5 11 11 3). Number of testloops: 8700000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 8750000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 8800000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 8850000." 
+"Current indexes:  #(11 10 11 11 3). Number of testloops: 8900000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 8950000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9000000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9050000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9100000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 9150000." 
+"Current indexes:  #(11 7 11 11 3). Number of testloops: 9200000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 9250000." 
+"Current indexes:  #(11 11 11 10 3). Number of testloops: 9300000." 
+"Current indexes:  #(11 3 11 11 3). Number of testloops: 9350000." 
+"Current indexes:  #(11 10 11 1 3). Number of testloops: 9400000." 
+"Current indexes:  #(11 1 11 11 3). Number of testloops: 9450000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9500000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9550000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9600000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9650000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9700000." 
+"Current indexes:  #(11 11 11 1 3). Number of testloops: 9750000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9800000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 9850000." 
+"Current indexes:  #(11 11 11 9 3). Number of testloops: 9900000." 
+"Current indexes:  #(11 11 11 11 3). Number of testloops: 9950000." 
+"Current indexes:  #(11 8 11 11 3). Number of testloops: 10000000." 
+Unhandled SIMPLE-ERROR in thread #<SB-THREAD:THREAD tid=259 "main thread" RUNNING
+                                    {70051D01B3}>:
+  The search system exceeded 10000000 loops. 
+The system was unable to find a solution.
+You may increase the maximum number of loops in the preferences.
+
+Backtrace for: #<SB-THREAD:THREAD tid=259 "main thread" RUNNING {70051D01B3}>
+0: (SB-DEBUG::DEBUGGER-DISABLED-HOOK #<SIMPLE-ERROR "The search system exceeded ~D loops. ~%The system was unable to find a solution.~%You may increase the maximum number of loops in the preferences." {70075DA1C3}> #<unused argument> :QUIT T)
+1: (SB-DEBUG::RUN-HOOK *INVOKE-DEBUGGER-HOOK* #<SIMPLE-ERROR "The search system exceeded ~D loops. ~%The system was unable to find a solution.~%You may increase the maximum number of loops in the preferences." {70075DA1C3}>)
+2: (INVOKE-DEBUGGER #<SIMPLE-ERROR "The search system exceeded ~D loops. ~%The system was unable to find a solution.~%You may increase the maximum number of loops in the preferences." {70075DA1C3}>)
+3: (ERROR "The search system exceeded ~D loops. ~%The system was unable to find a solution.~%You may increase the maximum number of loops in the preferences." 10000000)
+4: (POLY-ENGINE 12 (((1/4)) ((60) (61) (62) (63) (64) (65) (66) (67) (68) (69) (70) (71)) ((1/4)) ((60) (61) (62) (63) (64) (65) (66) (67) (68) (69) (70) (71))) ((4 4)) 2 (0 2 4) FWD-RULE6B BACKTRACK-RULE1 T #2A((#(#1=#<FUNCTION (LAMBDA (VSOLUTION VLINEAR-SOLUTION VINDEX VSOLUTION-FOR-BACKJUMP VBACKJUMP-INDEXES ENGINE) :IN #2="/Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp") {70056703DB}>) #((1 3))) (#(#<FUNCTION (LAMBDA #3=(VSOLUTION VLINEAR-SOLUTION VINDEX VSOLUTION-FOR-BACKJUMP VBACKJUMP-INDEXES ENGINE) :IN #2#) {70052383EB}> #1#) #((1) (3 1))) (#(#1#) #((3 1))) (#(#<FUNCTION (LAMBDA #3# :IN #2#) {700523857B}> #1#) #((3) (1 3))) (NIL NIL)) #2A((NIL) (NIL) (NIL) (NIL) (NIL)) NIL)
+5: (CLUSTERENGINE 12 T NIL (#<RULE {7005273913}> #<RULE {7005273933}> #<RULE {7005273953}>) #((#1=(4 4)) ((#1# 0 1/16 1/12 1/8 1/6 3/16 1/4 5/16 1/3 3/8 5/12 ...)) ((#1# 0 -1/4 -1/2 -3/4 1))) (#1=((1/4)) #2=((60) (61) (62) (63) (64) (65) (66) (67) (68) (69) (70) (71)) #1# #2#))
+6: (CALL-WITH-TIMING #<FUNCTION SB-IMPL::PRINT-TIME> #<FUNCTION (LAMBDA NIL :IN "/Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp") {7005670BFB}>)
+7: ((LAMBDA NIL :IN "/Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp"))
+8: (SB-INT:SIMPLE-EVAL-IN-LEXENV (LET ((RES (TIME (CLUSTERENGINE 12 T NIL *RULES* # *DOMAINS*)))) (FORMAT T "~%RESULT-OK: ~A~%" (IF RES T NIL))) #<NULL-LEXENV>)
+9: (EVAL-TLF (LET ((RES (TIME (CLUSTERENGINE 12 T NIL *RULES* # *DOMAINS*)))) (FORMAT T "~%RESULT-OK: ~A~%" (IF RES T NIL))) 44 NIL)
+10: ((LABELS SB-FASL::EVAL-FORM :IN SB-INT:LOAD-AS-SOURCE) (LET ((RES (TIME (CLUSTERENGINE 12 T NIL *RULES* # *DOMAINS*)))) (FORMAT T "~%RESULT-OK: ~A~%" (IF RES T NIL))) 44)
+11: ((LAMBDA (SB-KERNEL:FORM &KEY :CURRENT-INDEX &ALLOW-OTHER-KEYS) :IN SB-INT:LOAD-AS-SOURCE) (LET ((RES (TIME (CLUSTERENGINE 12 T NIL *RULES* # *DOMAINS*)))) (FORMAT T "~%RESULT-OK: ~A~%" (IF RES T NIL))) :CURRENT-INDEX 44)
+12: (SB-C::%DO-FORMS-FROM-INFO #<FUNCTION (LAMBDA (SB-KERNEL:FORM &KEY :CURRENT-INDEX &ALLOW-OTHER-KEYS) :IN SB-INT:LOAD-AS-SOURCE) {100AD0E0B}> #<SB-C::SOURCE-INFO {7003850493}> SB-C::INPUT-ERROR-IN-LOAD)
+13: (SB-INT:LOAD-AS-SOURCE #<SB-SYS:FD-STREAM for "file /Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp" {7003850043}> :VERBOSE NIL :PRINT NIL :CONTEXT "loading")
+14: ((LABELS SB-FASL::LOAD-STREAM-1 :IN LOAD) #<SB-SYS:FD-STREAM for "file /Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp" {7003850043}> NIL)
+15: (SB-FASL::CALL-WITH-LOAD-BINDINGS #<FUNCTION (LABELS SB-FASL::LOAD-STREAM-1 :IN LOAD) {100AD09EB}> #<SB-SYS:FD-STREAM for "file /Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp" {7003850043}> NIL #<SB-SYS:FD-STREAM for "file /Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp" {7003850043}>)
+16: (LOAD #<SB-SYS:FD-STREAM for "file /Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp" {7003850043}> :VERBOSE NIL :PRINT NIL :IF-DOES-NOT-EXIST :ERROR :EXTERNAL-FORMAT :DEFAULT)
+17: ((FLET SB-IMPL::LOAD-SCRIPT :IN SB-IMPL::PROCESS-SCRIPT) #<SB-SYS:FD-STREAM for "file /Users/juanvassallo/GitHub/gecode-constraint-solver/benchmark-test/cluster_retrograde_random_benchmark.lisp" {7003850043}>)
+18: ((FLET SB-UNIX::BODY :IN SB-IMPL::PROCESS-SCRIPT))
+19: ((FLET "WITHOUT-INTERRUPTS-BODY-" :IN SB-IMPL::PROCESS-SCRIPT))
+20: (SB-IMPL::PROCESS-SCRIPT "benchmark-test/cluster_retrograde_random_benchmark.lisp")
+21: (SB-IMPL::TOPLEVEL-INIT)
+22: ((FLET SB-UNIX::BODY :IN SB-IMPL::START-LISP))
+23: ((FLET "WITHOUT-INTERRUPTS-BODY-3" :IN SB-IMPL::START-LISP))
+24: (SB-IMPL::%START-LISP)
+
+unhandled condition in --disable-debugger mode, quitting
+Evaluation took:
+  67.267 seconds of real time
+  66.497270 seconds of total run time (65.864664 user, 0.632606 system)
+  [ Real times consist of 0.482 seconds GC time, and 66.785 seconds non-GC time. ]
+  [ Run times consist of 0.478 seconds GC time, and 66.020 seconds non-GC time. ]
+  98.86% CPU
+  4 page faults
+  32,837,396,864 bytes consed
+  
+  before it was aborted by a non-local transfer of control.
+  
+real 68.42
+user 66.92
+sys 0.69

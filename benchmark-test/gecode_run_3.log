@@ -1,0 +1,1208 @@
+🎼 DYNAMIC MUSICAL CONSTRAINT SOLVER
+====================================
+📋 Loading configuration: /tmp/gecode_poly_bench.json
+--------------------------------------------------
+📋 Loaded Configuration:
+   Name: Polyphonic Benchmark: Dual 12-Tone Rows with Leap Limits
+   Description: 3/4
+   Solution Length: 12
+   Number of Voices: 2
+   Backtrack Method: intelligent
+   Rules: 5 configured
+   Domains: 0 configured
+   Export Options: XML=❌, PNG=❌, MIDI=❌
+
+📝 Parsed Rules:
+   1. r-pitches-one-engine
+      Function: all_different
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   2. r-pitches-one-engine
+      Function: all_different
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   3. r-cross-voice-no-unisons
+      Function: no_unisons_between_engines
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   4. wildcard_constraint
+      Function: 
+      Voice: 0
+      Description: Voice 0 melodic leaps <= tritone
+      Indices: 12 values
+   5. wildcard_constraint
+      Function: 
+      Voice: 0
+      Description: Voice 1 melodic leaps <= tritone
+      Indices: 12 values
+   Global pitch range (derived from voice domains): [60...71]
+     Voice 0: 12 values [60...71]
+     Voice 1: 12 values [60...71]
+
+🔧 Creating Dynamic Constraint Solver
+--------------------------------------------------
+✅ Added engine rule:  (target_engine: 1)
+✅ Added engine rule:  (target_engine: 3)
+✅ Added engine rule:  (target_engine: -1)
+✅ Added engine rule: Voice 0 melodic leaps <= tritone (target_engine: -1)
+✅ Added engine rule: Voice 1 melodic leaps <= tritone (target_engine: -1)
+
+🎯 Loading Dynamic Rules (New System)
+   No dynamic_rules section found (using legacy rules only)
+   Found 5 enhanced rules (including wildcards)
+🔍 Parsing wildcard constraint expression: "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 6"
+✅ Parsed constraint AST, root type: 8
+     ✅ Compiled wildcard rule: unnamed_wildcard
+🎯 Applying compiled constraint: unnamed_wildcard
+   ✅ Wildcard constraint applied successfully
+🔍 Parsing wildcard constraint expression: "abs(voice[1].pitch[i+1] - voice[1].pitch[i]) <= 6"
+✅ Parsed constraint AST, root type: 8
+     ✅ Compiled wildcard rule: unnamed_wildcard
+🎯 Applying compiled constraint: unnamed_wildcard
+   ✅ Wildcard constraint applied successfully
+   Compiled: 0 regular + 2 wildcard + 0 index rules
+   ✅ Applied 2 wildcard constraints to solver
+
+📊 Solver configured with 7 legacy rules + 2 dynamic rules
+
+🎯 Solving Constraint Problem
+--------------------------------------------------
+   Searching for 1 solution(s) (timeout: 30000 ms)
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): MelodicIntervalRule
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): MelodicIntervalRule
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): MelodicIntervalRule
+DEBUG: Added 7 musical rules
+Posted 12-tone row constraint
+🎯 Applying 2 dynamic rules
+🔧 Posting 2 dynamic constraints...
+  🌟 Applying SLIDING_WINDOW wildcard rule
+    🆔 About to call apply_constraint_at_position for voice=0 pos=0
+    🔧 apply_constraint_at_position called for voice=0 pos=0
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=0 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[1] → var_index=1
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[1] → var_index=1
+    🔍 Voice access: voice[0].pitch[0] → var_index=0
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=0
+    🆔 About to call apply_constraint_at_position for voice=0 pos=1
+    🔧 apply_constraint_at_position called for voice=0 pos=1
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=1 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[2] → var_index=2
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[2] → var_index=2
+    🔍 Voice access: voice[0].pitch[1] → var_index=1
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=1
+    🆔 About to call apply_constraint_at_position for voice=0 pos=2
+    🔧 apply_constraint_at_position called for voice=0 pos=2
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=2 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[3] → var_index=3
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[3] → var_index=3
+    🔍 Voice access: voice[0].pitch[2] → var_index=2
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=2
+    🆔 About to call apply_constraint_at_position for voice=0 pos=3
+    🔧 apply_constraint_at_position called for voice=0 pos=3
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=3 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[4] → var_index=4
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[4] → var_index=4
+    🔍 Voice access: voice[0].pitch[3] → var_index=3
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=3
+    🆔 About to call apply_constraint_at_position for voice=0 pos=4
+    🔧 apply_constraint_at_position called for voice=0 pos=4
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=4 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[5] → var_index=5
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[5] → var_index=5
+    🔍 Voice access: voice[0].pitch[4] → var_index=4
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=4
+    🆔 About to call apply_constraint_at_position for voice=0 pos=5
+    🔧 apply_constraint_at_position called for voice=0 pos=5
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=5 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[6] → var_index=6
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[6] → var_index=6
+    🔍 Voice access: voice[0].pitch[5] → var_index=5
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=5
+    🆔 About to call apply_constraint_at_position for voice=0 pos=6
+    🔧 apply_constraint_at_position called for voice=0 pos=6
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=6 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[7] → var_index=7
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[7] → var_index=7
+    🔍 Voice access: voice[0].pitch[6] → var_index=6
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=6
+    🆔 About to call apply_constraint_at_position for voice=0 pos=7
+    🔧 apply_constraint_at_position called for voice=0 pos=7
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=7 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[8] → var_index=8
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[8] → var_index=8
+    🔍 Voice access: voice[0].pitch[7] → var_index=7
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=7
+    🆔 About to call apply_constraint_at_position for voice=0 pos=8
+    🔧 apply_constraint_at_position called for voice=0 pos=8
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=8 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[9] → var_index=9
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[9] → var_index=9
+    🔍 Voice access: voice[0].pitch[8] → var_index=8
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=8
+    🆔 About to call apply_constraint_at_position for voice=0 pos=9
+    🔧 apply_constraint_at_position called for voice=0 pos=9
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=9 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[10] → var_index=10
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[10] → var_index=10
+    🔍 Voice access: voice[0].pitch[9] → var_index=9
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=9
+    🆔 About to call apply_constraint_at_position for voice=0 pos=10
+    🔧 apply_constraint_at_position called for voice=0 pos=10
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=10 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[11] → var_index=11
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[11] → var_index=11
+    🔍 Voice access: voice[0].pitch[10] → var_index=10
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=10
+    🆔 About to call apply_constraint_at_position for voice=1 pos=0
+    🔧 apply_constraint_at_position called for voice=1 pos=0
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=0 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[1] → var_index=1
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[1] → var_index=1
+    🔍 Voice access: voice[0].pitch[0] → var_index=0
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=0
+    🆔 About to call apply_constraint_at_position for voice=1 pos=1
+    🔧 apply_constraint_at_position called for voice=1 pos=1
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=1 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[2] → var_index=2
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[2] → var_index=2
+    🔍 Voice access: voice[0].pitch[1] → var_index=1
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=1
+    🆔 About to call apply_constraint_at_position for voice=1 pos=2
+    🔧 apply_constraint_at_position called for voice=1 pos=2
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=2 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[3] → var_index=3
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[3] → var_index=3
+    🔍 Voice access: voice[0].pitch[2] → var_index=2
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=2
+    🆔 About to call apply_constraint_at_position for voice=1 pos=3
+    🔧 apply_constraint_at_position called for voice=1 pos=3
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=3 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[4] → var_index=4
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[4] → var_index=4
+    🔍 Voice access: voice[0].pitch[3] → var_index=3
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=3
+    🆔 About to call apply_constraint_at_position for voice=1 pos=4
+    🔧 apply_constraint_at_position called for voice=1 pos=4
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=4 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[5] → var_index=5
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[5] → var_index=5
+    🔍 Voice access: voice[0].pitch[4] → var_index=4
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=4
+    🆔 About to call apply_constraint_at_position for voice=1 pos=5
+    🔧 apply_constraint_at_position called for voice=1 pos=5
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=5 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[6] → var_index=6
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[6] → var_index=6
+    🔍 Voice access: voice[0].pitch[5] → var_index=5
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=5
+    🆔 About to call apply_constraint_at_position for voice=1 pos=6
+    🔧 apply_constraint_at_position called for voice=1 pos=6
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=6 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[7] → var_index=7
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[7] → var_index=7
+    🔍 Voice access: voice[0].pitch[6] → var_index=6
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=6
+    🆔 About to call apply_constraint_at_position for voice=1 pos=7
+    🔧 apply_constraint_at_position called for voice=1 pos=7
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=7 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[8] → var_index=8
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[8] → var_index=8
+    🔍 Voice access: voice[0].pitch[7] → var_index=7
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=7
+    🆔 About to call apply_constraint_at_position for voice=1 pos=8
+    🔧 apply_constraint_at_position called for voice=1 pos=8
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=8 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[9] → var_index=9
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[9] → var_index=9
+    🔍 Voice access: voice[0].pitch[8] → var_index=8
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=8
+    🆔 About to call apply_constraint_at_position for voice=1 pos=9
+    🔧 apply_constraint_at_position called for voice=1 pos=9
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=9 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[10] → var_index=10
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[10] → var_index=10
+    🔍 Voice access: voice[0].pitch[9] → var_index=9
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=9
+    🆔 About to call apply_constraint_at_position for voice=1 pos=10
+    🔧 apply_constraint_at_position called for voice=1 pos=10
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=10 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[0].pitch[11] → var_index=11
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[0].pitch[11] → var_index=11
+    🔍 Voice access: voice[0].pitch[10] → var_index=10
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=10
+    ✅ Posted 22 sliding window constraints
+  ✅ Posted: unnamed_wildcard
+  🌟 Applying SLIDING_WINDOW wildcard rule
+    🆔 About to call apply_constraint_at_position for voice=0 pos=0
+    🔧 apply_constraint_at_position called for voice=0 pos=0
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=0 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[1] → var_index=13
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[1] → var_index=13
+    🔍 Voice access: voice[1].pitch[0] → var_index=12
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=0
+    🆔 About to call apply_constraint_at_position for voice=0 pos=1
+    🔧 apply_constraint_at_position called for voice=0 pos=1
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=1 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[2] → var_index=14
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[2] → var_index=14
+    🔍 Voice access: voice[1].pitch[1] → var_index=13
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=1
+    🆔 About to call apply_constraint_at_position for voice=0 pos=2
+    🔧 apply_constraint_at_position called for voice=0 pos=2
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=2 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[3] → var_index=15
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[3] → var_index=15
+    🔍 Voice access: voice[1].pitch[2] → var_index=14
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=2
+    🆔 About to call apply_constraint_at_position for voice=0 pos=3
+    🔧 apply_constraint_at_position called for voice=0 pos=3
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=3 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[4] → var_index=16
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[4] → var_index=16
+    🔍 Voice access: voice[1].pitch[3] → var_index=15
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=3
+    🆔 About to call apply_constraint_at_position for voice=0 pos=4
+    🔧 apply_constraint_at_position called for voice=0 pos=4
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=4 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[5] → var_index=17
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[5] → var_index=17
+    🔍 Voice access: voice[1].pitch[4] → var_index=16
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=4
+    🆔 About to call apply_constraint_at_position for voice=0 pos=5
+    🔧 apply_constraint_at_position called for voice=0 pos=5
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=5 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[6] → var_index=18
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[6] → var_index=18
+    🔍 Voice access: voice[1].pitch[5] → var_index=17
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=5
+    🆔 About to call apply_constraint_at_position for voice=0 pos=6
+    🔧 apply_constraint_at_position called for voice=0 pos=6
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=6 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[7] → var_index=19
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[7] → var_index=19
+    🔍 Voice access: voice[1].pitch[6] → var_index=18
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=6
+    🆔 About to call apply_constraint_at_position for voice=0 pos=7
+    🔧 apply_constraint_at_position called for voice=0 pos=7
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=7 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[8] → var_index=20
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[8] → var_index=20
+    🔍 Voice access: voice[1].pitch[7] → var_index=19
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=7
+    🆔 About to call apply_constraint_at_position for voice=0 pos=8
+    🔧 apply_constraint_at_position called for voice=0 pos=8
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=8 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[9] → var_index=21
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[9] → var_index=21
+    🔍 Voice access: voice[1].pitch[8] → var_index=20
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=8
+    🆔 About to call apply_constraint_at_position for voice=0 pos=9
+    🔧 apply_constraint_at_position called for voice=0 pos=9
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=9 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[10] → var_index=22
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[10] → var_index=22
+    🔍 Voice access: voice[1].pitch[9] → var_index=21
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=9
+    🆔 About to call apply_constraint_at_position for voice=0 pos=10
+    🔧 apply_constraint_at_position called for voice=0 pos=10
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=0 pos=10 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[11] → var_index=23
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[11] → var_index=23
+    🔍 Voice access: voice[1].pitch[10] → var_index=22
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=0 pos=10
+    🆔 About to call apply_constraint_at_position for voice=1 pos=0
+    🔧 apply_constraint_at_position called for voice=1 pos=0
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=0 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[1] → var_index=13
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[1] → var_index=13
+    🔍 Voice access: voice[1].pitch[0] → var_index=12
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=0
+    🆔 About to call apply_constraint_at_position for voice=1 pos=1
+    🔧 apply_constraint_at_position called for voice=1 pos=1
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=1 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[2] → var_index=14
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[2] → var_index=14
+    🔍 Voice access: voice[1].pitch[1] → var_index=13
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=1
+    🆔 About to call apply_constraint_at_position for voice=1 pos=2
+    🔧 apply_constraint_at_position called for voice=1 pos=2
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=2 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[3] → var_index=15
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[3] → var_index=15
+    🔍 Voice access: voice[1].pitch[2] → var_index=14
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=2
+    🆔 About to call apply_constraint_at_position for voice=1 pos=3
+    🔧 apply_constraint_at_position called for voice=1 pos=3
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=3 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[4] → var_index=16
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[4] → var_index=16
+    🔍 Voice access: voice[1].pitch[3] → var_index=15
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=3
+    🆔 About to call apply_constraint_at_position for voice=1 pos=4
+    🔧 apply_constraint_at_position called for voice=1 pos=4
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=4 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[5] → var_index=17
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[5] → var_index=17
+    🔍 Voice access: voice[1].pitch[4] → var_index=16
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=4
+    🆔 About to call apply_constraint_at_position for voice=1 pos=5
+    🔧 apply_constraint_at_position called for voice=1 pos=5
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=5 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[6] → var_index=18
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[6] → var_index=18
+    🔍 Voice access: voice[1].pitch[5] → var_index=17
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=5
+    🆔 About to call apply_constraint_at_position for voice=1 pos=6
+    🔧 apply_constraint_at_position called for voice=1 pos=6
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=6 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[7] → var_index=19
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[7] → var_index=19
+    🔍 Voice access: voice[1].pitch[6] → var_index=18
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=6
+    🆔 About to call apply_constraint_at_position for voice=1 pos=7
+    🔧 apply_constraint_at_position called for voice=1 pos=7
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=7 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[8] → var_index=20
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[8] → var_index=20
+    🔍 Voice access: voice[1].pitch[7] → var_index=19
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=7
+    🆔 About to call apply_constraint_at_position for voice=1 pos=8
+    🔧 apply_constraint_at_position called for voice=1 pos=8
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=8 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[9] → var_index=21
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[9] → var_index=21
+    🔍 Voice access: voice[1].pitch[8] → var_index=20
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=8
+    🆔 About to call apply_constraint_at_position for voice=1 pos=9
+    🔧 apply_constraint_at_position called for voice=1 pos=9
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=9 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[10] → var_index=22
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[10] → var_index=22
+    🔍 Voice access: voice[1].pitch[9] → var_index=21
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=9
+    🆔 About to call apply_constraint_at_position for voice=1 pos=10
+    🔧 apply_constraint_at_position called for voice=1 pos=10
+    🔧 substitute_pattern_variables completed
+    🔧 Applying constraint at voice=1 pos=10 type=8
+    🔧 About to call DynamicRuleCompiler::compile_and_post_constraint
+🔧 Compiling constraint type: 8
+📊 Posting binary comparison constraint
+🔍 Processing binary comparison with 2 operands
+🔍 Compiling left side as IntVar (type: 3)
+🧮 Compiling arithmetic operation type: 12
+🧮 Left child type: 23
+🧮 Right child type: 23
+    🔍 Voice access: voice[1].pitch[11] → var_index=23
+🧮 Failed var + constant, trying var + var. Error: Rule Compile Error: Cannot convert node to integer constant
+    🔍 Voice access: voice[1].pitch[11] → var_index=23
+    🔍 Voice access: voice[1].pitch[10] → var_index=22
+🧮 Compiled as var + var operation
+✅ Left side compiled as IntVar
+🔍 Compiling right side as IntVar (type: 1)
+⚠️ Right side failed as IntVar: Rule Compile Error: Cannot convert node to IntVar, trying as constant
+✅ Right side compiled as constant: 6
+🎯 Posting IntVar == 6 constraint
+🎯 Var domain: [0..11]
+    ✅ Successfully posted constraint
+    🆔 Returned from apply_constraint_at_position for voice=1 pos=10
+    ✅ Posted 22 sliding window constraints
+  ✅ Posted: unnamed_wildcard
+🎯 Applying 0 heuristic rules...
+
+── Solution 1 ──
+Voice 0 Pitch: C4(60) → C#4(61) → D4(62) → D#4(63) → E4(64) → F4(65) → F#4(66) → G4(67) → G#4(68) → A4(69) → A#4(70) → B4(71)
+Voice 0 Rhythm: 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+Voice 1 Pitch: C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60) → C4(60)
+Voice 1 Rhythm: 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+✅ Found 1 solution(s) in 2 ms
+
+💾 Exporting Results
+--------------------------------------------------
+
+📈 Performance:
+   Solve time: 2 ms
+   Solutions found: 1
+   Rules applied: 5
+
+🎉 Dynamic constraint solving complete!

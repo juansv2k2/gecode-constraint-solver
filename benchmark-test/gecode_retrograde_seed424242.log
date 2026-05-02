@@ -1,0 +1,94 @@
+🎼 DYNAMIC MUSICAL CONSTRAINT SOLVER
+====================================
+📋 Loading configuration: /tmp/gecode_retrograde_seeded_run.json
+--------------------------------------------------
+📋 Loaded Configuration:
+   Name: Randomized Retrograde 12-Tone Benchmark
+   Description: Two voices, two parallel twelve-tone rows, voice 2 is exact retrograde of voice 1.
+   Solution Length: 12
+   Number of Voices: 2
+   Backtrack Method: intelligent
+   Rules: 6 configured
+   Domains: 0 configured
+   Export Options: XML=❌, PNG=❌, MIDI=❌
+
+📝 Parsed Rules:
+   1. r-pitches-one-engine
+      Function: all_different
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   2. r-pitches-one-engine
+      Function: all_different
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   3. r-palindrome-voice
+      Function: palindrome_of_engine
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   4. r-rhythmic-uniformity
+      Function: equal_values
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   5. r-rhythmic-uniformity
+      Function: equal_values
+      Voice: 0
+      Description: 
+      Indices: 12 values
+   6. r-metric-signature
+      Function: equal_values
+      Voice: 0
+      Description: 
+      Indices: 1 values
+   Global pitch range (derived from voice domains): [60...71]
+     Voice 0: 12 values [60...71]
+     Voice 1: 12 values [60...71]
+
+🔧 Creating Dynamic Constraint Solver
+--------------------------------------------------
+✅ Added engine rule:  (target_engine: 1)
+✅ Added engine rule:  (target_engine: 3)
+✅ Added engine rule:  (target_engine: -1)
+✅ Added engine rule:  (target_engine: 0)
+✅ Added engine rule:  (target_engine: 2)
+✅ Added engine rule:  (target_engine: 4)
+
+🎯 Loading Dynamic Rules (New System)
+   No dynamic_rules section found (using legacy rules only)
+   Found 6 enhanced rules (including wildcards)
+   Compiled: 0 regular + 0 wildcard + 0 index rules
+
+📊 Solver configured with 3 legacy rules
+
+🎯 Solving Constraint Problem
+--------------------------------------------------
+   Searching for 1 solution(s) (timeout: 30000 ms) 🎲 random seed: 424242
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): NoRepetitionRule
+Adding musical rule (no specific constraint): NoRepetitionRule
+DEBUG: Added 3 musical rules
+Posted 12-tone row constraint
+Posted palindrome voices constraint
+
+── Solution 1 ──
+Voice 0 Pitch: A#4(70) → C#4(61) → F#4(66) → C4(60) → G#4(68) → E4(64) → F4(65) → D#4(63) → B4(71) → D4(62) → A4(69) → G4(67)
+Voice 0 Rhythm: 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+Voice 1 Pitch: G4(67) → A4(69) → D4(62) → B4(71) → D#4(63) → F4(65) → E4(64) → G#4(68) → C4(60) → F#4(66) → C#4(61) → A#4(70)
+Voice 1 Rhythm: 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+✅ Found 1 solution(s) in 4 ms
+
+💾 Exporting Results
+--------------------------------------------------
+
+📈 Performance:
+   Solve time: 4 ms
+   Solutions found: 1
+   Rules applied: 6
+
+🎉 Dynamic constraint solving complete!
+real 0.07
+user 0.01
+sys 0.01

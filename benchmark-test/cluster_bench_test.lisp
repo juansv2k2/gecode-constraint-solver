@@ -1,0 +1,37 @@
+(require :asdf)
+(asdf:load-system :iterate)
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/package.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/01.domain.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/02.engine.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/03.Fwd-rules.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/04.Backtrack-rules.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/05.rules-interface.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/06.heuristic-rules-interface.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/07.backjumping.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/08.decode.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/09.utilities.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/11.simple-tree.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/13.convert-pmc-rules.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/14.back-compability.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/_001.gen_domains.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/_000.main-interface.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/from-studio-flat.lisp")
+(load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/export.lisp")
+
+(in-package :cluster-engine)
+
+(defparameter *voices* '(0 1))
+(defparameter *pitch-domain* '((60) (61) (62) (63) (64) (65) (66) (67) (68) (69) (70) (71)))
+(defparameter *rhythm-domain* '((1/4)))
+(defparameter *domains* (list *rhythm-domain* *pitch-domain* *rhythm-domain* *pitch-domain*))
+
+(defparameter *rules*
+  (Rules->Cluster
+    (R-pitches-one-voice #'all-diff? *voices* :all-pitches)
+    (R-pitches-one-voice (lambda (a b) (<= (abs (- a b)) 7)) *voices* :pitches)
+    (R-pitch-pitch (lambda (sim) (or (null (first sim)) (null (second sim)) (/= (first sim) (second sim)))) '(0 1) nil :all :exclude-gracenotes :pitch)))
+
+(let ((res (time (ClusterEngine 12 nil nil *rules* '((3 4)) *domains*)) ))
+  (format t "~%RESULT-OK: ~A~%" (if res t nil)))
+
+(quit)
