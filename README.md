@@ -243,6 +243,26 @@ The following results were measured from logs in `benchmark-test/`.
 
 Reference solutions for seed runs are recorded in each seed log. A Lisp solution dump is also available in `cluster_retrograde_solution_dump.log`.
 
+### Four-Voice Transformational 12-Tone Benchmark
+
+4 voices: V0 = random 12-tone row, V1 = retrograde of V0, V2 = inversion of V0, V3 = retrograde-inversion of V0.  
+Pitch domain: 56–67 (G#3–G4). Inversion axis: D#4/E♭4 (61.5). Configs: `benchmark-test/gecode_four_voice_transform_benchmark.json` / `benchmark-test/cluster_four_voice_transform_benchmark.lisp`.
+
+#### Gecode — Multi-Seed Comparison
+
+| Seed   | Solve Time | V0 (prime row)                           | Log                                         |
+| ------ | ---------- | ---------------------------------------- | ------------------------------------------- |
+| 424242 | 9 ms       | F#4 A3 D4 G#3 E4 C4 C#4 B3 G4 A#3 F4 D#4 | `gecode_four_voice_transform_benchmark.log` |
+| 777    | 9 ms       | D#4 F#4 A3 G#3 G4 B3 A#3 F4 D4 C#4 C4 E4 | `gecode_four_voice_seed777.log`             |
+
+Each seed yields a different valid 12-tone row. V1 is the exact retrograde, V2 the inversion, V3 the retrograde-inversion — all verified by 102 Gecode constraints.
+
+#### Lisp Cluster Engine
+
+| Benchmark                                          | Engine Time | Real Time | Log                                          |
+| -------------------------------------------------- | ----------- | --------- | -------------------------------------------- |
+| Four-voice transformational 12-tone (single solve) | ~5 ms       | ~1.18 s   | `cluster_four_voice_transform_benchmark.log` |
+
 ## Documentation
 
 - [Twelve-Tone Usage Guide](docs/TWELVE_TONE_USAGE.md)
