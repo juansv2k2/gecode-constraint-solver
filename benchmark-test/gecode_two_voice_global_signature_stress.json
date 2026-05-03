@@ -9,74 +9,28 @@
     "engine_0": {
       "type": "rhythm",
       "voice": 0,
-      "duration_values": [
-        "1/4"
-      ]
+      "duration_values": ["1/4"]
     },
     "engine_1": {
       "type": "pitch",
       "voice": 0,
-      "midi_values": [
-        60,
-        61,
-        62,
-        63,
-        64,
-        65,
-        66,
-        67,
-        68,
-        69,
-        70,
-        71
-      ]
+      "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
     },
     "engine_2": {
       "type": "rhythm",
       "voice": 1,
-      "duration_values": [
-        "1/4"
-      ]
+      "duration_values": ["1/4"]
     },
     "engine_3": {
       "type": "pitch",
       "voice": 1,
-      "midi_values": [
-        60,
-        61,
-        62,
-        63,
-        64,
-        65,
-        66,
-        67,
-        68,
-        69,
-        70,
-        71
-      ]
+      "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
     },
     "engine_4": {
       "type": "metric",
-      "time_signatures": [
-        [
-          4,
-          4
-        ]
-      ],
-      "subdivisions": [
-        1,
-        2,
-        4
-      ],
-      "beat_structures": [
-        [
-          "strong",
-          "weak",
-          "medium",
-          "weak"
-        ]
-      ]
+      "time_signatures": [[4, 4]],
+      "subdivisions": [1, 2, 4],
+      "beat_structures": [["strong", "weak", "medium", "weak"]]
     }
   },
   "rules": [],
