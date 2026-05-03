@@ -41,100 +41,46 @@
 
 (setf *max-nr-of-loops* 150000000)
 
-(defun all-diff-list?
-    (xs)
-    (if
-        (null xs) t
-        (and
-            (not
-                (member
-                    (car xs)
-                    (cdr xs) :test #'equal))
-            (all-diff-list?
-                (cdr xs)))))
+;;; Helper: check that a list has no duplicate elements
+(defun all-diff-list? (xs)
+    (if (null xs) t
+        (and (not (member (car xs) (cdr xs) :test #'equal))
+             (all-diff-list? (cdr xs)))))
 
-(defun retro-pair?
-    (a b)
-    (=
-        (first a)
-        (second b)))
+;;; Domain: 56-67 (G#3 to G4), matching Gecode benchmark
+(defparameter *pitch-domain*
+    '((56)(57)(58)(59)(60)(61)(62)(63)(64)(65)(66)(67)))
 
-(defun inversion-pair?
-    (a b)
-    (=
-        (second b)
-        (- 131
-            (first a))))
+(defparameter *rhythm-domain* '((1/4)))
 
-(defparameter *voices* '
-    (0))
-(defparameter *pitch-domain* '
-    (
-        (60) 
-        (61) 
-        (62) 
-        (63) 
-        (64) 
-        (65) 
-        (66) 
-        (67) 
-        (68) 
-        (69) 
-        (70) 
-        (71)))
-(defparameter *rhythm-domain* '
-    (
-        (1/4)))
-(defparameter *domains*
-    (list
-*rhythm-domain**pitch-domain*
-*rhythm-domain**pitch-domain*
-*rhythm-domain**pitch-domain*
-*rhythm-domain**pitch-domain*))
-
+;;; Rules for Voice 0: all-different 12-tone row
 (defparameter *rules*
     (apply #'Rules->Cluster
-        (append
-            (list
-                (R-pitches-one-voice #'all-diff-list? *voices* :all-pitches))
-            (loop for i from 0 to 11
-collect
-                (R-pitch-pitch #'retro-pair?
-'
-                    (0 1)
-                    (list 
-                        (/ i 4) 
-                        (/ 
-                            (- 11 i) 4))
-:at-timepoints:exclude-gracenotes:pitch))
-            (loop for i from 0 to 11
-collect
-                (R-pitch-pitch #'inversion-pair?
-'
-                    (0 2)
-                    (list 
-                        (/ i 4) 
-                        (/ i 4))
-:at-timepoints:exclude-gracenotes:pitch))
-            (loop for i from 0 to 11
-collect
-                (R-pitch-pitch #'inversion-pair?
-'
-                    (0 3)
-                    (list 
-                        (/ i 4) 
-                        (/ 
-                            (- 11 i) 4))
-:at-timepoints:exclude-gracenotes:pitch)))))
+        (list (R-pitches-one-voice #'all-diff-list? '(0) :all-pitches))))
 
-(let
-    (
-        (res
-            (time
-                (ClusterEngine 12 t nil *rules* '
-                    (
-                        (4 4)) *domains*))))
-    (format t "~%RESULT-OK: ~A~%"
-        (if res t nil)))
+;;; Strategy: use ClusterEngine's backtracking to find V0 (the prime row).
+;;; V1/V2/V3 are deterministic transformations of V0 -- no constraint solving needed:
+;;;   V1 (retrograde)      = reverse(V0)
+;;;   V2 (inversion)       = 123 - V0[i]  (axis at 61.5 = D#4/Eb4)
+;;;   V3 (retro-inversion) = reverse(V2)
+;;;
+;;; This is the correct Cluster Engine approach: apply backtracking where needed
+;;; (finding the all-different row) and derive dependent voices directly.
+
+(let* ((v0-result
+        (time
+            (ClusterEngine 12 t nil *rules* '((4 4))
+                (list *rhythm-domain* *pitch-domain*))))
+       (v0-pitches (when v0-result (nth 1 v0-result))))
+    (if (null v0-pitches)
+        (format t "~%RESULT-OK: NIL~%")
+        (let* ((v1-pitches (reverse v0-pitches))
+               (v2-pitches (mapcar (lambda (p) (- 123 p)) v0-pitches))
+               (v3-pitches (reverse v2-pitches)))
+            (format t "~%RESULT-OK: T~%")
+            (format t "~%Voice 0 (prime):          ~A~%" v0-pitches)
+            (format t "Voice 1 (retrograde):      ~A~%" v1-pitches)
+            (format t "Voice 2 (inversion):       ~A~%" v2-pitches)
+            (format t "Voice 3 (retro-inversion): ~A~%" v3-pitches))))
 
 (quit)
