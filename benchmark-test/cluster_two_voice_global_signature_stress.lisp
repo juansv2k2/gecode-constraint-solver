@@ -1,6 +1,6 @@
-(defpackage :iterate
+(defpackage :iterate 
     (:use :cl))
-(ignore-errors
+(ignore-errors 
     (require :sb-introspect))
 
 (load "/Users/juanvassallo/GitHub/gecode-constraint-solver/cluster-engine-sources/package.lisp")
@@ -39,72 +39,105 @@
 
 (in-package :cluster-engine)
 
-(setf *max-nr-of-loops* 150000000)
+(setf *max-nr-of-loops* 300000000)
 
-;;; Helper: check that a list has no duplicate elements
-(defun all-diff-list? (xs)
-    (if (null xs) t
-        (and (not (member (car xs) (cdr xs) :test #'equal))
-             (all-diff-list? (cdr xs)))))
+(defun all-diff-list? 
+    (xs)
+    (if 
+        (null xs) t
+        (and 
+            (not 
+                (member 
+                    (car xs) 
+                    (cdr xs) :test #'equal))
+            (all-diff-list? 
+                (cdr xs)))))
 
-;;; Domain: 56-67 (G#3 to G4), matching Gecode benchmark
-(defparameter *pitch-domain*
-    '((56)(57)(58)(59)(60)(61)(62)(63)(64)(65)(66)(67)))
+(defun no-unison? 
+    (sim)
+    (or 
+        (null 
+            (first sim))
+        (null 
+            (second sim))
+        (/= 
+            (first sim) 
+            (second sim))))
 
-(defparameter *rhythm-domain* '((1/4)))
+;;; Global order-signature constraint.
+;;; It is intentionally evaluated only when the full 12-note line is present,
+;;; making it a late-pruning rule that increases backtracking pressure.
+(defun interval-signature-mod53? 
+    (xs)
+    (if 
+        (< 
+            (length xs) 12)
+t
+        (let 
+            (
+                (score 0))
+            (loop for i from 0 to 10 do
+                (incf score 
+                    (* 
+                        (1+ i)
+                        (abs 
+                            (- 
+                                (nth 
+                                    (1+ i) xs)
+                                (nth i xs))))))
+            (= 
+                (mod score 53) 13))))
 
-;;; Prefix matcher used by staged target-search rules.
-;;; If the engine has decided k pitches so far, they must match target[0..k-1].
-(defun prefix-match? (xs target)
-        (loop for x in xs
-                    for i from 0
-                    always (= x (nth i target))))
+(defparameter *voices* '
+    (0 1))
+(defparameter *pitch-domain* '
+    (
+        (60) 
+        (61) 
+        (62) 
+        (63) 
+        (64) 
+        (65) 
+        (66) 
+        (67) 
+        (68) 
+        (69) 
+        (70) 
+        (71)))
+(defparameter *rhythm-domain* '
+    (
+        (1/4)))
+(defparameter *domains* 
+    (list *rhythm-domain* *pitch-domain* *rhythm-domain* *pitch-domain*))
 
-(defun solve-voice-row (target-row &optional (random? t))
-        (let* ((rules (apply #'Rules->Cluster
-                                                 (list
-                                                     (R-pitches-one-voice
-                                                         (lambda (xs)
-                                                             (and (all-diff-list? xs)
-                                                                        (prefix-match? xs target-row)))
-                                                         '(0)
-                                                         :all-pitches))))
-                     (res (time
-                                    (ClusterEngine 12 random? nil rules '((4 4))
-                                                                (list *rhythm-domain* *pitch-domain*)))))
-                (when res (nth 1 res))))
-
-(defun solve-v0-row (&optional (random? t))
-        (let* ((rules (apply #'Rules->Cluster
-                                                 (list (R-pitches-one-voice #'all-diff-list? '(0) :all-pitches))))
-                     (res (time
-                                    (ClusterEngine 12 random? nil rules '((4 4))
-                                                                (list *rhythm-domain* *pitch-domain*)))))
-                (when res (nth 1 res))))
+(defparameter *rules*
+    (Rules->Cluster
+;; Twelve-tone constraint per voice
+        (R-pitches-one-voice #'all-diff-list? *voices* :all-pitches)
+;; Stress rule: late global order signature per voice
+        (R-pitches-one-voice #'interval-signature-mod53? *voices* :all-pitches)
+;; Cross-voice local constraint
+        (R-pitch-pitch #'no-unison? '
+            (0 1) nil :all :exclude-gracenotes :pitch)))
 
 (handler-case
-        (sb-ext:with-timeout 60
-            (let* ((v0-pitches (solve-v0-row t))
-                         (target-v1 (and v0-pitches (reverse v0-pitches)))
-                         (target-v2 (and v0-pitches (mapcar (lambda (p) (- 123 p)) v0-pitches)))
-                         (target-v3 (and target-v2 (reverse target-v2)))
-                         ;; Full sequence approach:
-                         ;; 1) wait until V0 is complete
-                         ;; 2) solve V1 as reverse(V0) (backward relation)
-                         ;; 3) solve V2 as inversion(V0)
-                         ;; 4) solve V3 as reverse(inversion(V0))
-                         (v1-pitches (and target-v1 (solve-voice-row target-v1 t)))
-                         (v2-pitches (and target-v2 (solve-voice-row target-v2 t)))
-                         (v3-pitches (and target-v3 (solve-voice-row target-v3 t))))
-                (if (and v0-pitches v1-pitches v2-pitches v3-pitches)
-                        (progn
-                            (format t "~%RESULT-OK: T~%")
-                            (format t "~%Voice 0 (prime):          ~A~%" v0-pitches)
-                            (format t "Voice 1 (retrograde):      ~A~%" v1-pitches)
-                            (format t "Voice 2 (inversion):       ~A~%" v2-pitches)
-                            (format t "Voice 3 (retro-inversion): ~A~%" v3-pitches))
-                        (format t "~%RESULT-OK: NIL~%"))))
-    (sb-ext:timeout ()
+    (sb-ext:with-timeout 60
+        (let 
+            (
+                (res 
+                    (time 
+                        (ClusterEngine 12 t nil *rules* '
+                            (
+                                (4 4)) *domains*))))
+            (format t "~%RESULT-OK: ~A~%" 
+                (if res t nil))
+            (when res
+                (format t "Voice 0: ~A~%" 
+                    (nth 1 res))
+                (format t "Voice 1: ~A~%" 
+                    (nth 3 res)))))
+    (sb-ext:timeout 
+        ()
         (format t "~%RESULT-OK: TIMEOUT (60s)~%")))
 
 (quit)

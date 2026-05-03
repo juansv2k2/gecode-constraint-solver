@@ -81,68 +81,43 @@
 ;   Undefined variable:
 ;     *DEBUG-COUNT-BACKTRACK*
 ;   caught 2 WARNING conditions
+; in:
+;      LAMBDA (VSOLUTION VLINEAR-SOLUTION VINDEX VSOLUTION-FOR-BACKJUMP
+;          VBACKJUMP-INDEXES ENGINE)
+;     (TYPE FIXNUM CLUSTER-ENGINE::I)
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::I
+
+;     (TYPE LIST CLUSTER-ENGINE::ALL-TIMEPOINTS CLUSTER-ENGINE::FILTERED-TIMEPOINTS
+;      CLUSTER-ENGINE::ALL-PITCHES-FOR-NOTECOUNTS
+;      CLUSTER-ENGINE::NOTECOUNTS-ALL-VOICE CLUSTER-ENGINE::ALL-PITCH-SLICES
+;      CLUSTER-ENGINE::PITCHES)
+; 
+; caught WARNING:
+;   undefined variable: CLUSTER-ENGINE::PITCHES
+; 
+; compilation unit finished
+;   Undefined variables:
+;     I PITCHES
+;   caught 2 WARNING conditions
 
 "----" 
 "Cluster-Engine by Orjan Sandred (Studio FLAT, University of Manitoba)" 
-"Initiate search with 3 engines: backjumping is on." 
+"Initiate search with 5 engines: backjumping is on." 
 "Search running..." 
 "A solution was found." 
-"This search needed 28 steps to complete." 
+"This search needed 188 steps to complete." 
 "Backjumping was on." 
 Evaluation took:
-  0.001 seconds of real time
-  0.001276 seconds of total run time (0.001215 user, 0.000061 system)
+  0.009 seconds of real time
+  0.009100 seconds of total run time (0.008411 user, 0.000689 system)
   100.00% CPU
   11 lambdas converted
-  1,112,000 bytes consed
-  
-"The following engines were locked and never backtracked: (0 2)" 
-"----" 
-"Cluster-Engine by Orjan Sandred (Studio FLAT, University of Manitoba)" 
-"Initiate search with 3 engines: backjumping is on." 
-"Search running..." 
-"A solution was found." 
-"This search needed 28 steps to complete." 
-"Backjumping was on." 
-Evaluation took:
-  0.000 seconds of real time
-  0.000150 seconds of total run time (0.000125 user, 0.000025 system)
-  100.00% CPU
-  131,040 bytes consed
-  
-"The following engines were locked and never backtracked: (0 2)" 
-"----" 
-"Cluster-Engine by Orjan Sandred (Studio FLAT, University of Manitoba)" 
-"Initiate search with 3 engines: backjumping is on." 
-"Search running..." 
-"A solution was found." 
-"This search needed 28 steps to complete." 
-"Backjumping was on." 
-Evaluation took:
-  0.000 seconds of real time
-  0.000127 seconds of total run time (0.000107 user, 0.000020 system)
-  100.00% CPU
-  65,520 bytes consed
-  
-"The following engines were locked and never backtracked: (0 2)" 
-"----" 
-"Cluster-Engine by Orjan Sandred (Studio FLAT, University of Manitoba)" 
-"Initiate search with 3 engines: backjumping is on." 
-"Search running..." 
-"A solution was found." 
-"This search needed 28 steps to complete." 
-"Backjumping was on." 
-Evaluation took:
-  0.000 seconds of real time
-  0.000118 seconds of total run time (0.000098 user, 0.000020 system)
-  100.00% CPU
-  131,040 bytes consed
+  6,743,360 bytes consed
   
 
 RESULT-OK: T
-
-Voice 0 (prime):          (62 60 57 58 61 59 63 65 66 64 67 56)
-Voice 1 (retrograde):      (56 67 64 66 65 63 59 61 58 57 60 62)
-Voice 2 (inversion):       (61 63 66 65 62 64 60 58 57 59 56 67)
-Voice 3 (retro-inversion): (67 56 59 57 58 60 64 62 65 66 63 61)
-"The following engines were locked and never backtracked: (0 2)" 
+Voice 0: (66 61 64 67 63 70 60 68 62 69 71 65)
+Voice 1: (64 66 63 61 70 69 62 71 65 67 60 68)
+"The following engines were locked and never backtracked: (0 2 4)" 

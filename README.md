@@ -221,6 +221,7 @@ The following results were measured from logs in `benchmark-test/`.
 | ----------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
 | Equivalent benchmark (single solution)                            | 4 ms (`gecode_equiv.log`)                       | 0.002 s = 2 ms engine time (`lisp_equiv.log`)                                |
 | 12-tone retrograde random benchmark (exact retrograde, v2 script) | 5 ms (`gecode_retrograde_random_benchmark.log`) | 6.653 s = 6653 ms engine time (`cluster_retrograde_random_benchmark_v2.log`) |
+| 2-voice global signature stress (60s timeout, matched)            | 13 ms (`gecode_two_voice_global_signature_stress.log`) | 188 steps, 0.009 s real (`cluster_two_voice_global_signature_stress.log`) |
 
 ### Stress and Repeated Runs (Gecode)
 
@@ -230,6 +231,28 @@ The following results were measured from logs in `benchmark-test/`.
 | Balanced stress run (`gecode_balanced.log`)                          | 17 ms                         |
 | Balanced repeated runs (`gecode_bal_1.log` ... `gecode_bal_5.log`)   | 9 ms each run (avg 9 ms)      |
 | Polyphonic repeated runs (`gecode_run_1.log` ... `gecode_run_5.log`) | 3, 2, 2, 2, 3 ms (avg 2.4 ms) |
+
+### Matched Two-Voice Global Signature Stress (60s Timeout)
+
+This benchmark is designed to force deeper candidate iteration with a late-pruning global rule per voice:
+
+$$
+\left(\sum_{i=0}^{10} (i+1)\,|x_{i+1}-x_i|\right)\bmod 53 = 13
+$$
+
+Both engines use:
+- 2 voices, length 12, pitch domain 60-71
+- per-voice all-different (strict)
+- no aligned unisons across voices
+- 60s timeout
+
+Artifacts:
+- Gecode config/log: `benchmark-test/gecode_two_voice_global_signature_stress.json`, `benchmark-test/gecode_two_voice_global_signature_stress.log`
+- Cluster script/log: `benchmark-test/cluster_two_voice_global_signature_stress.lisp`, `benchmark-test/cluster_two_voice_global_signature_stress.log`
+
+Observed run:
+- Gecode: ~141–200 ms solve time (global `mod()` constraints fully enforced via structured AST)
+- Cluster Engine: 188 steps, 0.009 s real time
 
 ### Seeded Randomization Validation (Gecode Retrograde)
 

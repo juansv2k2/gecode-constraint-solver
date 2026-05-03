@@ -32,8 +32,7 @@ const std::unordered_map<std::string, ASTNodeType> RuleExpressionParser::binary_
 const std::unordered_map<std::string, ASTNodeType> RuleExpressionParser::unary_operators_ = {
     {"not", ASTNodeType::NOT},
     {"!", ASTNodeType::NOT},
-    {"abs", ASTNodeType::ABS},
-    {"mod", ASTNodeType::MOD}
+    {"abs", ASTNodeType::ABS}
 };
 
 const std::unordered_map<std::string, ASTNodeType> RuleExpressionParser::function_types_ = {
@@ -426,8 +425,8 @@ std::vector<std::string> RuleExpressionParser::tokenize_expression(const std::st
                 current_token.clear();
             }
         }
-        // Parentheses are always separate tokens (check before two-char ops)
-        else if (c == '(' || c == ')') {
+        // Parentheses and commas are always separate tokens (check before two-char ops)
+        else if (c == '(' || c == ')' || c == ',') {
             if (!current_token.empty()) {
                 tokens.push_back(current_token);
                 current_token.clear();
@@ -492,10 +491,20 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
             auto func_it = function_types_.find(func_name);
             ASTNodeType func_type = (func_it != function_types_.end()) ? func_it->second : ASTNodeType::ABS;
             auto func_node = std::make_unique<FunctionNode>(func_type, func_name);
-            // Parse the argument(s) inside parens
-            std::vector<std::string> args(tokens.begin() + 2, tokens.begin() + close_idx);
-            if (!args.empty()) {
-                func_node->add_child(parse_tokens(args));
+            // Split comma-separated arguments at paren depth 0
+            std::vector<std::vector<std::string>> arg_groups;
+            std::vector<std::string> current_arg;
+            int arg_depth = 0;
+            for (int j = 2; j < close_idx; ++j) {
+                if (tokens[j] == "(") { arg_depth++; current_arg.push_back(tokens[j]); }
+                else if (tokens[j] == ")") { arg_depth--; current_arg.push_back(tokens[j]); }
+                else if (tokens[j] == "," && arg_depth == 0) {
+                    if (!current_arg.empty()) { arg_groups.push_back(current_arg); current_arg.clear(); }
+                } else { current_arg.push_back(tokens[j]); }
+            }
+            if (!current_arg.empty()) arg_groups.push_back(current_arg);
+            for (auto& arg_group : arg_groups) {
+                func_node->add_child(parse_tokens(arg_group));
             }
             // If there are tokens after the closing paren, wrap in a binary op
             if (close_idx + 1 < (int)tokens.size()) {

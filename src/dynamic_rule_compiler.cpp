@@ -216,6 +216,12 @@ void DynamicRuleCompiler::post_binary_comparison(const BinaryOpNode& binary_node
 
 IntVar DynamicRuleCompiler::compile_arithmetic_to_var(const ASTNode& node, ConstraintContext& ctx) {
     switch (node.type) {
+        case ASTNodeType::CONSTANT: {
+            const ConstantNode& const_node = static_cast<const ConstantNode&>(node);
+            int val = const_node.get_value<int>();
+            return IntVar(*ctx.space, val, val);
+        }
+
         case ASTNodeType::VARIABLE: {
             const VariableNode& var_node = static_cast<const VariableNode&>(node);
             return compile_variable_to_var(var_node, ctx);
@@ -247,8 +253,8 @@ IntVar DynamicRuleCompiler::compile_arithmetic_to_var(const ASTNode& node, Const
                 
                 std::cout << "🧮 Successfully compiled as var + constant: " << right_val << std::endl;
                 
-                // Create result variable with a reasonable domain for musical values (0-127 for MIDI range)
-                IntVar result(*ctx.space, 0, 127);
+                // Create result variable with a wide domain to accommodate weighted sums
+                IntVar result(*ctx.space, -10000, 100000);
                 if (node.type == ASTNodeType::PLUS) {
                     rel(*ctx.space, result, IRT_EQ, expr(*ctx.space, left_var + right_val));
                     std::cout << "🧮 Posted arithmetic constraint: result = left_var + " << right_val << std::endl;
@@ -261,16 +267,13 @@ IntVar DynamicRuleCompiler::compile_arithmetic_to_var(const ASTNode& node, Const
                     rel(*ctx.space, result, IRT_EQ, expr(*ctx.space, left_var / right_val));
                 }
                 return result;
-            } catch (const std::exception& e) {
-                std::cout << "🧮 Failed var + constant, trying var + var. Error: " << e.what() << std::endl;
-                // Fall back to var-var operations
+            } catch (const std::exception&) {
+                // Right side is not a constant — fall back to var+var
                 IntVar left = compile_arithmetic_to_var(*binary_node.children[0], ctx);
                 IntVar right = compile_arithmetic_to_var(*binary_node.children[1], ctx);
                 
-                std::cout << "🧮 Compiled as var + var operation" << std::endl;
-                
-                // Create result variable with reasonable musical domain
-                IntVar result(*ctx.space, 0, 127);
+                // Create result variable with a wide domain to accommodate weighted sums
+                IntVar result(*ctx.space, -10000, 100000);
                 if (node.type == ASTNodeType::PLUS) {
                     rel(*ctx.space, result, IRT_EQ, expr(*ctx.space, left + right));
                 } else if (node.type == ASTNodeType::MINUS) {
@@ -305,7 +308,7 @@ IntVar DynamicRuleCompiler::compile_arithmetic_to_var(const ASTNode& node, Const
             IntVar arg1 = compile_arithmetic_to_var(*func_node.children[0], ctx);
             
             // Handle second argument - try as constant first, then as variable
-            IntVar result(*ctx.space, 0, 127); // MOD result domain - reasonable for musical values
+            IntVar result(*ctx.space, 0, 100000); // MOD result domain
             
             try {
                 int modulus = compile_arithmetic_to_int(*func_node.children[1], ctx);
