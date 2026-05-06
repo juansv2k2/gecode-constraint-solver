@@ -14,7 +14,17 @@ A C++ implementation of a polyphonic musical constraint solving with dynamic rul
 - **DualSolutionStorage**: Absolute and interval representation.
 - **JSON Configuration**: Configuration interface with dynamic constraints.
 - **MusicXML Export**: Direct export to standard notation format.
-- **Fast Performance**: Sub-millisecond constraint solving.
+- **Fast Performance**: Millisecond-level solving for many scenarios (stress cases can be significantly slower).
+
+## Front-End Architecture
+
+This repository exposes one shared solver core through three front-ends:
+
+- **`bin/dynamic-solver`**: command-line interface for config-file based runs.
+- **`bin/test-max-wrapper`**: console harness that exercises the async wrapper path used by Max.
+- **`gecode.solver` Max external**: Max/MSP object for `config_file`, `config_dict`, async solve, and status/result outlets.
+
+All three paths use the same core solver engine. For equivalent normalized input, constraint behavior should match across CLI, wrapper test, and Max.
 
 ### Core Components
 
@@ -307,6 +317,7 @@ All four voices verified: 12 distinct pitches each ✓, retrograde/inversion/RI 
 - [Twelve-Tone Usage Guide](docs/TWELVE_TONE_USAGE.md)
 - [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
 - [JSON Schema](configs/cluster_config_schema.json)
+- [Usage in Max](usage-in-max.md)
 
 ## Development
 

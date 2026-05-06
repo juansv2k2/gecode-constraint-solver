@@ -20,8 +20,33 @@
 #include <iomanip>
 #include <limits>
 #include <fstream>
+#include <random>
 
 namespace MusicalConstraintSolver {
+
+namespace {
+
+unsigned int resolve_effective_random_seed(unsigned int configured_seed) {
+    if (configured_seed == std::numeric_limits<unsigned int>::max()) {
+        return 0u;
+    }
+    if (configured_seed != 0u) {
+        return configured_seed;
+    }
+
+    std::random_device rd;
+    unsigned int seed = rd();
+    if (seed == 0u) {
+        seed = static_cast<unsigned int>(
+            std::chrono::high_resolution_clock::now().time_since_epoch().count());
+        if (seed == 0u) {
+            seed = 1u;
+        }
+    }
+    return seed;
+}
+
+} // namespace
 
 // ===============================
 // Musical Solution Implementation
@@ -672,6 +697,14 @@ void Solver::initialize_solver() {
 // Create backjump analyzer
     backjump_analyzer_ = std::make_unique<AdvancedBackjumping::AdvancedBackjumpAnalyzer>(config_.backjump_mode);
     backjump_analyzer_->set_debug_mode(config_.verbose_output);
+
+    // Reset per-configuration advanced constraint flags so previous runs
+    // cannot leak constraints into the next configured solve.
+    retrograde_inversion_enabled_ = false;
+    retrograde_inversion_center_ = 65;
+    perfect_fifth_intervals_enabled_ = false;
+    twelve_tone_row_enabled_ = false;
+    palindrome_voices_enabled_ = false;
     
     // Create solution storage
     solution_storage_ = std::make_unique<MusicalConstraints::DualSolutionStorage>(
@@ -806,6 +839,13 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
 
 void Solver::clear_rules() {
     rules_.clear();
+
+    // Keep rule flags consistent with an empty rule set.
+    retrograde_inversion_enabled_ = false;
+    retrograde_inversion_center_ = 65;
+    perfect_fifth_intervals_enabled_ = false;
+    twelve_tone_row_enabled_ = false;
+    palindrome_voices_enabled_ = false;
 }
 
 void Solver::auto_configure_rules() {
@@ -965,9 +1005,11 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
             all_voice_domains.push_back(global_domain);
     }
 
+    const unsigned int effective_random_seed = resolve_effective_random_seed(config_.random_seed);
+
     auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
         config_.sequence_length, config_.num_voices, config_.backjump_mode,
-        all_voice_domains, config_.voice_rhythm_domains, config_.random_seed);
+        all_voice_domains, config_.voice_rhythm_domains, effective_random_seed);
 
     // ADD MUSICAL RULES
     if (!rules_.empty()) {

@@ -40,6 +40,7 @@ struct SolveResult {
     double solve_time_ms = 0.0;
     int backjumps_performed = 0;
     int total_rules_checked = 0;
+    int rhythm_base = 1;
 };
 
 class AsyncSolverWrapper {
@@ -80,6 +81,7 @@ private:
 
     SolveStatus status_;
     SolveResult last_result_;
+    int rhythm_base_;
 
     std::string last_config_json_;
 

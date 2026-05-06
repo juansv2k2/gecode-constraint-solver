@@ -21,6 +21,7 @@
 #include <string>
 #include <map>
 #include <functional>
+#include <limits>
 
 namespace MusicalConstraintSolver {
 
@@ -75,10 +76,11 @@ struct SolverConfig {
     // Updated by getVoiceRhythmDomains(); used by display logic.
     int rhythm_base = 1;
 
-    // Random search seed. 0 = deterministic (sequential domain order).
-    // Any non-zero value enables random value selection with that seed,
-    // so the solver explores solutions in a shuffled order (reproducible).
-    unsigned int random_seed = 0;
+    // Random search seed semantics:
+    // - std::numeric_limits<unsigned int>::max(): deterministic search order
+    // - 0: generate a fresh random seed for each solve
+    // - any other value: reproducible randomized search using that seed
+    unsigned int random_seed = std::numeric_limits<unsigned int>::max();
 
     // Domain constraints
     int max_interval_size = 12;  // Octave

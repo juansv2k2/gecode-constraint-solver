@@ -21,6 +21,7 @@
 #include <set>
 #include <regex>
 #include <algorithm>
+#include <limits>
 
 using namespace DynamicRules;
 
@@ -521,11 +522,20 @@ public:
 
     unsigned int getRandomSeed(const std::string& config_file) const {
         std::ifstream f(config_file);
-        if (!f.is_open()) return 0;
+        if (!f.is_open()) return std::numeric_limits<unsigned int>::max();
         nlohmann::json cfg;
-        try { f >> cfg; } catch (...) { return 0; }
-        if (!cfg.contains("search_options")) return 0;
-        return cfg["search_options"].value("random_seed", 0u);
+        try { f >> cfg; } catch (...) { return std::numeric_limits<unsigned int>::max(); }
+        if (!cfg.contains("search_options")) return std::numeric_limits<unsigned int>::max();
+        const auto& so = cfg["search_options"];
+        if (!so.contains("random_seed")) return std::numeric_limits<unsigned int>::max();
+        if (so["random_seed"].is_number_unsigned()) {
+            return so["random_seed"].get<unsigned int>();
+        }
+        if (so["random_seed"].is_number_integer()) {
+            int seed = so["random_seed"].get<int>();
+            return seed <= 0 ? 0u : static_cast<unsigned int>(seed);
+        }
+        return std::numeric_limits<unsigned int>::max();
     }
     bool getIncludeAnalysis() const { return include_analysis_; }
     

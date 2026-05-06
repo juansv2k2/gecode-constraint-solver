@@ -37,6 +37,12 @@ bin/dynamic-solver configs/my_config.json
 
 The solver reads a JSON config, posts constraints, runs Gecode search, and writes result files to the path set in `export_path`.
 
+Front-end note:
+
+- Use `bin/dynamic-solver` for CLI workflows.
+- Use `bin/test-max-wrapper` to reproduce/debug the async wrapper behavior outside Max.
+- Use the Max external for patcher workflows; see [usage-in-max.md](usage-in-max.md).
+
 ---
 
 ## 2. Config File Structure
@@ -586,7 +592,7 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
   "timeout_ms": 30000,
   "max_solutions": 1,
   "branching": "first_fail",
-  "random_seed": 0
+  "random_seed": 42
 }
 ```
 
@@ -595,7 +601,7 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 | `timeout_ms`    | int    | `30000`        | Search timeout in milliseconds                                                        |
 | `max_solutions` | int    | `1`            | Stop after finding this many solutions (`-1` = all)                                   |
 | `branching`     | string | `"first_fail"` | Gecode variable selection heuristic                                                   |
-| `random_seed`   | int    | `0`            | Seed for randomised value selection. `0` = deterministic (min-value). Any other value enables shuffled search with that seed. |
+| `random_seed`   | int    | deterministic  | Random seed semantics: omitted (or `4294967295`) = deterministic order, `0` = fresh random seed per solve, positive value = reproducible randomized order. |
 
 **`branching` values:**
 
@@ -606,10 +612,10 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 | `"max_value"`  | Assign maximum value first                                         |
 
 **`random_seed` notes:**
-- When `random_seed` is `0` (default) the solver always returns the same solution for the same config.
-- Set it to any non-zero integer to get different solutions across runs — useful when you want variety.
-- The seed is printed in the console banner: `🎲 random seed: 42`.
-- To get multiple different solutions in a single run, combine `random_seed` with `max_solutions > 1`.
+- Omit `random_seed` (or set `4294967295`) for deterministic search order.
+- Set `random_seed` to `0` to generate a fresh random seed for each solve.
+- Set `random_seed` to a positive integer to make randomized search reproducible.
+- The effective seed is printed in runtime logs when available.
 
 ---
 
