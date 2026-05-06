@@ -17,7 +17,9 @@
     "engine_1": {
       "type": "pitch",
       "voice": 0,
-      "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77]
+      "midi_values": [
+        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77
+      ]
     },
     "engine_2": {
       "type": "rhythm",
@@ -27,7 +29,9 @@
     "engine_3": {
       "type": "pitch",
       "voice": 1,
-      "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77]
+      "midi_values": [
+        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77
+      ]
     }
   },
   "rules": [
@@ -97,63 +101,99 @@
     {
       "id": "cross_no_unison_0",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[0]", "right": "voice[1].pitch[0]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[1].pitch[0]"
+      },
       "mode": "constraint",
       "description": "No unison at 0"
     },
     {
       "id": "cross_no_unison_1",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[1]", "right": "voice[1].pitch[1]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[1].pitch[1]"
+      },
       "mode": "constraint",
       "description": "No unison at 1"
     },
     {
       "id": "cross_no_unison_2",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[2]", "right": "voice[1].pitch[2]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[2]",
+        "right": "voice[1].pitch[2]"
+      },
       "mode": "constraint",
       "description": "No unison at 2"
     },
     {
       "id": "cross_no_unison_3",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[3]", "right": "voice[1].pitch[3]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[3]",
+        "right": "voice[1].pitch[3]"
+      },
       "mode": "constraint",
       "description": "No unison at 3"
     },
     {
       "id": "cross_no_unison_4",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[4]", "right": "voice[1].pitch[4]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[4]",
+        "right": "voice[1].pitch[4]"
+      },
       "mode": "constraint",
       "description": "No unison at 4"
     },
     {
       "id": "cross_no_unison_5",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[5]", "right": "voice[1].pitch[5]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[5]",
+        "right": "voice[1].pitch[5]"
+      },
       "mode": "constraint",
       "description": "No unison at 5"
     },
     {
       "id": "cross_no_unison_6",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[6]", "right": "voice[1].pitch[6]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[6]",
+        "right": "voice[1].pitch[6]"
+      },
       "mode": "constraint",
       "description": "No unison at 6"
     },
     {
       "id": "cross_no_unison_7",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[7]", "right": "voice[1].pitch[7]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[7]",
+        "right": "voice[1].pitch[7]"
+      },
       "mode": "constraint",
       "description": "No unison at 7"
     },
     {
       "id": "cross_no_unison_8",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[8]", "right": "voice[1].pitch[8]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[8]",
+        "right": "voice[1].pitch[8]"
+      },
       "mode": "constraint",
       "description": "No unison at 8"
     }

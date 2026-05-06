@@ -187,14 +187,15 @@ Prefix a duration fraction with `-` to make it a rest. A rest occupies time but 
 
 This gives the solver the choice between a quarter note and a quarter rest at every position.
 
-| Duration string | Meaning              |
-| --------------- | -------------------- |
-| `"1/4"`         | Quarter note         |
-| `"-1/4"`        | Quarter rest         |
-| `"-1/8"`        | Eighth rest          |
-| `"-1/2"`        | Half rest            |
+| Duration string | Meaning      |
+| --------------- | ------------ |
+| `"1/4"`         | Quarter note |
+| `"-1/4"`        | Quarter rest |
+| `"-1/8"`        | Eighth rest  |
+| `"-1/2"`        | Half rest    |
 
 **Rest semantics:**
+
 - A rest position has no pitch. Its pitch output is `R` (console) or `−1` (JSON sentinel).
 - Wildcard constraint rules **automatically skip rest positions** — constraints like `abs(voice[0].pitch[i+1] - voice[0].pitch[i]) == 3` are only posted between two consecutive _notes_, never across a rest.
 - Interval constraints (semitone distance) are always reified: they only fire when both positions in the window are notes.
@@ -410,9 +411,9 @@ Index rules pin specific positions of a voice to exact pitch and rhythm values. 
   "type": "index",
   "voice": 1,
   "events": [
-    [0, "1/4",  60  ],
+    [0, "1/4", 60],
     [1, "-1/4", null],
-    [3, "1/4",  67  ]
+    [3, "1/4", 67]
   ],
   "description": "Pin voice 1: pos0=C4 quarter, pos1=quarter rest, pos3=G4 quarter"
 }
@@ -423,15 +424,15 @@ Each entry in `"events"` is a 3-element array: `[position, rhythm, pitch_or_null
 | Field in event  | Type              | Description                                                                              |
 | --------------- | ----------------- | ---------------------------------------------------------------------------------------- |
 | `position`      | int               | 0-based index into the voice sequence                                                    |
-| `rhythm`        | string (fraction) | Duration of this event. Use a negative fraction (e.g. `"-1/4"`) for a rest              |
+| `rhythm`        | string (fraction) | Duration of this event. Use a negative fraction (e.g. `"-1/4"`) for a rest               |
 | `pitch_or_null` | int or `null`     | MIDI pitch for a note, or `null` for a rest. Must match the sign of `rhythm` (see below) |
 
 **Validation rules (enforced at parse time):**
 
-| `rhythm` | `pitch` | Result              |
-| -------- | ------- | ------------------- |
-| positive | integer | ✅ Note              |
-| negative | `null`  | ✅ Rest              |
+| `rhythm` | `pitch` | Result                               |
+| -------- | ------- | ------------------------------------ |
+| positive | integer | ✅ Note                              |
+| negative | `null`  | ✅ Rest                              |
 | negative | integer | ❌ Error (rest must have null pitch) |
 | positive | `null`  | ❌ Error (note must have a pitch)    |
 
@@ -462,14 +463,14 @@ Each entry in `"events"` is a 3-element array: `[position, rhythm, pitch_or_null
 
 These fields apply to both rule categories:
 
-| Field         | Type   | Required | Default | Description                                                                    |
-| ------------- | ------ | -------- | ------- | ------------------------------------------------------------------------------ |
-| `id`          | string | no       | auto    | Unique identifier for this rule (used in logs)                                 |
-| `type`        | string | index only | —     | Set to `"index"` to use the index rule category                                |
-| `rule_type`   | string | legacy/wildcard | — | Identifies the rule category for legacy and wildcard rules (see above)       |
-| `enabled`     | bool   | no       | `true`  | Set to `false` to skip this rule without removing it                           |
-| `priority`    | int    | no       | `5`     | Higher priority rules are posted first (cosmetic, does not affect correctness) |
-| `description` | string | no       | `""`    | Free-text label shown in output                                                |
+| Field         | Type   | Required        | Default | Description                                                                    |
+| ------------- | ------ | --------------- | ------- | ------------------------------------------------------------------------------ |
+| `id`          | string | no              | auto    | Unique identifier for this rule (used in logs)                                 |
+| `type`        | string | index only      | —       | Set to `"index"` to use the index rule category                                |
+| `rule_type`   | string | legacy/wildcard | —       | Identifies the rule category for legacy and wildcard rules (see above)         |
+| `enabled`     | bool   | no              | `true`  | Set to `false` to skip this rule without removing it                           |
+| `priority`    | int    | no              | `5`     | Higher priority rules are posted first (cosmetic, does not affect correctness) |
+| `description` | string | no              | `""`    | Free-text label shown in output                                                |
 
 ---
 
@@ -596,11 +597,11 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 }
 ```
 
-| Field           | Type   | Default        | Description                                                                           |
-| --------------- | ------ | -------------- | ------------------------------------------------------------------------------------- |
-| `timeout_ms`    | int    | `30000`        | Search timeout in milliseconds                                                        |
-| `max_solutions` | int    | `1`            | Stop after finding this many solutions (`-1` = all)                                   |
-| `branching`     | string | `"first_fail"` | Gecode variable selection heuristic                                                   |
+| Field           | Type   | Default        | Description                                                                                                                                                |
+| --------------- | ------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `timeout_ms`    | int    | `30000`        | Search timeout in milliseconds                                                                                                                             |
+| `max_solutions` | int    | `1`            | Stop after finding this many solutions (`-1` = all)                                                                                                        |
+| `branching`     | string | `"first_fail"` | Gecode variable selection heuristic                                                                                                                        |
 | `random_seed`   | int    | deterministic  | Random seed semantics: omitted (or `4294967295`) = deterministic order, `0` = fresh random seed per solve, positive value = reproducible randomized order. |
 
 **`branching` values:**
@@ -612,6 +613,7 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 | `"max_value"`  | Assign maximum value first                                         |
 
 **`random_seed` notes:**
+
 - Omit `random_seed` (or set `4294967295`) for deterministic search order.
 - Set `random_seed` to `0` to generate a fresh random seed for each solve.
 - Set `random_seed` to a positive integer to make randomized search reproducible.
@@ -839,18 +841,18 @@ In the JSON result file, rests are encoded as pitch value `−1` (sentinel) and 
 
 ## 12. Common Errors
 
-| Error message                                                                 | Cause                                              | Fix                                                                                                                                               |
-| ----------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Config is missing required 'engine_domains' section`                         | No `engine_domains` in the JSON                    | Add the `engine_domains` object                                                                                                                   |
-| `engine_domains['engine_N']: pitch engine must have 'midi_values' array`      | A pitch engine entry is missing `midi_values`      | Add the `midi_values` array to that entry                                                                                                         |
-| `Voice N has no midi_values in engine_domains`                                | No pitch engine found for voice N                  | Add an entry for `engine_(2N+1)` in `engine_domains`                                                                                              |
-| `Voice N has no rhythm domain. Add an entry to 'engine_domains' with: ...`    | No rhythm engine found for voice N                 | Add `engine_(2N)` with `"type": "rhythm"` and `"duration_values": ["1/4"]` to `engine_domains` (the error message shows the exact snippet to add) |
-| `engine_domains['engine_N']: rhythm engine must have 'duration_values' array` | A rhythm engine entry is missing `duration_values` | Add `"duration_values": ["1/4"]` (or any note-value fraction array) to that entry                                                                 |
-| `engine_domains['engine_N']: numerator and denominator must be positive in '-1/4'` | Old build that did not support rest fractions | Rebuild from the latest source (`make bin/dynamic-solver`)                                                                                   |
-| `index rule 'X': rest rhythm (negative) requires null pitch`                  | An index rule event has a negative rhythm and a non-null pitch | Set the pitch to `null` for rest events: `[pos, "-1/4", null]`                                                                        |
-| `index rule 'X': note rhythm (positive) requires a non-null pitch`            | An index rule event has a positive rhythm and `null` pitch | Provide a MIDI pitch value: `[pos, "1/4", 60]`                                                                                          |
-| `index rule 'X': voice N out of range`                                        | The `"voice"` field exceeds `num_voices - 1`       | Check `"voice"` is 0-based and less than `"num_voices"`                                                                                           |
-| `index rule 'X': position N out of range`                                     | An event position exceeds `solution_length - 1`    | Check positions are 0-based and less than `"solution_length"`                                                                                     |
-| `Invalid voice access expression: voice[0].pitch[i])`                         | Tokenizer bug with nested parentheses (now fixed)  | Make sure you are running the latest build                                                                                                        |
-| `No solution found`                                                           | The combined constraints are infeasible            | Check that the domains are wide enough to satisfy all rules simultaneously; try relaxing or removing one rule to isolate the conflict             |
-| `Failed to compile rule`                                                      | Syntax error in a constraint expression            | Check operator syntax (use `==` not `=`), and that voice/index references are correct                                                             |
+| Error message                                                                      | Cause                                                          | Fix                                                                                                                                               |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Config is missing required 'engine_domains' section`                              | No `engine_domains` in the JSON                                | Add the `engine_domains` object                                                                                                                   |
+| `engine_domains['engine_N']: pitch engine must have 'midi_values' array`           | A pitch engine entry is missing `midi_values`                  | Add the `midi_values` array to that entry                                                                                                         |
+| `Voice N has no midi_values in engine_domains`                                     | No pitch engine found for voice N                              | Add an entry for `engine_(2N+1)` in `engine_domains`                                                                                              |
+| `Voice N has no rhythm domain. Add an entry to 'engine_domains' with: ...`         | No rhythm engine found for voice N                             | Add `engine_(2N)` with `"type": "rhythm"` and `"duration_values": ["1/4"]` to `engine_domains` (the error message shows the exact snippet to add) |
+| `engine_domains['engine_N']: rhythm engine must have 'duration_values' array`      | A rhythm engine entry is missing `duration_values`             | Add `"duration_values": ["1/4"]` (or any note-value fraction array) to that entry                                                                 |
+| `engine_domains['engine_N']: numerator and denominator must be positive in '-1/4'` | Old build that did not support rest fractions                  | Rebuild from the latest source (`make bin/dynamic-solver`)                                                                                        |
+| `index rule 'X': rest rhythm (negative) requires null pitch`                       | An index rule event has a negative rhythm and a non-null pitch | Set the pitch to `null` for rest events: `[pos, "-1/4", null]`                                                                                    |
+| `index rule 'X': note rhythm (positive) requires a non-null pitch`                 | An index rule event has a positive rhythm and `null` pitch     | Provide a MIDI pitch value: `[pos, "1/4", 60]`                                                                                                    |
+| `index rule 'X': voice N out of range`                                             | The `"voice"` field exceeds `num_voices - 1`                   | Check `"voice"` is 0-based and less than `"num_voices"`                                                                                           |
+| `index rule 'X': position N out of range`                                          | An event position exceeds `solution_length - 1`                | Check positions are 0-based and less than `"solution_length"`                                                                                     |
+| `Invalid voice access expression: voice[0].pitch[i])`                              | Tokenizer bug with nested parentheses (now fixed)              | Make sure you are running the latest build                                                                                                        |
+| `No solution found`                                                                | The combined constraints are infeasible                        | Check that the domains are wide enough to satisfy all rules simultaneously; try relaxing or removing one rule to isolate the conflict             |
+| `Failed to compile rule`                                                           | Syntax error in a constraint expression                        | Check operator syntax (use `==` not `=`), and that voice/index references are correct                                                             |
