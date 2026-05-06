@@ -1,0 +1,74 @@
+{
+  "name": "Heuristic Wildcard Stepwise 8x1",
+  "description": "Single wildcard heuristic rule expanded to all positions for stepwise preference.",
+  "solution_length": 8,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "search_options": {
+    "random_seed": 3,
+    "timeout_ms": 30000,
+    "heuristic_trace": true
+  },
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/8", "1/4"]
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71]
+    }
+  },
+  "rules": [],
+  "dynamic_rules": [
+    {
+      "id": "hard_no_repeat_0_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[0].pitch[1]"
+      },
+      "mode": "true_false",
+      "description": "Hard: first two notes cannot repeat"
+    },
+    {
+      "id": "prefer_stepwise_everywhere",
+      "type": "heuristic_preference",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "step_size": 1,
+      "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
+      "mode": "heur_switch",
+      "weight": 4,
+      "priority": 5,
+      "direction": "maximize",
+      "description": "Wildcard heuristic: prefer stepwise motion everywhere"
+    },
+    {
+      "id": "center_pitch_energy",
+      "type": "heuristic_energy",
+      "expression": {
+        "operator": "-",
+        "left": 24,
+        "right": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "?current",
+              "right": 66
+            }
+          ]
+        }
+      },
+      "mode": "real_heuristic",
+      "weight": 2,
+      "priority": 0,
+      "direction": "maximize",
+      "description": "Secondary heuristic: prefer candidate pitch near MIDI 66"
+    }
+  ]
+}

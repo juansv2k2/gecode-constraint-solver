@@ -21,6 +21,7 @@
 #include <limits>
 #include <fstream>
 #include <random>
+#include <regex>
 
 namespace MusicalConstraintSolver {
 
@@ -44,6 +45,200 @@ unsigned int resolve_effective_random_seed(unsigned int configured_seed) {
         }
     }
     return seed;
+}
+
+bool is_heuristic_mode(const nlohmann::json& rule_json) {
+    const std::string mode = rule_json.value("mode", "constraint");
+    return mode == "heur_switch" || mode == "real_heuristic" || mode == "heuristic";
+}
+
+bool is_wildcard_rule(const nlohmann::json& rule_json) {
+    const std::string wildcard_type = rule_json.value("wildcard_type", "");
+    const bool has_offsets = rule_json.contains("pattern_offsets") && rule_json.at("pattern_offsets").is_array();
+    return !wildcard_type.empty() || has_offsets;
+}
+
+int eval_index_expression(const std::string& expr, int i) {
+    std::smatch m;
+    static const std::regex i_plus_minus_re(R"(^\s*i\s*([+-])\s*(\d+)\s*$)");
+    static const std::regex i_re(R"(^\s*i\s*$)");
+    static const std::regex int_re(R"(^\s*-?\d+\s*$)");
+
+    if (std::regex_match(expr, i_re)) {
+        return i;
+    }
+    if (std::regex_match(expr, m, i_plus_minus_re)) {
+        const int off = std::stoi(m[2].str());
+        return (m[1].str() == "+") ? (i + off) : (i - off);
+    }
+    if (std::regex_match(expr, int_re)) {
+        return std::stoi(expr);
+    }
+    return i;
+}
+
+std::string substitute_wildcard_string(const std::string& input, int voice_a, int voice_b, int i) {
+    std::string out = input;
+
+    // Single-voice placeholders
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*v\s*\])"), "voice[" + std::to_string(voice_a) + "]");
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*V\s*\])"), "voice[" + std::to_string(voice_a) + "]");
+
+    // Pairwise placeholders
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*v1\s*\])"), "voice[" + std::to_string(voice_a) + "]");
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*V1\s*\])"), "voice[" + std::to_string(voice_a) + "]");
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*a\s*\])"), "voice[" + std::to_string(voice_a) + "]");
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*A\s*\])"), "voice[" + std::to_string(voice_a) + "]");
+
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*v2\s*\])"), "voice[" + std::to_string(voice_b) + "]");
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*V2\s*\])"), "voice[" + std::to_string(voice_b) + "]");
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*b\s*\])"), "voice[" + std::to_string(voice_b) + "]");
+    out = std::regex_replace(out, std::regex(R"(voice\s*\[\s*B\s*\])"), "voice[" + std::to_string(voice_b) + "]");
+
+    static const std::regex bracket_i_expr(R"(\[\s*(i(?:\s*[+-]\s*\d+)?)\s*\])");
+    std::string rebuilt;
+    std::size_t cursor = 0;
+    for (std::sregex_iterator it(out.begin(), out.end(), bracket_i_expr), end; it != end; ++it) {
+        const auto& match = *it;
+        rebuilt.append(out, cursor, static_cast<std::size_t>(match.position()) - cursor);
+        const std::string expr = match[1].str();
+        const int idx = eval_index_expression(expr, i);
+        rebuilt += "[" + std::to_string(idx) + "]";
+        cursor = static_cast<std::size_t>(match.position() + match.length());
+    }
+    rebuilt.append(out, cursor, std::string::npos);
+    return rebuilt;
+}
+
+nlohmann::json substitute_wildcard_json(const nlohmann::json& value, int voice_a, int voice_b, int i) {
+    if (value.is_string()) {
+        return substitute_wildcard_string(value.get<std::string>(), voice_a, voice_b, i);
+    }
+    if (value.is_array()) {
+        nlohmann::json arr = nlohmann::json::array();
+        for (const auto& item : value) {
+            arr.push_back(substitute_wildcard_json(item, voice_a, voice_b, i));
+        }
+        return arr;
+    }
+    if (value.is_object()) {
+        nlohmann::json obj = nlohmann::json::object();
+        for (auto it = value.begin(); it != value.end(); ++it) {
+            obj[it.key()] = substitute_wildcard_json(it.value(), voice_a, voice_b, i);
+        }
+        return obj;
+    }
+    return value;
+}
+
+std::vector<nlohmann::json> expand_wildcard_heuristic_rule(
+    const nlohmann::json& rule_json,
+    int num_voices,
+    int sequence_length) {
+
+    std::vector<nlohmann::json> expanded;
+    if (!is_heuristic_mode(rule_json) || !is_wildcard_rule(rule_json)) {
+        return expanded;
+    }
+
+    std::vector<int> offsets{0};
+    if (rule_json.contains("pattern_offsets") && rule_json.at("pattern_offsets").is_array() &&
+        !rule_json.at("pattern_offsets").empty()) {
+        offsets.clear();
+        for (const auto& v : rule_json.at("pattern_offsets")) {
+            if (v.is_number_integer()) {
+                offsets.push_back(v.get<int>());
+            }
+        }
+        if (offsets.empty()) {
+            offsets.push_back(0);
+        }
+    }
+
+    const int min_offset = *std::min_element(offsets.begin(), offsets.end());
+    const int max_offset = *std::max_element(offsets.begin(), offsets.end());
+
+    int step_size = rule_json.value("step_size", 1);
+    if (step_size <= 0) {
+        step_size = 1;
+    }
+
+    const std::string wildcard_type = rule_json.value("wildcard_type", "");
+    const bool pairwise_cross_voice =
+        wildcard_type == "for_all_pairs" || rule_json.value("cross_voices", false);
+    const bool expression_uses_voice_placeholder =
+        rule_json.contains("expression") &&
+        rule_json.at("expression").dump().find("voice[v]") != std::string::npos;
+    const bool expression_uses_pair_placeholders =
+        rule_json.contains("expression") && (
+            rule_json.at("expression").dump().find("voice[v1]") != std::string::npos ||
+            rule_json.at("expression").dump().find("voice[v2]") != std::string::npos ||
+            rule_json.at("expression").dump().find("voice[a]") != std::string::npos ||
+            rule_json.at("expression").dump().find("voice[b]") != std::string::npos);
+    const bool expand_voices = expression_uses_voice_placeholder || wildcard_type == "for_all_voices";
+    const int voice_start = expand_voices ? 0 : 0;
+    const int voice_end = expand_voices ? std::max(0, num_voices - 1) : 0;
+
+    const std::string base_id = rule_json.value("id", "wildcard_heuristic");
+
+    if (pairwise_cross_voice || expression_uses_pair_placeholders) {
+        for (int voice_a = 0; voice_a < num_voices; ++voice_a) {
+            for (int voice_b = voice_a + 1; voice_b < num_voices; ++voice_b) {
+                for (int i = 0; i < sequence_length; i += step_size) {
+                    const int lo = i + min_offset;
+                    const int hi = i + max_offset;
+                    if (lo < 0 || hi >= sequence_length) {
+                        continue;
+                    }
+
+                    nlohmann::json concrete = rule_json;
+                    concrete["id"] = base_id + "_v" + std::to_string(voice_a) + "_" +
+                                     std::to_string(voice_b) + "_i" + std::to_string(i);
+                    concrete["wildcard_generated"] = true;
+                    concrete.erase("wildcard_type");
+                    concrete.erase("pattern_offsets");
+                    concrete.erase("window_size");
+                    concrete.erase("step_size");
+                    concrete.erase("cross_voices");
+
+                    if (rule_json.contains("expression")) {
+                        concrete["expression"] =
+                            substitute_wildcard_json(rule_json.at("expression"), voice_a, voice_b, i);
+                    }
+
+                    expanded.push_back(std::move(concrete));
+                }
+            }
+        }
+        return expanded;
+    }
+
+    for (int voice = voice_start; voice <= voice_end; ++voice) {
+        for (int i = 0; i < sequence_length; i += step_size) {
+            const int lo = i + min_offset;
+            const int hi = i + max_offset;
+            if (lo < 0 || hi >= sequence_length) {
+                continue;
+            }
+
+            nlohmann::json concrete = rule_json;
+            concrete["id"] = base_id + "_v" + std::to_string(voice) + "_i" + std::to_string(i);
+            concrete["wildcard_generated"] = true;
+            concrete.erase("wildcard_type");
+            concrete.erase("pattern_offsets");
+            concrete.erase("window_size");
+            concrete.erase("step_size");
+            concrete.erase("cross_voices");
+
+            if (rule_json.contains("expression")) {
+                concrete["expression"] = substitute_wildcard_json(rule_json.at("expression"), voice, voice, i);
+            }
+
+            expanded.push_back(std::move(concrete));
+        }
+    }
+
+    return expanded;
 }
 
 } // namespace
@@ -863,6 +1058,20 @@ void Solver::add_dynamic_rule(const nlohmann::json& rule_json) {
         
         // Store rule config for later access
         dynamic_rule_configs_.push_back(rule_json);
+
+        // Expand wildcard heuristic rules to concrete index-specific rules.
+        auto expanded_rules = expand_wildcard_heuristic_rule(
+            rule_json, config_.num_voices, config_.sequence_length);
+        if (!expanded_rules.empty()) {
+            std::cout << "   🔁 Expanded wildcard heuristic into "
+                      << expanded_rules.size() << " concrete rules" << std::endl;
+            for (const auto& expanded_rule : expanded_rules) {
+                auto compiled_expanded = DynamicRules::DynamicRuleCompiler::compile_from_json(expanded_rule);
+                compiled_rules_->add_constraint(std::move(compiled_expanded));
+            }
+            std::cout << "   ✅ Dynamic wildcard heuristic compiled successfully" << std::endl;
+            return;
+        }
         
         // Compile and add to rule set
         auto compiled_rule = DynamicRules::DynamicRuleCompiler::compile_from_json(rule_json);

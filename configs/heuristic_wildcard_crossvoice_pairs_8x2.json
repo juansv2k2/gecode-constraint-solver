@@ -1,0 +1,98 @@
+{
+  "name": "Heuristic Wildcard Cross-Voice Pairs 8x2",
+  "description": "Single cross-voice wildcard heuristic expanded across all voice pairs and positions.",
+  "solution_length": 8,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "search_options": {
+    "random_seed": 5,
+    "timeout_ms": 30000,
+    "heuristic_trace": true
+  },
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/8", "1/4"]
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71]
+    },
+    "engine_2": {
+      "type": "rhythm",
+      "voice": 1,
+      "duration_values": ["1/8", "1/4"]
+    },
+    "engine_3": {
+      "type": "pitch",
+      "voice": 1,
+      "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71]
+    }
+  },
+  "rules": [],
+  "dynamic_rules": [
+    {
+      "id": "hard_start_different",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[1].pitch[0]"
+      },
+      "mode": "true_false",
+      "description": "Hard: voices start on different pitches"
+    },
+    {
+      "id": "prefer_contrary_interval_everywhere",
+      "type": "heuristic_energy",
+      "wildcard_type": "for_all_pairs",
+      "pattern_offsets": [0],
+      "step_size": 1,
+      "cross_voices": true,
+      "expression": {
+        "operator": "-",
+        "left": 24,
+        "right": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "voice[v1].pitch[i]",
+              "right": "voice[v2].pitch[i]"
+            }
+          ]
+        }
+      },
+      "mode": "real_heuristic",
+      "weight": 3,
+      "priority": 8,
+      "direction": "maximize",
+      "description": "Wildcard pairwise heuristic: reward larger pitch separation between voices at each position"
+    },
+    {
+      "id": "center_pitch_energy",
+      "type": "heuristic_energy",
+      "expression": {
+        "operator": "-",
+        "left": 24,
+        "right": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "?current",
+              "right": 64
+            }
+          ]
+        }
+      },
+      "mode": "real_heuristic",
+      "weight": 1,
+      "priority": 0,
+      "direction": "maximize",
+      "description": "Secondary local preference: keep candidates around MIDI 64"
+    }
+  ]
+}
