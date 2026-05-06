@@ -1,0 +1,15 @@
+{
+  "name": "gecode-solver",
+  "displayname": "Gecode Solver",
+  "version": "0.1.0",
+  "author": "Juan Vassallo",
+  "description": "Async Max external for constraint-based musical generation powered by Gecode.",
+  "max_version_min": "8.0.0",
+  "tags": ["constraint", "algorithmic composition", "music", "gecode"],
+  "website": "https://github.com/juanvassallo/gecode-constraint-solver",
+  "files": {
+    "externals": ["gecode.solver.mxo"],
+    "help": ["gecode.solver.maxhelp"],
+    "examples": ["demo_config.json"]
+  }
+}

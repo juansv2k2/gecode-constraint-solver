@@ -151,6 +151,25 @@ DYNAMIC_SOLVER_TARGET = bin/dynamic-solver
 DYNAMIC_SOLVER_SOURCE = src/dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 DYNAMIC_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
+# Max/MSP async wrapper smoke test (SDK-independent wrapper layer)
+MAX_WRAPPER_TEST_TARGET = bin/test-max-wrapper
+MAX_WRAPPER_TEST_SOURCE = test_max_msp_wrapper.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+MAX_WRAPPER_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
+# Native Max external (.mxo). Set MAX_SDK_PATH to your local Max SDK root.
+# Example: make max-external MAX_SDK_PATH=~/dev/max-sdk
+MAX_SDK_PATH ?= $(HOME)/dev/max-sdk
+MAX_SDK_C74SUPPORT = $(if $(wildcard $(MAX_SDK_PATH)/source/max-sdk-base/c74support),$(MAX_SDK_PATH)/source/max-sdk-base/c74support,$(MAX_SDK_PATH)/source/c74support)
+MAX_EXTERNAL_NAME = gecode.solver
+MAX_EXTERNAL_BIN = bin/$(MAX_EXTERNAL_NAME)
+MAX_EXTERNAL_TARGET = bin/$(MAX_EXTERNAL_NAME).mxo
+MAX_EXTERNAL_SOURCE = src/max_msp_external.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+MAX_EXTERNAL_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude \
+	-I$(MAX_SDK_C74SUPPORT)/max-includes \
+	-I$(MAX_SDK_C74SUPPORT)/msp-includes \
+	-I$(MAX_SDK_C74SUPPORT)/jit-includes
+MAX_EXTERNAL_LDFLAGS = -bundle -undefined dynamic_lookup
+
 all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET) $(WILDCARD_TEST_TARGET) $(ENHANCED_SOLVER_TARGET)
 
 # Production system - main interface
@@ -209,6 +228,38 @@ $(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/music
 $(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh
 	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
 
+# Max/MSP async wrapper smoke test (SDK-independent wrapper layer)
+$(MAX_WRAPPER_TEST_TARGET): $(MAX_WRAPPER_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh
+	$(CXX) $(MAX_WRAPPER_TEST_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(MAX_WRAPPER_TEST_SOURCE) $(GECODE_LIB)
+
+# Native Max external (.mxo)
+$(MAX_EXTERNAL_TARGET): $(MAX_EXTERNAL_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh
+	@if [ ! -d "$(MAX_SDK_C74SUPPORT)/max-includes" ]; then \
+		echo "❌ Max SDK not found at $(MAX_SDK_PATH)"; \
+		echo "   Expected c74support at: $(MAX_SDK_C74SUPPORT)"; \
+		echo "   Set MAX_SDK_PATH, e.g.: make max-external MAX_SDK_PATH=~/dev/max-sdk"; \
+		exit 1; \
+	fi
+	$(CXX) $(MAX_EXTERNAL_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include $(MAX_EXTERNAL_LDFLAGS) -o $(MAX_EXTERNAL_BIN) $(MAX_EXTERNAL_SOURCE) $(GECODE_LIB)
+	@rm -rf $(MAX_EXTERNAL_TARGET)
+	@mkdir -p $(MAX_EXTERNAL_TARGET)/Contents/MacOS
+	@cp -f $(MAX_EXTERNAL_BIN) $(MAX_EXTERNAL_TARGET)/Contents/MacOS/$(MAX_EXTERNAL_NAME)
+	@printf "BNDL????" > $(MAX_EXTERNAL_TARGET)/Contents/PkgInfo
+	@printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
+		'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+		'<plist version="1.0">' \
+		'<dict>' \
+		'  <key>CFBundleDevelopmentRegion</key><string>English</string>' \
+		'  <key>CFBundleExecutable</key><string>$(MAX_EXTERNAL_NAME)</string>' \
+		'  <key>CFBundleIdentifier</key><string>com.gecode.solver</string>' \
+		'  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>' \
+		'  <key>CFBundleName</key><string>$(MAX_EXTERNAL_NAME)</string>' \
+		'  <key>CFBundlePackageType</key><string>BNDL</string>' \
+		'  <key>CFBundleShortVersionString</key><string>0.1.0</string>' \
+		'  <key>CFBundleVersion</key><string>0.1.0</string>' \
+		'</dict>' \
+		'</plist>' > $(MAX_EXTERNAL_TARGET)/Contents/Info.plist
+
 # Wildcard Rule Extension Test Program
 WILDCARD_TEST_TARGET = wildcard-test
 WILDCARD_TEST_SOURCE = wildcard_rule_test.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
@@ -264,6 +315,9 @@ $(CLUSTER_ENGINE_BACKJUMP_TARGET): $(CLUSTER_ENGINE_BACKJUMP_SOURCE)
 clean:
 	rm -f $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(PHASE5_SIMPLE_TARGET) $(PHASE5_DEMO_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET)
 	rm -f $(PRODUCTION_SOLVER_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET)
+	rm -f $(MAX_WRAPPER_TEST_TARGET)
+	rm -f $(MAX_EXTERNAL_BIN)
+	rm -rf $(MAX_EXTERNAL_TARGET)
 	rm -rf test_musical_states session_states integrated_states
 	rm -rf ./professional_workspace ./batch_results ./professional_exports
 	rm -rf ./professional_integration ./professional_studio
@@ -308,6 +362,28 @@ test-custom-consensus: $(CUSTOM_CONSENSUS_TEST_EXECUTABLE)
 	@echo "=================================================="
 	@./$(CUSTOM_CONSENSUS_TEST_EXECUTABLE)
 	@./$(MAIN_INTERFACE_TEST_EXECUTABLE)
+
+test-max-wrapper: $(MAX_WRAPPER_TEST_TARGET)
+	@echo "🎛️ TESTING MAX/MSP ASYNC WRAPPER LAYER"
+	@echo "======================================"
+	@./$(MAX_WRAPPER_TEST_TARGET) benchmark-test/gecode_two_voice_global_signature_stress.json
+
+max-external: $(MAX_EXTERNAL_TARGET)
+	@echo "🎛️ Built Max external: $(MAX_EXTERNAL_TARGET)"
+
+max-package-layout:
+	@mkdir -p max-package/gecode-solver/externals
+	@mkdir -p max-package/gecode-solver/help
+	@mkdir -p max-package/gecode-solver/examples
+	@mkdir -p max-package/gecode-solver/docs
+	@cp -R $(MAX_EXTERNAL_TARGET) max-package/gecode-solver/externals/ 2>/dev/null || true
+	@chmod +x scripts/max_package_smoke.sh
+	@./scripts/max_package_smoke.sh
+	@echo "✅ Package scaffold ready at max-package/gecode-solver"
+
+max-package-smoke:
+	@chmod +x scripts/max_package_smoke.sh
+	@./scripts/max_package_smoke.sh
 
 # Complete production validation
 production-ready: $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE)
@@ -372,4 +448,4 @@ install-deps-ubuntu:
 	sudo apt-get update
 	sudo apt-get install libgecode-dev
 
-.PHONY: all clean test test-phase1 test-all check-gecode install-deps-macos install-deps-ubuntu
+.PHONY: all clean test test-phase1 test-all check-gecode install-deps-macos install-deps-ubuntu test-max-wrapper max-external max-package-layout max-package-smoke

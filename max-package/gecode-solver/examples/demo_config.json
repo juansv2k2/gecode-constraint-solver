@@ -1,0 +1,107 @@
+{
+  "name": "Max Wrapper Demo",
+  "description": "Two-voice stress demo for gecode.solver Max external",
+  "solution_length": 12,
+  "num_voices": 2,
+  "backtrack_method": "intelligent",
+  "search_options": {
+    "random_seed": 1,
+    "timeout_ms": 60000
+  },
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/4"]
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
+    },
+    "engine_2": {
+      "type": "rhythm",
+      "voice": 1,
+      "duration_values": ["1/4"]
+    },
+    "engine_3": {
+      "type": "pitch",
+      "voice": 1,
+      "midi_values": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
+    }
+  },
+  "dynamic_rules": [
+    {
+      "id": "v0_all_diff_a",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[0].pitch[1]"
+      }
+    },
+    {
+      "id": "v1_all_diff_a",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[0]",
+        "right": "voice[1].pitch[1]"
+      }
+    },
+    {
+      "id": "cross_no_unison_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[1].pitch[0]"
+      }
+    },
+    {
+      "id": "global_sig_v0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": {
+          "function": "mod",
+          "args": [
+            {
+              "operator": "+",
+              "left": {
+                "operator": "*",
+                "left": 1,
+                "right": {
+                  "function": "abs",
+                  "args": [
+                    {
+                      "operator": "-",
+                      "left": "voice[0].pitch[1]",
+                      "right": "voice[0].pitch[0]"
+                    }
+                  ]
+                }
+              },
+              "right": {
+                "operator": "*",
+                "left": 2,
+                "right": {
+                  "function": "abs",
+                  "args": [
+                    {
+                      "operator": "-",
+                      "left": "voice[0].pitch[2]",
+                      "right": "voice[0].pitch[1]"
+                    }
+                  ]
+                }
+              }
+            },
+            53
+          ]
+        },
+        "right": 13
+      }
+    }
+  ]
+}
