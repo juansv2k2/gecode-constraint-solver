@@ -24,6 +24,21 @@ namespace GecodeClusterIntegration {
 
 using namespace Gecode;
 
+class IntegratedMusicalSpace;
+
+using HeuristicValueScoreBuckets = std::vector<std::pair<int, double>>;
+
+using HeuristicValueScorer = std::function<HeuristicValueScoreBuckets(
+    const IntegratedMusicalSpace& space, int voice, int position, int candidate_value)>;
+
+void configure_pitch_heuristic_value_ordering(
+    HeuristicValueScorer scorer,
+    unsigned int tie_break_seed = 0,
+    int top_k = 0,
+    bool trace = false);
+
+void clear_pitch_heuristic_value_ordering();
+
 // ===============================
 // Core Musical Rule Types (from Cluster sources)
 // ===============================
@@ -153,6 +168,8 @@ public:
     const IntVarArray& get_interval_vars() const { return interval_vars_; }
     const IntVarArray& get_rhythm_vars() const { return rhythm_vars_; }
     bool has_rhythm_vars() const { return rhythm_vars_.size() > 0; }
+    int get_sequence_length() const { return sequence_length_; }
+    int get_num_voices() const { return num_voices_; }
 
     // ---- Rule system ----
     void add_musical_rules(const std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>>& rules);

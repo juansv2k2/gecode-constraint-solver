@@ -7,11 +7,242 @@
 #include "gecode_cluster_integration.hh"
 #include <iostream>
 #include <stdexcept>
+#include <cmath>
 
 using namespace Gecode;
 using namespace GecodeClusterIntegration;
 
 namespace DynamicRules {
+
+namespace {
+
+double mid_domain_value(const IntVar& var) {
+    if (var.assigned()) {
+        return static_cast<double>(var.val());
+    }
+    return 0.5 * (static_cast<double>(var.min()) + static_cast<double>(var.max()));
+}
+
+double read_array_value(const IntVarArray* vars, int idx) {
+    if (!vars) {
+        return 0.0;
+    }
+    if (idx < 0 || idx >= static_cast<int>(vars->size())) {
+        return 0.0;
+    }
+    return mid_domain_value((*vars)[idx]);
+}
+
+int voice_pos_to_index(const ConstraintContext& ctx, int voice, int pos) {
+    if (voice < 0 || pos < 0) {
+        return -1;
+    }
+    return voice * ctx.sequence_length + pos;
+}
+
+double eval_numeric_expr(const ASTNode& node, const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx);
+
+int eval_position_expr(const ASTNode& node, const HeuristicCandidateContext& candidate_ctx) {
+    switch (node.type) {
+        case ASTNodeType::CONSTANT: {
+            const ConstantNode& cn = static_cast<const ConstantNode&>(node);
+            return cn.get_value<int>();
+        }
+        case ASTNodeType::VARIABLE: {
+            const VariableNode& vn = static_cast<const VariableNode&>(node);
+            if (vn.variable_name == "i" || vn.variable_name == "pos" || vn.variable_name == "?current") {
+                return candidate_ctx.position;
+            }
+            return candidate_ctx.position;
+        }
+        case ASTNodeType::PLUS:
+        case ASTNodeType::MINUS:
+        case ASTNodeType::MULTIPLY:
+        case ASTNodeType::DIVIDE: {
+            const BinaryOpNode& bn = static_cast<const BinaryOpNode&>(node);
+            if (bn.children.size() != 2) {
+                return candidate_ctx.position;
+            }
+            int lhs = eval_position_expr(*bn.children[0], candidate_ctx);
+            int rhs = eval_position_expr(*bn.children[1], candidate_ctx);
+            switch (node.type) {
+                case ASTNodeType::PLUS: return lhs + rhs;
+                case ASTNodeType::MINUS: return lhs - rhs;
+                case ASTNodeType::MULTIPLY: return lhs * rhs;
+                case ASTNodeType::DIVIDE: return rhs == 0 ? lhs : lhs / rhs;
+                default: return candidate_ctx.position;
+            }
+        }
+        default:
+            return candidate_ctx.position;
+    }
+}
+
+double eval_voice_access_numeric(const VoiceAccessNode& vn, const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) {
+    int voice = vn.voice_index >= 0 ? vn.voice_index : candidate_ctx.voice;
+    int pos = candidate_ctx.position;
+    if (vn.position_expr) {
+        pos = eval_position_expr(*vn.position_expr, candidate_ctx);
+    }
+
+    if (voice == candidate_ctx.voice && pos == candidate_ctx.position && vn.property == "pitch") {
+        return static_cast<double>(candidate_ctx.candidate_value);
+    }
+
+    int idx = voice_pos_to_index(ctx, voice, pos);
+    if (vn.property == "pitch" || vn.property == "pitches") {
+        return read_array_value(ctx.pitch_vars, idx);
+    }
+    if (vn.property == "rhythm" || vn.property == "rhythms") {
+        return read_array_value(ctx.rhythm_vars, idx);
+    }
+    return 0.0;
+}
+
+bool eval_boolean_expr(const ASTNode& node, const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) {
+    switch (node.type) {
+        case ASTNodeType::AND:
+        case ASTNodeType::OR: {
+            const BinaryOpNode& bn = static_cast<const BinaryOpNode&>(node);
+            if (bn.children.size() != 2) {
+                return false;
+            }
+            bool lhs = eval_boolean_expr(*bn.children[0], ctx, candidate_ctx);
+            bool rhs = eval_boolean_expr(*bn.children[1], ctx, candidate_ctx);
+            return node.type == ASTNodeType::AND ? (lhs && rhs) : (lhs || rhs);
+        }
+        case ASTNodeType::NOT: {
+            if (node.children.empty()) {
+                return false;
+            }
+            return !eval_boolean_expr(*node.children[0], ctx, candidate_ctx);
+        }
+        case ASTNodeType::EQUALS:
+        case ASTNodeType::NOT_EQUALS:
+        case ASTNodeType::LESS_THAN:
+        case ASTNodeType::LESS_EQUAL:
+        case ASTNodeType::GREATER_THAN:
+        case ASTNodeType::GREATER_EQUAL: {
+            const BinaryOpNode& bn = static_cast<const BinaryOpNode&>(node);
+            if (bn.children.size() != 2) {
+                return false;
+            }
+            double lhs = eval_numeric_expr(*bn.children[0], ctx, candidate_ctx);
+            double rhs = eval_numeric_expr(*bn.children[1], ctx, candidate_ctx);
+            switch (node.type) {
+                case ASTNodeType::EQUALS: return lhs == rhs;
+                case ASTNodeType::NOT_EQUALS: return lhs != rhs;
+                case ASTNodeType::LESS_THAN: return lhs < rhs;
+                case ASTNodeType::LESS_EQUAL: return lhs <= rhs;
+                case ASTNodeType::GREATER_THAN: return lhs > rhs;
+                case ASTNodeType::GREATER_EQUAL: return lhs >= rhs;
+                default: return false;
+            }
+        }
+        case ASTNodeType::IN:
+        case ASTNodeType::NOT_IN: {
+            const BinaryOpNode& bn = static_cast<const BinaryOpNode&>(node);
+            if (bn.children.size() != 2) {
+                return false;
+            }
+            int target = static_cast<int>(std::llround(eval_numeric_expr(*bn.children[0], ctx, candidate_ctx)));
+            const ASTNode& right = *bn.children[1];
+            if (right.type != ASTNodeType::CONSTANT) {
+                return false;
+            }
+            const ConstantNode& cn = static_cast<const ConstantNode&>(right);
+            std::vector<int> allowed;
+            try {
+                allowed = cn.get_value<std::vector<int>>();
+            } catch (...) {
+                return false;
+            }
+            bool found = std::find(allowed.begin(), allowed.end(), target) != allowed.end();
+            return node.type == ASTNodeType::IN ? found : !found;
+        }
+        default:
+            return eval_numeric_expr(node, ctx, candidate_ctx) != 0.0;
+    }
+}
+
+double eval_numeric_expr(const ASTNode& node, const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) {
+    switch (node.type) {
+        case ASTNodeType::CONSTANT: {
+            const ConstantNode& cn = static_cast<const ConstantNode&>(node);
+            try { return static_cast<double>(cn.get_value<int>()); } catch (...) {}
+            try { return cn.get_value<double>(); } catch (...) {}
+            try { return cn.get_value<bool>() ? 1.0 : 0.0; } catch (...) {}
+            return 0.0;
+        }
+        case ASTNodeType::VARIABLE: {
+            const VariableNode& vn = static_cast<const VariableNode&>(node);
+            const std::string& name = vn.variable_name;
+            if (name == "?current" || name == "current") {
+                return static_cast<double>(candidate_ctx.candidate_value);
+            }
+            if (name == "?previous" || name == "previous") {
+                int idx = voice_pos_to_index(ctx, candidate_ctx.voice, candidate_ctx.position - 1);
+                return read_array_value(ctx.pitch_vars, idx);
+            }
+            if (!name.empty() && name.front() == '?' && name.size() > 1 && std::isdigit(name[1])) {
+                int idx = std::stoi(name.substr(1)) - 1;
+                return read_array_value(ctx.pitch_vars, idx);
+            }
+            return 0.0;
+        }
+        case ASTNodeType::VOICE_ACCESS: {
+            const VoiceAccessNode& vn = static_cast<const VoiceAccessNode&>(node);
+            return eval_voice_access_numeric(vn, ctx, candidate_ctx);
+        }
+        case ASTNodeType::PLUS:
+        case ASTNodeType::MINUS:
+        case ASTNodeType::MULTIPLY:
+        case ASTNodeType::DIVIDE: {
+            const BinaryOpNode& bn = static_cast<const BinaryOpNode&>(node);
+            if (bn.children.size() != 2) {
+                return 0.0;
+            }
+            double lhs = eval_numeric_expr(*bn.children[0], ctx, candidate_ctx);
+            double rhs = eval_numeric_expr(*bn.children[1], ctx, candidate_ctx);
+            switch (node.type) {
+                case ASTNodeType::PLUS: return lhs + rhs;
+                case ASTNodeType::MINUS: return lhs - rhs;
+                case ASTNodeType::MULTIPLY: return lhs * rhs;
+                case ASTNodeType::DIVIDE: return rhs == 0.0 ? 0.0 : lhs / rhs;
+                default: return 0.0;
+            }
+        }
+        case ASTNodeType::ABS: {
+            if (node.children.empty()) {
+                return 0.0;
+            }
+            return std::abs(eval_numeric_expr(*node.children[0], ctx, candidate_ctx));
+        }
+        case ASTNodeType::MOD: {
+            if (node.children.size() != 2) {
+                return 0.0;
+            }
+            double lhs = eval_numeric_expr(*node.children[0], ctx, candidate_ctx);
+            double rhs = eval_numeric_expr(*node.children[1], ctx, candidate_ctx);
+            if (rhs == 0.0) {
+                return 0.0;
+            }
+            return std::fmod(lhs, rhs);
+        }
+        case ASTNodeType::IF_THEN_ELSE: {
+            if (node.children.size() != 3) {
+                return 0.0;
+            }
+            bool cond = eval_boolean_expr(*node.children[0], ctx, candidate_ctx);
+            return cond ? eval_numeric_expr(*node.children[1], ctx, candidate_ctx)
+                        : eval_numeric_expr(*node.children[2], ctx, candidate_ctx);
+        }
+        default:
+            return eval_boolean_expr(node, ctx, candidate_ctx) ? 1.0 : 0.0;
+    }
+}
+
+} // namespace
 
 std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const nlohmann::json& rule_json) {
     // Parse JSON to RuleAST
@@ -21,17 +252,31 @@ std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const
     // Compile the AST directly - don't use the other compile_rule method
     auto compiled = std::make_unique<CompiledConstraint>(rule_ast->rule_id, rule_ast->description);
     compiled->weight = rule_ast->weight;
+    compiled->priority = rule_ast->priority;
+
+    RuleAST::Mode normalized_mode = rule_ast->normalized_mode();
+    if (normalized_mode == RuleAST::Mode::HEUR_SWITCH) {
+        compiled->is_heuristic = true;
+        compiled->heuristic_mode = HeuristicMode::HEUR_SWITCH;
+    } else if (normalized_mode == RuleAST::Mode::REAL_HEURISTIC) {
+        compiled->is_heuristic = true;
+        compiled->heuristic_mode = HeuristicMode::REAL_HEURISTIC;
+    }
     
     // Create the constraint posting function with copied values
     std::string rule_id = rule_ast->rule_id;
     std::string rule_type = rule_ast->rule_type;
     std::string scope = rule_ast->scope;
     
-    // Copy the AST structure we need
-    ASTNodeType root_type = rule_ast->root ? rule_ast->root->type : ASTNodeType::CONSTANT;
-    
-    compiled->post_constraint = [rule_id, rule_type, scope, ast = std::shared_ptr<RuleAST>(rule_ast.release())](ConstraintContext& ctx) {
+    std::shared_ptr<RuleAST> shared_ast(rule_ast.release());
+
+    compiled->post_constraint = [rule_id, rule_type, scope, ast = shared_ast](ConstraintContext& ctx) {
         try {
+            if (ast->is_heuristic()) {
+                // Heuristic modes are score-only and must not post constraints.
+                return;
+            }
+
             std::cout << "  🔧 Compiling rule: " << rule_id << " (type: " << rule_type << ")" << std::endl;
             if (ast->root) {
                 std::cout << "  🔧 Expression type: " << static_cast<int>(ast->root->type) << std::endl;
@@ -69,6 +314,32 @@ std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const
             throw RuleCompileException("Failed to compile rule '" + rule_id + "': " + e.what());
         }
     };
+
+    if (compiled->is_heuristic) {
+        int score_weight = compiled->weight;
+        double direction_scale =
+            (shared_ast && shared_ast->direction == "minimize") ? -1.0 : 1.0;
+        if (compiled->heuristic_mode == HeuristicMode::HEUR_SWITCH) {
+            compiled->score_candidate = [score_weight, direction_scale, ast = shared_ast](
+                const ConstraintContext& score_ctx, const HeuristicCandidateContext& candidate_ctx) {
+                if (!ast || !ast->root) {
+                    return 0.0;
+                }
+                bool pass = eval_boolean_expr(*ast->root, score_ctx, candidate_ctx);
+                return pass ? direction_scale * static_cast<double>(score_weight) : 0.0;
+            };
+        } else if (compiled->heuristic_mode == HeuristicMode::REAL_HEURISTIC) {
+            compiled->score_candidate = [score_weight, direction_scale, ast = shared_ast](
+                const ConstraintContext& score_ctx, const HeuristicCandidateContext& candidate_ctx) {
+                if (!ast || !ast->root) {
+                    return 0.0;
+                }
+                double raw_score = eval_numeric_expr(*ast->root, score_ctx, candidate_ctx);
+                double scale = score_weight == 0 ? 1.0 : static_cast<double>(score_weight);
+                return direction_scale * raw_score * scale;
+            };
+        }
+    }
     
     return compiled;
 }

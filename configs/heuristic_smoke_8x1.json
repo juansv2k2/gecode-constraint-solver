@@ -1,0 +1,79 @@
+{
+  "name": "Heuristic Smoke 8x1",
+  "description": "Small config to validate tri-mode heuristic compilation and scoring.",
+  "solution_length": 8,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "search_options": {
+    "random_seed": 1,
+    "timeout_ms": 30000
+  },
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/8", "1/4"]
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+    }
+  },
+  "rules": [],
+  "dynamic_rules": [
+    {
+      "id": "hard_no_repeat_0_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[0].pitch[1]"
+      },
+      "mode": "true_false",
+      "description": "Hard: first two notes cannot repeat"
+    },
+    {
+      "id": "prefer_close_to_first",
+      "type": "heuristic_preference",
+      "expression": {
+        "operator": "<=",
+        "left": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "?current",
+              "right": "voice[0].pitch[0]"
+            }
+          ]
+        },
+        "right": 5
+      },
+      "mode": "heur_switch",
+      "weight": 7,
+      "description": "Indicator heuristic: prefer candidates within a 5-semitone window from note 0"
+    },
+    {
+      "id": "center_pitch_energy",
+      "type": "heuristic_energy",
+      "expression": {
+        "operator": "-",
+        "left": 24,
+        "right": {
+          "function": "abs",
+          "args": [
+            {
+              "operator": "-",
+              "left": "?current",
+              "right": 66
+            }
+          ]
+        }
+      },
+      "mode": "real_heuristic",
+      "weight": 2,
+      "description": "Numeric heuristic: prefer candidate pitch near MIDI 66"
+    }
+  ]
+}

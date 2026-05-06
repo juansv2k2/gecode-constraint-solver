@@ -54,6 +54,8 @@ std::unique_ptr<RuleAST> RuleExpressionParser::parse_rule(const nlohmann::json& 
     // Set basic properties
     rule_ast->mode = rule_json.value("mode", "constraint");
     rule_ast->weight = rule_json.value("weight", 0);
+    rule_ast->priority = rule_json.value("priority", 0);
+    rule_ast->direction = rule_json.value("direction", "maximize");
     rule_ast->scope = rule_json.value("scope", "");
     rule_ast->description = rule_json.value("description", "");
     
@@ -355,6 +357,24 @@ void RuleExpressionParser::validate_rule_json(const nlohmann::json& rule_json) {
     
     if (!rule_json.contains("expression")) {
         throw RuleParseException("Rule missing required 'expression' field");
+    }
+
+    if (rule_json.contains("mode")) {
+        std::string mode = rule_json.at("mode").get<std::string>();
+        if (mode != "true_false" && mode != "heur_switch" && mode != "real_heuristic" &&
+            mode != "constraint" && mode != "heuristic") {
+            throw RuleParseException(
+                "Invalid mode '" + mode + "'. Expected one of: "
+                "true_false, heur_switch, real_heuristic (legacy: constraint, heuristic)");
+        }
+    }
+
+    if (rule_json.contains("direction")) {
+        std::string direction = rule_json.at("direction").get<std::string>();
+        if (direction != "maximize" && direction != "minimize") {
+            throw RuleParseException(
+                "Invalid direction '" + direction + "'. Expected one of: maximize, minimize");
+        }
     }
 }
 

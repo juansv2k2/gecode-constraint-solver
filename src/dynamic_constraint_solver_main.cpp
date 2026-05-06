@@ -537,6 +537,29 @@ public:
         }
         return std::numeric_limits<unsigned int>::max();
     }
+
+    int getHeuristicTopK(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return 0;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return 0; }
+        if (!cfg.contains("search_options")) return 0;
+        const auto& so = cfg["search_options"];
+        if (!so.contains("heuristic_top_k") || !so["heuristic_top_k"].is_number_integer()) return 0;
+        int k = so["heuristic_top_k"].get<int>();
+        return std::max(0, k);
+    }
+
+    bool getHeuristicTrace(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return false;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return false; }
+        if (!cfg.contains("search_options")) return false;
+        const auto& so = cfg["search_options"];
+        if (!so.contains("heuristic_trace") || !so["heuristic_trace"].is_boolean()) return false;
+        return so["heuristic_trace"].get<bool>();
+    }
     bool getIncludeAnalysis() const { return include_analysis_; }
     
     // Domain getters
@@ -1128,6 +1151,8 @@ int main(int argc, char* argv[]) {
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
         solver_config.rhythm_base = parser.getVoiceRhythmBase();
         solver_config.random_seed = parser.getRandomSeed(config_file);
+        solver_config.heuristic_top_k = parser.getHeuristicTopK(config_file);
+        solver_config.heuristic_trace = parser.getHeuristicTrace(config_file);
 
         // Derive global min/max from the union of all voice domains
         {

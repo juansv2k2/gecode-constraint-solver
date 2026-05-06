@@ -308,10 +308,19 @@ public:
  */
 class RuleAST {
 public:
+    enum class Mode {
+        TRUE_FALSE,
+        HEUR_SWITCH,
+        REAL_HEURISTIC,
+        UNKNOWN
+    };
+
     std::string rule_id;
     std::string rule_type;
     std::string mode;           // "constraint" or "heuristic"
     int weight = 0;             // For heuristic rules
+    int priority = 0;           // Heuristic priority bucket (higher = more important)
+    std::string direction = "maximize"; // maximize|minimize for heuristic score interpretation
     std::string scope;          // "voice[0].pitches", etc.
     std::string description;
     
@@ -319,6 +328,23 @@ public:
     
     RuleAST(const std::string& id, const std::string& type) 
         : rule_id(id), rule_type(type) {}
+
+    static Mode parse_mode(const std::string& mode_string) {
+        if (mode_string == "true_false" || mode_string == "constraint") {
+            return Mode::TRUE_FALSE;
+        }
+        if (mode_string == "heur_switch") {
+            return Mode::HEUR_SWITCH;
+        }
+        if (mode_string == "real_heuristic" || mode_string == "heuristic") {
+            return Mode::REAL_HEURISTIC;
+        }
+        return Mode::UNKNOWN;
+    }
+
+    Mode normalized_mode() const {
+        return parse_mode(mode);
+    }
     
     void set_root(std::unique_ptr<ASTNode> node) {
         root = std::move(node);
@@ -332,8 +358,14 @@ public:
         return result;
     }
     
-    bool is_constraint() const { return mode == "constraint"; }
-    bool is_heuristic() const { return mode == "heuristic"; }
+    bool is_constraint() const {
+        return normalized_mode() == Mode::TRUE_FALSE;
+    }
+
+    bool is_heuristic() const {
+        Mode m = normalized_mode();
+        return m == Mode::HEUR_SWITCH || m == Mode::REAL_HEURISTIC;
+    }
 };
 
 } // namespace DynamicRules

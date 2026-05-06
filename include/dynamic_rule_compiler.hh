@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <map>
 
 using namespace Gecode;
 using namespace GecodeClusterIntegration;
@@ -62,6 +63,18 @@ struct ConstraintContext {
     }
 };
 
+enum class HeuristicMode {
+    NONE = 0,
+    HEUR_SWITCH,
+    REAL_HEURISTIC
+};
+
+struct HeuristicCandidateContext {
+    int voice = 0;
+    int position = 0;
+    int candidate_value = 0;
+};
+
 /**
  * @brief Compiled constraint that can be posted to Gecode space
  */
@@ -71,9 +84,14 @@ public:
     std::string description;
     bool is_heuristic = false;
     int weight = 0;
+    int priority = 0;
+    HeuristicMode heuristic_mode = HeuristicMode::NONE;
     
     // Function to post constraint to Gecode space
     std::function<void(ConstraintContext& ctx)> post_constraint;
+
+    // Unified numeric score callback for heuristic modes.
+    std::function<double(const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx)> score_candidate;
     
     CompiledConstraint(const std::string& id, const std::string& desc)
         : rule_id(id), description(desc) {}
@@ -82,6 +100,17 @@ public:
         if (post_constraint) {
             post_constraint(ctx);
         }
+    }
+
+    bool has_score_callback() const {
+        return static_cast<bool>(score_candidate);
+    }
+
+    double evaluate_score(const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) const {
+        if (!score_candidate) {
+            return 0.0;
+        }
+        return score_candidate(ctx, candidate_ctx);
     }
 };
 
@@ -195,16 +224,47 @@ public:
     }
     
     void apply_all_heuristics(ConstraintContext& ctx) {
-        std::cout << "🎯 Applying " << heuristics_.size() << " heuristic rules..." << std::endl;
-        
-        for (auto& heuristic : heuristics_) {
-            try {
-                heuristic->execute(ctx);
-                std::cout << "  🎵 Applied: " << heuristic->rule_id << " (weight: " << heuristic->weight << ")" << std::endl;
-            } catch (const std::exception& e) {
-                std::cout << "  ❌ Failed: " << heuristic->rule_id << " - " << e.what() << std::endl;
+        (void)ctx;
+        std::cout << "🎯 Registered " << heuristics_.size()
+                  << " heuristic rules for score-based ordering" << std::endl;
+    }
+
+    double evaluate_heuristic_score(const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) const {
+        double total = 0.0;
+        for (const auto& heuristic : heuristics_) {
+            if (!heuristic->has_score_callback()) {
+                continue;
+            }
+            total += heuristic->evaluate_score(ctx, candidate_ctx);
+        }
+        return total;
+    }
+
+    std::vector<std::pair<int, double>> evaluate_heuristic_buckets(
+        const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) const {
+        std::map<int, double, std::greater<int>> buckets;
+        for (const auto& heuristic : heuristics_) {
+            if (!heuristic->has_score_callback()) {
+                continue;
+            }
+            buckets[heuristic->priority] += heuristic->evaluate_score(ctx, candidate_ctx);
+        }
+
+        std::vector<std::pair<int, double>> ordered;
+        ordered.reserve(buckets.size());
+        for (const auto& kv : buckets) {
+            ordered.push_back(kv);
+        }
+        return ordered;
+    }
+
+    bool has_heuristic_scorers() const {
+        for (const auto& heuristic : heuristics_) {
+            if (heuristic->has_score_callback()) {
+                return true;
             }
         }
+        return false;
     }
     
     size_t constraint_count() const { return constraints_.size(); }

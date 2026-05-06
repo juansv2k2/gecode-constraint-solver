@@ -91,6 +91,13 @@ struct SolverConfig {
     bool enable_performance_optimization = true;
     bool cache_rule_results = true;
     int rule_cache_size = 1000;
+
+    // Heuristic selector tuning (optional)
+    // heuristic_top_k:
+    // - 0: evaluate full domain (exact)
+    // - >0: evaluate only first K candidate values from domain iterator (approximate, faster)
+    int heuristic_top_k = 0;
+    bool heuristic_trace = false;
 };
 
 /**

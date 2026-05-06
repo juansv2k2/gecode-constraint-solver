@@ -1007,6 +1007,39 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
     const unsigned int effective_random_seed = resolve_effective_random_seed(config_.random_seed);
 
+    if (compiled_rules_ && compiled_rules_->has_heuristic_scorers()) {
+        GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
+            [this](const GecodeClusterIntegration::IntegratedMusicalSpace& space,
+                   int voice, int position, int candidate_value) {
+                if (!compiled_rules_) {
+                    return GecodeClusterIntegration::HeuristicValueScoreBuckets{};
+                }
+
+                auto& mutable_space = const_cast<GecodeClusterIntegration::IntegratedMusicalSpace&>(space);
+                auto& mutable_pitch_vars = const_cast<Gecode::IntVarArray&>(space.get_absolute_vars());
+                auto& mutable_rhythm_vars = const_cast<Gecode::IntVarArray&>(space.get_rhythm_vars());
+
+                DynamicRules::ConstraintContext score_ctx(
+                    &mutable_space,
+                    &mutable_pitch_vars,
+                    &mutable_rhythm_vars,
+                    config_.num_voices,
+                    config_.sequence_length);
+
+                DynamicRules::HeuristicCandidateContext candidate_ctx;
+                candidate_ctx.voice = voice;
+                candidate_ctx.position = position;
+                candidate_ctx.candidate_value = candidate_value;
+
+                return compiled_rules_->evaluate_heuristic_buckets(score_ctx, candidate_ctx);
+            },
+            effective_random_seed,
+            config_.heuristic_top_k,
+            config_.heuristic_trace);
+    } else {
+        GecodeClusterIntegration::clear_pitch_heuristic_value_ordering();
+    }
+
     auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
         config_.sequence_length, config_.num_voices, config_.backjump_mode,
         all_voice_domains, config_.voice_rhythm_domains, effective_random_seed);
@@ -1032,12 +1065,26 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     }
 
     // POST DYNAMIC RULES
-    if (compiled_rules_ && compiled_rules_->constraint_count() > 0) {
+    if (compiled_rules_ && compiled_rules_->total_count() > 0) {
         std::cout << "🎯 Applying " << compiled_rules_->total_count() << " dynamic rules" << std::endl;
         DynamicRules::ConstraintContext ctx(gecode_space.get(), &gecode_space->get_absolute_vars(),
                                            &gecode_space->get_rhythm_vars(), config_.num_voices, config_.sequence_length);
-        compiled_rules_->post_all_constraints(ctx);
+        if (compiled_rules_->constraint_count() > 0) {
+            compiled_rules_->post_all_constraints(ctx);
+        }
         compiled_rules_->apply_all_heuristics(ctx);
+        if (compiled_rules_->has_heuristic_scorers()) {
+            std::cout << "🎯 Heuristic scorers ready for value ordering integration" << std::endl;
+            if (gecode_space->get_absolute_vars().size() > 0) {
+                DynamicRules::HeuristicCandidateContext warmup_candidate;
+                warmup_candidate.voice = 0;
+                warmup_candidate.position = 0;
+                warmup_candidate.candidate_value = gecode_space->get_absolute_vars()[0].min();
+                double warmup_score = compiled_rules_->evaluate_heuristic_score(ctx, warmup_candidate);
+                std::cout << "🎯 Heuristic warmup score (voice=0,pos=0,candidate="
+                          << warmup_candidate.candidate_value << "): " << warmup_score << std::endl;
+            }
+        }
     }
 
     gecode_space->constrain_note_range(config_.min_note, config_.max_note);

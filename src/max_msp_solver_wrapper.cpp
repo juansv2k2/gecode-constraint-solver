@@ -610,6 +610,14 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             if (so.contains("timeout_ms") && so["timeout_ms"].is_number()) {
                 sc.timeout_seconds = so["timeout_ms"].get<double>() / 1000.0;
             }
+
+            if (so.contains("heuristic_top_k") && so["heuristic_top_k"].is_number_integer()) {
+                sc.heuristic_top_k = std::max(0, so["heuristic_top_k"].get<int>());
+            }
+
+            if (so.contains("heuristic_trace") && so["heuristic_trace"].is_boolean()) {
+                sc.heuristic_trace = so["heuristic_trace"].get<bool>();
+            }
         }
 
         if (cfg.contains("timeout_ms") && cfg["timeout_ms"].is_number()) {

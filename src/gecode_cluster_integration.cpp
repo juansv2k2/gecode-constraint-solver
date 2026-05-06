@@ -10,8 +10,171 @@
 #include <map>
 #include <cmath>
 #include <numeric>
+#include <sstream>
 
 namespace GecodeClusterIntegration {
+
+namespace {
+
+HeuristicValueScorer g_pitch_heuristic_scorer;
+bool g_pitch_heuristic_enabled = false;
+unsigned int g_pitch_tie_break_seed = 0;
+int g_pitch_top_k = 0;
+bool g_pitch_trace = false;
+
+unsigned int tie_break_hash(unsigned int seed, int var_index, int candidate_value) {
+    unsigned int x = seed;
+    x ^= static_cast<unsigned int>(var_index) + 0x9e3779b9u + (x << 6) + (x >> 2);
+    x ^= static_cast<unsigned int>(candidate_value) + 0x9e3779b9u + (x << 6) + (x >> 2);
+    return x;
+}
+
+double bucket_value(const HeuristicValueScoreBuckets& buckets, int priority) {
+    for (const auto& kv : buckets) {
+        if (kv.first == priority) {
+            return kv.second;
+        }
+    }
+    return 0.0;
+}
+
+std::string buckets_to_string(const HeuristicValueScoreBuckets& buckets) {
+    if (buckets.empty()) {
+        return "{}";
+    }
+
+    std::ostringstream oss;
+    oss << "{";
+    for (size_t i = 0; i < buckets.size(); ++i) {
+        if (i > 0) {
+            oss << ", ";
+        }
+        oss << "p" << buckets[i].first << ":" << buckets[i].second;
+    }
+    oss << "}";
+    return oss.str();
+}
+
+bool candidate_is_better(
+    const HeuristicValueScoreBuckets& candidate,
+    const HeuristicValueScoreBuckets& best,
+    int var_index,
+    int candidate_value,
+    int best_value,
+    unsigned int tie_seed) {
+
+    std::vector<int> priorities;
+    priorities.reserve(candidate.size() + best.size());
+    for (const auto& kv : candidate) priorities.push_back(kv.first);
+    for (const auto& kv : best) priorities.push_back(kv.first);
+    std::sort(priorities.begin(), priorities.end(), std::greater<int>());
+    priorities.erase(std::unique(priorities.begin(), priorities.end()), priorities.end());
+
+    for (int prio : priorities) {
+        double c = bucket_value(candidate, prio);
+        double b = bucket_value(best, prio);
+        if (c > b) return true;
+        if (c < b) return false;
+    }
+
+    if (tie_seed != 0) {
+        unsigned int c_rank = tie_break_hash(tie_seed, var_index, candidate_value);
+        unsigned int b_rank = tie_break_hash(tie_seed, var_index, best_value);
+        return c_rank < b_rank;
+    }
+
+    return candidate_value < best_value;
+}
+
+int select_value_by_heuristic(const Space& home, IntVar x, int i) {
+    if (!g_pitch_heuristic_enabled || !g_pitch_heuristic_scorer) {
+        return x.min();
+    }
+
+    const auto& space = static_cast<const IntegratedMusicalSpace&>(home);
+    const IntVarArray& pitch_vars = space.get_absolute_vars();
+    const int var_index = i;
+    if (var_index < 0 || var_index >= static_cast<int>(pitch_vars.size())) {
+        return x.min();
+    }
+
+    const int seq_len = space.get_sequence_length();
+    if (seq_len <= 0) {
+        return x.min();
+    }
+
+    const int voice = var_index / seq_len;
+    const int position = var_index % seq_len;
+
+    IntVarValues values(x);
+    if (!values()) {
+        return x.min();
+    }
+
+    int best_value = values.val();
+    HeuristicValueScoreBuckets best_buckets =
+        g_pitch_heuristic_scorer(space, voice, position, best_value);
+
+    int evaluated = 1;
+    const bool top_k_enabled = g_pitch_top_k > 0;
+
+    for (++values; values(); ++values) {
+        if (top_k_enabled && evaluated >= g_pitch_top_k) {
+            break;
+        }
+        int candidate = values.val();
+        HeuristicValueScoreBuckets candidate_buckets =
+            g_pitch_heuristic_scorer(space, voice, position, candidate);
+        ++evaluated;
+
+        if (candidate_is_better(
+                candidate_buckets,
+                best_buckets,
+                var_index,
+                candidate,
+                best_value,
+                g_pitch_tie_break_seed)) {
+            best_value = candidate;
+            best_buckets = std::move(candidate_buckets);
+        }
+    }
+
+    if (g_pitch_trace) {
+        std::cout << "🎯 selector voice=" << voice
+                  << " pos=" << position
+                  << " evaluated=" << evaluated
+                  << " chose=" << best_value;
+        if (top_k_enabled) {
+            std::cout << " (top_k=" << g_pitch_top_k << ")";
+        }
+        std::cout << " buckets=" << buckets_to_string(best_buckets);
+        std::cout << std::endl;
+    }
+
+    return best_value;
+}
+
+} // namespace
+
+void configure_pitch_heuristic_value_ordering(
+    HeuristicValueScorer scorer,
+    unsigned int tie_break_seed,
+    int top_k,
+    bool trace) {
+    g_pitch_heuristic_scorer = std::move(scorer);
+    g_pitch_heuristic_enabled = static_cast<bool>(g_pitch_heuristic_scorer);
+    g_pitch_tie_break_seed = tie_break_seed;
+    g_pitch_top_k = std::max(0, top_k);
+    g_pitch_trace = trace;
+}
+
+void clear_pitch_heuristic_value_ordering() {
+    g_pitch_heuristic_scorer = nullptr;
+    g_pitch_heuristic_enabled = false;
+    g_pitch_tie_break_seed = 0;
+    g_pitch_top_k = 0;
+    g_pitch_trace = false;
+}
 
 // ===============================
 // Implementation of IntegratedMusicalSpace
@@ -48,7 +211,9 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     post_musical_constraints();
     
     // Branching strategy: random value selection when a seed is provided
-    if (random_seed != 0) {
+    if (g_pitch_heuristic_enabled) {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
+    } else if (random_seed != 0) {
         Gecode::Rnd rng(random_seed);
         branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
     } else {
@@ -92,7 +257,9 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    if (random_seed != 0) {
+    if (g_pitch_heuristic_enabled) {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
+    } else if (random_seed != 0) {
         Gecode::Rnd rng(random_seed);
         branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
     } else {
@@ -158,12 +325,19 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    if (random_seed != 0) {
+    if (g_pitch_heuristic_enabled) {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
+    } else if (random_seed != 0) {
         Gecode::Rnd rng(random_seed);
         branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-        branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
     } else {
         branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
+
+    if (random_seed != 0) {
+        Gecode::Rnd rng(random_seed);
+        branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+    } else {
         branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_MIN());
     }
 }
