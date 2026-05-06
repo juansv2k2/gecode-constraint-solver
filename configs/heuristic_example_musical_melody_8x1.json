@@ -1,0 +1,160 @@
+{
+  "name": "Musical Melody with Heuristic Guidance",
+  "description": "Combines hard constraints with multi-priority heuristics. IMPORTANT: Fixed seed (123) = reproducible deterministic results (good for testing). For varied solutions each run, try different seeds or use random_seed: 99999999 (generates random seed).",
+  "solution_length": 6,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "search_options": {
+    "random_seed": 123,
+    "timeout_ms": 5000,
+    "heuristic_trace": false
+  },
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/8", "1/4"]
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+    }
+  },
+  "rules": [],
+  "dynamic_rules": [
+    {
+      "id": "hard_no_repeat_0_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[0].pitch[1]"
+      },
+      "mode": "true_false",
+      "description": "Hard: no repeated adjacent notes"
+    },
+    {
+      "id": "hard_no_repeat_1_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[0].pitch[2]"
+      },
+      "mode": "true_false",
+      "description": "Hard: no repeated adjacent notes"
+    },
+    {
+      "id": "hard_no_repeat_2_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[2]",
+        "right": "voice[0].pitch[3]"
+      },
+      "mode": "true_false",
+      "description": "Hard: no repeated adjacent notes"
+    },
+    {
+      "id": "hard_no_repeat_3_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[3]",
+        "right": "voice[0].pitch[4]"
+      },
+      "mode": "true_false",
+      "description": "Hard: no repeated adjacent notes"
+    },
+    {
+      "id": "hard_no_repeat_4_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[4]",
+        "right": "voice[0].pitch[5]"
+      },
+      "mode": "true_false",
+      "description": "Hard: no repeated adjacent notes"
+    },
+    {
+      "id": "heur_stepwise_3_pairs",
+      "type": "heuristic_preference",
+      "description": "Priority 5: Prefer stepwise motion at key positions",
+      "expression": {
+        "operator": "||",
+        "left": {
+          "operator": "&&",
+          "left": {
+            "operator": "==",
+            "left": "voice[0].pitch[i]",
+            "right": 67
+          },
+          "right": {
+            "operator": "!=",
+            "left": "voice[0].pitch[i+1]",
+            "right": 67
+          }
+        },
+        "right": {
+          "operator": "<=",
+          "left": {
+            "function": "abs",
+            "args": [
+              {
+                "operator": "-",
+                "left": "voice[0].pitch[i+1]",
+                "right": "voice[0].pitch[i]"
+              }
+            ]
+          },
+          "right": 2
+        }
+      },
+      "mode": "heur_switch",
+      "weight": 1,
+      "priority": 5,
+      "direction": "maximize"
+    },
+    {
+      "id": "heur_consonance_centric",
+      "type": "heuristic_energy",
+      "description": "Priority 3: Prefer major triad tones (C=60, E=64, G=67)",
+      "expression": {
+        "function": "cond",
+        "condition": {
+          "function": "any_of",
+          "args": [
+            { "operator": "==", "left": "?current", "right": 60 },
+            { "operator": "==", "left": "?current", "right": 64 },
+            { "operator": "==", "left": "?current", "right": 67 }
+          ]
+        },
+        "true_val": 2,
+        "false_val": 0
+      },
+      "mode": "real_heuristic",
+      "weight": 1,
+      "priority": 3,
+      "direction": "maximize"
+    },
+    {
+      "id": "heur_range_balance",
+      "type": "heuristic_energy",
+      "description": "Priority 1: Weak preference for middle range",
+      "expression": {
+        "operator": "-",
+        "left": 3,
+        "right": {
+          "function": "abs",
+          "args": [{ "operator": "-", "left": "?current", "right": 65 }]
+        }
+      },
+      "mode": "real_heuristic",
+      "weight": 1,
+      "priority": 1,
+      "direction": "maximize"
+    }
+  ]
+}

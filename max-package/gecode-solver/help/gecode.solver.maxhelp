@@ -47,7 +47,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 723.0, 236.800003528594971, 386.400005757808685, 35.0 ],
-					"presentation_linecount" : 3,
 					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/stress_unsat_contradiction.json\""
 				}
 
@@ -61,7 +60,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 723.0, 183.5, 356.0, 35.0 ],
-					"presentation_linecount" : 2,
 					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/stress_sat_24.json\""
 				}
 
@@ -99,7 +97,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 339.0, 27.0, 633.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/stress_benchmark_config.json\""
 				}
 
@@ -119,26 +116,24 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-13",
-					"linecount" : 2,
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 117.0, 227.0, 321.0, 35.0 ],
-					"text" : "37 38 45 56 53 58 59 68 75 81 89 87 90 98 104 93 91 85 77 73 83 74 63 70"
+					"patching_rect" : [ 117.0, 227.0, 321.0, 22.0 ],
+					"text" : "77 68 63 73 67 61 64 75 69 65 71 72 70 62 74 76 66 60"
 				}
 
 			}
 , 			{
 				"box" : 				{
 					"id" : "obj-12",
-					"linecount" : 2,
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 117.0, 266.0, 321.0, 35.0 ],
-					"text" : "70 63 74 83 73 77 85 91 93 104 98 90 87 89 81 75 68 59 58 53 56 45 38 37"
+					"patching_rect" : [ 117.0, 266.0, 321.0, 22.0 ],
+					"text" : "60 66 76 74 62 70 72 71 65 69 75 64 61 67 73 63 68 77"
 				}
 
 			}
@@ -420,6 +415,53 @@
 					"numoutlets" : 0,
 					"patching_rect" : [ 145.0, 309.0, 711.0, 20.0 ],
 					"text" : "Tip: for live edits use dict demo_cfg -> set ... -> config_dict demo_cfg. This avoids JSON tokenization issues in Max message boxes."
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-heur-title",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 30.0, 650.0, 750.0, 25.0 ],
+					"fontface" : 1,
+					"fontsize" : 16.0,
+					"text" : "HEURISTIC-GUIDED MUSICAL CONSTRAINT SOLVING EXAMPLE"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-heur-desc",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 30.0, 680.0, 750.0, 60.0 ],
+					"text" : "This example demonstrates combining hard constraints with multi-priority heuristics. The solver generates smooth 8-note melodies constrained by:\n • Hard: No repeated adjacent notes, max interval = major sixth\n • Priority 5 (highest): Prefer stepwise motion for smooth melody\n • Priority 3 (medium): Prefer consonant scale degrees\n • Priority 1 (lowest): Prefer pitches near middle of range"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-heur-msg",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 30.0, 750.0, 750.0, 22.0 ],
+					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/configs/heuristic_example_musical_melody_8x1.json\""
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-heur-guide",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 30.0, 780.0, 750.0, 40.0 ],
+					"text" : "How to use: Click the message above to load the config, then click 'solve' button at top. The heuristic priorities guide the search—higher priority heuristics dominate when multiple preferences apply. Result shows melody that satisfies hard constraints while optimizing heuristic preferences."
 				}
 
 			}
