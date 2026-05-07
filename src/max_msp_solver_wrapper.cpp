@@ -1,4 +1,5 @@
 #include "max_msp_solver_wrapper.hh"
+#include "wildcard_rule_extension.hh"
 
 #include <algorithm>
 #include <cmath>
@@ -796,9 +797,121 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
         // Dynamic rules path.
         if (cfg.contains("dynamic_rules") && cfg["dynamic_rules"].is_array()) {
+            std::vector<nlohmann::json> dynamic_rules;
             for (const auto& dr : cfg["dynamic_rules"]) {
-                if (dr.is_null()) continue;
-                solver_.add_dynamic_rule(dr);
+                if (!dr.is_null()) dynamic_rules.push_back(dr);
+            }
+            solver_.load_dynamic_rules(dynamic_rules);
+        }
+
+        // Enhanced rules processing parity with CLI:
+        // - wildcard_constraint rules in rules[]
+        // - index rules in rules[] (type == "index")
+        // - expression-based rules embedded in rules[]
+        if (cfg.contains("rules") && (cfg["rules"].is_array() || cfg["rules"].is_object())) {
+            std::vector<nlohmann::json> enhanced_rules;
+            if (cfg["rules"].is_array()) {
+                for (const auto& r : cfg["rules"]) {
+                    enhanced_rules.push_back(r);
+                }
+            } else {
+                for (auto it = cfg["rules"].begin(); it != cfg["rules"].end(); ++it) {
+                    enhanced_rules.push_back(it.value());
+                }
+            }
+
+            for (const auto& rule_json : enhanced_rules) {
+                try {
+                    if (!rule_json.is_object()) continue;
+                    if (rule_json.contains("enabled") && !json_value_to_bool(rule_json["enabled"], true)) continue;
+
+                    const std::string rule_type = rule_json.value("rule_type", "");
+                    const std::string type_field = rule_json.value("type", "");
+
+                    if (rule_type == "wildcard_constraint") {
+                        auto compiled = DynamicRules::WildcardRuleCompiler::compile_wildcard_from_json(rule_json);
+                        if (compiled) {
+                            solver_.apply_compiled_constraint(std::move(compiled));
+                        }
+                    } else if (type_field == "index") {
+                        const std::string rule_id = rule_json.value("id", "index_rule");
+                        if (!rule_json.contains("voice") || !rule_json["voice"].is_number_integer()) {
+                            throw std::runtime_error("index rule '" + rule_id + "': missing or invalid 'voice' field");
+                        }
+                        if (!rule_json.contains("events") || !rule_json["events"].is_array()) {
+                            throw std::runtime_error("index rule '" + rule_id + "': missing or invalid 'events' array");
+                        }
+
+                        struct IndexEvent {
+                            int pos;
+                            int rhythm_ticks;
+                            int pitch;
+                        };
+
+                        const int voice = rule_json["voice"].get<int>();
+                        const int rhythm_base = sc.rhythm_base;
+                        std::vector<IndexEvent> events;
+
+                        for (size_t ei = 0; ei < rule_json["events"].size(); ++ei) {
+                            const auto& ev = rule_json["events"][ei];
+                            if (!ev.is_array() || ev.size() != 3) {
+                                throw std::runtime_error("index rule '" + rule_id + "': event[" + std::to_string(ei) + "] must be [pos, rhythm, pitch_or_null]");
+                            }
+
+                            const int pos = ev[0].get<int>();
+                            const std::string rhythm_str = ev[1].get<std::string>();
+                            const bool pitch_is_null = ev[2].is_null();
+                            const int pitch_midi = pitch_is_null
+                                ? GecodeClusterIntegration::IntegratedMusicalSpace::REST_PITCH_SENTINEL
+                                : ev[2].get<int>();
+
+                            const int rhythm_ticks = parse_duration_to_ticks(rhythm_str, rhythm_base);
+                            const bool is_rest = (rhythm_ticks < 0);
+                            if (is_rest && !pitch_is_null) {
+                                throw std::runtime_error("index rule '" + rule_id + "' event[" + std::to_string(ei) + "]: rest rhythm requires null pitch");
+                            }
+                            if (!is_rest && pitch_is_null) {
+                                throw std::runtime_error("index rule '" + rule_id + "' event[" + std::to_string(ei) + "]: note rhythm requires non-null pitch");
+                            }
+
+                            events.push_back({pos, rhythm_ticks, pitch_midi});
+                        }
+
+                        auto compiled = std::make_unique<DynamicRules::CompiledConstraint>(
+                            rule_id,
+                            "index rule: pin voice " + std::to_string(voice));
+
+                        compiled->post_constraint = [voice, events, rule_id](DynamicRules::ConstraintContext& ctx) {
+                            if (voice < 0 || voice >= ctx.num_voices) {
+                                throw std::runtime_error("index rule '" + rule_id + "': voice out of range");
+                            }
+
+                            for (const auto& ev : events) {
+                                if (ev.pos < 0 || ev.pos >= ctx.sequence_length) {
+                                    throw std::runtime_error("index rule '" + rule_id + "': position out of range");
+                                }
+
+                                const int idx = voice * ctx.sequence_length + ev.pos;
+                                if (ctx.rhythm_vars && idx < static_cast<int>(ctx.rhythm_vars->size())) {
+                                    Gecode::dom(*ctx.space, (*ctx.rhythm_vars)[idx], Gecode::IntSet(ev.rhythm_ticks, ev.rhythm_ticks));
+                                }
+                                if (ev.pitch != GecodeClusterIntegration::IntegratedMusicalSpace::REST_PITCH_SENTINEL) {
+                                    if (ctx.pitch_vars && idx < static_cast<int>(ctx.pitch_vars->size())) {
+                                        Gecode::dom(*ctx.space, (*ctx.pitch_vars)[idx], Gecode::IntSet(ev.pitch, ev.pitch));
+                                    }
+                                }
+                            }
+                        };
+
+                        solver_.apply_compiled_constraint(std::move(compiled));
+                    } else if (rule_json.contains("id") && rule_json.contains("expression")) {
+                        std::vector<nlohmann::json> single_rule = {rule_json};
+                        solver_.load_dynamic_rules(single_rule);
+                    }
+                } catch (...) {
+                    // Keep wrapper behavior tolerant: invalid enhanced rules are skipped,
+                    // matching CLI's best-effort loading approach.
+                }
             }
         }
 

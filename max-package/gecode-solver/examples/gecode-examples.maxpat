@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 94.0, 1212.0, 989.0 ],
+		"rect" : [ -2526.0, -378.0, 2492.0, 1344.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -40,13 +40,17 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
-					"id" : "obj-14",
-					"maxclass" : "message",
-					"numinlets" : 2,
+					"id" : "obj-22",
+					"maxclass" : "newobj",
+					"numinlets" : 6,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 142.0, 336.0, 655.0, 22.0 ],
-					"text" : "read \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/configs/heuristic_example_reproducible_seed.json\""
+					"patching_rect" : [ 167.682930827140808, 313.414641618728638, 100.0, 22.0 ],
+					"saved_object_attributes" : 					{
+						"versionnumber" : 80300
+					}
+,
+					"text" : "bach.beatbox"
 				}
 
 			}
@@ -57,7 +61,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 515.0, 110.0, 162.0, 22.0 ],
+					"patching_rect" : [ 276.0, 53.0, 162.0, 22.0 ],
 					"text" : "config_dict_debug demo_cfg"
 				}
 
@@ -69,7 +73,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 117.0, 227.0, 321.0, 22.0 ],
+					"patching_rect" : [ 51.219513416290283, 371.951228380203247, 321.0, 22.0 ],
 					"text" : "77 68 63 73 67 61 64 75 69 65 71 72 70 62 74 76 66 60"
 				}
 
@@ -81,7 +85,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 117.0, 266.0, 321.0, 22.0 ],
+					"patching_rect" : [ 42.682927846908569, 418.902449011802673, 321.0, 22.0 ],
 					"text" : "65 64 65 64 65 64"
 				}
 
@@ -93,7 +97,7 @@
 					"numinlets" : 3,
 					"numoutlets" : 3,
 					"outlettype" : [ "", "", "" ],
-					"patching_rect" : [ 30.0, 190.0, 100.0, 22.0 ],
+					"patching_rect" : [ 26.829268932342529, 321.951227188110352, 56.0, 22.0 ],
 					"text" : "route 0 1"
 				}
 
@@ -105,7 +109,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 30.0, 147.0, 99.0, 22.0 ],
+					"patching_rect" : [ 28.048781156539917, 183.536589741706848, 99.0, 22.0 ],
 					"text" : "route voice_pitch"
 				}
 
@@ -118,7 +122,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 693.0, 410.0, 50.0, 22.0 ]
+					"patching_rect" : [ 1150.609783530235291, 274.390250444412231, 50.0, 22.0 ]
 				}
 
 			}
@@ -131,32 +135,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 693.0, 439.0, 222.0, 23.0 ],
+					"patching_rect" : [ 1150.609783530235291, 303.658543825149536, 222.0, 23.0 ],
 					"text" : "set search_options::random_seed $1"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-5",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 142.0, 365.0, 665.0, 22.0 ],
-					"text" : "read \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/twelve_tone_palindrome_config.json\""
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-4",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 312.0, 80.0, 665.0, 22.0 ],
-					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/twelve_tone_palindrome_config.json\""
 				}
 
 			}
@@ -169,7 +149,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 303.0, 439.0, 357.0, 23.0 ],
+					"patching_rect" : [ 760.365871787071228, 303.658543825149536, 357.0, 23.0 ],
 					"text" : "set engine_domains::engine_0::duration_values 1/8 1/4 1/16"
 				}
 
@@ -182,7 +162,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 30.0, 346.0, 24.0, 24.0 ]
+					"patching_rect" : [ 487.195133566856384, 210.365858674049377, 24.0, 24.0 ]
 				}
 
 			}
@@ -192,19 +172,7 @@
 					"maxclass" : "dict.view",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 30.0, 484.0, 625.0, 488.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-2",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 312.0, 53.0, 565.0, 22.0 ],
-					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/demo_config.json\""
+					"patching_rect" : [ 487.195133566856384, 348.780496120452881, 625.0, 488.0 ]
 				}
 
 			}
@@ -215,7 +183,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 5,
 					"outlettype" : [ "dictionary", "", "", "", "" ],
-					"patching_rect" : [ 30.0, 410.0, 100.0, 22.0 ],
+					"patching_rect" : [ 487.195133566856384, 274.390250444412231, 100.0, 22.0 ],
 					"saved_object_attributes" : 					{
 						"embed" : 0,
 						"legacy" : 1,
@@ -229,24 +197,12 @@
 			}
 , 			{
 				"box" : 				{
-					"id" : "obj-dict-read",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 142.0, 393.0, 535.0, 22.0 ],
-					"text" : "read \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/demo_config.json\""
-				}
-
-			}
-, 			{
-				"box" : 				{
 					"id" : "obj-dict-set-len",
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 142.0, 439.0, 145.0, 22.0 ],
+					"patching_rect" : [ 599.390258193016052, 303.658543825149536, 145.0, 22.0 ],
 					"text" : "set solution_length 24"
 				}
 
@@ -258,7 +214,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 369.0, 110.0, 125.0, 22.0 ],
+					"patching_rect" : [ 444.512205719947815, 53.0, 125.0, 22.0 ],
 					"text" : "config_dict demo_cfg"
 				}
 
@@ -329,7 +285,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 3,
 					"outlettype" : [ "", "", "" ],
-					"patching_rect" : [ 30.0, 97.0, 100.0, 22.0 ],
+					"patching_rect" : [ 28.048781156539917, 133.536588549613953, 100.0, 22.0 ],
 					"text" : "gecode.solver"
 				}
 
@@ -340,7 +296,7 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 133.0, 147.0, 132.0, 22.0 ],
+					"patching_rect" : [ 187.195126414299011, 183.536589741706848, 96.0, 22.0 ],
 					"text" : "print solver_json"
 				}
 
@@ -351,19 +307,8 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 276.0, 143.0, 140.0, 22.0 ],
+					"patching_rect" : [ 285.365860462188721, 183.536589741706848, 106.0, 22.0 ],
 					"text" : "print solver_status"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-comment-note",
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 145.0, 309.0, 711.0, 20.0 ],
-					"text" : "Tip: for live edits use dict demo_cfg -> set ... -> config_dict demo_cfg. This avoids JSON tokenization issues in Max message boxes."
 				}
 
 			}
@@ -375,7 +320,7 @@
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 742.0, 593.0, 750.0, 24.0 ],
+					"patching_rect" : [ 1199.390272498130798, 457.92684018611908, 750.0, 24.0 ],
 					"text" : "HEURISTIC-GUIDED MUSICAL CONSTRAINT SOLVING EXAMPLE"
 				}
 
@@ -387,20 +332,8 @@
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 742.0, 623.0, 785.0, 74.0 ],
+					"patching_rect" : [ 1199.390272498130798, 487.804889678955078, 785.0, 74.0 ],
 					"text" : "This example demonstrates combining hard constraints with multi-priority heuristics. The solver generates smooth 8-note melodies constrained by:\n • Hard: No repeated adjacent notes, max interval = major sixth\n • Priority 5 (highest): Prefer stepwise motion for smooth melody\n • Priority 3 (medium): Prefer consonant scale degrees\n • Priority 1 (lowest): Prefer pitches near middle of range"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-heur-msg",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 335.0, 24.0, 750.0, 22.0 ],
-					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/configs/heuristic_example_reproducible_seed.json\""
 				}
 
 			}
@@ -411,7 +344,7 @@
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 742.0, 723.0, 750.0, 47.0 ],
+					"patching_rect" : [ 1199.390272498130798, 587.804892063140869, 750.0, 47.0 ],
 					"text" : "How to use: Click the message above to load the config, then click 'solve' button at top. The heuristic priorities guide the search—higher priority heuristics dominate when multiple preferences apply. Result shows melody that satisfies hard constraints while optimizing heuristic preferences."
 				}
 
@@ -427,7 +360,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-12", 1 ],
-					"midpoints" : [ 39.5, 259.0, 428.5, 259.0 ],
+					"midpoints" : [ 36.329268932342529, 407.731714367866516, 354.182927846908569, 407.731714367866516 ],
 					"source" : [ "obj-10", 0 ]
 				}
 
@@ -435,7 +368,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-13", 1 ],
-					"midpoints" : [ 80.0, 219.5, 428.5, 219.5 ],
+					"midpoints" : [ 54.829268932342529, 353.597567677497864, 362.719513416290283, 353.597567677497864 ],
 					"source" : [ "obj-10", 1 ]
 				}
 
@@ -450,35 +383,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-dict", 0 ],
-					"source" : [ "obj-14", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-solver", 0 ],
-					"source" : [ "obj-2", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-dict", 0 ],
 					"source" : [ "obj-3", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-solver", 0 ],
-					"source" : [ "obj-4", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-dict", 0 ],
-					"source" : [ "obj-5", 0 ]
 				}
 
 			}
@@ -527,13 +432,6 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-dict", 0 ],
-					"source" : [ "obj-dict-read", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-dict", 0 ],
 					"source" : [ "obj-dict-set-len", 0 ]
 				}
 
@@ -542,13 +440,6 @@
 				"patchline" : 				{
 					"destination" : [ "obj-solver", 0 ],
 					"source" : [ "obj-getlast", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-solver", 0 ],
-					"source" : [ "obj-heur-msg", 0 ]
 				}
 
 			}
@@ -569,7 +460,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-print-json", 0 ],
-					"midpoints" : [ 80.0, 137.5, 142.5, 137.5 ],
+					"midpoints" : [ 78.048781156539917, 174.036589741706848, 196.695126414299011, 174.036589741706848 ],
 					"source" : [ "obj-solver", 1 ]
 				}
 
@@ -577,7 +468,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-print-status", 0 ],
-					"midpoints" : [ 120.5, 131.5, 285.5, 131.5 ],
+					"midpoints" : [ 118.548781156539917, 168.036589741706848, 294.865860462188721, 168.036589741706848 ],
 					"source" : [ "obj-solver", 2 ]
 				}
 
@@ -591,6 +482,10 @@
 			}
  ],
 		"dependency_cache" : [ 			{
+				"name" : "bach.beatbox.mxo",
+				"type" : "iLaX"
+			}
+, 			{
 				"name" : "gecode.solver.mxo",
 				"type" : "iLaX"
 			}

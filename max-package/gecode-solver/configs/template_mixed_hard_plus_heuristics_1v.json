@@ -1,0 +1,67 @@
+{
+  "name": "Template - Mixed Hard + Heuristics",
+  "description": "Starter template combining true_false, heur_switch, and real_heuristic.",
+  "solution_length": 8,
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+  "search_options": {
+    "random_seed": 0,
+    "timeout_ms": 5000
+  },
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/8", "1/4"]
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+    }
+  },
+  "rules": [],
+  "dynamic_rules": [
+    {
+      "id": "hard_no_repeat_0_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[0].pitch[1]"
+      },
+      "mode": "true_false",
+      "description": "Hard rule"
+    },
+    {
+      "id": "prefer_stepwise",
+      "type": "heuristic_preference",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "step_size": 1,
+      "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
+      "mode": "heur_switch",
+      "weight": 2,
+      "priority": 5,
+      "direction": "maximize",
+      "description": "Boolean preference"
+    },
+    {
+      "id": "prefer_center",
+      "type": "heuristic_energy",
+      "expression": {
+        "operator": "-",
+        "left": 10,
+        "right": {
+          "function": "abs",
+          "args": [{ "operator": "-", "left": "?current", "right": 65 }]
+        }
+      },
+      "mode": "real_heuristic",
+      "weight": 1,
+      "priority": 1,
+      "direction": "maximize",
+      "description": "Numeric preference"
+    }
+  ]
+}

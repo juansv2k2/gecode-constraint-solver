@@ -431,8 +431,8 @@ void DynamicRuleCompiler::post_binary_comparison(const BinaryOpNode& binary_node
     switch (binary_node.type) {
         case ASTNodeType::EQUALS: rel_type = IRT_EQ; break;
         case ASTNodeType::NOT_EQUALS: rel_type = IRT_NQ; break;
-        case ASTNodeType::LESS_THAN: rel_type = IRT_LQ; break;
-        case ASTNodeType::LESS_EQUAL: rel_type = IRT_LE; break;
+        case ASTNodeType::LESS_THAN: rel_type = IRT_LE; break;
+        case ASTNodeType::LESS_EQUAL: rel_type = IRT_LQ; break;
         case ASTNodeType::GREATER_THAN: rel_type = IRT_GR; break;
         case ASTNodeType::GREATER_EQUAL: rel_type = IRT_GQ; break;
         default:

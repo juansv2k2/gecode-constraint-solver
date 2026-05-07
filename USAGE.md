@@ -11,7 +11,8 @@ This document describes how to use the musical constraint solver: how to write c
 3. [Top-Level Options](#3-top-level-options)
 4. [Engine Architecture](#4-engine-architecture)
 5. [Domains — `engine_domains`](#5-domains--engine_domains)
-6. [Rules — `rules`](#6-rules--rules)
+6. [Constraint Rules](#6-constraint-rules)
+   - 6.0 [Rules vs Dynamic Rules](#60-rules-vs-dynamic-rules)
    - 6.1 [Legacy Built-in Rules](#61-legacy-built-in-rules)
    - 6.2 [Wildcard Constraint Rules](#62-wildcard-constraint-rules)
    - 6.3 [Index Rules](#63-index-rules)
@@ -21,11 +22,27 @@ This document describes how to use the musical constraint solver: how to write c
    - 7.2 [Operators](#72-operators)
    - 7.3 [Functions](#73-functions)
    - 7.4 [Expression Examples](#74-expression-examples)
-8. [Search Options](#8-search-options)
-9. [Output Options](#9-output-options)
-10. [Full Config Example](#10-full-config-example)
-11. [Output Files](#11-output-files)
-12. [Common Errors](#12-common-errors)
+8. [Output Options](#9-output-options)
+9. [Heuristic Rules (Score-Based Ordering)](#10-heuristic-rules-score-based-ordering)
+   - 10.1 [Heuristic Types: heuristic_preference vs heuristic_energy](#101-heuristic-types-heuristic_preference-vs-heuristic_energy)
+   - 10.2 [Heuristic Rule Fields](#102-heuristic-rule-fields)
+   - 10.3 [Scoring Semantics](#103-scoring-semantics)
+   - 10.4 [Priority Buckets](#104-priority-buckets)
+   - 10.5 [Candidate Context Variables](#105-candidate-context-variables)
+   - 10.6 [Basic Heuristic Example](#106-basic-heuristic-example)
+   - 10.7 [Wildcard Heuristic Rules](#107-wildcard-heuristic-rules)
+
+- 10.7.3 [for_all_positions Example](#1073-for_all_positions-example)
+- 10.7.4 [for_all_voices Example](#1074-for_all_voices-example)
+  - 10.8 [Wildcard Types & Iteration Semantics](#108-wildcard-types--iteration-semantics)
+  - 10.9 [Wildcard Placeholder Reference](#109-wildcard-placeholder-reference)
+  - 10.10 [Operational Notes](#1010-operational-notes)
+  - 10.11 [Reference Configs](#1011-reference-configs)
+
+8. [Search Options & Solver Tuning](#8-search-options--solver-tuning)
+9. [Full Config Example](#11-full-config-example)
+10. [Output Files](#12-output-files)
+11. [Common Errors](#13-common-errors)
 
 ---
 
@@ -61,12 +78,13 @@ Every config file is a JSON object with these top-level sections:
 
   "engine_architecture": { ... },   // optional, explicit engine layout
 
-  "engine_domains": { ... },        // required — pitch domains per voice
+  "engine_domains": { ... },        // required — pitch & rhythm domains per voice
 
-  "rules": [ ... ],                 // constraint rules
+  "rules": [ ... ],                 // legacy built-in + wildcard_constraint rules
+  "dynamic_rules": [ ... ],         // modern expression-first hard + heuristic rules
 
-  "search_options": { ... },        // optional
-  "output_options": { ... }         // optional
+  "search_options": { ... },        // optional — control solver behavior + heuristics
+  "output_options": { ... }         // optional — control output format
 }
 ```
 
@@ -225,9 +243,49 @@ This gives the solver the choice between a quarter note and a quarter rest at ev
 
 ---
 
-## 6. Rules — `rules`
+## 6. Constraint Rules
 
-Rules are listed in the `"rules"` array. There are three categories: **legacy built-in rules**, **wildcard constraint rules**, and **index rules**.
+The solver supports two rule containers with different purposes and authoring styles.
+
+---
+
+### 6.0 Rules vs Dynamic Rules
+
+**`rules` array (legacy):**
+
+- Intended for engine-targeted built-in rules (e.g. `all_different`, `equal_values`)
+- Supports classic `wildcard_constraint` rules using expression strings
+- Older configs and compatibility layer
+- **Best for:** hard constraints, metric setup, cross-engine built-ins
+
+**`dynamic_rules` array (modern):**
+
+- Expression-first rule compilation with dynamic AST evaluation
+- Supports three rule type categories:
+  - `basic_constraint`: hard constraints with `mode: "true_false"`
+  - `heuristic_preference`: boolean preference scoring with `mode: "heur_switch"`
+  - `heuristic_energy`: numeric preference scoring with `mode: "real_heuristic"`
+- Integrated branch-time heuristic value selector
+- **Best for:** new work, especially mixed hard+heuristic objectives
+
+**How and why both exist:**
+
+- Historical configs use `rules` with built-in function names
+- Modern workflow uses `dynamic_rules` for cleaner expression-based authoring
+- Both are compiled to the same internal Gecode model
+- In practice:
+  - Use `rules` for legacy built-ins and engine-specific orchestration
+  - Use `dynamic_rules` for new work, especially heuristic-guided search
+
+**Quick decision tree:**
+
+- Need `all_different` on a pitch engine? → use `rules` with built-in function
+- Need to say "consecutive notes must differ by exactly 4 semitones"? → use `dynamic_rules` with expression
+- Need to guide search with preference scores? → use `dynamic_rules` with heuristic modes
+
+---
+
+Rules are listed in either the `"rules"` or `"dynamic_rules"` array. There are three categories: **legacy built-in rules**, **wildcard constraint rules**, and **index rules**.
 
 ---
 
@@ -586,41 +644,6 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 
 ---
 
-## 8. Search Options
-
-```json
-"search_options": {
-  "timeout_ms": 30000,
-  "max_solutions": 1,
-  "branching": "first_fail",
-  "random_seed": 42
-}
-```
-
-| Field           | Type   | Default        | Description                                                                                                                                                |
-| --------------- | ------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `timeout_ms`    | int    | `30000`        | Search timeout in milliseconds                                                                                                                             |
-| `max_solutions` | int    | `1`            | Stop after finding this many solutions (`-1` = all)                                                                                                        |
-| `branching`     | string | `"first_fail"` | Gecode variable selection heuristic                                                                                                                        |
-| `random_seed`   | int    | deterministic  | Random seed semantics: omitted (or `4294967295`) = deterministic order, `0` = fresh random seed per solve, positive value = reproducible randomized order. |
-
-**`branching` values:**
-
-| Value          | Strategy                                                           |
-| -------------- | ------------------------------------------------------------------ |
-| `"first_fail"` | Pick the variable with the smallest remaining domain (recommended) |
-| `"min_value"`  | Assign minimum value first                                         |
-| `"max_value"`  | Assign maximum value first                                         |
-
-**`random_seed` notes:**
-
-- Omit `random_seed` (or set `4294967295`) for deterministic search order.
-- Set `random_seed` to `0` to generate a fresh random seed for each solve.
-- Set `random_seed` to a positive integer to make randomized search reproducible.
-- The effective seed is printed in runtime logs when available.
-
----
-
 ## 9. Output Options
 
 ```json
@@ -643,7 +666,480 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 
 ---
 
-## 10. Full Config Example
+## 10. Heuristic Rules (Score-Based Ordering)
+
+Heuristic rules guide the solver towards good solutions by scoring candidate values. The solver selects candidates with the highest combined heuristic score, enabling sophisticated musical preferences beyond hard constraints.
+
+### 10.1 Heuristic Types: heuristic_preference vs heuristic_energy
+
+The solver supports two heuristic rule type categories. Choose based on your expression style and intent.
+
+**`heuristic_preference`** — for boolean (yes/no) objectives:
+
+- Expression evaluates to boolean (true/false)
+- Use with `mode: "heur_switch"`
+- Typical weight: `2–5`
+- Contribution: if true, add `weight` to score; if false, add `0`
+- **Best for:** conditional objectives like "prefer stepwise motion," "avoid repeats," "prefer consonant intervals"
+- **Example:** `"abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2"` (do consecutive notes differ by ≤2 semitones?)
+
+**`heuristic_energy`** — for numeric scoring:
+
+- Expression evaluates to a numeric score
+- Use with `mode: "real_heuristic"`
+- Typical weight: `1–3`
+- Contribution: `expression * weight` (or just `expression` if weight omitted)
+- **Best for:** continuous objectives like "minimize distance to center," "maximize voice spacing," "penalize large jumps"
+- **Example:** `24 - abs(?current - 66)` (distance from MIDI 66; closer = higher score)
+
+**Rule of thumb:**
+
+1. If your objective is "should we do X?", use `heuristic_preference` + `heur_switch`
+2. If your objective is "how good is candidate value Y?", use `heuristic_energy` + `real_heuristic`
+
+**Why two types?**
+
+- `heuristic_preference` is simpler: just ask yes/no and apply a weight
+- `heuristic_energy` gives fine-grained control: score each candidate numerically
+- They can coexist: hard constraints stay in `true_false` mode, preferences layer above
+
+### 10.2 Heuristic Rule Fields
+
+Use heuristic rules in `dynamic_rules` with these fields:
+
+| Field         | Required | Description                                                                      |
+| ------------- | -------- | -------------------------------------------------------------------------------- |
+| `id`          | yes      | Rule identifier (used in logs)                                                   |
+| `type`        | yes      | Rule category: `heuristic_preference` or `heuristic_energy`                      |
+| `expression`  | yes      | Boolean (for heuristic_preference) or numeric (for heuristic_energy) expression  |
+| `mode`        | yes      | `heur_switch` (for preference) or `real_heuristic` (for energy)                  |
+| `weight`      | no       | Score multiplier (default `0`; treated as `1.0` for `real_heuristic` if omitted) |
+| `priority`    | no       | Bucket priority (default `0`; higher priority dominates in tie-break)            |
+| `direction`   | no       | `maximize` (default) or `minimize` (flips score sign internally)                 |
+| `description` | no       | Free-text label shown in logs                                                    |
+
+### 10.3 Scoring Semantics
+
+- **`heur_switch`:**
+  - Expression evaluated as boolean
+  - If true: contributes `weight` to score bucket
+  - If false: contributes `0`
+- **`real_heuristic`:**
+  - Expression evaluated as numeric
+  - Contributes: `expression * weight` (or just `expression` if weight omitted)
+- **`direction`:**
+  - `maximize`: keep score sign as-is (larger is better)
+  - `minimize`: invert sign internally (smaller is better)
+
+### 10.4 Priority Buckets
+
+Heuristics are grouped by integer `priority` and compared lexicographically. Higher priority buckets always dominate lower priority buckets.
+
+**Comparison order:**
+
+1. Highest priority bucket: if scores differ, pick best from that bucket
+2. Next priority bucket: only compared if highest bucket scores are equal
+3. Continue recursively to lowest priority buckets
+4. Final tie-break: deterministic hash based on random seed
+
+**Example with three heuristics:**
+
+```json
+{
+  "priority": 10, // hard preference (e.g. stepwise motion)
+  "priority": 5, // medium preference (e.g. consonance)
+  "priority": 0 // soft preference (e.g. center register)
+}
+```
+
+A candidate with priority-10 score=1 will beat priority-10 score=0, regardless of its priority-5 or priority-0 scores.
+
+This allows "harder" musical constraints to dominate softer stylistic preferences.
+
+### 10.5 Candidate Context Variables
+
+Heuristic expressions can reference the candidate value being evaluated and surrounding context.
+
+**Candidate variable:**
+
+- `?current`: the candidate value (MIDI pitch or rhythm tick) currently being scored
+
+**Context variables (read-only, from already-assigned neighbors):**
+
+- `voice[V].pitch[i]`: pitch of voice V at position i
+- `voice[V].rhythm[i]`: rhythm value of voice V at position i
+- These refer to positions already assigned in the search tree
+
+**Common patterns:**
+
+```
+// Score candidates near a target pitch
+abs(?current - 66)
+
+// Prefer candidates close to the first note
+abs(?current - voice[0].pitch[0]) <= 5
+
+// Encourage stepwise motion to previous note
+abs(?current - voice[0].pitch[i-1]) <= 2
+
+// Balance two voices in range
+abs(?current - voice[1].pitch[i])
+```
+
+### 10.6 Basic Heuristic Example
+
+Here is a complete single heuristic rule in `dynamic_rules`:
+
+```json
+{
+  "id": "prefer_stepwise_motion",
+  "type": "heuristic_preference",
+  "expression": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2",
+  "mode": "heur_switch",
+  "weight": 4,
+  "priority": 5,
+  "direction": "maximize",
+  "description": "Prefer stepwise motion (interval ≤ 2 semitones)"
+}
+```
+
+This rule:
+
+1. Checks if consecutive notes differ by ≤2 semitones
+2. Awards `weight=4` points if true, `0` if false
+3. Places the score in priority bucket 5
+4. Maximizes (higher score is better)
+
+Combined with other heuristics at priority 5, they share the same bucket. Lower priority heuristics only apply if all priority-5 heuristics are equal.
+
+### 10.7 Wildcard Heuristic Rules
+
+Wildcard heuristics let you author a single template rule and automatically expand it across positions (and optionally voices or voice pairs), avoiding manual duplication.
+
+**Supported wildcard heuristic fields:**
+
+| Field             | Required    | Description                                                              |
+| ----------------- | ----------- | ------------------------------------------------------------------------ |
+| `wildcard_type`   | recommended | `sliding_window`, `for_all_positions`, `for_all_voices`, `for_all_pairs` |
+| `pattern_offsets` | no          | Relative offsets used in template, e.g. `[0]` or `[0,1]`                 |
+| `step_size`       | no          | Expansion step size (default `1`)                                        |
+| `cross_voices`    | no          | Hint for pairwise expansion                                              |
+
+During load, wildcard rules are expanded to concrete per-position (and per-voice or per-pair) rules, then compiled through the normal heuristic pipeline.
+
+### 10.8 Wildcard Types & Iteration Semantics
+
+Understanding `wildcard_type` is key to getting expected behavior:
+
+**`sliding_window`** — most common pattern:
+
+- Iterates every voice and every valid starting position `i`
+- `pattern_offsets` defines relative positions accessed in the window
+- Window slides: `i = 0, 1, 2, ...` up to `solution_length - max_offset`
+- **Best for:** consecutive interval rules, stepwise motion, any window-based pattern
+- **Example:** `pattern_offsets: [0, 1]` means pairs (0,1), (1,2), (2,3), ...
+- Expands to: N_voices × (solution_length - 1) concrete rules
+
+**`for_all_positions`** — single-position iteration:
+
+- Iterates all positions `i = 0 to solution_length - 1`
+- Does NOT automatically create cross-voice combinations
+- Template must already specify fixed voice(s) (e.g., `voice[0]`)
+- **Best for:** per-position scoring when voice is fixed in the expression
+- **Example:** score each note of voice 0 by distance to MIDI 65
+- Expands to: solution_length concrete rules (one per position)
+
+**`for_all_voices`** — voice iteration only:
+
+- Iterates all voices at each position already fixed in template
+- Requires placeholder `voice[v]` in expression for voice substitution
+- Does NOT automatically iterate positions unless template uses `[i]` sliding
+- **Best for:** voice-symmetric rules (same rule applies to all voices)
+- **Example:** each voice should stay in its own register
+- Expands to: N_voices concrete rules
+
+**`for_all_pairs`** — pairwise cross-voice:
+
+- Iterates all ordered or unique voice pairs: (0,1), (0,2), (1,2), ...
+- Requires placeholders `voice[v1]` and `voice[v2]` (or aliases `voice[a]`, `voice[b]`)
+- Position iteration depends on `pattern_offsets`
+- **Best for:** voice-to-voice spacing, contrary motion, parallel interval rules
+- **Example:** reward large pitch separation between every pair of voices
+- Expands to: (N_voices choose 2) × (solution_length - max_offset) concrete rules
+
+**Important clarifications:**
+
+- `for_all_positions` alone does NOT create cross-voice rules
+- `for_all_voices` alone does NOT create cross-voice rules
+- Only `for_all_pairs` automatically expands across voice pairs
+- If you need both voice iteration AND position iteration, use `sliding_window` with `voice[v]` placeholder
+
+#### 10.7.1 Single-Voice Wildcard Example
+
+**Config pattern:** Prefer stepwise motion everywhere (all voices, all consecutive pairs).
+
+```json
+{
+  "id": "prefer_stepwise_everywhere",
+  "type": "heuristic_preference",
+  "wildcard_type": "sliding_window",
+  "pattern_offsets": [0, 1],
+  "step_size": 1,
+  "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
+  "mode": "heur_switch",
+  "weight": 4,
+  "priority": 5,
+  "direction": "maximize",
+  "description": "Wildcard: prefer stepwise motion in all voices"
+}
+```
+
+**Expansion:**
+
+- For a 2-voice, 8-note config:
+  - Voice 0: positions (0,1), (1,2), (2,3), (3,4), (4,5), (5,6), (6,7) → 7 rules
+  - Voice 1: positions (0,1), (1,2), (2,3), (3,4), (4,5), (5,6), (6,7) → 7 rules
+  - Total: 14 concrete heuristic rules from one template
+
+#### 10.7.2 Pairwise Cross-Voice Wildcard Example
+
+**Config pattern:** Reward larger pitch separation between every voice pair at each position (for open harmony).
+
+```json
+{
+  "id": "prefer_voice_separation",
+  "type": "heuristic_energy",
+  "wildcard_type": "for_all_pairs",
+  "pattern_offsets": [0],
+  "step_size": 1,
+  "cross_voices": true,
+  "expression": {
+    "operator": "-",
+    "left": 24,
+    "right": {
+      "function": "abs",
+      "args": [
+        {
+          "operator": "-",
+          "left": "voice[v1].pitch[i]",
+          "right": "voice[v2].pitch[i]"
+        }
+      ]
+    }
+  },
+  "mode": "real_heuristic",
+  "weight": 3,
+  "priority": 8,
+  "direction": "maximize",
+  "description": "Wildcard pairwise: reward large pitch separation between voices"
+}
+```
+
+**Expansion:**
+
+- For a 3-voice, 8-note config:
+  - Voice pairs: (0,1), (0,2), (1,2) → 3 pairs
+  - Positions per pair: 8 positions
+  - Total: 3 × 8 = 24 concrete heuristic rules from one template
+
+#### 10.7.3 for_all_positions Example
+
+**Config pattern:** Score every position of a fixed voice against a melodic center.
+
+```json
+{
+  "id": "center_register_voice0",
+  "type": "heuristic_energy",
+  "wildcard_type": "for_all_positions",
+  "pattern_offsets": [0],
+  "expression": "24 - abs(voice[0].pitch[i] - 65)",
+  "mode": "real_heuristic",
+  "weight": 1,
+  "priority": 2,
+  "direction": "maximize",
+  "description": "Prefer voice 0 notes near F4 (MIDI 65)"
+}
+```
+
+**Expansion:**
+
+- For an 8-note config:
+  - Position rules: i = 0..7 → 8 rules
+  - Voice is fixed to voice 0 in the expression
+  - Total: 8 concrete heuristic rules from one template
+
+#### 10.7.4 for_all_voices Example
+
+**Config pattern:** Apply the same register preference to every voice.
+
+```json
+{
+  "id": "mid_register_all_voices",
+  "type": "heuristic_preference",
+  "wildcard_type": "for_all_voices",
+  "pattern_offsets": [0],
+  "expression": "abs(voice[v].pitch[i] - 67) <= 7",
+  "mode": "heur_switch",
+  "weight": 3,
+  "priority": 3,
+  "direction": "maximize",
+  "description": "Prefer all voices to stay near G4"
+}
+```
+
+**Expansion:**
+
+- For a 3-voice config:
+  - Voice substitutions: v = 0, 1, 2 → 3 rules
+  - Position behavior follows the template index form
+  - Total: 3 concrete heuristic rules from one template
+
+### 10.9 Wildcard Placeholder Reference
+
+**Placeholders in wildcard expressions:**
+
+| Placeholder              | Wildcard Type(s)                   | Meaning                                             |
+| ------------------------ | ---------------------------------- | --------------------------------------------------- |
+| `voice[v]`               | `sliding_window`, `for_all_voices` | voice iteration; substituted v=0, 1, 2, ...         |
+| `voice[v1]`, `voice[v2]` | `for_all_pairs`                    | voice pair iteration; substituted (0,1), (0,2), ... |
+| `voice[a]`, `voice[b]`   | `for_all_pairs`                    | Alias for pairwise; same as v1, v2 above            |
+| `[i]`, `[i+N]`, `[i-N]`  | sliding patterns                   | position iteration; substituted i=0, 1, 2, ...      |
+| `?current`               | all heuristics                     | candidate value being scored (not expanded)         |
+
+### 10.10 Operational Notes
+
+- Wildcard expansion is **load-time only**: one template → many concrete rules stored in memory
+- Wildcard expansion applies **only** to heuristic modes (`heur_switch`, `real_heuristic`)
+- Hard constraints should remain in `mode: true_false` (not wildcards)
+- Expansion is **deterministic** for fixed config: same config = same rule count + order
+- Approximate mode (`heuristic_top_k > 0`) can change selected solutions by design (feature, not bug)
+- Rest positions are **automatically skipped** in sliding windows (no constraint posted if either window position is a rest)
+
+### 10.11 Reference Configs
+
+**Working examples in this repository:**
+
+| Config                                                 | Features                              | Notes                                                    |
+| ------------------------------------------------------ | ------------------------------------- | -------------------------------------------------------- |
+| `configs/heuristic_smoke_8x1.json`                     | Basic tri-mode rules                  | Minimal example: hard + heur_switch + real_heuristic     |
+| `configs/heuristic_priority_direction_8x1.json`        | Priority buckets, direction semantics | Shows how priority and maximize/minimize interact        |
+| `configs/heuristic_priority_direction_topk_8x1.json`   | Approximate top-k selector            | Demonstrates `heuristic_top_k: 3` vs exact (0)           |
+| `configs/heuristic_priority_direction_trace_8x1.json`  | Selector diagnostics                  | Enables `heuristic_trace: true` to see per-decision logs |
+| `configs/heuristic_wildcard_stepwise_8x1.json`         | Single-voice wildcard                 | Stepwise preference expanded across all positions        |
+| `configs/heuristic_wildcard_crossvoice_pairs_8x2.json` | Pairwise cross-voice wildcard         | Spacing preference between voice pairs                   |
+| `configs/heuristic_example_musical_melody_8x1.json`    | Production example                    | Mixed hard + heuristics with pedagogical comments        |
+| `configs/template_*.json`                              | Rule templates (in max-package)       | Starter templates for each rule type                     |
+
+All examples pass validation; inspect to see syntax and real-world patterns.
+
+---
+
+## 8. Search Options & Solver Tuning
+
+Search options control solve limits, branching strategy, randomization, and heuristic selector behavior.
+
+```json
+"search_options": {
+  "timeout_ms": 30000,
+  "max_solutions": 1,
+  "branching": "first_fail",
+  "random_seed": 42,
+  "heuristic_top_k": 0,
+  "heuristic_trace": false
+}
+```
+
+### 8.1 Core Search Fields
+
+| Field           | Type   | Default        | Description                                                                            |
+| --------------- | ------ | -------------- | -------------------------------------------------------------------------------------- |
+| `timeout_ms`    | int    | `30000`        | Maximum solve time in milliseconds. Search stops after this duration even if unsolved. |
+| `max_solutions` | int    | `1`            | Number of solutions to return. `-1` means find all solutions.                          |
+| `branching`     | string | `"first_fail"` | Variable selection strategy (see section 8.2).                                         |
+| `random_seed`   | int    | deterministic  | Seed policy for randomized tie-breaking (see section 8.3).                             |
+
+### 8.2 Variable Selection (`branching`)
+
+| Value          | Strategy                                                                                   | When to use                                             |
+| -------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `"first_fail"` | Pick variable with smallest remaining domain, break ties arbitrarily (recommended default) | Most constraint problems; fast pruning.                 |
+| `"min_value"`  | Assign minimum domain value first at each branch point                                     | When you want ascending bias (e.g. ascending melody).   |
+| `"max_value"`  | Assign maximum domain value first at each branch point                                     | When you want descending bias (e.g. descending melody). |
+
+### 8.3 Randomization (`random_seed`)
+
+| Value                             | Behavior                                                                                             | Use case                         |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Omitted or `4294967295`           | Deterministic seed. Same run gives the same search path.                                             | Reproducible testing, debugging. |
+| `0`                               | Fresh random seed from system entropy per solve. Different runs explore different paths.             | Exploring solution variety.      |
+| Positive integer (for example 42) | Reproducible randomized search path. Same seed plus same config reproduces the same path and result. | Controlled randomization.        |
+
+Practical examples:
+
+- Reproducible debugging: `"random_seed": 42, "heuristic_trace": true`
+- Explore variety: `"random_seed": 0, "max_solutions": 10`
+- Performance testing: `"random_seed": 123, "timeout_ms": 5000`
+
+### 8.4 Heuristic Selector Options
+
+These fields apply when `dynamic_rules` include heuristic modes (`heur_switch` or `real_heuristic`).
+
+| Field             | Type | Default | Description                                                                                                                                   |
+| ----------------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `heuristic_top_k` | int  | `0`     | `0` evaluates all candidate values (exact ranking). `>0` evaluates only first K candidates (faster, approximate, may change selected values). |
+| `heuristic_trace` | bool | `false` | `true` prints per-decision selector diagnostics. `false` keeps solver output minimal.                                                         |
+
+`heuristic_top_k` semantics:
+
+- `0`: exact evaluation over full domain.
+- `3`: approximate evaluation of first 3 candidates in domain order.
+- Larger K improves accuracy at runtime cost.
+
+Trace output example:
+
+```
+selector voice=0 pos=3 evaluated=5 chose=67 buckets={p5:35,p3:0,p1:4}
+```
+
+### 8.5 Preset Configurations
+
+For reproducible debugging:
+
+```json
+"search_options": {
+  "timeout_ms": 30000,
+  "random_seed": 42,
+  "heuristic_trace": true,
+  "heuristic_top_k": 0
+}
+```
+
+For fast exploration:
+
+```json
+"search_options": {
+  "timeout_ms": 5000,
+  "max_solutions": 10,
+  "random_seed": 0,
+  "heuristic_trace": false,
+  "heuristic_top_k": 3
+}
+```
+
+For performance analysis:
+
+```json
+"search_options": {
+  "timeout_ms": 1000,
+  "random_seed": 123,
+  "heuristic_top_k": 0,
+  "heuristic_trace": false
+}
+```
+
+---
+
+## 11. Full Config Example
 
 This example creates a 2-voice, 8-note sequence where:
 
@@ -788,7 +1284,7 @@ This example creates a 2-voice, 8-note sequence where:
 
 ---
 
-## 11. Output Files
+## 12. Output Files
 
 After a successful solve, the solver writes files to `export_path/`:
 
@@ -839,7 +1335,7 @@ In the JSON result file, rests are encoded as pitch value `−1` (sentinel) and 
 
 ---
 
-## 12. Common Errors
+## 13. Common Errors
 
 | Error message                                                                      | Cause                                                          | Fix                                                                                                                                               |
 | ---------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -858,212 +1354,3 @@ In the JSON result file, rests are encoded as pitch value `−1` (sentinel) and 
 | `Failed to compile rule`                                                           | Syntax error in a constraint expression                        | Check operator syntax (use `==` not `=`), and that voice/index references are correct                                                             |
 
 ---
-
-## 13. Heuristic Rules (Score-Based Ordering)
-
-Heuristic rules are preferences used to guide value selection during search. They do not change SAT/UNSAT for the same hard constraints.
-
-The solver supports tri-mode semantics:
-
-- `true_false`: hard constraint mode (posted to the model)
-- `heur_switch`: boolean preference mode (indicator score)
-- `real_heuristic`: numeric preference mode (continuous score)
-
-Heuristic scoring is evaluated per candidate value at branch-time and compared in priority buckets (higher `priority` buckets dominate lower buckets).
-
-### 13.1 Heuristic Rule Fields
-
-Use heuristic rules in `dynamic_rules` with these fields:
-
-| Field         | Required | Description                                                                       |
-| ------------- | -------- | --------------------------------------------------------------------------------- |
-| `id`          | yes      | Rule identifier                                                                   |
-| `type`        | yes      | Rule category, e.g. `heuristic_preference` or `heuristic_energy`                  |
-| `expression`  | yes      | Boolean or numeric expression                                                     |
-| `mode`        | yes      | `heur_switch` or `real_heuristic`                                                 |
-| `weight`      | no       | Score multiplier (default `0`; effectively 1.0 for `real_heuristic` when omitted) |
-| `priority`    | no       | Bucket priority (default `0`)                                                     |
-| `direction`   | no       | `maximize` (default) or `minimize`                                                |
-| `description` | no       | Free-text description                                                             |
-
-### 13.2 Scoring Semantics
-
-- `heur_switch`:
-  - expression is evaluated as boolean
-  - if true, contributes `weight` to the bucket
-  - if false, contributes `0`
-- `real_heuristic`:
-  - expression is evaluated as numeric
-  - contributes `expression * weight` (or `expression` when weight is omitted/0)
-- `direction`:
-  - `maximize`: keep score sign as-is
-  - `minimize`: invert sign internally so smaller raw values are preferred
-
-### 13.3 Priority Buckets
-
-Heuristics are grouped by integer `priority` and compared lexicographically:
-
-1. highest priority bucket score
-2. next priority bucket score
-3. ... and so on
-
-This allows “harder” preferences to dominate softer stylistic preferences.
-
-### 13.4 Candidate Context Variables
-
-The expression evaluator supports candidate-aware variables:
-
-- `?current`: candidate value currently being tested
-- `voice[V].pitch[i]` style references to inspect context
-
-Typical examples:
-
-- `abs(?current - 66)`
-- `abs(?current - voice[0].pitch[0]) <= 5`
-
-### 13.5 Search Options for Heuristics
-
-Heuristic behavior can be tuned via `search_options`:
-
-| Field             | Type | Meaning                                                                                                  |
-| ----------------- | ---- | -------------------------------------------------------------------------------------------------------- |
-| `heuristic_top_k` | int  | `0` = evaluate full domain (exact), `>0` = evaluate only first K domain candidates (faster, approximate) |
-| `heuristic_trace` | bool | Enables selector diagnostics logs                                                                        |
-
-Example:
-
-```json
-"search_options": {
-  "timeout_ms": 30000,
-  "random_seed": 3,
-  "heuristic_top_k": 3,
-  "heuristic_trace": true
-}
-```
-
-### 13.6 Basic Heuristic Example
-
-```json
-{
-  "id": "prefer_close_to_first",
-  "type": "heuristic_preference",
-  "expression": {
-    "operator": "<=",
-    "left": {
-      "function": "abs",
-      "args": [
-        {
-          "operator": "-",
-          "left": "?current",
-          "right": "voice[0].pitch[0]"
-        }
-      ]
-    },
-    "right": 5
-  },
-  "mode": "heur_switch",
-  "weight": 7,
-  "priority": 10,
-  "direction": "maximize"
-}
-```
-
-### 13.7 Wildcard Heuristic Rules
-
-Wildcard heuristics let you author a single global pattern rule and automatically expand it across positions (and optionally voices/pairs), avoiding manual duplication.
-
-Supported wildcard heuristic fields:
-
-| Field             | Required    | Description                                            |
-| ----------------- | ----------- | ------------------------------------------------------ |
-| `wildcard_type`   | recommended | `sliding_window`, `for_all_voices`, `for_all_pairs`    |
-| `pattern_offsets` | no          | Relative offsets used by index templates, e.g. `[0,1]` |
-| `step_size`       | no          | Expansion step (default `1`)                           |
-| `cross_voices`    | no          | Pairwise expansion hint                                |
-
-During load, wildcard heuristic rules are expanded to concrete index-specific rules and then compiled through the normal heuristic pipeline.
-
-#### 13.7.1 Single-Voice Wildcard Example
-
-Config pattern: prefer stepwise motion everywhere.
-
-```json
-{
-  "id": "prefer_stepwise_everywhere",
-  "type": "heuristic_preference",
-  "wildcard_type": "sliding_window",
-  "pattern_offsets": [0, 1],
-  "step_size": 1,
-  "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
-  "mode": "heur_switch",
-  "weight": 4,
-  "priority": 5,
-  "direction": "maximize"
-}
-```
-
-This expands to one concrete heuristic per valid `(voice, i)` window.
-
-#### 13.7.2 Pairwise Cross-Voice Wildcard Example
-
-Config pattern: reward larger same-time pitch separation between voice pairs.
-
-```json
-{
-  "id": "prefer_contrary_interval_everywhere",
-  "type": "heuristic_energy",
-  "wildcard_type": "for_all_pairs",
-  "pattern_offsets": [0],
-  "step_size": 1,
-  "cross_voices": true,
-  "expression": {
-    "operator": "-",
-    "left": 24,
-    "right": {
-      "function": "abs",
-      "args": [
-        {
-          "operator": "-",
-          "left": "voice[v1].pitch[i]",
-          "right": "voice[v2].pitch[i]"
-        }
-      ]
-    }
-  },
-  "mode": "real_heuristic",
-  "weight": 3,
-  "priority": 8,
-  "direction": "maximize"
-}
-```
-
-This expands to one concrete heuristic per valid `(voice_a, voice_b, i)` tuple.
-
-### 13.8 Wildcard Placeholder Reference
-
-Supported placeholders in wildcard heuristic expressions:
-
-| Placeholder              | Meaning                                           |
-| ------------------------ | ------------------------------------------------- |
-| `voice[v]`               | single-voice expansion target                     |
-| `voice[v1]`, `voice[v2]` | pairwise cross-voice expansion targets            |
-| `voice[a]`, `voice[b]`   | alias for pairwise placeholders                   |
-| `[i]`, `[i+N]`, `[i-N]`  | index template substituted per expansion position |
-
-### 13.9 Operational Notes
-
-- Wildcard heuristic expansion affects only heuristic modes (`heur_switch`, `real_heuristic`).
-- Hard constraints should remain in `mode: true_false` rules.
-- Expansion is deterministic for fixed config and random seed.
-- Approximate mode (`heuristic_top_k > 0`) can change selected solutions by design.
-
-### 13.10 Reference Configs
-
-Working examples in this repository:
-
-- `configs/heuristic_smoke_8x1.json`
-- `configs/heuristic_priority_direction_8x1.json`
-- `configs/heuristic_priority_direction_topk_8x1.json`
-- `configs/heuristic_priority_direction_trace_8x1.json`
-- `configs/heuristic_wildcard_stepwise_8x1.json`
-- `configs/heuristic_wildcard_crossvoice_pairs_8x2.json`
