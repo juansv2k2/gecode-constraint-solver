@@ -10,6 +10,7 @@ A C++ implementation of a polyphonic musical constraint solving with dynamic rul
 
 - **Dynamic rules using Algebraic Expressions**: For example `voice[v].pitch[i+1] == voice[v].pitch[i] + 3`
 - **Wildcard Constraint Rules**: Sliding window patterns on single- and cross-voice relationships.
+- **Heuristic Guidance System**: Score-based candidate ordering with `heuristic_preference` and `heuristic_energy` modes; voice-specific heuristics via `candidate_voice` for harmonic and interval control.
 - **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + global metric engine.
 - **DualSolutionStorage**: Absolute and interval representation.
 - **JSON Configuration**: Configuration interface with dynamic constraints.

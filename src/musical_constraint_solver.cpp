@@ -195,6 +195,8 @@ std::vector<nlohmann::json> expand_wildcard_heuristic_rule(
                     concrete["id"] = base_id + "_v" + std::to_string(voice_a) + "_" +
                                      std::to_string(voice_b) + "_i" + std::to_string(i);
                     concrete["wildcard_generated"] = true;
+                    concrete["candidate_position"] = i;
+                    concrete["candidate_voices"] = nlohmann::json::array({voice_a, voice_b});
                     concrete.erase("wildcard_type");
                     concrete.erase("pattern_offsets");
                     concrete.erase("window_size");
@@ -224,6 +226,10 @@ std::vector<nlohmann::json> expand_wildcard_heuristic_rule(
             nlohmann::json concrete = rule_json;
             concrete["id"] = base_id + "_v" + std::to_string(voice) + "_i" + std::to_string(i);
             concrete["wildcard_generated"] = true;
+            concrete["candidate_position"] = i;
+            if (expand_voices) {
+                concrete["candidate_voice"] = voice;
+            }
             concrete.erase("wildcard_type");
             concrete.erase("pattern_offsets");
             concrete.erase("window_size");
@@ -981,13 +987,15 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
                             const std::vector<int>& target_engines,
                             const std::string& engine_type, const std::string& description,
                             const std::vector<double>& parameters) {
+    // Preserve full rule metadata for engine-targeted posting in build_configured_space_.
+    engine_rule_configs_.push_back({rule_type, function, indices, target_engine, target_engines,
+                                    engine_type, description, parameters});
     
     // Convert JSON rule configuration to actual MusicalRule objects based on rule_type or function
     if ((rule_type == "r-pitches-one-engine" || rule_type == "r-pitches-all-different" || 
          rule_type == "r-twelve-tone-voice1") && function == "all_different") {
-        // Add basic no-repetition rule for twelve-tone generation
-        twelve_tone_row_enabled_ = true;
-        add_rule(std::make_shared<NoRepetitionRule>());
+        // Engine-targeted all_different is posted later in build_configured_space_.
+        // Keep this branch as a recognized rule type with no legacy global fallback.
         
     } else if (rule_type == "r-perfect-fifth-intervals" && function == "consecutive_perfect_fifths") {
         // Enable perfect fifth intervals constraint
@@ -1034,6 +1042,7 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
 
 void Solver::clear_rules() {
     rules_.clear();
+    engine_rule_configs_.clear();
 
     // Keep rule flags consistent with an empty rule set.
     retrograde_inversion_enabled_ = false;
@@ -1257,6 +1266,91 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     if (!rules_.empty()) {
         gecode_space->add_musical_rules(rules_);
         std::cout << "DEBUG: Added " << rules_.size() << " musical rules" << std::endl;
+    }
+
+    // POST ENGINE-TARGETED RULES
+    for (const auto& cfg : engine_rule_configs_) {
+        if (!(cfg.function == "all_different" || cfg.rule_type == "r-pitches-all-different" || cfg.rule_type == "r-twelve-tone-voice1")) {
+            continue;
+        }
+
+        std::vector<int> targets;
+        if (cfg.target_engine >= 0) {
+            targets.push_back(cfg.target_engine);
+        }
+        targets.insert(targets.end(), cfg.target_engines.begin(), cfg.target_engines.end());
+        std::sort(targets.begin(), targets.end());
+        targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
+
+        if (targets.empty()) {
+            throw std::runtime_error("all_different rule '" + cfg.description + "' has no target engine");
+        }
+
+        std::vector<int> selected_indices = cfg.indices;
+        if (selected_indices.empty()) {
+            for (int i = 0; i < config_.sequence_length; ++i) {
+                selected_indices.push_back(i);
+            }
+        }
+
+        const int metric_engine_index = config_.num_voices * 2;
+        for (int engine : targets) {
+            if (engine == metric_engine_index) {
+                throw std::runtime_error("all_different rule '" + cfg.description + "' cannot target metric engine " + std::to_string(engine));
+            }
+
+            const bool is_pitch_engine = (engine % 2) == 1;
+            const bool is_rhythm_engine = (engine % 2) == 0;
+
+            if (!cfg.engine_type.empty()) {
+                if (cfg.engine_type == "pitch" && !is_pitch_engine) {
+                    throw std::runtime_error("all_different rule '" + cfg.description + "' declares engine_type='pitch' but targets non-pitch engine " + std::to_string(engine));
+                }
+                if (cfg.engine_type == "rhythm" && !is_rhythm_engine) {
+                    throw std::runtime_error("all_different rule '" + cfg.description + "' declares engine_type='rhythm' but targets non-rhythm engine " + std::to_string(engine));
+                }
+                if (cfg.engine_type == "metric") {
+                    throw std::runtime_error("all_different rule '" + cfg.description + "' cannot use engine_type='metric'");
+                }
+            }
+
+            if (is_pitch_engine) {
+                const int voice = engine / 2;
+                if (voice < 0 || voice >= config_.num_voices) {
+                    throw std::runtime_error("all_different rule '" + cfg.description + "' has out-of-range pitch engine " + std::to_string(engine));
+                }
+
+                Gecode::IntVarArgs vars;
+                for (int idx : selected_indices) {
+                    if (idx < 0 || idx >= config_.sequence_length) {
+                        throw std::runtime_error("all_different rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                    }
+                    vars << gecode_space->get_absolute_vars()[voice * config_.sequence_length + idx];
+                }
+                if (vars.size() > 1) {
+                    Gecode::distinct(*gecode_space, vars);
+                }
+            } else if (is_rhythm_engine) {
+                const int voice = engine / 2;
+                if (voice < 0 || voice >= config_.num_voices) {
+                    throw std::runtime_error("all_different rule '" + cfg.description + "' has out-of-range rhythm engine " + std::to_string(engine));
+                }
+                if (!gecode_space->has_rhythm_vars()) {
+                    throw std::runtime_error("all_different rule '" + cfg.description + "' targets rhythm engine but rhythm vars are unavailable");
+                }
+
+                Gecode::IntVarArgs vars;
+                for (int idx : selected_indices) {
+                    if (idx < 0 || idx >= config_.sequence_length) {
+                        throw std::runtime_error("all_different rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                    }
+                    vars << gecode_space->get_rhythm_vars()[voice * config_.sequence_length + idx];
+                }
+                if (vars.size() > 1) {
+                    Gecode::distinct(*gecode_space, vars);
+                }
+            }
+        }
     }
 
     // POST ADVANCED CONSTRAINTS

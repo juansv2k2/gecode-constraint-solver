@@ -552,8 +552,13 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
     // 1. Comparison operators (lowest precedence)
     std::vector<std::string> comparison_ops = {">=", "<=", "!=", "==", ">", "<"};
     
+    // Initialize depth accounting for tokens[0] being a paren (loop starts at i=1, skipping it).
+    int depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;
     for (size_t i = 1; i < tokens.size() - 1; ++i) {
         const std::string& token = tokens[i];
+        if (token == "(") { depth++; continue; }
+        if (token == ")") { depth--; continue; }
+        if (depth != 0) continue;
         
         // Check if this is a comparison operator
         if (std::find(comparison_ops.begin(), comparison_ops.end(), token) != comparison_ops.end()) {
@@ -575,8 +580,12 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
     // 2. Addition and subtraction operators (higher precedence than comparison)
     std::vector<std::string> additive_ops = {"+", "-"};
     
+    depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;
     for (size_t i = 1; i < tokens.size() - 1; ++i) {
         const std::string& token = tokens[i];
+        if (token == "(") { depth++; continue; }
+        if (token == ")") { depth--; continue; }
+        if (depth != 0) continue;
         
         // Check if this is an additive operator
         if (std::find(additive_ops.begin(), additive_ops.end(), token) != additive_ops.end()) {
@@ -598,8 +607,12 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
     // 3. Multiplication and division operators (highest precedence)
     std::vector<std::string> multiplicative_ops = {"*", "/"};
     
+    depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;
     for (size_t i = 1; i < tokens.size() - 1; ++i) {
         const std::string& token = tokens[i];
+        if (token == "(") { depth++; continue; }
+        if (token == ")") { depth--; continue; }
+        if (depth != 0) continue;
         
         // Check if this is a multiplicative operator
         if (std::find(multiplicative_ops.begin(), multiplicative_ops.end(), token) != multiplicative_ops.end()) {
@@ -615,6 +628,28 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
                 binary_node->add_child(parse_tokens(right_tokens));
                 return std::move(binary_node);
             }
+        }
+    }
+
+    // If no operators found, treat as single complex token
+    // If the entire token sequence is wrapped in matching outer parentheses, strip them and recurse.
+    // This handles cases like (A - B) - C where the opening ( at index 0 is not depth-tracked.
+    if (tokens.size() >= 3 && tokens[0] == "(" && tokens.back() == ")") {
+        int d = 0;
+        bool is_wrapped = false;
+        for (size_t k = 0; k < tokens.size(); ++k) {
+            if (tokens[k] == "(") { ++d; }
+            else if (tokens[k] == ")") {
+                --d;
+                if (d == 0) {
+                    is_wrapped = (k == tokens.size() - 1);
+                    break;
+                }
+            }
+        }
+        if (is_wrapped) {
+            std::vector<std::string> inner(tokens.begin() + 1, tokens.end() - 1);
+            return parse_tokens(inner);
         }
     }
 

@@ -40,11 +40,11 @@
   "dynamic_rules": [
     {
       "id": "prefer_parallel_fifths",
-      "type": "heuristic_preference",
+      "type": "heuristic_energy",
       "wildcard_type": "for_all_positions",
-      "pattern_offsets": [0],
-      "expression": "voice[1].pitch[i] == voice[0].pitch[i] + 6",
-      "mode": "heur_switch",
+      "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 10)",
+      "mode": "real_heuristic",
+      "candidate_voice": 1,
       "weight": 10,
       "priority": 1,
       "direction": "maximize",
@@ -61,18 +61,20 @@
         "parameters": []
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
-      "target_engine": 1,
+      "target_engines": [1, 3],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Voice 0: all notes different"
+      "description": "Voice 1 and 2: all notes different"
     },
+
     {
       "id": "stepwise_motion",
       "rule_type": "wildcard_constraint",
-      "wildcard_type": "sliding_window",
+      "wildcard_type": "for_all_voices",
       "pattern_offsets": [0, 1],
-      "constraint": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2",
+      "target_engines": [1, 3],
+      "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "enabled": true,
       "priority": 9,
       "description": "Voice 0: consecutive notes are a step apart"

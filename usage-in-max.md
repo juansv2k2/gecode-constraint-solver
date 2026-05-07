@@ -159,6 +159,27 @@ For parameter sweeps, switch to dict workflow:
 4. `solve`
 5. Record output
 
+### Dict Array Fields
+
+When using `config_dict`, the external automatically detects keys that should be JSON arrays (`dynamic_rules`, `rules`) and handles both single-item and multi-item dict entries correctly. If you store a single rule object in the dict at key `dynamic_rules`, it will be properly converted to `"dynamic_rules": [{...}]` in the internal JSON representation.
+
+**Example:** Setting a single heuristic rule via dict:
+```
+dict ruledict @name dynamic_rules[0]
+# This creates a dict entry named "dynamic_rules[0]"
+dict ruledict set id prefer_parallel_fifths
+dict ruledict set type heuristic_energy
+dict ruledict set mode real_heuristic
+dict ruledict set expression "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)"
+dict ruledict set candidate_voice 1
+dict ruledict set weight 10
+
+# Then pass to solver:
+config_dict ruledict
+```
+
+This is properly converted to the canonical array structure internally.
+
 ## 8. Front-End Consistency Note
 
 `gecode.solver` (Max), `bin/test-max-wrapper`, and `bin/dynamic-solver` are front-ends over the same core solver engine. If behavior diverges, first compare normalized JSON payloads and runtime seed/search options to confirm the inputs are actually equivalent.

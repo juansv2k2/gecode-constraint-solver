@@ -85,7 +85,8 @@ double eval_voice_access_numeric(const VoiceAccessNode& vn, const ConstraintCont
         pos = eval_position_expr(*vn.position_expr, candidate_ctx);
     }
 
-    if (voice == candidate_ctx.voice && pos == candidate_ctx.position && vn.property == "pitch") {
+    if (voice == candidate_ctx.voice && pos == candidate_ctx.position &&
+        (vn.property == "pitch" || vn.property == "pitches")) {
         return static_cast<double>(candidate_ctx.candidate_value);
     }
 
@@ -269,6 +270,27 @@ std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const
     std::string scope = rule_ast->scope;
     
     std::shared_ptr<RuleAST> shared_ast(rule_ast.release());
+    const bool has_candidate_position = rule_json.contains("candidate_position") &&
+        rule_json["candidate_position"].is_number_integer();
+    const int candidate_position = has_candidate_position
+        ? rule_json["candidate_position"].get<int>()
+        : -1;
+    const bool has_candidate_voice = rule_json.contains("candidate_voice") &&
+        rule_json["candidate_voice"].is_number_integer();
+    const int candidate_voice = has_candidate_voice
+        ? rule_json["candidate_voice"].get<int>()
+        : -1;
+    std::vector<int> candidate_voices;
+    if (rule_json.contains("candidate_voices") && rule_json["candidate_voices"].is_array()) {
+        for (const auto& voice_json : rule_json["candidate_voices"]) {
+            if (voice_json.is_number_integer()) {
+                candidate_voices.push_back(voice_json.get<int>());
+            }
+        }
+    }
+    compiled->applies_to_position = candidate_position;
+    compiled->applies_to_voice = candidate_voice;
+    compiled->applies_to_voices = candidate_voices;
 
     compiled->post_constraint = [rule_id, rule_type, scope, ast = shared_ast](ConstraintContext& ctx) {
         try {
@@ -320,8 +342,20 @@ std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const
         double direction_scale =
             (shared_ast && shared_ast->direction == "minimize") ? -1.0 : 1.0;
         if (compiled->heuristic_mode == HeuristicMode::HEUR_SWITCH) {
-            compiled->score_candidate = [score_weight, direction_scale, ast = shared_ast](
+            compiled->score_candidate = [score_weight, direction_scale, ast = shared_ast,
+                                         has_candidate_position, candidate_position,
+                                         has_candidate_voice, candidate_voice, candidate_voices](
                 const ConstraintContext& score_ctx, const HeuristicCandidateContext& candidate_ctx) {
+                if (has_candidate_position && candidate_ctx.position != candidate_position) {
+                    return 0.0;
+                }
+                if (has_candidate_voice && candidate_ctx.voice != candidate_voice) {
+                    return 0.0;
+                }
+                if (!candidate_voices.empty() &&
+                    std::find(candidate_voices.begin(), candidate_voices.end(), candidate_ctx.voice) == candidate_voices.end()) {
+                    return 0.0;
+                }
                 if (!ast || !ast->root) {
                     return 0.0;
                 }
@@ -329,8 +363,20 @@ std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const
                 return pass ? direction_scale * static_cast<double>(score_weight) : 0.0;
             };
         } else if (compiled->heuristic_mode == HeuristicMode::REAL_HEURISTIC) {
-            compiled->score_candidate = [score_weight, direction_scale, ast = shared_ast](
+            compiled->score_candidate = [score_weight, direction_scale, ast = shared_ast,
+                                         has_candidate_position, candidate_position,
+                                         has_candidate_voice, candidate_voice, candidate_voices](
                 const ConstraintContext& score_ctx, const HeuristicCandidateContext& candidate_ctx) {
+                if (has_candidate_position && candidate_ctx.position != candidate_position) {
+                    return 0.0;
+                }
+                if (has_candidate_voice && candidate_ctx.voice != candidate_voice) {
+                    return 0.0;
+                }
+                if (!candidate_voices.empty() &&
+                    std::find(candidate_voices.begin(), candidate_voices.end(), candidate_ctx.voice) == candidate_voices.end()) {
+                    return 0.0;
+                }
                 if (!ast || !ast->root) {
                     return 0.0;
                 }

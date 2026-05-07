@@ -17,6 +17,7 @@ extern "C" {
 #include <fstream>
 #include <string>
 #include <vector>
+#include <set>
 #include <nlohmann/json.hpp>
 
 namespace {
@@ -211,6 +212,11 @@ nlohmann::json max_dictionary_to_json(t_dictionary* d) {
     nlohmann::json obj = nlohmann::json::object();
     if (!d) return obj;
 
+    // Keys that should be arrays in the JSON schema
+    static const std::set<std::string> array_keys = {
+        "dynamic_rules", "rules"
+    };
+
     t_symbol** keys = nullptr;
     long numkeys = 0;
     if (dictionary_getkeys(d, &numkeys, &keys) != MAX_ERR_NONE || !keys) {
@@ -222,10 +228,36 @@ nlohmann::json max_dictionary_to_json(t_dictionary* d) {
         if (!key || !key->s_name) continue;
         const std::string key_name = key->s_name;
 
+        // Debug: print key type for dynamic_rules
+        if (key_name == "dynamic_rules") {
+            post("[gecode.solver] DEBUG: processing key '%s'", key_name.c_str());
+            if (dictionary_entryisdictionary(d, key)) {
+                post("[gecode.solver]   -> is dictionary");
+            } else if (dictionary_entryisatomarray(d, key)) {
+                post("[gecode.solver]   -> is atom array");
+            } else if (dictionary_entryisstring(d, key)) {
+                post("[gecode.solver]   -> is string");
+            } else {
+                post("[gecode.solver]   -> is other (atom?)");
+            }
+        }
+
         if (dictionary_entryisdictionary(d, key)) {
             t_object* child_obj = nullptr;
             if (dictionary_getdictionary(d, key, &child_obj) == MAX_ERR_NONE && child_obj) {
-                obj[key_name] = max_dictionary_to_json(reinterpret_cast<t_dictionary*>(child_obj));
+                nlohmann::json nested_json = max_dictionary_to_json(reinterpret_cast<t_dictionary*>(child_obj));
+                
+                // If this key should be an array and we got an object, wrap it in an array
+                if (array_keys.count(key_name) > 0 && nested_json.is_object()) {
+                    if (key_name == "dynamic_rules") {
+                        post("[gecode.solver]   -> wrapping single object into array");
+                    }
+                    nlohmann::json arr = nlohmann::json::array();
+                    arr.push_back(nested_json);
+                    obj[key_name] = arr;
+                } else {
+                    obj[key_name] = nested_json;
+                }
             }
             continue;
         }
@@ -234,7 +266,26 @@ nlohmann::json max_dictionary_to_json(t_dictionary* d) {
             long argc = 0;
             t_atom* argv = nullptr;
             if (dictionary_getatoms(d, key, &argc, &argv) == MAX_ERR_NONE) {
-                obj[key_name] = atoms_to_json_value(argc, argv);
+                if (key_name == "dynamic_rules") {
+                    post("[gecode.solver]   -> atom array path with argc=%ld", argc);
+                }
+                nlohmann::json arr_json = atoms_to_json_value(argc, argv);
+                
+                // Ensure array keys are always arrays, even with single element
+                if (array_keys.count(key_name) > 0) {
+                    if (!arr_json.is_array()) {
+                        if (key_name == "dynamic_rules") {
+                            post("[gecode.solver]   -> wrapping non-array result into array");
+                        }
+                        nlohmann::json wrapped = nlohmann::json::array();
+                        wrapped.push_back(arr_json);
+                        obj[key_name] = wrapped;
+                    } else {
+                        obj[key_name] = arr_json;
+                    }
+                } else {
+                    obj[key_name] = arr_json;
+                }
             }
             continue;
         }
@@ -251,7 +302,19 @@ nlohmann::json max_dictionary_to_json(t_dictionary* d) {
 
         t_atom a;
         if (dictionary_getatom(d, key, &a) == MAX_ERR_NONE) {
-            obj[key_name] = atom_to_json_value(a);
+            nlohmann::json atom_json = atom_to_json_value(a);
+            
+            // If this key should be an array and we got an object, wrap it in an array
+            if (array_keys.count(key_name) > 0 && atom_json.is_object()) {
+                if (key_name == "dynamic_rules") {
+                    post("[gecode.solver]   -> atom path: wrapping single object into array");
+                }
+                nlohmann::json arr = nlohmann::json::array();
+                arr.push_back(atom_json);
+                obj[key_name] = arr;
+            } else {
+                obj[key_name] = atom_json;
+            }
             continue;
         }
 

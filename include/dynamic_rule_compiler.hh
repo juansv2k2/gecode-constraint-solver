@@ -18,6 +18,7 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <algorithm>
 
 using namespace Gecode;
 using namespace GecodeClusterIntegration;
@@ -86,6 +87,9 @@ public:
     int weight = 0;
     int priority = 0;
     HeuristicMode heuristic_mode = HeuristicMode::NONE;
+    int applies_to_position = -1;
+    int applies_to_voice = -1;
+    std::vector<int> applies_to_voices;
     
     // Function to post constraint to Gecode space
     std::function<void(ConstraintContext& ctx)> post_constraint;
@@ -106,8 +110,22 @@ public:
         return static_cast<bool>(score_candidate);
     }
 
+    bool applies_to_candidate(const HeuristicCandidateContext& candidate_ctx) const {
+        if (applies_to_position >= 0 && candidate_ctx.position != applies_to_position) {
+            return false;
+        }
+        if (applies_to_voice >= 0 && candidate_ctx.voice != applies_to_voice) {
+            return false;
+        }
+        if (!applies_to_voices.empty() &&
+            std::find(applies_to_voices.begin(), applies_to_voices.end(), candidate_ctx.voice) == applies_to_voices.end()) {
+            return false;
+        }
+        return true;
+    }
+
     double evaluate_score(const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) const {
-        if (!score_candidate) {
+        if (!score_candidate || !applies_to_candidate(candidate_ctx)) {
             return 0.0;
         }
         return score_candidate(ctx, candidate_ctx);

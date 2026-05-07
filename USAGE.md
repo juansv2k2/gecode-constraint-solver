@@ -30,6 +30,7 @@ This document describes how to use the musical constraint solver: how to write c
    - 10.4 [Priority Buckets](#104-priority-buckets)
    - 10.5 [Candidate Context Variables](#105-candidate-context-variables)
    - 10.6 [Basic Heuristic Example](#106-basic-heuristic-example)
+   - 10.6a [Voice-Specific Heuristics with `candidate_voice`](#106a-voice-specific-heuristics-with-candidate_voice)
    - 10.7 [Wildcard Heuristic Rules](#107-wildcard-heuristic-rules)
 
 - 10.7.3 [for_all_positions Example](#1073-for_all_positions-example)
@@ -716,6 +717,8 @@ Use heuristic rules in `dynamic_rules` with these fields:
 | `weight`      | no       | Score multiplier (default `0`; treated as `1.0` for `real_heuristic` if omitted) |
 | `priority`    | no       | Bucket priority (default `0`; higher priority dominates in tie-break)            |
 | `direction`   | no       | `maximize` (default) or `minimize` (flips score sign internally)                 |
+| `candidate_voice` | no   | Voice index to apply heuristic only when scoring candidates for this voice (useful with `real_heuristic` mode for voice-specific scoring) |
+| `candidate_voices` | no  | Array of voice indices for multi-voice scoping (alternative to single `candidate_voice`) |
 | `description` | no       | Free-text label shown in logs                                                    |
 
 ### 10.3 Scoring Semantics
@@ -811,6 +814,56 @@ This rule:
 4. Maximizes (higher score is better)
 
 Combined with other heuristics at priority 5, they share the same bucket. Lower priority heuristics only apply if all priority-5 heuristics are equal.
+
+### 10.6a Voice-Specific Heuristics with `candidate_voice`
+
+Use `candidate_voice` (or `candidate_voices`) to apply a heuristic only when scoring candidates for a specific voice. This is especially useful with `real_heuristic` mode for voice-specific numeric scoring.
+
+**Example: Harmonic interval heuristic**
+
+Prefer voice 1 to stay a perfect fifth (7 semitones) above voice 0:
+
+```json
+{
+  "id": "prefer_parallel_fifths",
+  "type": "heuristic_energy",
+  "mode": "real_heuristic",
+  "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)",
+  "candidate_voice": 1,
+  "weight": 10,
+  "priority": 3,
+  "direction": "maximize",
+  "wildcard_type": "for_all_positions",
+  "description": "Prefer voice 1 to maintain a perfect fifth above voice 0"
+}
+```
+
+How it works:
+
+- `candidate_voice: 1` — this heuristic is **only evaluated** when the solver is assigning a value to voice 1
+- Expression: `24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)`
+  - Calculates the absolute difference between the interval and 7 semitones
+  - Subtracts from 24 to invert: target interval scores 24, off-by-1 scores 23, off-by-2 scores 22, etc.
+- The score influences the solver to pick voice-1 pitches that maintain the fifth when possible
+- `wildcard_type: "for_all_positions"` expands this to evaluate at every position `i` in the solution
+
+**Common harmonic intervals:**
+- Minor third: 3 semitones
+- Major third: 4 semitones
+- Perfect fourth: 5 semitones
+- Perfect fifth: 7 semitones
+- Major sixth: 9 semitones
+- Octave: 12 semitones
+
+**In Max with dynamic intervals:**
+
+Use `sprintf` to format the expression with a variable interval:
+
+```
+sprintf "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - %d)" @args interval_value
+```
+
+This allows real-time adjustment of the favored interval from a Max number box.
 
 ### 10.7 Wildcard Heuristic Rules
 

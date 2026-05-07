@@ -115,6 +115,13 @@ int select_value_by_heuristic(const Space& home, IntVar x, int i) {
     HeuristicValueScoreBuckets best_buckets =
         g_pitch_heuristic_scorer(space, voice, position, best_value);
 
+    if (g_pitch_trace) {
+        std::cout << "🎯 candidate voice=" << voice
+                  << " pos=" << position
+                  << " value=" << best_value
+                  << " buckets=" << buckets_to_string(best_buckets) << std::endl;
+    }
+
     int evaluated = 1;
     const bool top_k_enabled = g_pitch_top_k > 0;
 
@@ -126,6 +133,13 @@ int select_value_by_heuristic(const Space& home, IntVar x, int i) {
         HeuristicValueScoreBuckets candidate_buckets =
             g_pitch_heuristic_scorer(space, voice, position, candidate);
         ++evaluated;
+
+        if (g_pitch_trace) {
+            std::cout << "🎯 candidate voice=" << voice
+                      << " pos=" << position
+                      << " value=" << candidate
+                      << " buckets=" << buckets_to_string(candidate_buckets) << std::endl;
+        }
 
         if (candidate_is_better(
                 candidate_buckets,

@@ -294,26 +294,17 @@ public:
                 }
                 
                 // Rule ends with closing brace (with or without comma)
-                if ((line == "}" || line == "},") && in_rule_object) {
+                if ((line == "}" || line == "},") && in_rule_object && !in_constraint_function) {
                     in_rule_object = false;
                     in_constraint_function = false;
                     if (!current_rule.rule_type.empty()) {
-                        // TEMPORARY: Fix indices and target_engine values for testing
-                        current_rule.indices = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};  // 12-tone indices
-                        if (current_rule.rule_type == "r-pitches-one-engine") {
-                            if (rules_.size() == 0) current_rule.target_engine = 1;  // First pitch rule -> Engine 1
-                            else current_rule.target_engine = 3;  // Second pitch rule -> Engine 3
-                        } else if (current_rule.rule_type == "r-twelve-tone-row-generator") {
-                            current_rule.target_engine = 1;  // Twelve-tone generator -> Engine 1
-                        } else if (current_rule.rule_type == "r-cross-voice-no-unisons") {
-                            current_rule.target_engine = -1;  // Cross-engine constraint uses target_engines
-                            current_rule.target_engines = {1, 3};  // Engines 1 and 3
-                        } else if (current_rule.rule_type == "r-rhythmic-uniformity") {
-                            if (rules_.size() == 3) current_rule.target_engine = 0;  // First rhythm rule -> Engine 0  
-                            else current_rule.target_engine = 2;  // Second rhythm rule -> Engine 2
-                        } else if (current_rule.rule_type == "r-metric-signature") {
-                            current_rule.target_engine = 4;  // Metric rule -> Engine 4
-                            current_rule.indices = {0};  // Only one metric value
+                        const bool has_target_engine = (current_rule.target_engine >= 0);
+                        const bool has_target_engines = !current_rule.target_engines.empty();
+                        if (!has_target_engine && !has_target_engines) {
+                            std::cout << "❌ Rule validation error: rule '"
+                                      << (current_rule.description.empty() ? current_rule.rule_type : current_rule.description)
+                                      << "' is missing explicit target_engine/target_engines" << std::endl;
+                            return false;
                         }
                         rules_.push_back(current_rule);
                     }
@@ -374,6 +365,18 @@ public:
                     else if (line.find("\"indices\"") != std::string::npos) {
                         current_rule.indices = parseIntArray(line);
                         std::cout << "DEBUG: Parsed " << current_rule.indices.size() << " indices from line: " << line << std::endl;
+                    }
+                    else if (line.find("\"target_engine\"") != std::string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != std::string::npos) {
+                            std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                            try {
+                                current_rule.target_engine = std::stoi(value);
+                            } catch (...) {}
+                        }
+                    }
+                    else if (line.find("\"target_engines\"") != std::string::npos) {
+                        current_rule.target_engines = parseIntArray(line);
                     }
                     else if (line.find("\"voice\"") != std::string::npos) {
                         size_t pos = line.find(":");
@@ -1235,6 +1238,12 @@ int main(int argc, char* argv[]) {
                         try {
                             std::string rule_type = rule_json.value("rule_type", "unknown");
                             std::string type_field = rule_json.value("type", "");
+
+                            const bool has_target_engine = rule_json.contains("target_engine") && rule_json["target_engine"].is_number_integer() && rule_json["target_engine"].get<int>() >= 0;
+                            const bool has_target_engines = rule_json.contains("target_engines") && rule_json["target_engines"].is_array() && !rule_json["target_engines"].empty();
+                            if (!rule_type.empty() && !has_target_engine && !has_target_engines && type_field != "index") {
+                                throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing explicit target_engine/target_engines");
+                            }
                             
                             if (rule_type == "wildcard_constraint") {
                                 // Process wildcard rule - apply directly using new integration method

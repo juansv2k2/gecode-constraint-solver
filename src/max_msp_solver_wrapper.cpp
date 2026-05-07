@@ -235,6 +235,23 @@ std::vector<std::string> split_path_tokens(const std::string& key) {
             ++i;
             continue;
         }
+        if (key[i] == '[') {
+            if (!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
+            }
+
+            std::string index;
+            ++i;
+            while (i < key.size() && key[i] != ']') {
+                index.push_back(key[i]);
+                ++i;
+            }
+            if (!index.empty()) {
+                tokens.push_back(index);
+            }
+            continue;
+        }
         if (key[i] == '.') {
             if (!current.empty()) {
                 tokens.push_back(current);
@@ -255,18 +272,68 @@ void set_nested_json_path(nlohmann::json& root,
                           const nlohmann::json& value) {
     if (tokens.empty()) return;
 
+    auto token_is_index = [](const std::string& s) {
+        if (s.empty()) return false;
+        for (char c : s) {
+            if (!std::isdigit(static_cast<unsigned char>(c))) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     nlohmann::json* cur = &root;
     for (size_t i = 0; i < tokens.size(); ++i) {
         const std::string& t = tokens[i];
         const bool last = (i + 1 == tokens.size());
+
+        if (token_is_index(t)) {
+            const std::size_t index = static_cast<std::size_t>(std::stoul(t));
+            if (!cur->is_array()) {
+                *cur = nlohmann::json::array();
+            }
+            while (cur->size() <= index) {
+                cur->push_back(nullptr);
+            }
+
+            if (last) {
+                (*cur)[index] = value;
+                continue;
+            }
+
+            const bool next_is_index = token_is_index(tokens[i + 1]);
+            nlohmann::json& child = (*cur)[index];
+            if (next_is_index) {
+                if (!child.is_array()) {
+                    child = nlohmann::json::array();
+                }
+            } else {
+                if (!child.is_object()) {
+                    child = nlohmann::json::object();
+                }
+            }
+            cur = &child;
+            continue;
+        }
+
+        if (!cur->is_object()) {
+            *cur = nlohmann::json::object();
+        }
+
         if (last) {
             (*cur)[t] = value;
-        } else {
-            if (!(*cur).contains(t) || !(*cur)[t].is_object()) {
-                (*cur)[t] = nlohmann::json::object();
-            }
-            cur = &(*cur)[t];
+            continue;
         }
+
+        const bool next_is_index = token_is_index(tokens[i + 1]);
+        if (!(*cur).contains(t)) {
+            (*cur)[t] = next_is_index ? nlohmann::json::array() : nlohmann::json::object();
+        } else if (next_is_index && !(*cur)[t].is_array()) {
+            (*cur)[t] = nlohmann::json::array();
+        } else if (!next_is_index && !(*cur)[t].is_object()) {
+            (*cur)[t] = nlohmann::json::object();
+        }
+        cur = &(*cur)[t];
     }
 }
 
@@ -777,6 +844,14 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                     }
                 }
 
+                const bool has_target_engine = target_engine >= 0;
+                const bool has_target_engines = !target_engines.empty();
+                if (!rule_type.empty() && !has_target_engine && !has_target_engines) {
+                    throw std::runtime_error(
+                        "rule '" + (r.value("id", std::string("")) .empty() ? rule_type : r.value("id", std::string(""))) +
+                        "' is missing explicit target_engine/target_engines");
+                }
+
                 std::string engine_type = r.value("engine_type", std::string(""));
                 std::string description = r.value("description", std::string(""));
 
@@ -827,6 +902,12 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
                     const std::string rule_type = rule_json.value("rule_type", "");
                     const std::string type_field = rule_json.value("type", "");
+
+                    const bool has_target_engine = rule_json.contains("target_engine") && rule_json["target_engine"].is_number_integer() && rule_json["target_engine"].get<int>() >= 0;
+                    const bool has_target_engines = rule_json.contains("target_engines") && rule_json["target_engines"].is_array() && !rule_json["target_engines"].empty();
+                    if (!rule_type.empty() && !has_target_engine && !has_target_engines && type_field != "index") {
+                        throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing explicit target_engine/target_engines");
+                    }
 
                     if (rule_type == "wildcard_constraint") {
                         auto compiled = DynamicRules::WildcardRuleCompiler::compile_wildcard_from_json(rule_json);
