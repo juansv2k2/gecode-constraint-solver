@@ -164,6 +164,7 @@ For parameter sweeps, switch to dict workflow:
 When using `config_dict`, the external automatically detects keys that should be JSON arrays (`dynamic_rules`, `rules`) and handles both single-item and multi-item dict entries correctly. If you store a single rule object in the dict at key `dynamic_rules`, it will be properly converted to `"dynamic_rules": [{...}]` in the internal JSON representation.
 
 **Example:** Setting a single heuristic rule via dict:
+
 ```
 dict ruledict @name dynamic_rules[0]
 # This creates a dict entry named "dynamic_rules[0]"

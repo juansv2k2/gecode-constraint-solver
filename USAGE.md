@@ -708,18 +708,18 @@ The solver supports two heuristic rule type categories. Choose based on your exp
 
 Use heuristic rules in `dynamic_rules` with these fields:
 
-| Field         | Required | Description                                                                      |
-| ------------- | -------- | -------------------------------------------------------------------------------- |
-| `id`          | yes      | Rule identifier (used in logs)                                                   |
-| `type`        | yes      | Rule category: `heuristic_preference` or `heuristic_energy`                      |
-| `expression`  | yes      | Boolean (for heuristic_preference) or numeric (for heuristic_energy) expression  |
-| `mode`        | yes      | `heur_switch` (for preference) or `real_heuristic` (for energy)                  |
-| `weight`      | no       | Score multiplier (default `0`; treated as `1.0` for `real_heuristic` if omitted) |
-| `priority`    | no       | Bucket priority (default `0`; higher priority dominates in tie-break)            |
-| `direction`   | no       | `maximize` (default) or `minimize` (flips score sign internally)                 |
-| `candidate_voice` | no   | Voice index to apply heuristic only when scoring candidates for this voice (useful with `real_heuristic` mode for voice-specific scoring) |
-| `candidate_voices` | no  | Array of voice indices for multi-voice scoping (alternative to single `candidate_voice`) |
-| `description` | no       | Free-text label shown in logs                                                    |
+| Field              | Required | Description                                                                                                                               |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | yes      | Rule identifier (used in logs)                                                                                                            |
+| `type`             | yes      | Rule category: `heuristic_preference` or `heuristic_energy`                                                                               |
+| `expression`       | yes      | Boolean (for heuristic_preference) or numeric (for heuristic_energy) expression                                                           |
+| `mode`             | yes      | `heur_switch` (for preference) or `real_heuristic` (for energy)                                                                           |
+| `weight`           | no       | Score multiplier (default `0`; treated as `1.0` for `real_heuristic` if omitted)                                                          |
+| `priority`         | no       | Bucket priority (default `0`; higher priority dominates in tie-break)                                                                     |
+| `direction`        | no       | `maximize` (default) or `minimize` (flips score sign internally)                                                                          |
+| `candidate_voice`  | no       | Voice index to apply heuristic only when scoring candidates for this voice (useful with `real_heuristic` mode for voice-specific scoring) |
+| `candidate_voices` | no       | Array of voice indices for multi-voice scoping (alternative to single `candidate_voice`)                                                  |
+| `description`      | no       | Free-text label shown in logs                                                                                                             |
 
 ### 10.3 Scoring Semantics
 
@@ -848,6 +848,7 @@ How it works:
 - `wildcard_type: "for_all_positions"` expands this to evaluate at every position `i` in the solution
 
 **Common harmonic intervals:**
+
 - Minor third: 3 semitones
 - Major third: 4 semitones
 - Perfect fourth: 5 semitones
