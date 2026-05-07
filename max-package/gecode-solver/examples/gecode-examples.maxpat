@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ -2526.0, -378.0, 2492.0, 1344.0 ],
+		"rect" : [ 34.0, 94.0, 1660.0, 989.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -40,17 +40,117 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
-					"id" : "obj-22",
+					"id" : "obj-27",
 					"maxclass" : "newobj",
-					"numinlets" : 6,
+					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 167.682930827140808, 313.414641618728638, 100.0, 22.0 ],
-					"saved_object_attributes" : 					{
-						"versionnumber" : 80300
-					}
-,
-					"text" : "bach.beatbox"
+					"patching_rect" : [ 861.0, 497.0, 231.0, 22.0 ],
+					"text" : "prepend set dynamic_rules[0]::expression"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-23",
+					"maxclass" : "number",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "", "bang" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 861.0, 432.0, 50.0, 22.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-21",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 861.0, 468.0, 500.0, 22.0 ],
+					"text" : "sprintf symout \"24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - %d)\""
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-7",
+					"maxclass" : "dict.view",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 27.0, 622.0, 427.0, 403.5 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-3",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 1034.0, 87.0, 173.0, 20.0 ],
+					"text" : "prefer fixed intervals (heuristic)"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-18",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 41.0, 409.0, 203.0, 22.0 ],
+					"text" : "6 5 5 5 5 5 5 6"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-2",
+					"maxclass" : "newobj",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 27.0, 365.0, 87.0, 22.0 ],
+					"text" : "bach.- @out m"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-20",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 354.0, 86.0, 666.0, 22.0 ],
+					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/heuristic_all_positions_example.json\""
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-16",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 1029.0, 54.0, 112.0, 20.0 ],
+					"text" : "12-tone palindrome"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-14",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 166.0, 468.0, 669.0, 22.0 ],
+					"text" : "read \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/heuristic_all_positions_example.json\", bang"
 				}
 
 			}
@@ -61,7 +161,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 276.0, 53.0, 162.0, 22.0 ],
+					"patching_rect" : [ 508.0, 121.0, 162.0, 22.0 ],
 					"text" : "config_dict_debug demo_cfg"
 				}
 
@@ -73,8 +173,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 51.219513416290283, 371.951228380203247, 321.0, 22.0 ],
-					"text" : "77 68 63 73 67 61 64 75 69 65 71 72 70 62 74 76 66 60"
+					"patching_rect" : [ 174.0, 318.0, 321.0, 22.0 ],
+					"text" : "83 81 79 77 76 74 72 71"
 				}
 
 			}
@@ -85,8 +185,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 42.682927846908569, 418.902449011802673, 321.0, 22.0 ],
-					"text" : "65 64 65 64 65 64"
+					"patching_rect" : [ 174.0, 355.0, 321.0, 22.0 ],
+					"text" : "77 76 74 72 71 69 67 65"
 				}
 
 			}
@@ -97,7 +197,7 @@
 					"numinlets" : 3,
 					"numoutlets" : 3,
 					"outlettype" : [ "", "", "" ],
-					"patching_rect" : [ 26.829268932342529, 321.951227188110352, 56.0, 22.0 ],
+					"patching_rect" : [ 27.0, 280.0, 100.0, 22.0 ],
 					"text" : "route 0 1"
 				}
 
@@ -109,70 +209,32 @@
 					"numinlets" : 2,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 28.048781156539917, 183.536589741706848, 99.0, 22.0 ],
+					"patching_rect" : [ 27.0, 237.0, 99.0, 22.0 ],
 					"text" : "route voice_pitch"
 				}
 
 			}
 , 			{
 				"box" : 				{
-					"id" : "obj-9",
-					"maxclass" : "number",
-					"numinlets" : 1,
-					"numoutlets" : 2,
-					"outlettype" : [ "", "bang" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 1150.609783530235291, 274.390250444412231, 50.0, 22.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"fontname" : "Arial",
-					"fontsize" : 13.0,
-					"id" : "obj-6",
+					"id" : "obj-5",
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1150.609783530235291, 303.658543825149536, 222.0, 23.0 ],
-					"text" : "set search_options::random_seed $1"
+					"patching_rect" : [ 166.0, 497.0, 669.0, 22.0 ],
+					"text" : "read \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/twelve_tone_palindrome_config.json\", bang"
 				}
 
 			}
 , 			{
 				"box" : 				{
-					"fontname" : "Arial",
-					"fontsize" : 13.0,
-					"id" : "obj-1",
+					"id" : "obj-4",
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 760.365871787071228, 303.658543825149536, 357.0, 23.0 ],
-					"text" : "set engine_domains::engine_0::duration_values 1/8 1/4 1/16"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-3",
-					"maxclass" : "button",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "bang" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 487.195133566856384, 210.365858674049377, 24.0, 24.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-7",
-					"maxclass" : "dict.view",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 487.195133566856384, 348.780496120452881, 625.0, 488.0 ]
+					"patching_rect" : [ 335.0, 53.0, 665.0, 22.0 ],
+					"text" : "config_file \"/Users/juanvassallo/Documents/Max 8/Packages/gecode-solver/examples/twelve_tone_palindrome_config.json\""
 				}
 
 			}
@@ -183,7 +245,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 5,
 					"outlettype" : [ "dictionary", "", "", "", "" ],
-					"patching_rect" : [ 487.195133566856384, 274.390250444412231, 100.0, 22.0 ],
+					"patching_rect" : [ 27.0, 587.0, 100.0, 22.0 ],
 					"saved_object_attributes" : 					{
 						"embed" : 0,
 						"legacy" : 1,
@@ -202,8 +264,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 599.390258193016052, 303.658543825149536, 145.0, 22.0 ],
-					"text" : "set solution_length 24"
+					"patching_rect" : [ 189.0, 533.0, 145.0, 22.0 ],
+					"text" : "set solution_length 5"
 				}
 
 			}
@@ -214,7 +276,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 444.512205719947815, 53.0, 125.0, 22.0 ],
+					"patching_rect" : [ 374.0, 121.0, 125.0, 22.0 ],
 					"text" : "config_dict demo_cfg"
 				}
 
@@ -225,8 +287,8 @@
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 30.0, 16.0, 282.0, 20.0 ],
-					"text" : "gecode.solver help - async musical constraint solve"
+					"patching_rect" : [ 30.0, 16.0, 138.0, 20.0 ],
+					"text" : "gecode.solver examples"
 				}
 
 			}
@@ -237,7 +299,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 30.0, 53.0, 45.0, 22.0 ],
+					"patching_rect" : [ 27.0, 60.0, 45.0, 22.0 ],
 					"text" : "solve"
 				}
 
@@ -249,7 +311,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 86.0, 53.0, 48.0, 22.0 ],
+					"patching_rect" : [ 84.0, 60.0, 48.0, 22.0 ],
 					"text" : "status"
 				}
 
@@ -261,7 +323,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 145.0, 53.0, 62.0, 22.0 ],
+					"patching_rect" : [ 143.0, 60.0, 62.0, 22.0 ],
 					"text" : "get_last"
 				}
 
@@ -273,7 +335,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 218.0, 53.0, 52.0, 22.0 ],
+					"patching_rect" : [ 216.0, 60.0, 52.0, 22.0 ],
 					"text" : "cancel"
 				}
 
@@ -285,7 +347,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 3,
 					"outlettype" : [ "", "", "" ],
-					"patching_rect" : [ 28.048781156539917, 133.536588549613953, 100.0, 22.0 ],
+					"patching_rect" : [ 27.0, 187.0, 100.0, 22.0 ],
 					"text" : "gecode.solver"
 				}
 
@@ -296,7 +358,7 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 187.195126414299011, 183.536589741706848, 96.0, 22.0 ],
+					"patching_rect" : [ 130.0, 237.0, 132.0, 22.0 ],
 					"text" : "print solver_json"
 				}
 
@@ -307,60 +369,17 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 285.365860462188721, 183.536589741706848, 106.0, 22.0 ],
+					"patching_rect" : [ 273.0, 237.0, 140.0, 22.0 ],
 					"text" : "print solver_status"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"fontface" : 1,
-					"fontsize" : 16.0,
-					"id" : "obj-heur-title",
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 1199.390272498130798, 457.92684018611908, 750.0, 24.0 ],
-					"text" : "HEURISTIC-GUIDED MUSICAL CONSTRAINT SOLVING EXAMPLE"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-heur-desc",
-					"linecount" : 5,
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 1199.390272498130798, 487.804889678955078, 785.0, 74.0 ],
-					"text" : "This example demonstrates combining hard constraints with multi-priority heuristics. The solver generates smooth 8-note melodies constrained by:\n • Hard: No repeated adjacent notes, max interval = major sixth\n • Priority 5 (highest): Prefer stepwise motion for smooth melody\n • Priority 3 (medium): Prefer consonant scale degrees\n • Priority 1 (lowest): Prefer pitches near middle of range"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-heur-guide",
-					"linecount" : 3,
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 1199.390272498130798, 587.804892063140869, 750.0, 47.0 ],
-					"text" : "How to use: Click the message above to load the config, then click 'solve' button at top. The heuristic priorities guide the search—higher priority heuristics dominate when multiple preferences apply. Result shows melody that satisfies hard constraints while optimizing heuristic preferences."
 				}
 
 			}
  ],
 		"lines" : [ 			{
 				"patchline" : 				{
-					"destination" : [ "obj-dict", 0 ],
-					"source" : [ "obj-1", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-12", 1 ],
-					"midpoints" : [ 36.329268932342529, 407.731714367866516, 354.182927846908569, 407.731714367866516 ],
+					"midpoints" : [ 36.5, 349.5, 485.5, 349.5 ],
+					"order" : 0,
 					"source" : [ "obj-10", 0 ]
 				}
 
@@ -368,14 +387,32 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-13", 1 ],
-					"midpoints" : [ 54.829268932342529, 353.597567677497864, 362.719513416290283, 353.597567677497864 ],
+					"midpoints" : [ 77.0, 310.0, 485.5, 310.0 ],
+					"order" : 0,
 					"source" : [ "obj-10", 1 ]
 				}
 
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-2", 0 ],
+					"order" : 1,
+					"source" : [ "obj-10", 1 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-2", 1 ],
+					"order" : 1,
+					"source" : [ "obj-10", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-solver", 0 ],
+					"midpoints" : [ 517.5, 178.0, 36.5, 178.0 ],
 					"source" : [ "obj-11", 0 ]
 				}
 
@@ -383,14 +420,62 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-dict", 0 ],
-					"source" : [ "obj-3", 0 ]
+					"midpoints" : [ 175.5, 571.0, 36.5, 571.0 ],
+					"source" : [ "obj-14", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-18", 1 ],
+					"midpoints" : [ 36.5, 397.5, 234.5, 397.5 ],
+					"source" : [ "obj-2", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-solver", 0 ],
+					"midpoints" : [ 363.5, 130.5, 36.5, 130.5 ],
+					"source" : [ "obj-20", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-27", 0 ],
+					"source" : [ "obj-21", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-21", 0 ],
+					"source" : [ "obj-23", 0 ]
 				}
 
 			}
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-dict", 0 ],
-					"source" : [ "obj-6", 0 ]
+					"midpoints" : [ 870.5, 573.5, 36.5, 573.5 ],
+					"source" : [ "obj-27", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-solver", 0 ],
+					"midpoints" : [ 344.5, 114.0, 36.5, 114.0 ],
+					"source" : [ "obj-4", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-dict", 0 ],
+					"midpoints" : [ 175.5, 571.5, 36.5, 571.5 ],
+					"source" : [ "obj-5", 0 ]
 				}
 
 			}
@@ -403,14 +488,8 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-6", 0 ],
-					"source" : [ "obj-9", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-solver", 0 ],
+					"midpoints" : [ 225.5, 105.5, 36.5, 105.5 ],
 					"source" : [ "obj-cancel", 0 ]
 				}
 
@@ -425,6 +504,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-solver", 0 ],
+					"midpoints" : [ 383.5, 161.0, 36.5, 161.0 ],
 					"source" : [ "obj-dict-config", 0 ]
 				}
 
@@ -432,6 +512,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-dict", 0 ],
+					"midpoints" : [ 198.5, 570.0, 36.5, 570.0 ],
 					"source" : [ "obj-dict-set-len", 0 ]
 				}
 
@@ -439,6 +520,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-solver", 0 ],
+					"midpoints" : [ 152.5, 105.5, 36.5, 105.5 ],
 					"source" : [ "obj-getlast", 0 ]
 				}
 
@@ -460,7 +542,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-print-json", 0 ],
-					"midpoints" : [ 78.048781156539917, 174.036589741706848, 196.695126414299011, 174.036589741706848 ],
+					"midpoints" : [ 77.0, 228.0, 139.5, 228.0 ],
 					"source" : [ "obj-solver", 1 ]
 				}
 
@@ -468,7 +550,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-print-status", 0 ],
-					"midpoints" : [ 118.548781156539917, 168.036589741706848, 294.865860462188721, 168.036589741706848 ],
+					"midpoints" : [ 117.5, 222.0, 282.5, 222.0 ],
 					"source" : [ "obj-solver", 2 ]
 				}
 
@@ -476,13 +558,29 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-solver", 0 ],
+					"midpoints" : [ 93.5, 105.5, 36.5, 105.5 ],
 					"source" : [ "obj-status", 0 ]
 				}
 
 			}
  ],
 		"dependency_cache" : [ 			{
-				"name" : "bach.beatbox.mxo",
+				"name" : "bach.-.maxpat",
+				"bootpath" : "~/Documents/Max 8/Packages/bach/patchers",
+				"patcherrelativepath" : "../../bach/patchers",
+				"type" : "JSON",
+				"implicit" : 1
+			}
+, 			{
+				"name" : "bach.args.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "bach.expr.mxo",
+				"type" : "iLaX"
+			}
+, 			{
+				"name" : "bach.portal.mxo",
 				"type" : "iLaX"
 			}
 , 			{

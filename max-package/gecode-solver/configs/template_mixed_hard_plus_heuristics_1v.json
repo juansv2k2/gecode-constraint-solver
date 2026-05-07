@@ -9,27 +9,15 @@
     "timeout_ms": 5000
   },
   "engine_domains": {
-    "engine_0": {
-      "type": "rhythm",
-      "voice": 0,
-      "duration_values": ["1/8", "1/4"]
-    },
-    "engine_1": {
-      "type": "pitch",
-      "voice": 0,
-      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
-    }
+    "engine_0": { "type": "rhythm", "voice": 0, "duration_values": ["1/8", "1/4"] },
+    "engine_1": { "type": "pitch", "voice": 0, "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
   },
   "rules": [],
   "dynamic_rules": [
     {
       "id": "hard_no_repeat_0_1",
       "type": "basic_constraint",
-      "expression": {
-        "operator": "!=",
-        "left": "voice[0].pitch[0]",
-        "right": "voice[0].pitch[1]"
-      },
+      "expression": { "operator": "!=", "left": "voice[0].pitch[0]", "right": "voice[0].pitch[1]" },
       "mode": "true_false",
       "description": "Hard rule"
     },
@@ -54,7 +42,9 @@
         "left": 10,
         "right": {
           "function": "abs",
-          "args": [{ "operator": "-", "left": "?current", "right": 65 }]
+          "args": [
+            { "operator": "-", "left": "?current", "right": 65 }
+          ]
         }
       },
       "mode": "real_heuristic",
