@@ -24,6 +24,17 @@ namespace GecodeClusterIntegration {
 
 using namespace Gecode;
 
+enum class VariableBranchingStrategy {
+    INPUT_ORDER,
+    FIRST_FAIL
+};
+
+enum class ValueSelectionStrategy {
+    MIN,
+    RANDOM,
+    HEURISTIC
+};
+
 class IntegratedMusicalSpace;
 
 using HeuristicValueScoreBuckets = std::vector<std::pair<int, double>>;
@@ -117,7 +128,8 @@ private:
     
     // Per-voice state
     int num_voices_;
-    AdvancedBackjumping::BackjumpMode backjump_mode_;
+    VariableBranchingStrategy variable_branching_;
+    ValueSelectionStrategy value_selection_;
     std::unique_ptr<MusicalConstraints::DualSolutionStorage> solution_storage_;
     bool vocal_space_configured_;
 
@@ -135,26 +147,30 @@ public:
     // Constructor (Gecode 6: no bool share)
     // Single global domain for all voices
     IntegratedMusicalSpace(int length, int voices,
-                           AdvancedBackjumping::BackjumpMode mode,
+                           VariableBranchingStrategy variable_branching,
+                           ValueSelectionStrategy value_selection,
                            const std::vector<int>& note_domain,
                            unsigned int random_seed = 0);
 
     // Constructor with per-voice domains (voice_domains[v] = domain for voice v)
     IntegratedMusicalSpace(int length, int voices,
-                           AdvancedBackjumping::BackjumpMode mode,
+                           VariableBranchingStrategy variable_branching,
+                           ValueSelectionStrategy value_selection,
                            const std::vector<std::vector<int>>& voice_domains,
                            unsigned int random_seed = 0);
 
     // Constructor with per-voice pitch AND rhythm domains
     IntegratedMusicalSpace(int length, int voices,
-                           AdvancedBackjumping::BackjumpMode mode,
+                           VariableBranchingStrategy variable_branching,
+                           ValueSelectionStrategy value_selection,
                            const std::vector<std::vector<int>>& voice_domains,
                            const std::vector<std::vector<int>>& voice_rhythm_domains,
                            unsigned int random_seed = 0);
 
     // Constructor with per-voice pitch/rhythm domains and metric engine domain
     IntegratedMusicalSpace(int length, int voices,
-                           AdvancedBackjumping::BackjumpMode mode,
+                           VariableBranchingStrategy variable_branching,
+                           ValueSelectionStrategy value_selection,
                            const std::vector<std::vector<int>>& voice_domains,
                            const std::vector<std::vector<int>>& voice_rhythm_domains,
                            const std::vector<int>& metric_domain_numerators,
@@ -188,7 +204,8 @@ public:
     void add_compiled_musical_rule(std::unique_ptr<MusicalRule> rule);
     void apply_compiled_rule_constraints(const MusicalRule& rule);
     bool evaluate_compiled_rules() const;
-    void set_backjump_mode(AdvancedBackjumping::BackjumpMode mode);
+    void set_search_strategies(VariableBranchingStrategy variable_branching,
+                               ValueSelectionStrategy value_selection);
 
     // ---- Specific musical constraints ----
     void post_twelve_tone_row_constraint();

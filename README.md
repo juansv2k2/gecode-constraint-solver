@@ -31,7 +31,7 @@ All three paths use the same core solver engine. For equivalent normalized input
 
 - **MusicalConstraintSolver**: Main interface and configuration.
 - **GecodeClusterIntegration**: Constraint programming bridge between Cluster and Gecode.
-- **AdvancedBackjumping**: Backjumping strategy integration.
+- **Gecode Search Strategies**: Configurable variable/value ordering via `search_options`.
 
 **Status**: CLI solver, Max wrapper, and Max external are operational. Metric-domain and timepoint-based metric segmentation are supported in production configs.
 
@@ -42,7 +42,7 @@ The implementation follows the Cluster-Engine architecture with:
 - **Multi-Engine Coordination**: Rhythm and pitch engines per voice with a shared metric engine.
 - **Metric Domain + Timepoints**: `r-metric-signature` supports explicit score-time boundaries (for example `"0q"`, `"4q"`, `"7q"`).
 - **Heuristic Guidance System**: Musical intelligence for candidate sorting.
-- **Advanced Backjumping**: Musical context-aware search strategies.
+- **Gecode-Native Search**: DFS with configurable branching and value ordering.
 - **Rule Interface System**: Specialized musical constraint types.
 
 ### Metric Domain and Timepoint Semantics
@@ -325,15 +325,27 @@ class CustomRule : public MusicalRule {
 };
 ```
 
-### Adding Backjumping Strategies
+### Search Strategy Tuning
 
-```cpp
-// Implement BackjumpStrategy interface
-class CustomStrategy : public BackjumpStrategy {
-    bool should_backjump(const SearchState& state) override;
-    int determine_backjump_level(const SearchState& state) override;
-};
+Use `search_options` in config files to control active Gecode search behavior:
+
+```json
+"search_options": {
+  "engine": "dfs",
+  "branching": "first_fail",
+  "value_order": "heuristic",
+  "restart_policy": "none",
+  "random_seed": 42
+}
 ```
+
+Musical guidance:
+
+- `branching: "first_fail"` usually works best for dense harmonic constraints (counterpoint, strict cross-voice intervals) because it prunes contradictions early.
+- `branching: "input_order"` is useful for phrase-shape problems where early notes define the style and you want left-to-right musical commitment.
+- `value_order: "heuristic"` is best when you provide heuristic rules and want musically plausible lines quickly (stepwise melody, register control, consonance bias).
+- `value_order: "min"` is best for deterministic debugging and reproducible regression tests.
+- `value_order: "random"` with a nonzero `random_seed` is best for generating controlled variation across multiple runs.
 
 ## License
 

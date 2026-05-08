@@ -1728,10 +1728,6 @@ Solver::Solver(const SolverConfig& config) : config_(config) {
 }
 
 void Solver::initialize_solver() {
-// Create backjump analyzer
-    backjump_analyzer_ = std::make_unique<AdvancedBackjumping::AdvancedBackjumpAnalyzer>(config_.backjump_mode);
-    backjump_analyzer_->set_debug_mode(config_.verbose_output);
-
     // Reset per-configuration advanced constraint flags so previous runs
     // cannot leak constraints into the next configured solve.
     retrograde_inversion_enabled_ = false;
@@ -1764,22 +1760,24 @@ void Solver::setup_for_style(SolverConfig::MusicalStyle style) {
     clear_rules();
     add_rules(MusicalRuleFactory::get_style_rules(style));
     
-    // Adjust backjumping based on style complexity
+    // Adjust search behavior based on style complexity.
     switch (style) {
         case SolverConfig::CLASSICAL:
-            config_.backjump_mode = AdvancedBackjumping::BackjumpMode::CONSENSUS_BACKJUMP;
+            config_.variable_branching = GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+            config_.value_selection = GecodeClusterIntegration::ValueSelectionStrategy::MIN;
             break;
         case SolverConfig::JAZZ:
-            config_.backjump_mode = AdvancedBackjumping::BackjumpMode::INTELLIGENT_BACKJUMP;
+            config_.variable_branching = GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+            config_.value_selection = GecodeClusterIntegration::ValueSelectionStrategy::HEURISTIC;
             break;
         case SolverConfig::CONTEMPORARY:
-            config_.backjump_mode = AdvancedBackjumping::BackjumpMode::NO_BACKJUMPING;
+            config_.variable_branching = GecodeClusterIntegration::VariableBranchingStrategy::INPUT_ORDER;
+            config_.value_selection = GecodeClusterIntegration::ValueSelectionStrategy::RANDOM;
             break;
         default:
-            config_.backjump_mode = AdvancedBackjumping::BackjumpMode::INTELLIGENT_BACKJUMP;
+            config_.variable_branching = GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+            config_.value_selection = GecodeClusterIntegration::ValueSelectionStrategy::MIN;
     }
-    
-    backjump_analyzer_->set_debug_mode(config_.verbose_output);
 }
 
 void Solver::setup_for_jazz_improvisation() {
@@ -1999,9 +1997,17 @@ std::vector<MusicalSolution> Solver::solve_multiple(
     try {
         auto* raw_space = build_configured_space_();
 
+        if (config_.restart_policy != SolverConfig::RestartPolicy::NONE) {
+            throw std::runtime_error("Unsupported restart policy in solve_multiple()");
+        }
+
         Gecode::Search::Options search_opts;
         search_opts.threads = 1;
         search_opts.nogoods_limit = 128;
+
+        if (config_.search_engine != SolverConfig::SearchEngine::DFS) {
+            throw std::runtime_error("Unsupported search engine in solve_multiple()");
+        }
 
         Gecode::DFS<GecodeClusterIntegration::IntegratedMusicalSpace> search_engine(raw_space, search_opts);
 
@@ -2146,12 +2152,14 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     std::unique_ptr<GecodeClusterIntegration::IntegratedMusicalSpace> gecode_space;
     if (metric_active) {
         gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
-            config_.sequence_length, config_.num_voices, config_.backjump_mode,
+            config_.sequence_length, config_.num_voices,
+            config_.variable_branching, config_.value_selection,
             all_voice_domains, config_.voice_rhythm_domains, metric_domain_numerators,
             effective_random_seed);
     } else {
         gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
-            config_.sequence_length, config_.num_voices, config_.backjump_mode,
+            config_.sequence_length, config_.num_voices,
+            config_.variable_branching, config_.value_selection,
             all_voice_domains, config_.voice_rhythm_domains, effective_random_seed);
     }
 
@@ -2606,9 +2614,17 @@ MusicalSolution Solver::solve_internal() {
     try {
         auto* raw_space = build_configured_space_();
 
+        if (config_.restart_policy != SolverConfig::RestartPolicy::NONE) {
+            throw std::runtime_error("Unsupported restart policy in solve_internal()");
+        }
+
         Gecode::Search::Options search_opts;
         search_opts.threads = 1;
         search_opts.nogoods_limit = 128;
+
+        if (config_.search_engine != SolverConfig::SearchEngine::DFS) {
+            throw std::runtime_error("Unsupported search engine in solve_internal()");
+        }
 
         Gecode::DFS<GecodeClusterIntegration::IntegratedMusicalSpace> search_engine(raw_space, search_opts);
         return extract_solution_from_space_(search_engine.next());
@@ -2719,20 +2735,8 @@ bool Solver::validate_configuration(std::string& error_message) const {
 }
 
 AdvancedBackjumping::AdvancedBackjumpResult Solver::get_last_backjump_analysis() const {
-    // Return performance statistics from the backjump analyzer
-    if (backjump_analyzer_) {
-        auto perf_stats = backjump_analyzer_->get_performance_stats();
-        AdvancedBackjumping::AdvancedBackjumpResult result;
-        result.has_backjump = (perf_stats.successful_backjumps > 0);
-        result.minimum_backjump_distance = 1;
-        result.maximum_backjump_distance = 3;
-        result.consensus_backjump_distance = 1;
-        result.rules_suggesting_backjump = static_cast<int>(rules_.size());
-        result.total_rules_tested = static_cast<int>(rules_.size());
-        return result;
-    }
-    
-    // Fallback result if no analyzer available
+    // Active search is now expressed through Gecode strategies rather than a
+    // separate backjump-analysis layer.
     AdvancedBackjumping::AdvancedBackjumpResult result;
     result.has_backjump = false;
     result.minimum_backjump_distance = 1;

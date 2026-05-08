@@ -26,10 +26,6 @@
 
 namespace MusicalConstraintSolver {
 
-// ===============================
-// Solver Configuration
-// ===============================
-
 /**
  * @brief Configuration options for musical constraint solving
  */
@@ -47,10 +43,21 @@ struct SolverConfig {
     int min_note = 60;  // C4
     int max_note = 84;  // C6
     
-    // Search configuration
-    AdvancedBackjumping::BackjumpMode backjump_mode = 
-        AdvancedBackjumping::BackjumpMode::INTELLIGENT_BACKJUMP;
-    bool enable_advanced_backjumping = true;
+    // Search configuration aligned to Gecode search concepts.
+    enum class SearchEngine {
+        DFS
+    } search_engine = SearchEngine::DFS;
+
+    GecodeClusterIntegration::VariableBranchingStrategy variable_branching =
+        GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+
+    GecodeClusterIntegration::ValueSelectionStrategy value_selection =
+        GecodeClusterIntegration::ValueSelectionStrategy::MIN;
+
+    enum class RestartPolicy {
+        NONE
+    } restart_policy = RestartPolicy::NONE;
+
     bool enable_musical_intelligence = true;
     int max_search_iterations = 10000;
     double timeout_seconds = 30.0;
@@ -66,7 +73,6 @@ struct SolverConfig {
     
     // Output format
     bool verbose_output = true;
-    bool show_backjump_analysis = false;
     bool show_rule_statistics = false;
     
     // Per-voice pitch domains. If non-empty, voice_domains[v] is used for voice v
@@ -280,7 +286,6 @@ private:
     SolverConfig config_;
     std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>> rules_;
     std::vector<EngineRuleConfig> engine_rule_configs_;  // Engine-targeted rules
-    std::unique_ptr<AdvancedBackjumping::AdvancedBackjumpAnalyzer> backjump_analyzer_;
     std::unique_ptr<MusicalConstraints::DualSolutionStorage> solution_storage_;
     
     // Performance tracking
@@ -584,11 +589,6 @@ MusicalSolution solve_classical_melody(int length = 8);
  * @brief Batch solve multiple sequences
  */
 std::vector<MusicalSolution> batch_solve(int num_sequences, const SolverConfig& config);
-
-/**
- * @brief Compare different backjumping modes
- */
-std::map<std::string, MusicalSolution> compare_backjump_modes(const SolverConfig& base_config);
 
 } // namespace MusicalConstraintSolver
 

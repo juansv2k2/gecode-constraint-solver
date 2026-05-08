@@ -74,7 +74,6 @@ Every config file is a JSON object with these top-level sections:
 
   "solution_length": 8,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
   "export_path": "tests/output",
 
   "engine_architecture": { ... },   // optional, explicit engine layout
@@ -100,17 +99,10 @@ Every config file is a JSON object with these top-level sections:
 | `solution_length`  | int    | `12`             | Number of notes per voice                                                        |
 | `score_length`     | string | omitted          | Optional score duration in musical time, e.g. `"10q"` for ten quarter-note units |
 | `num_voices`       | int    | `2`              | Number of simultaneous voices                                                    |
-| `backtrack_method` | string | `"intelligent"`  | Search strategy (see below)                                                      |
 | `export_path`      | string | `"tests/output"` | Directory for output files                                                       |
 | `num_engines`      | int    | auto             | Override total engine count (usually omitted)                                    |
 
-**`backtrack_method` values:**
-
-| Value           | Behaviour                               |
-| --------------- | --------------------------------------- |
-| `"intelligent"` | Context-aware backjumping (recommended) |
-| `"simple"`      | Basic chronological backtracking        |
-| `"none"`        | No backtracking (first-assignment only) |
+Search behavior is configured in `search_options` (section 8), not by a top-level backtracking field.
 
 ---
 
@@ -1152,11 +1144,14 @@ Search options control solve limits, branching strategy, randomization, and heur
 
 ```json
 "search_options": {
+  "engine": "dfs",
   "enable_metric_engine": true,
   "require_exact_score_length": false,
   "timeout_ms": 30000,
   "max_solutions": 1,
   "branching": "first_fail",
+  "value_order": "heuristic",
+  "restart_policy": "none",
   "random_seed": 42,
   "heuristic_top_k": 0,
   "heuristic_trace": false
@@ -1171,7 +1166,10 @@ Search options control solve limits, branching strategy, randomization, and heur
 | `require_exact_score_length` | bool   | `false`        | Legacy/compatibility flag. Current behavior pads underfill with rests; overflow still fails. |
 | `timeout_ms`                 | int    | `30000`        | Maximum solve time in milliseconds. Search stops after this duration even if unsolved.       |
 | `max_solutions`              | int    | `1`            | Number of solutions to return. `-1` means find all solutions.                                |
+| `engine`                     | string | `"dfs"`       | Search engine. Current supported value is `"dfs"`.                                          |
 | `branching`                  | string | `"first_fail"` | Variable selection strategy (see section 8.2).                                               |
+| `value_order`                | string | `"min"`       | Value ordering strategy (see section 8.3).                                                   |
+| `restart_policy`             | string | `"none"`      | Restart behavior. Current supported value is `"none"`.                                      |
 | `random_seed`                | int    | deterministic  | Seed policy for randomized tie-breaking (see section 8.3).                                   |
 
 ### 8.2 Variable Selection (`branching`)
@@ -1179,10 +1177,19 @@ Search options control solve limits, branching strategy, randomization, and heur
 | Value          | Strategy                                                                                   | When to use                                             |
 | -------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | `"first_fail"` | Pick variable with smallest remaining domain, break ties arbitrarily (recommended default) | Most constraint problems; fast pruning.                 |
-| `"min_value"`  | Assign minimum domain value first at each branch point                                     | When you want ascending bias (e.g. ascending melody).   |
-| `"max_value"`  | Assign maximum domain value first at each branch point                                     | When you want descending bias (e.g. descending melody). |
+| `"input_order"` | Pick variables in score order                                                              | Phrase-driven problems where early musical context should be fixed first. |
 
-### 8.3 Randomization (`random_seed`)
+### 8.3 Value Ordering (`value_order`)
+
+| Value         | Strategy                                                                     | When to use |
+| ------------- | ---------------------------------------------------------------------------- | ----------- |
+| `"min"`       | Always try lowest value first                                                | Deterministic debugging and repeatable regression tests. |
+| `"random"`    | Randomized value choice using `random_seed`                                 | Generate controlled variation and explore alternatives. |
+| `"heuristic"` | Use heuristic scoring (`heuristic_preference` / `heuristic_energy`) when available | Musical shaping tasks (stepwise motion, consonance, register targeting). |
+
+One-line musical rule of thumb: for dense harmonic/counterpoint constraints use `first_fail`; for style-shaping melodic generation use `heuristic`; for exploratory ideation use `random` with a fixed positive seed.
+
+### 8.4 Randomization (`random_seed`)
 
 | Value                             | Behavior                                                                                             | Use case                         |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------- |
@@ -1196,7 +1203,7 @@ Practical examples:
 - Explore variety: `"random_seed": 0, "max_solutions": 10`
 - Performance testing: `"random_seed": 123, "timeout_ms": 5000`
 
-### 8.4 Heuristic Selector Options
+### 8.5 Heuristic Selector Options
 
 These fields apply when `dynamic_rules` include heuristic modes (`heur_switch` or `real_heuristic`).
 
@@ -1217,7 +1224,7 @@ Trace output example:
 selector voice=0 pos=3 evaluated=5 chose=67 buckets={p5:35,p3:0,p1:4}
 ```
 
-### 8.5 Preset Configurations
+### 8.6 Preset Configurations
 
 For reproducible debugging:
 
@@ -1269,7 +1276,6 @@ This example creates a 2-voice, 8-note sequence where:
   "description": "Voice 0: C major, stepwise, all different. Voice 1: a fifth above.",
   "solution_length": 8,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
   "export_path": "tests/output",
 
   "engine_domains": {
@@ -1383,9 +1389,12 @@ This example creates a 2-voice, 8-note sequence where:
   ],
 
   "search_options": {
+    "engine": "dfs",
     "timeout_ms": 30000,
     "max_solutions": 1,
-    "branching": "first_fail"
+    "branching": "first_fail",
+    "value_order": "heuristic",
+    "restart_policy": "none"
   },
 
   "output_options": {

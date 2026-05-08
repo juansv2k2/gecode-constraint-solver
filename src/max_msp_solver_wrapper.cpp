@@ -385,12 +385,58 @@ std::vector<std::string> parse_duration_list_from_string(const std::string& inpu
     return out;
 }
 
-AdvancedBackjumping::BackjumpMode parse_backjump_mode(const nlohmann::json& cfg) {
-    const std::string method = cfg.value("backtrack_method", std::string("intelligent"));
-    if (method == "none") return AdvancedBackjumping::BackjumpMode::NO_BACKJUMPING;
-    if (method == "simple") return AdvancedBackjumping::BackjumpMode::NO_BACKJUMPING;
-    if (method == "consensus") return AdvancedBackjumping::BackjumpMode::CONSENSUS_BACKJUMP;
-    return AdvancedBackjumping::BackjumpMode::INTELLIGENT_BACKJUMP;
+MusicalConstraintSolver::SolverConfig::SearchEngine parse_search_engine(const nlohmann::json& cfg) {
+    if (!cfg.contains("search_options") || !cfg["search_options"].is_object()) {
+        return MusicalConstraintSolver::SolverConfig::SearchEngine::DFS;
+    }
+    const std::string engine = cfg["search_options"].value("engine", std::string("dfs"));
+    if (engine == "dfs") {
+        return MusicalConstraintSolver::SolverConfig::SearchEngine::DFS;
+    }
+    throw std::runtime_error("search_options.engine: unsupported value '" + engine + "'");
+}
+
+GecodeClusterIntegration::VariableBranchingStrategy parse_variable_branching(const nlohmann::json& cfg) {
+    if (!cfg.contains("search_options") || !cfg["search_options"].is_object()) {
+        return GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+    }
+    const std::string branching = cfg["search_options"].value("branching", std::string("first_fail"));
+    if (branching == "first_fail") {
+        return GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+    }
+    if (branching == "input_order") {
+        return GecodeClusterIntegration::VariableBranchingStrategy::INPUT_ORDER;
+    }
+    throw std::runtime_error("search_options.branching: unsupported value '" + branching + "'");
+}
+
+GecodeClusterIntegration::ValueSelectionStrategy parse_value_selection(const nlohmann::json& cfg) {
+    if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
+        cfg["search_options"].contains("value_order")) {
+        const std::string value_order = cfg["search_options"].value("value_order", std::string("min"));
+        if (value_order == "min") {
+            return GecodeClusterIntegration::ValueSelectionStrategy::MIN;
+        }
+        if (value_order == "random") {
+            return GecodeClusterIntegration::ValueSelectionStrategy::RANDOM;
+        }
+        if (value_order == "heuristic") {
+            return GecodeClusterIntegration::ValueSelectionStrategy::HEURISTIC;
+        }
+        throw std::runtime_error("search_options.value_order: unsupported value '" + value_order + "'");
+    }
+    return GecodeClusterIntegration::ValueSelectionStrategy::MIN;
+}
+
+MusicalConstraintSolver::SolverConfig::RestartPolicy parse_restart_policy(const nlohmann::json& cfg) {
+    if (!cfg.contains("search_options") || !cfg["search_options"].is_object()) {
+        return MusicalConstraintSolver::SolverConfig::RestartPolicy::NONE;
+    }
+    const std::string restart_policy = cfg["search_options"].value("restart_policy", std::string("none"));
+    if (restart_policy == "none") {
+        return MusicalConstraintSolver::SolverConfig::RestartPolicy::NONE;
+    }
+    throw std::runtime_error("search_options.restart_policy: unsupported value '" + restart_policy + "'");
 }
 
 std::string status_to_string(SolveStatus status) {
@@ -1098,7 +1144,10 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         MusicalConstraintSolver::SolverConfig sc;
         sc.sequence_length = cfg.value("solution_length", 12);
         sc.num_voices = cfg.value("num_voices", 2);
-        sc.backjump_mode = parse_backjump_mode(cfg);
+        sc.search_engine = parse_search_engine(cfg);
+        sc.variable_branching = parse_variable_branching(cfg);
+        sc.value_selection = parse_value_selection(cfg);
+        sc.restart_policy = parse_restart_policy(cfg);
         sc.verbose_output = false;
 
         if (cfg.contains("search_options") && cfg["search_options"].is_object()) {

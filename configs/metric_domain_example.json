@@ -4,7 +4,6 @@
   "solution_length": 24,
   "score_length": "36q",
   "num_voices": 2,
-  "backtrack_method": "intelligent",
 
   "engine_domains": {
     "engine_0": {
@@ -139,12 +138,15 @@
   ],
 
   "search_options": {
+    "engine": "dfs",
     "enable_metric_engine": true,
     "require_exact_score_length": true,
     "random_seed": 0,
     "timeout_ms": 20000,
     "max_solutions": 1,
-    "branching": "first_fail"
+    "branching": "first_fail",
+    "value_order": "heuristic",
+    "restart_policy": "none"
   },
 
   "output_options": {

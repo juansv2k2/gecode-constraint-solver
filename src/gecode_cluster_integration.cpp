@@ -22,6 +22,51 @@ unsigned int g_pitch_tie_break_seed = 0;
 int g_pitch_top_k = 0;
 bool g_pitch_trace = false;
 
+int select_value_by_heuristic(const Space& home, IntVar x, int i);
+
+template <typename Vars>
+void branch_with_search_strategy(
+    IntegratedMusicalSpace& space,
+    Vars vars,
+    VariableBranchingStrategy variable_branching,
+    ValueSelectionStrategy value_selection,
+    unsigned int random_seed,
+    bool allow_heuristic_value_selection) {
+    const bool use_input_order =
+        (variable_branching == VariableBranchingStrategy::INPUT_ORDER);
+    const bool use_random_values =
+        (value_selection == ValueSelectionStrategy::RANDOM && random_seed != 0);
+    const bool use_heuristic_values =
+        allow_heuristic_value_selection &&
+        value_selection == ValueSelectionStrategy::HEURISTIC &&
+        g_pitch_heuristic_enabled;
+
+    if (use_heuristic_values) {
+        if (use_input_order) {
+            branch(space, vars, INT_VAR_NONE(), INT_VAL(select_value_by_heuristic));
+        } else {
+            branch(space, vars, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
+        }
+        return;
+    }
+
+    if (use_random_values) {
+        Gecode::Rnd rng(random_seed);
+        if (use_input_order) {
+            branch(space, vars, INT_VAR_NONE(), INT_VAL_RND(rng));
+        } else {
+            branch(space, vars, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+        }
+        return;
+    }
+
+    if (use_input_order) {
+        branch(space, vars, INT_VAR_NONE(), INT_VAL_MIN());
+    } else {
+        branch(space, vars, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
+}
+
 unsigned int tie_break_hash(unsigned int seed, int var_index, int candidate_value) {
     unsigned int x = seed;
     x ^= static_cast<unsigned int>(var_index) + 0x9e3779b9u + (x << 6) + (x >> 2);
@@ -195,7 +240,8 @@ void clear_pitch_heuristic_value_ordering() {
 // ===============================
 
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices, 
-                                              AdvancedBackjumping::BackjumpMode mode,
+                                              VariableBranchingStrategy variable_branching,
+                                              ValueSelectionStrategy value_selection,
                                               const std::vector<int>& note_domain,
                                               unsigned int random_seed)
     : Space(), 
@@ -205,8 +251,9 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
       interval_vars_(*this, (length * voices) - voices, -12, 12),  // Interval range
       rhythm_vars_(*this, 0, 0, 0),  // No rhythm vars in single-domain constructor
     metric_vars_(*this, 0, 0, 0),  // No metric vars in scaffold constructor
-    num_voices_(voices),
-      backjump_mode_(mode),
+        num_voices_(voices),
+            variable_branching_(variable_branching),
+            value_selection_(value_selection),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
     
@@ -225,20 +272,13 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     // Setup basic musical constraints
     post_musical_constraints();
     
-    // Branching strategy: random value selection when a seed is provided
-    if (g_pitch_heuristic_enabled) {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
-    } else if (random_seed != 0) {
-        Gecode::Rnd rng(random_seed);
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-    } else {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    }
+    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
 }
 
 // Per-voice domain constructor: each voice gets its own pitch domain
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
-                                              AdvancedBackjumping::BackjumpMode mode,
+                                              VariableBranchingStrategy variable_branching,
+                                              ValueSelectionStrategy value_selection,
                                               const std::vector<std::vector<int>>& voice_domains,
                                               unsigned int random_seed)
     : Space(),
@@ -247,8 +287,9 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
       interval_vars_(*this, (length * voices) - voices, -12, 12),
       rhythm_vars_(*this, 0, 0, 0),  // No rhythm vars in pitch-only constructor
     metric_vars_(*this, 0, 0, 0),  // No metric vars in scaffold constructor
-    num_voices_(voices),
-      backjump_mode_(mode),
+        num_voices_(voices),
+            variable_branching_(variable_branching),
+            value_selection_(value_selection),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
 
@@ -273,19 +314,13 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    if (g_pitch_heuristic_enabled) {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
-    } else if (random_seed != 0) {
-        Gecode::Rnd rng(random_seed);
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-    } else {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    }
+    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
 }
 
 // Per-voice pitch AND rhythm domain constructor
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
-                                              AdvancedBackjumping::BackjumpMode mode,
+                                              VariableBranchingStrategy variable_branching,
+                                              ValueSelectionStrategy value_selection,
                                               const std::vector<std::vector<int>>& voice_domains,
                                               const std::vector<std::vector<int>>& voice_rhythm_domains,
                                               unsigned int random_seed)
@@ -295,8 +330,9 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
       interval_vars_(*this, (length * voices) - voices, -12, 12),
       rhythm_vars_(*this, length * voices, -100000, 100000),  // Wide range including negatives for rests; narrowed by dom() below
     metric_vars_(*this, 0, 0, 0),  // No metric vars until metric engine activation
-    num_voices_(voices),
-      backjump_mode_(mode),
+        num_voices_(voices),
+            variable_branching_(variable_branching),
+            value_selection_(value_selection),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
 
@@ -342,26 +378,14 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    if (g_pitch_heuristic_enabled) {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
-    } else if (random_seed != 0) {
-        Gecode::Rnd rng(random_seed);
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-    } else {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    }
-
-    if (random_seed != 0) {
-        Gecode::Rnd rng(random_seed);
-        branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-    } else {
-        branch(*this, rhythm_vars_,   INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    }
+    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
+    branch_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed, false);
 }
 
 // Per-voice pitch/rhythm domains + metric domain constructor
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
-                                              AdvancedBackjumping::BackjumpMode mode,
+                                              VariableBranchingStrategy variable_branching,
+                                              ValueSelectionStrategy value_selection,
                                               const std::vector<std::vector<int>>& voice_domains,
                                               const std::vector<std::vector<int>>& voice_rhythm_domains,
                                               const std::vector<int>& metric_domain_numerators,
@@ -372,8 +396,9 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
       interval_vars_(*this, (length * voices) - voices, -12, 12),
       rhythm_vars_(*this, length * voices, -100000, 100000),
       metric_vars_(*this, length, -100000, 100000),
-      num_voices_(voices),
-      backjump_mode_(mode),
+    num_voices_(voices),
+    variable_branching_(variable_branching),
+    value_selection_(value_selection),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
 
@@ -428,30 +453,17 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    if (g_pitch_heuristic_enabled) {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
-    } else if (random_seed != 0) {
-        Gecode::Rnd rng(random_seed);
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-    } else {
-        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    }
-
-    if (random_seed != 0) {
-        Gecode::Rnd rng(random_seed);
-        branch(*this, rhythm_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-        branch(*this, metric_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
-    } else {
-        branch(*this, rhythm_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-        branch(*this, metric_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
-    }
+    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
+    branch_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed, false);
+    branch_with_search_strategy(*this, metric_vars_, variable_branching_, value_selection_, random_seed, false);
 }
 
 IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)
     : Space(space),
       sequence_length_(space.sequence_length_),
       num_voices_(space.num_voices_),
-      backjump_mode_(space.backjump_mode_),
+    variable_branching_(space.variable_branching_),
+    value_selection_(space.value_selection_),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(space.sequence_length_)),
       vocal_space_configured_(space.vocal_space_configured_) {
     
@@ -503,7 +515,6 @@ void IntegratedMusicalSpace::add_musical_rule(std::shared_ptr<MusicalConstraints
     } else if (rule_type == "PalindromeRule") {
         // Voice 1 must be palindrome of Voice 0
         for (int i = 0; i < sequence_length_; ++i) {
-            int voice0_idx = i;                              // Voice 0 at position i
             int voice1_idx = sequence_length_ + i;           // Voice 1 at position i  
             int voice0_retro_idx = (sequence_length_ - 1) - i;  // Voice 0 at retrograde position
             
@@ -526,8 +537,10 @@ void IntegratedMusicalSpace::add_compiled_musical_rule(std::unique_ptr<GecodeClu
     compiled_rules_.push_back(std::move(rule));
 }
 
-void IntegratedMusicalSpace::set_backjump_mode(AdvancedBackjumping::BackjumpMode mode) {
-    backjump_mode_ = mode;
+void IntegratedMusicalSpace::set_search_strategies(VariableBranchingStrategy variable_branching,
+                                                   ValueSelectionStrategy value_selection) {
+    variable_branching_ = variable_branching;
+    value_selection_ = value_selection;
 }
 
 void IntegratedMusicalSpace::constrain_note_range(int min_note, int max_note) {

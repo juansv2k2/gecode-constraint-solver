@@ -51,7 +51,6 @@ private:
     int solution_length_;
     std::string score_length_;
     int num_voices_;
-    std::string backtrack_method_;
     std::string export_path_;
     std::vector<RuleConfig> rules_;
     mutable int rhythm_base_ = 1;  // LCM of all duration denominators, set by getVoiceRhythmDomains()
@@ -217,12 +216,7 @@ private:
                 }
             }
         }
-        else if (line.find("\"backtrack_method\"") != std::string::npos) {
-            size_t pos = line.find(":");
-            if (pos != std::string::npos) {
-                backtrack_method_ = removeQuotesAndComma(line.substr(pos + 1));
-            }
-        } else if (line.find("\"export_path\"") != std::string::npos) {
+        else if (line.find("\"export_path\"") != std::string::npos) {
             size_t pos = line.find(":");
             if (pos != std::string::npos) {
                 export_path_ = removeQuotesAndComma(line.substr(pos + 1));
@@ -286,7 +280,7 @@ private:
     
 public:
     ConstraintSolverJSONParser() 
-        : solution_length_(12), num_voices_(2), backtrack_method_("intelligent"), export_path_("tests/output"),
+        : solution_length_(12), num_voices_(2), export_path_("tests/output"),
                     export_json_(true), export_txt_(true), export_xml_(false), export_png_(false), export_midi_(false), show_statistics_(true), include_analysis_(true) {}
     
     bool parse(const std::string& filename) {
@@ -551,7 +545,72 @@ public:
     int getSolutionLength() const { return solution_length_; }
     std::string getScoreLength() const { return score_length_; }
     int getNumVoices() const { return num_voices_; }
-    std::string getBacktrackMethod() const { return backtrack_method_; }
+    MusicalConstraintSolver::SolverConfig::SearchEngine getSearchEngine(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return MusicalConstraintSolver::SolverConfig::SearchEngine::DFS;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return MusicalConstraintSolver::SolverConfig::SearchEngine::DFS; }
+        if (!cfg.contains("search_options") || !cfg["search_options"].is_object()) {
+            return MusicalConstraintSolver::SolverConfig::SearchEngine::DFS;
+        }
+        std::string engine = cfg["search_options"].value("engine", "dfs");
+        if (engine == "dfs") {
+            return MusicalConstraintSolver::SolverConfig::SearchEngine::DFS;
+        }
+        throw std::runtime_error("Unsupported search_options.engine: " + engine);
+    }
+    GecodeClusterIntegration::VariableBranchingStrategy getVariableBranching(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL; }
+        if (!cfg.contains("search_options") || !cfg["search_options"].is_object()) {
+            return GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+        }
+        std::string branching = cfg["search_options"].value("branching", "first_fail");
+        if (branching == "first_fail") {
+            return GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
+        }
+        if (branching == "input_order") {
+            return GecodeClusterIntegration::VariableBranchingStrategy::INPUT_ORDER;
+        }
+        throw std::runtime_error("Unsupported search_options.branching: " + branching);
+    }
+    GecodeClusterIntegration::ValueSelectionStrategy getValueSelection(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return GecodeClusterIntegration::ValueSelectionStrategy::MIN;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return GecodeClusterIntegration::ValueSelectionStrategy::MIN; }
+        if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
+            cfg["search_options"].contains("value_order")) {
+            std::string value_order = cfg["search_options"].value("value_order", "min");
+            if (value_order == "min") {
+                return GecodeClusterIntegration::ValueSelectionStrategy::MIN;
+            }
+            if (value_order == "random") {
+                return GecodeClusterIntegration::ValueSelectionStrategy::RANDOM;
+            }
+            if (value_order == "heuristic") {
+                return GecodeClusterIntegration::ValueSelectionStrategy::HEURISTIC;
+            }
+            throw std::runtime_error("Unsupported search_options.value_order: " + value_order);
+        }
+        return GecodeClusterIntegration::ValueSelectionStrategy::MIN;
+    }
+    MusicalConstraintSolver::SolverConfig::RestartPolicy getRestartPolicy(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return MusicalConstraintSolver::SolverConfig::RestartPolicy::NONE;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return MusicalConstraintSolver::SolverConfig::RestartPolicy::NONE; }
+        if (!cfg.contains("search_options") || !cfg["search_options"].is_object()) {
+            return MusicalConstraintSolver::SolverConfig::RestartPolicy::NONE;
+        }
+        std::string restart_policy = cfg["search_options"].value("restart_policy", "none");
+        if (restart_policy == "none") {
+            return MusicalConstraintSolver::SolverConfig::RestartPolicy::NONE;
+        }
+        throw std::runtime_error("Unsupported search_options.restart_policy: " + restart_policy);
+    }
     std::string getExportPath() const { return export_path_; }
     std::string getExportFilename() const { return export_filename_; }
 
@@ -1090,7 +1149,6 @@ public:
         std::cout << "   Description: " << (description_.empty() ? "None" : description_) << std::endl;
         std::cout << "   Solution Length: " << solution_length_ << std::endl;
         std::cout << "   Number of Voices: " << num_voices_ << std::endl;
-        std::cout << "   Backtrack Method: " << backtrack_method_ << std::endl;
         std::cout << "   Rules: " << rules_.size() << " configured" << std::endl;
         std::cout << "   Domains: " << domains_.size() << " configured" << std::endl;
         std::cout << "   Export Options: JSON=" << (export_json_ ? "✅" : "❌")
@@ -1462,6 +1520,10 @@ int main(int argc, char* argv[]) {
         solver_config.random_seed = parser.getRandomSeed(config_file);
         solver_config.heuristic_top_k = parser.getHeuristicTopK(config_file);
         solver_config.heuristic_trace = parser.getHeuristicTrace(config_file);
+        solver_config.search_engine = parser.getSearchEngine(config_file);
+        solver_config.variable_branching = parser.getVariableBranching(config_file);
+        solver_config.value_selection = parser.getValueSelection(config_file);
+        solver_config.restart_policy = parser.getRestartPolicy(config_file);
 
         // Derive global min/max from the union of all voice domains
         {
@@ -1483,15 +1545,6 @@ int main(int argc, char* argv[]) {
         solver_config.num_voices = parser.getNumVoices();
         solver_config.allow_repetitions = false;
         solver_config.style = MusicalConstraintSolver::SolverConfig::CONTEMPORARY;
-        
-        // Set backtrack mode
-        if (parser.getBacktrackMethod() == "intelligent") {
-            solver_config.backjump_mode = AdvancedBackjumping::BackjumpMode::INTELLIGENT_BACKJUMP;
-        } else if (parser.getBacktrackMethod() == "consensus") {
-            solver_config.backjump_mode = AdvancedBackjumping::BackjumpMode::CONSENSUS_BACKJUMP;
-        } else {
-            solver_config.backjump_mode = AdvancedBackjumping::BackjumpMode::NO_BACKJUMPING;
-        }
         
         solver_config.verbose_output = false;
         
