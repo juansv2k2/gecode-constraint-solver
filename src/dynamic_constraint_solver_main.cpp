@@ -22,6 +22,7 @@
 #include <regex>
 #include <algorithm>
 #include <limits>
+#include <cctype>
 
 using namespace DynamicRules;
 
@@ -290,10 +291,16 @@ public:
             }
             
             // Exit rules section when we hit another top-level section
-            if (in_rules_section && line.find("\"domains\"") != std::string::npos) {
+            if (in_rules_section && (line.find("\"domains\"") != std::string::npos ||
+                                     line.find("\"search_options\"") != std::string::npos ||
+                                     line.find("\"search_strategy\"") != std::string::npos ||
+                                     line.find("\"output_options\"") != std::string::npos ||
+                                     line.find("\"display_options\"") != std::string::npos)) {
                 in_rules_section = false;
-                in_domains_section = true;
-                std::cout << "DEBUG: Entering domains section" << std::endl;
+                if (line.find("\"domains\"") != std::string::npos) {
+                    in_domains_section = true;
+                    std::cout << "DEBUG: Entering domains section" << std::endl;
+                }
                 continue;
             }
             
@@ -736,6 +743,87 @@ public:
         return is_rest ? ("R:" + frac) : frac;
     }
 
+    static bool json_to_bool(const nlohmann::json& value, bool default_value) {
+        if (value.is_boolean()) return value.get<bool>();
+        if (value.is_number_integer()) return value.get<long long>() != 0;
+        if (value.is_number_unsigned()) return value.get<unsigned long long>() != 0;
+        if (value.is_string()) {
+            std::string s = value.get<std::string>();
+            std::transform(s.begin(), s.end(), s.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (s == "true" || s == "1" || s == "yes" || s == "on") return true;
+            if (s == "false" || s == "0" || s == "no" || s == "off") return false;
+        }
+        return default_value;
+    }
+
+    static std::pair<int, int> parse_time_signature_value(const nlohmann::json& value, const std::string& context) {
+        if (value.is_array()) {
+            if (value.size() != 2 || !value[0].is_number_integer() || !value[1].is_number_integer()) {
+                throw std::runtime_error(context + ": time signature array must be [numerator, denominator]");
+            }
+            int n = value[0].get<int>();
+            int d = value[1].get<int>();
+            if (n <= 0 || d <= 0) {
+                throw std::runtime_error(context + ": time signature values must be positive");
+            }
+            return {n, d};
+        }
+
+        if (value.is_string()) {
+            const std::string s = value.get<std::string>();
+            const auto slash = s.find('/');
+            if (slash == std::string::npos) {
+                throw std::runtime_error(context + ": invalid time signature string '" + s + "' (expected N/D)");
+            }
+            int n = 0, d = 0;
+            try {
+                n = std::stoi(s.substr(0, slash));
+                d = std::stoi(s.substr(slash + 1));
+            } catch (...) {
+                throw std::runtime_error(context + ": cannot parse time signature '" + s + "'");
+            }
+            if (n <= 0 || d <= 0) {
+                throw std::runtime_error(context + ": time signature values must be positive in '" + s + "'");
+            }
+            return {n, d};
+        }
+
+        if (value.is_object()) {
+            if (!value.contains("numerator") || !value.contains("denominator") ||
+                !value["numerator"].is_number_integer() || !value["denominator"].is_number_integer()) {
+                throw std::runtime_error(context + ": time signature object requires integer numerator/denominator");
+            }
+            int n = value["numerator"].get<int>();
+            int d = value["denominator"].get<int>();
+            if (n <= 0 || d <= 0) {
+                throw std::runtime_error(context + ": time signature values must be positive");
+            }
+            return {n, d};
+        }
+
+        throw std::runtime_error(context + ": unsupported time signature format");
+    }
+
+    static std::vector<int> parse_positive_int_array(const nlohmann::json& value, const std::string& context) {
+        if (!value.is_array()) {
+            throw std::runtime_error(context + ": expected array of positive integers");
+        }
+        std::vector<int> out;
+        out.reserve(value.size());
+        for (size_t i = 0; i < value.size(); ++i) {
+            if (!value[i].is_number_integer()) {
+                throw std::runtime_error(context + ": entry " + std::to_string(i) + " must be integer");
+            }
+            int v = value[i].get<int>();
+            if (v <= 0) {
+                throw std::runtime_error(context + ": entry " + std::to_string(i) + " must be positive");
+            }
+            out.push_back(v);
+        }
+        return out;
+    }
+
     std::vector<std::vector<int>> getVoiceRhythmDomains(const std::string& config_file) const {
         // Step 1: collect raw (numerator, denominator) pairs per voice.
         std::vector<std::vector<std::pair<int,int>>> raw_per_voice(num_voices_);
@@ -816,6 +904,94 @@ public:
     }
 
     int getVoiceRhythmBase() const { return rhythm_base_; }
+
+    std::vector<MusicalConstraintSolver::SolverConfig::MetricDomainEntry>
+    getMetricDomain(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) {
+            throw std::runtime_error("Cannot open config file: " + config_file);
+        }
+
+        nlohmann::json cfg;
+        f >> cfg;
+
+        std::vector<MusicalConstraintSolver::SolverConfig::MetricDomainEntry> out;
+        if (!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object()) {
+            return out;
+        }
+
+        for (auto& [key, val] : cfg["engine_domains"].items()) {
+            if (!val.is_object()) continue;
+            const std::string type = val.value("type", "");
+            if (type != "metric") continue;
+
+            const std::string ctx = "engine_domains['" + key + "']";
+            std::vector<std::pair<int, int>> signatures;
+
+            if (val.contains("time_signatures")) {
+                if (!val["time_signatures"].is_array() || val["time_signatures"].empty()) {
+                    throw std::runtime_error(ctx + ": 'time_signatures' must be a non-empty array");
+                }
+                for (size_t i = 0; i < val["time_signatures"].size(); ++i) {
+                    signatures.push_back(parse_time_signature_value(
+                        val["time_signatures"][i], ctx + " time_signatures[" + std::to_string(i) + "]"));
+                }
+            } else if (val.contains("time_signature")) {
+                const auto& ts = val["time_signature"];
+                if (ts.is_array() && !ts.empty() &&
+                    (ts[0].is_string() || ts[0].is_array() || ts[0].is_object())) {
+                    for (size_t i = 0; i < ts.size(); ++i) {
+                        signatures.push_back(parse_time_signature_value(
+                            ts[i], ctx + " time_signature[" + std::to_string(i) + "]"));
+                    }
+                } else {
+                    signatures.push_back(parse_time_signature_value(ts, ctx + " time_signature"));
+                }
+            } else if (val.contains("numerator") || val.contains("denominator")) {
+                signatures.push_back(parse_time_signature_value(val, ctx));
+            } else {
+                throw std::runtime_error(
+                    ctx + ": metric domain requires one of: 'time_signatures', 'time_signature', or numerator/denominator");
+            }
+
+            std::vector<int> tuplets;
+            if (val.contains("tuplets")) {
+                tuplets = parse_positive_int_array(val["tuplets"], ctx + " tuplets");
+            }
+
+            std::vector<int> beat_divisions;
+            if (val.contains("beat_divisions")) {
+                beat_divisions = parse_positive_int_array(val["beat_divisions"], ctx + " beat_divisions");
+            }
+
+            for (const auto& ts : signatures) {
+                MusicalConstraintSolver::SolverConfig::MetricDomainEntry entry;
+                entry.numerator = ts.first;
+                entry.denominator = ts.second;
+                entry.tuplets = tuplets;
+                entry.beat_divisions = beat_divisions;
+                out.push_back(std::move(entry));
+            }
+        }
+
+        return out;
+    }
+
+    bool getEnableMetricEngine(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return false;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return false; }
+
+        if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
+            cfg["search_options"].contains("enable_metric_engine")) {
+            return json_to_bool(cfg["search_options"]["enable_metric_engine"], false);
+        }
+        if (cfg.contains("enable_metric_engine")) {
+            return json_to_bool(cfg["enable_metric_engine"], false);
+        }
+        return false;
+    }
 
     const std::vector<RuleConfig>& getRules() const { return rules_; }
     
@@ -1180,6 +1356,8 @@ int main(int argc, char* argv[]) {
         // Load per-voice rhythm domains from engine_domains duration_values (required, no fallback)
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
         solver_config.rhythm_base = parser.getVoiceRhythmBase();
+        solver_config.metric_domain = parser.getMetricDomain(config_file);
+        solver_config.enable_metric_engine = parser.getEnableMetricEngine(config_file);
         solver_config.random_seed = parser.getRandomSeed(config_file);
         solver_config.heuristic_top_k = parser.getHeuristicTopK(config_file);
         solver_config.heuristic_trace = parser.getHeuristicTrace(config_file);
@@ -1464,6 +1642,10 @@ int main(int argc, char* argv[]) {
         std::cout << std::string(50, '-') << std::endl;
 
         std::string base_name = config_file;
+        size_t slash_pos = base_name.find_last_of("/\\");
+        if (slash_pos != std::string::npos) {
+            base_name = base_name.substr(slash_pos + 1);
+        }
         size_t dot_pos = base_name.find_last_of('.');
         if (dot_pos != std::string::npos) base_name = base_name.substr(0, dot_pos);
 
@@ -1487,6 +1669,18 @@ int main(int argc, char* argv[]) {
                 if (si > 0) json_out << ",\n";
                 json_out << "    {\n";
                 json_out << "      \"solution_index\": " << si << ",\n";
+                std::vector<int> metric_denominators(solution.metric_signature.size(), 4);
+                if (solution.has_canonical_score) {
+                    for (const auto& seg : solution.canonical_score.metric_timeline) {
+                        const int start = std::max(0, seg.start_index);
+                        const int end = std::min(
+                            static_cast<int>(solution.metric_signature.size()) - 1,
+                            seg.end_index);
+                        for (int idx = start; idx <= end; ++idx) {
+                            metric_denominators[idx] = (seg.denominator > 0) ? seg.denominator : 4;
+                        }
+                    }
+                }
                 if (!solution.voice_solutions.empty()) {
                     json_out << "      \"voices\": [\n";
                     for (size_t voice = 0; voice < solution.voice_solutions.size(); ++voice) {
@@ -1526,19 +1720,75 @@ int main(int argc, char* argv[]) {
                         json_out << "        }";
                     }
                     json_out << "\n      ],\n";
-                    json_out << "      \"metric_signature\": [";
+                    json_out << "      \"metric_signature_numerators\": [";
                     for (size_t i = 0; i < solution.metric_signature.size(); ++i) {
                         if (i > 0) json_out << ", ";
                         json_out << solution.metric_signature[i];
                     }
-                    json_out << "]\n";
+                    json_out << "],\n";
+                    json_out << "      \"metric_signature\": [";
+                    for (size_t i = 0; i < solution.metric_signature.size(); ++i) {
+                        if (i > 0) json_out << ", ";
+                        json_out << "\"" << solution.metric_signature[i] << "/"
+                                 << ((i < metric_denominators.size()) ? metric_denominators[i] : 4)
+                                 << "\"";
+                    }
+                    json_out << "]";
                 } else {
                     json_out << "      \"note_names\": [";
                     for (size_t i = 0; i < solution.absolute_notes.size(); ++i) {
                         if (i > 0) json_out << ", ";
                         json_out << "\"" << MusicalConstraintSolver::Solver::midi_to_note_name(solution.absolute_notes[i]) << "\"";
                     }
+                    json_out << "]";
+                }
+
+                if (solution.has_canonical_score) {
+                    json_out << ",\n";
+                    json_out << "      \"score\": {\n";
+                    json_out << "        \"rhythm_base\": " << solution.canonical_score.rhythm_base << ",\n";
+                    json_out << "        \"metric_timeline\": [";
+                    for (size_t i = 0; i < solution.canonical_score.metric_timeline.size(); ++i) {
+                        if (i > 0) json_out << ", ";
+                        const auto& seg = solution.canonical_score.metric_timeline[i];
+                        json_out << "{"
+                                 << "\"start_index\":" << seg.start_index << ","
+                                 << "\"end_index\":" << seg.end_index << ","
+                                 << "\"numerator\":" << seg.numerator << ","
+                                 << "\"denominator\":" << seg.denominator
+                                 << "}";
+                    }
+                    json_out << "],\n";
+                    json_out << "        \"measures\": [";
+                    for (size_t mi = 0; mi < solution.canonical_score.measures.size(); ++mi) {
+                        if (mi > 0) json_out << ", ";
+                        const auto& measure = solution.canonical_score.measures[mi];
+                        json_out << "{"
+                                 << "\"measure_index\":" << measure.measure_index << ","
+                                 << "\"start_ticks\":" << measure.start_ticks << ","
+                                 << "\"end_ticks\":" << measure.end_ticks << ","
+                                 << "\"numerator\":" << measure.numerator << ","
+                                 << "\"denominator\":" << measure.denominator << ","
+                                 << "\"events\":[";
+                        for (size_t ei = 0; ei < measure.events.size(); ++ei) {
+                            if (ei > 0) json_out << ", ";
+                            const auto& ev = measure.events[ei];
+                            json_out << "{"
+                                     << "\"voice\":" << ev.voice << ","
+                                     << "\"index\":" << ev.index << ","
+                                     << "\"pitch\":" << ev.pitch << ","
+                                     << "\"rhythm_ticks\":" << ev.rhythm << ","
+                                     << "\"onset_ticks\":" << ev.onset_ticks << ","
+                                     << "\"duration_ticks\":" << ev.duration_ticks << ","
+                                     << "\"is_rest\":" << (ev.is_rest ? "true" : "false")
+                                     << "}";
+                        }
+                        json_out << "]}";
+                    }
                     json_out << "]\n";
+                    json_out << "      }\n";
+                } else {
+                    json_out << "\n";
                 }
                 json_out << "    }";
             }

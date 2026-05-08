@@ -22,6 +22,7 @@
 #include <map>
 #include <functional>
 #include <limits>
+#include <cstdint>
 
 namespace MusicalConstraintSolver {
 
@@ -33,6 +34,13 @@ namespace MusicalConstraintSolver {
  * @brief Configuration options for musical constraint solving
  */
 struct SolverConfig {
+    struct MetricDomainEntry {
+        int numerator = 4;
+        int denominator = 4;
+        std::vector<int> tuplets;
+        std::vector<int> beat_divisions;
+    };
+
     // Basic sequence parameters
     int sequence_length = 8;
     int num_voices = 1;
@@ -76,6 +84,14 @@ struct SolverConfig {
     // Updated by getVoiceRhythmDomains(); used by display logic.
     int rhythm_base = 1;
 
+    // Metric domain candidates used by the metric engine.
+    // Phase-0/1 scaffold: this data is intentionally passive until
+    // metric-engine activation is enabled and posting logic is wired.
+    std::vector<MetricDomainEntry> metric_domain;
+
+    // Guardrail flag for incremental rollout of metric as a first-class engine.
+    bool enable_metric_engine = false;
+
     // Random search seed semantics:
     // - std::numeric_limits<unsigned int>::max(): deterministic search order
     // - 0: generate a fresh random seed for each solve
@@ -111,6 +127,38 @@ struct SolverConfig {
  * @brief Musical solution representation
  */
 struct MusicalSolution {
+    struct MetricSegment {
+        int start_index = 0;
+        int end_index = 0;
+        int numerator = 4;
+        int denominator = 4;
+    };
+
+    struct ScoreEvent {
+        int voice = 0;
+        int index = 0;
+        int pitch = 60;
+        int rhythm = 0;
+        int onset_ticks = 0;
+        int duration_ticks = 0;
+        bool is_rest = false;
+    };
+
+    struct ScoreMeasure {
+        int measure_index = 0;
+        int start_ticks = 0;
+        int end_ticks = 0;
+        int numerator = 4;
+        int denominator = 4;
+        std::vector<ScoreEvent> events;
+    };
+
+    struct SolvedScore {
+        int rhythm_base = 1;
+        std::vector<MetricSegment> metric_timeline;
+        std::vector<ScoreMeasure> measures;
+    };
+
     std::vector<int> absolute_notes;  // Legacy compatibility - first voice
     std::vector<int> intervals;       // Legacy compatibility - calculated from first voice
     std::vector<std::string> note_names;  // Legacy compatibility - first voice note names
@@ -120,6 +168,11 @@ struct MusicalSolution {
                                                     // -1 (REST_PITCH_SENTINEL) means rest at that position
     std::vector<std::vector<int>> voice_rhythms;    // Rhythm data for each voice; negative = rest duration
     std::vector<int> metric_signature;              // Metric/time signature data
+
+    // Canonical score-level solved representation (phase-1 scaffold).
+    // When available, this is the single source of truth and legacy arrays are projections.
+    bool has_canonical_score = false;
+    SolvedScore canonical_score;
     
     // Analysis data
     int total_rules_checked = 0;

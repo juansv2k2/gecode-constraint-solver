@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: configs/metric_domain_example.json
+Problem: Metric Domain Example
+Description: Metric engine domain with three possible signatures
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: D4 → F4 → E4 → G4 → A4 → C5 → B4 → C4
+  Rhythm:  1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 3

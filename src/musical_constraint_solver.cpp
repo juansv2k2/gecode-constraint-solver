@@ -103,6 +103,235 @@ int parse_duration_to_ticks(const std::string& s, int rhythm_base) {
     return is_rest ? -ticks : ticks;
 }
 
+std::pair<int, int> parse_metric_signature(const std::string& s) {
+    const auto slash = s.find('/');
+    if (slash == std::string::npos) {
+        throw std::runtime_error("Invalid metric signature '" + s + "' (expected N/D)");
+    }
+    int n = 0;
+    int d = 0;
+    try {
+        n = std::stoi(s.substr(0, slash));
+        d = std::stoi(s.substr(slash + 1));
+    } catch (...) {
+        throw std::runtime_error("Cannot parse metric signature '" + s + "'");
+    }
+    if (n <= 0 || d <= 0) {
+        throw std::runtime_error("Invalid metric signature '" + s + "' (values must be positive)");
+    }
+    return {n, d};
+}
+
+std::map<int, int> build_metric_denominator_map(const SolverConfig& config) {
+    std::map<int, int> by_numerator;
+    for (const auto& entry : config.metric_domain) {
+        if (entry.numerator > 0 && entry.denominator > 0 && !by_numerator.count(entry.numerator)) {
+            by_numerator[entry.numerator] = entry.denominator;
+        }
+    }
+    return by_numerator;
+}
+
+std::vector<int> compute_voice_total_ticks(const std::vector<std::vector<int>>& voice_rhythms) {
+    std::vector<int> totals;
+    totals.reserve(voice_rhythms.size());
+    for (const auto& vr : voice_rhythms) {
+        int total = 0;
+        for (int d : vr) {
+            total += std::abs(d);
+        }
+        totals.push_back(total);
+    }
+    return totals;
+}
+
+std::vector<std::vector<int>> compute_voice_onsets(const std::vector<std::vector<int>>& voice_rhythms, int sequence_length) {
+    std::vector<std::vector<int>> onsets(voice_rhythms.size(), std::vector<int>(sequence_length, 0));
+    for (size_t v = 0; v < voice_rhythms.size(); ++v) {
+        int running = 0;
+        const auto& vr = voice_rhythms[v];
+        const int n = std::min(sequence_length, static_cast<int>(vr.size()));
+        for (int i = 0; i < n; ++i) {
+            onsets[v][i] = running;
+            running += std::abs(vr[i]);
+        }
+        for (int i = n; i < sequence_length; ++i) {
+            onsets[v][i] = running;
+        }
+    }
+    return onsets;
+}
+
+int min_onset_at_index(const std::vector<std::vector<int>>& voice_onsets, int index) {
+    int result = std::numeric_limits<int>::max();
+    for (const auto& v : voice_onsets) {
+        if (index >= 0 && index < static_cast<int>(v.size())) {
+            result = std::min(result, v[index]);
+        }
+    }
+    return result == std::numeric_limits<int>::max() ? 0 : result;
+}
+
+MusicalSolution::SolvedScore build_canonical_score(
+    const SolverConfig& config,
+    const std::vector<std::vector<int>>& voice_pitches,
+    const std::vector<std::vector<int>>& voice_rhythms,
+    const std::vector<int>& metric_signature_by_index) {
+
+    MusicalSolution::SolvedScore score;
+    score.rhythm_base = config.rhythm_base > 0 ? config.rhythm_base : 1;
+
+    if (metric_signature_by_index.empty()) {
+        return score;
+    }
+
+    const auto metric_denominators = build_metric_denominator_map(config);
+    const int sequence_length = static_cast<int>(metric_signature_by_index.size());
+    const auto voice_onsets = compute_voice_onsets(voice_rhythms, sequence_length);
+    const auto voice_totals = compute_voice_total_ticks(voice_rhythms);
+    const int global_end_tick = voice_totals.empty()
+        ? 0
+        : *std::max_element(voice_totals.begin(), voice_totals.end());
+
+    // Build metric segments from piecewise-constant metric sequence.
+    int seg_start = 0;
+    while (seg_start < sequence_length) {
+        int seg_end = seg_start;
+        const int n = metric_signature_by_index[seg_start];
+        while (seg_end + 1 < sequence_length && metric_signature_by_index[seg_end + 1] == n) {
+            ++seg_end;
+        }
+
+        MusicalSolution::MetricSegment seg;
+        seg.start_index = seg_start;
+        seg.end_index = seg_end;
+        seg.numerator = n;
+        auto it = metric_denominators.find(n);
+        seg.denominator = (it != metric_denominators.end()) ? it->second : 4;
+        score.metric_timeline.push_back(seg);
+
+        seg_start = seg_end + 1;
+    }
+
+    // Build measure containers aligned to metric segments using onset estimates.
+    score.measures.reserve(score.metric_timeline.size());
+    for (size_t i = 0; i < score.metric_timeline.size(); ++i) {
+        const auto& seg = score.metric_timeline[i];
+        MusicalSolution::ScoreMeasure measure;
+        measure.measure_index = static_cast<int>(i);
+        measure.numerator = seg.numerator;
+        measure.denominator = seg.denominator;
+
+        measure.start_ticks = min_onset_at_index(voice_onsets, seg.start_index);
+        if (i + 1 < score.metric_timeline.size()) {
+            measure.end_ticks = min_onset_at_index(voice_onsets, score.metric_timeline[i + 1].start_index);
+        } else {
+            int implied = measure.start_ticks + (seg.denominator > 0
+                ? (seg.numerator * score.rhythm_base) / seg.denominator
+                : score.rhythm_base);
+            measure.end_ticks = std::max(global_end_tick, implied);
+        }
+        if (measure.end_ticks < measure.start_ticks) {
+            measure.end_ticks = measure.start_ticks;
+        }
+        score.measures.push_back(std::move(measure));
+    }
+
+    // Map events into the measure windows by onset tick.
+    for (size_t v = 0; v < voice_pitches.size() && v < voice_rhythms.size(); ++v) {
+        const auto& pitches = voice_pitches[v];
+        const auto& rhythms = voice_rhythms[v];
+        const int n = std::min(static_cast<int>(pitches.size()), static_cast<int>(rhythms.size()));
+        for (int i = 0; i < n; ++i) {
+            MusicalSolution::ScoreEvent ev;
+            ev.voice = static_cast<int>(v);
+            ev.index = i;
+            ev.pitch = pitches[i];
+            ev.rhythm = rhythms[i];
+            ev.duration_ticks = std::abs(rhythms[i]);
+            ev.is_rest = rhythms[i] < 0 || pitches[i] == GecodeClusterIntegration::IntegratedMusicalSpace::REST_PITCH_SENTINEL;
+            ev.onset_ticks = (v < voice_onsets.size() && i < static_cast<int>(voice_onsets[v].size()))
+                ? voice_onsets[v][i]
+                : 0;
+
+            int measure_idx = static_cast<int>(score.measures.size()) - 1;
+            for (size_t m = 0; m < score.measures.size(); ++m) {
+                const auto& meas = score.measures[m];
+                const bool in_last = (m + 1 == score.measures.size()) && (ev.onset_ticks >= meas.start_ticks);
+                if ((ev.onset_ticks >= meas.start_ticks && ev.onset_ticks < meas.end_ticks) || in_last) {
+                    measure_idx = static_cast<int>(m);
+                    break;
+                }
+            }
+            if (measure_idx >= 0 && measure_idx < static_cast<int>(score.measures.size())) {
+                score.measures[measure_idx].events.push_back(std::move(ev));
+            }
+        }
+    }
+
+    return score;
+}
+
+std::vector<int> project_metric_signature_from_canonical(const MusicalSolution::SolvedScore& score, int sequence_length) {
+    std::vector<int> projected;
+    if (sequence_length <= 0) return projected;
+    projected.assign(sequence_length, 4);
+    for (const auto& seg : score.metric_timeline) {
+        const int start = std::max(0, seg.start_index);
+        const int end = std::min(sequence_length - 1, seg.end_index);
+        for (int i = start; i <= end; ++i) {
+            projected[i] = seg.numerator;
+        }
+    }
+    return projected;
+}
+
+std::vector<int> project_metric_denominators_from_canonical(const MusicalSolution::SolvedScore& score, int sequence_length) {
+    std::vector<int> projected;
+    if (sequence_length <= 0) return projected;
+    projected.assign(sequence_length, 4);
+    for (const auto& seg : score.metric_timeline) {
+        const int start = std::max(0, seg.start_index);
+        const int end = std::min(sequence_length - 1, seg.end_index);
+        for (int i = start; i <= end; ++i) {
+            projected[i] = (seg.denominator > 0) ? seg.denominator : 4;
+        }
+    }
+    return projected;
+}
+
+std::vector<int> metric_denominators_for_solution(const MusicalSolution& solution) {
+    if (solution.metric_signature.empty()) return {};
+    if (solution.has_canonical_score && !solution.canonical_score.metric_timeline.empty()) {
+        return project_metric_denominators_from_canonical(
+            solution.canonical_score, static_cast<int>(solution.metric_signature.size()));
+    }
+    return std::vector<int>(solution.metric_signature.size(), 4);
+}
+
+std::string musicxml_step_for_pitch_class(int pitch_class) {
+    static const char* steps[] = {"C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"};
+    return steps[pitch_class % 12];
+}
+
+int musicxml_alter_for_pitch_class(int pitch_class) {
+    static const int alters[] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+    return alters[pitch_class % 12];
+}
+
+std::string musicxml_type_for_duration(int duration_ticks, int rhythm_base) {
+    if (duration_ticks <= 0) return "quarter";
+    if (rhythm_base <= 0) return "quarter";
+
+    const int whole = rhythm_base;
+    if (duration_ticks >= whole) return "whole";
+    if (duration_ticks * 2 >= whole) return "half";
+    if (duration_ticks * 4 >= whole) return "quarter";
+    if (duration_ticks * 8 >= whole) return "eighth";
+    if (duration_ticks * 16 >= whole) return "16th";
+    return "32nd";
+}
+
 std::string substitute_wildcard_string(const std::string& input, int voice_a, int voice_b, int i) {
     std::string out = input;
 
@@ -342,26 +571,73 @@ void MusicalSolution::export_to_midi(const std::string& filename) const {
 }
 
 std::string MusicalSolution::to_json() const {
-    std::stringstream json;
-    json << "{" << std::endl;
-    json << "  \"found_solution\": " << (found_solution ? "true" : "false") << "," << std::endl;
-    json << "  \"absolute_notes\": [";
-    for (size_t i = 0; i < absolute_notes.size(); ++i) {
-        if (i > 0) json << ",";
-        json << absolute_notes[i];
+    nlohmann::json j;
+    j["found_solution"] = found_solution;
+    j["solve_time_ms"] = solve_time_ms;
+    j["total_rules_checked"] = total_rules_checked;
+    j["backjumps_performed"] = backjumps_performed;
+    j["average_interval_size"] = average_interval_size;
+    j["melodic_direction_changes"] = melodic_direction_changes;
+    j["failure_reason"] = failure_reason;
+
+    j["absolute_notes"] = absolute_notes;
+    j["intervals"] = intervals;
+    j["note_names"] = note_names;
+    j["voice_solutions"] = voice_solutions;
+    j["voice_rhythm_ticks"] = voice_rhythms;
+    j["metric_signature_numerators"] = metric_signature;
+
+    const auto metric_denominators = metric_denominators_for_solution(*this);
+    nlohmann::json metric_signature_strings = nlohmann::json::array();
+    for (size_t i = 0; i < metric_signature.size(); ++i) {
+        const int den = (i < metric_denominators.size()) ? metric_denominators[i] : 4;
+        metric_signature_strings.push_back(std::to_string(metric_signature[i]) + "/" + std::to_string(den));
     }
-    json << "]," << std::endl;
-    json << "  \"intervals\": [";
-    for (size_t i = 0; i < intervals.size(); ++i) {
-        if (i > 0) json << ",";
-        json << intervals[i];
+    j["metric_signature"] = metric_signature_strings;
+
+    if (has_canonical_score) {
+        nlohmann::json score_j;
+        score_j["rhythm_base"] = canonical_score.rhythm_base;
+
+        nlohmann::json metric_timeline = nlohmann::json::array();
+        for (const auto& seg : canonical_score.metric_timeline) {
+            nlohmann::json seg_j;
+            seg_j["start_index"] = seg.start_index;
+            seg_j["end_index"] = seg.end_index;
+            seg_j["numerator"] = seg.numerator;
+            seg_j["denominator"] = seg.denominator;
+            metric_timeline.push_back(seg_j);
+        }
+        score_j["metric_timeline"] = metric_timeline;
+
+        nlohmann::json measures = nlohmann::json::array();
+        for (const auto& measure : canonical_score.measures) {
+            nlohmann::json m_j;
+            m_j["measure_index"] = measure.measure_index;
+            m_j["start_ticks"] = measure.start_ticks;
+            m_j["end_ticks"] = measure.end_ticks;
+            m_j["numerator"] = measure.numerator;
+            m_j["denominator"] = measure.denominator;
+            nlohmann::json events = nlohmann::json::array();
+            for (const auto& ev : measure.events) {
+                nlohmann::json e_j;
+                e_j["voice"] = ev.voice;
+                e_j["index"] = ev.index;
+                e_j["pitch"] = ev.pitch;
+                e_j["rhythm_ticks"] = ev.rhythm;
+                e_j["onset_ticks"] = ev.onset_ticks;
+                e_j["duration_ticks"] = ev.duration_ticks;
+                e_j["is_rest"] = ev.is_rest;
+                events.push_back(e_j);
+            }
+            m_j["events"] = events;
+            measures.push_back(m_j);
+        }
+        score_j["measures"] = measures;
+        j["score"] = score_j;
     }
-    json << "]," << std::endl;
-    json << "  \"solve_time_ms\": " << solve_time_ms << "," << std::endl;
-    json << "  \"total_rules_checked\": " << total_rules_checked << "," << std::endl;
-    json << "  \"backjumps_performed\": " << backjumps_performed << std::endl;
-    json << "}";
-    return json.str();
+
+    return j.dump(2);
 }
 
 void MusicalSolution::export_to_xml(const std::string& filename) const {
@@ -548,12 +824,50 @@ std::string MusicalSolution::to_xml() const {
     
     // Metric signature
     if (!metric_signature.empty()) {
+        const auto metric_denominators = metric_denominators_for_solution(*this);
         xml << "  <metric_signature>" << std::endl;
         for (size_t i = 0; i < metric_signature.size(); ++i) {
+            const int den = (i < metric_denominators.size()) ? metric_denominators[i] : 4;
             xml << "    <time_signature numerator=\"" << metric_signature[i] 
-               << "\" denominator=\"4\"/>" << std::endl;
+               << "\" denominator=\"" << den << "\"/>" << std::endl;
         }
         xml << "  </metric_signature>" << std::endl;
+    }
+
+    if (has_canonical_score) {
+        xml << "  <score rhythm_base=\"" << canonical_score.rhythm_base << "\">" << std::endl;
+        xml << "    <metric_timeline>" << std::endl;
+        for (const auto& seg : canonical_score.metric_timeline) {
+            xml << "      <segment start_index=\"" << seg.start_index
+                << "\" end_index=\"" << seg.end_index
+                << "\" numerator=\"" << seg.numerator
+                << "\" denominator=\"" << seg.denominator
+                << "\"/>" << std::endl;
+        }
+        xml << "    </metric_timeline>" << std::endl;
+
+        xml << "    <measures>" << std::endl;
+        for (const auto& measure : canonical_score.measures) {
+            xml << "      <measure index=\"" << measure.measure_index
+                << "\" start_ticks=\"" << measure.start_ticks
+                << "\" end_ticks=\"" << measure.end_ticks
+                << "\" numerator=\"" << measure.numerator
+                << "\" denominator=\"" << measure.denominator
+                << "\">" << std::endl;
+            for (const auto& ev : measure.events) {
+                xml << "        <event voice=\"" << ev.voice
+                    << "\" index=\"" << ev.index
+                    << "\" pitch=\"" << ev.pitch
+                    << "\" rhythm_ticks=\"" << ev.rhythm
+                    << "\" onset_ticks=\"" << ev.onset_ticks
+                    << "\" duration_ticks=\"" << ev.duration_ticks
+                    << "\" is_rest=\"" << (ev.is_rest ? "true" : "false")
+                    << "\"/>" << std::endl;
+            }
+            xml << "      </measure>" << std::endl;
+        }
+        xml << "    </measures>" << std::endl;
+        xml << "  </score>" << std::endl;
     }
     
     // Applied rules
@@ -598,7 +912,89 @@ std::string MusicalSolution::to_musicxml() const {
     xml << "  </part-list>\n";
     
     // Parts
-    if (!voice_solutions.empty()) {
+    if (has_canonical_score && !canonical_score.measures.empty() && !voice_solutions.empty()) {
+        const int divisions = canonical_score.rhythm_base > 0 ? canonical_score.rhythm_base : 1;
+        for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
+            xml << "  <part id=\"P" << (voice + 1) << "\">\n";
+
+            for (size_t m = 0; m < canonical_score.measures.size(); ++m) {
+                const auto& measure = canonical_score.measures[m];
+                xml << "    <measure number=\"" << (m + 1) << "\">\n";
+
+                if (m == 0) {
+                    xml << "      <attributes>\n";
+                    xml << "        <divisions>" << divisions << "</divisions>\n";
+                    xml << "        <key>\n";
+                    xml << "          <fifths>0</fifths>\n";
+                    xml << "        </key>\n";
+                    xml << "        <time>\n";
+                    xml << "          <beats>" << measure.numerator << "</beats>\n";
+                    xml << "          <beat-type>" << measure.denominator << "</beat-type>\n";
+                    xml << "        </time>\n";
+                    xml << "        <clef>\n";
+                    xml << "          <sign>G</sign>\n";
+                    xml << "          <line>2</line>\n";
+                    xml << "        </clef>\n";
+                    xml << "      </attributes>\n";
+                } else {
+                    const auto& prev = canonical_score.measures[m - 1];
+                    if (prev.numerator != measure.numerator || prev.denominator != measure.denominator) {
+                        xml << "      <attributes>\n";
+                        xml << "        <time>\n";
+                        xml << "          <beats>" << measure.numerator << "</beats>\n";
+                        xml << "          <beat-type>" << measure.denominator << "</beat-type>\n";
+                        xml << "        </time>\n";
+                        xml << "      </attributes>\n";
+                    }
+                }
+
+                std::vector<ScoreEvent> events;
+                for (const auto& ev : measure.events) {
+                    if (ev.voice == static_cast<int>(voice)) {
+                        events.push_back(ev);
+                    }
+                }
+                std::sort(events.begin(), events.end(),
+                          [](const ScoreEvent& a, const ScoreEvent& b) {
+                              if (a.onset_ticks != b.onset_ticks) return a.onset_ticks < b.onset_ticks;
+                              return a.index < b.index;
+                          });
+
+                if (events.empty()) {
+                    xml << "      <note>\n";
+                    xml << "        <rest/>\n";
+                    xml << "        <duration>" << std::max(1, measure.end_ticks - measure.start_ticks) << "</duration>\n";
+                    xml << "        <type>whole</type>\n";
+                    xml << "      </note>\n";
+                } else {
+                    for (const auto& ev : events) {
+                        xml << "      <note>\n";
+                        if (ev.is_rest || ev.pitch < 0) {
+                            xml << "        <rest/>\n";
+                        } else {
+                            const int pitch_class = ((ev.pitch % 12) + 12) % 12;
+                            const int octave = (ev.pitch / 12) - 1;
+                            xml << "        <pitch>\n";
+                            xml << "          <step>" << musicxml_step_for_pitch_class(pitch_class) << "</step>\n";
+                            const int alter = musicxml_alter_for_pitch_class(pitch_class);
+                            if (alter != 0) {
+                                xml << "          <alter>" << alter << "</alter>\n";
+                            }
+                            xml << "          <octave>" << octave << "</octave>\n";
+                            xml << "        </pitch>\n";
+                        }
+                        xml << "        <duration>" << std::max(1, ev.duration_ticks) << "</duration>\n";
+                        xml << "        <type>" << musicxml_type_for_duration(ev.duration_ticks, divisions) << "</type>\n";
+                        xml << "      </note>\n";
+                    }
+                }
+
+                xml << "    </measure>\n";
+            }
+
+            xml << "  </part>\n";
+        }
+    } else if (!voice_solutions.empty()) {
         for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
             xml << "  <part id=\"P" << (voice + 1) << "\">\n";
             xml << "    <measure number=\"1\">\n";
@@ -1269,7 +1665,8 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     &mutable_pitch_vars,
                     &mutable_rhythm_vars,
                     config_.num_voices,
-                    config_.sequence_length);
+                    config_.sequence_length,
+                    &const_cast<Gecode::IntVarArray&>(space.get_metric_vars()));
 
                 DynamicRules::HeuristicCandidateContext candidate_ctx;
                 candidate_ctx.voice = voice;
@@ -1285,9 +1682,59 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         GecodeClusterIntegration::clear_pitch_heuristic_value_ordering();
     }
 
-    auto gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
-        config_.sequence_length, config_.num_voices, config_.backjump_mode,
-        all_voice_domains, config_.voice_rhythm_domains, effective_random_seed);
+    bool has_metric_targeted_rule = false;
+    const int metric_engine_index = config_.num_voices * 2;
+    for (const auto& cfg : engine_rule_configs_) {
+        std::vector<int> targets;
+        if (cfg.target_engine >= 0) targets.push_back(cfg.target_engine);
+        targets.insert(targets.end(), cfg.target_engines.begin(), cfg.target_engines.end());
+        for (int t : targets) {
+            if (t == metric_engine_index) {
+                has_metric_targeted_rule = true;
+                break;
+            }
+        }
+        if (has_metric_targeted_rule) break;
+    }
+
+    const bool metric_active = config_.enable_metric_engine || has_metric_targeted_rule;
+    std::vector<int> metric_domain_numerators;
+    if (metric_active) {
+        if (config_.metric_domain.empty()) {
+            throw std::runtime_error("Metric engine is active but metric_domain is empty");
+        }
+
+        std::map<int, int> numerator_to_denominator;
+        for (const auto& entry : config_.metric_domain) {
+            if (entry.numerator <= 0 || entry.denominator <= 0) {
+                throw std::runtime_error("metric_domain contains invalid time signature values");
+            }
+            auto it = numerator_to_denominator.find(entry.numerator);
+            if (it != numerator_to_denominator.end() && it->second != entry.denominator) {
+                throw std::runtime_error(
+                    "metric_domain currently requires unique numerators (found conflicting signatures for " +
+                    std::to_string(entry.numerator) + ")");
+            }
+            numerator_to_denominator[entry.numerator] = entry.denominator;
+            metric_domain_numerators.push_back(entry.numerator);
+        }
+        std::sort(metric_domain_numerators.begin(), metric_domain_numerators.end());
+        metric_domain_numerators.erase(
+            std::unique(metric_domain_numerators.begin(), metric_domain_numerators.end()),
+            metric_domain_numerators.end());
+    }
+
+    std::unique_ptr<GecodeClusterIntegration::IntegratedMusicalSpace> gecode_space;
+    if (metric_active) {
+        gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
+            config_.sequence_length, config_.num_voices, config_.backjump_mode,
+            all_voice_domains, config_.voice_rhythm_domains, metric_domain_numerators,
+            effective_random_seed);
+    } else {
+        gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
+            config_.sequence_length, config_.num_voices, config_.backjump_mode,
+            all_voice_domains, config_.voice_rhythm_domains, effective_random_seed);
+    }
 
     // ADD MUSICAL RULES
     if (!rules_.empty()) {
@@ -1301,8 +1748,11 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
             (cfg.function == "all_different" || cfg.rule_type == "r-pitches-all-different" || cfg.rule_type == "r-twelve-tone-voice1");
         const bool is_rhythmic_uniformity_rule =
             (cfg.rule_type == "r-rhythmic-uniformity");
+        const bool is_metric_signature_rule =
+            (cfg.rule_type == "r-metric-signature" &&
+             (cfg.function == "equal_values" || cfg.function == "equal" || cfg.function.empty()));
 
-        if (!is_all_different_rule && !is_rhythmic_uniformity_rule) {
+        if (!is_all_different_rule && !is_rhythmic_uniformity_rule && !is_metric_signature_rule) {
             continue;
         }
 
@@ -1325,14 +1775,10 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
             }
         }
 
-        const int metric_engine_index = config_.num_voices * 2;
         for (int engine : targets) {
-            if (engine == metric_engine_index) {
-                throw std::runtime_error("rule '" + cfg.description + "' cannot target metric engine " + std::to_string(engine));
-            }
-
-            const bool is_pitch_engine = (engine % 2) == 1;
-            const bool is_rhythm_engine = (engine % 2) == 0;
+            const bool is_metric_engine = (engine == metric_engine_index);
+            const bool is_pitch_engine = !is_metric_engine && ((engine % 2) == 1);
+            const bool is_rhythm_engine = !is_metric_engine && ((engine % 2) == 0);
 
             if (!cfg.engine_type.empty()) {
                 if (cfg.engine_type == "pitch" && !is_pitch_engine) {
@@ -1341,9 +1787,88 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 if (cfg.engine_type == "rhythm" && !is_rhythm_engine) {
                     throw std::runtime_error("rule '" + cfg.description + "' declares engine_type='rhythm' but targets non-rhythm engine " + std::to_string(engine));
                 }
-                if (cfg.engine_type == "metric") {
-                    throw std::runtime_error("rule '" + cfg.description + "' cannot use engine_type='metric'");
+                if (cfg.engine_type == "metric" && !is_metric_engine) {
+                    throw std::runtime_error("rule '" + cfg.description + "' declares engine_type='metric' but targets non-metric engine " + std::to_string(engine));
                 }
+            }
+
+            if (is_metric_signature_rule) {
+                if (!is_metric_engine) {
+                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' must target metric engine " + std::to_string(metric_engine_index));
+                }
+                if (!gecode_space->has_metric_vars()) {
+                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' targets metric engine but metric vars are unavailable");
+                }
+
+                std::vector<int> segment_starts = cfg.indices;
+                if (segment_starts.empty()) {
+                    segment_starts.push_back(0);
+                }
+                if (segment_starts.front() != 0) {
+                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' requires first index to be 0");
+                }
+                for (size_t i = 0; i < segment_starts.size(); ++i) {
+                    if (segment_starts[i] < 0 || segment_starts[i] >= config_.sequence_length) {
+                        throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' has out-of-range index " + std::to_string(segment_starts[i]));
+                    }
+                    if (i > 0 && segment_starts[i] <= segment_starts[i - 1]) {
+                        throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' indices must be strictly increasing");
+                    }
+                }
+
+                std::vector<std::pair<int, int>> desired_signatures;
+                for (const auto& s : cfg.parameter_strings) {
+                    desired_signatures.push_back(parse_metric_signature(s));
+                }
+                for (double p : cfg.parameters) {
+                    const int n = static_cast<int>(std::lround(p));
+                    if (n <= 0) {
+                        throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' has invalid numeric signature parameter");
+                    }
+                    desired_signatures.push_back({n, 4});
+                }
+
+                if (desired_signatures.empty()) {
+                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' requires signature parameters");
+                }
+                if (desired_signatures.size() != segment_starts.size()) {
+                    throw std::runtime_error(
+                        "r-metric-signature rule '" + cfg.description +
+                        "' requires the same number of parameters and indices (segment starts)");
+                }
+
+                std::map<int, int> metric_domain_map;
+                for (const auto& entry : config_.metric_domain) {
+                    auto it = metric_domain_map.find(entry.numerator);
+                    if (it != metric_domain_map.end() && it->second != entry.denominator) {
+                        throw std::runtime_error(
+                            "r-metric-signature rule '" + cfg.description +
+                            "' cannot be applied because metric_domain has duplicate numerators with different denominators");
+                    }
+                    metric_domain_map[entry.numerator] = entry.denominator;
+                }
+
+                for (const auto& sig : desired_signatures) {
+                    auto it = metric_domain_map.find(sig.first);
+                    if (it == metric_domain_map.end() || it->second != sig.second) {
+                        throw std::runtime_error(
+                            "r-metric-signature rule '" + cfg.description +
+                            "' signature " + std::to_string(sig.first) + "/" + std::to_string(sig.second) +
+                            " is not present in metric_domain");
+                    }
+                }
+
+                for (size_t seg = 0; seg < segment_starts.size(); ++seg) {
+                    const int start = segment_starts[seg];
+                    const int end = (seg + 1 < segment_starts.size())
+                        ? (segment_starts[seg + 1] - 1)
+                        : (config_.sequence_length - 1);
+                    const int target_numerator = desired_signatures[seg].first;
+                    for (int idx = start; idx <= end; ++idx) {
+                        Gecode::rel(*gecode_space, gecode_space->get_metric_vars()[idx], Gecode::IRT_EQ, target_numerator);
+                    }
+                }
+                continue;
             }
 
             if (is_all_different_rule && is_pitch_engine) {
@@ -1463,7 +1988,8 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     if (compiled_rules_ && compiled_rules_->total_count() > 0) {
         std::cout << "🎯 Applying " << compiled_rules_->total_count() << " dynamic rules" << std::endl;
         DynamicRules::ConstraintContext ctx(gecode_space.get(), &gecode_space->get_absolute_vars(),
-                                           &gecode_space->get_rhythm_vars(), config_.num_voices, config_.sequence_length);
+                                           &gecode_space->get_rhythm_vars(), config_.num_voices,
+                                           config_.sequence_length, &gecode_space->get_metric_vars());
         if (compiled_rules_->constraint_count() > 0) {
             compiled_rules_->post_all_constraints(ctx);
         }
@@ -1540,7 +2066,21 @@ MusicalSolution Solver::extract_solution_from_space_(
                 solution.voice_solutions.push_back(solved_space->get_pitch_sequence(voice));
             }
 
-            solution.metric_signature = solved_space->get_metric_sequence();
+            std::vector<int> raw_metric_signature = solved_space->get_metric_sequence();
+            if ((int)raw_metric_signature.size() < config_.sequence_length) {
+                const int fill = raw_metric_signature.empty() ? 4 : raw_metric_signature.back();
+                raw_metric_signature.resize(config_.sequence_length, fill);
+            } else if ((int)raw_metric_signature.size() > config_.sequence_length) {
+                raw_metric_signature.resize(config_.sequence_length);
+            }
+
+            solution.canonical_score = build_canonical_score(
+                config_, solution.voice_solutions, solution.voice_rhythms, raw_metric_signature);
+            solution.has_canonical_score = true;
+
+            // Backward-compatible projection from canonical model.
+            solution.metric_signature = project_metric_signature_from_canonical(
+                solution.canonical_score, config_.sequence_length);
         } else {
             success = false;
             solution.failure_reason = "Gecode found partial solution but not fully assigned";

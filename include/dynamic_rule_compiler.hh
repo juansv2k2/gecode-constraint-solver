@@ -44,6 +44,7 @@ struct ConstraintContext {
     IntegratedMusicalSpace* space = nullptr;
     IntVarArray* pitch_vars = nullptr;
     IntVarArray* rhythm_vars = nullptr;
+    IntVarArray* metric_vars = nullptr;
     int num_voices = 0;
     int sequence_length = 0;
     int current_voice = 0;
@@ -51,9 +52,10 @@ struct ConstraintContext {
     ConstraintContext(IntegratedMusicalSpace* s, 
                      IntVarArray* p_vars,
                      IntVarArray* r_vars,
-                     int voices, int length)
+                                         int voices, int length,
+                                         IntVarArray* m_vars = nullptr)
         : space(s), pitch_vars(p_vars), rhythm_vars(r_vars), 
-          num_voices(voices), sequence_length(length) {}
+                    metric_vars(m_vars), num_voices(voices), sequence_length(length) {}
 
     // Returns true if the rhythm domain at (voice, pos) allows a rest (negative tick).
     bool position_can_be_rest(int voice, int pos) const {

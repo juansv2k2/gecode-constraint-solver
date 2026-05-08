@@ -113,6 +113,7 @@ private:
     IntVarArray absolute_vars_;
     IntVarArray interval_vars_;
     IntVarArray rhythm_vars_;  // Per-voice duration variables (empty if not configured)
+    IntVarArray metric_vars_;  // Metric engine variables (phase-1 scaffold)
     
     // Per-voice state
     int num_voices_;
@@ -151,6 +152,14 @@ public:
                            const std::vector<std::vector<int>>& voice_rhythm_domains,
                            unsigned int random_seed = 0);
 
+    // Constructor with per-voice pitch/rhythm domains and metric engine domain
+    IntegratedMusicalSpace(int length, int voices,
+                           AdvancedBackjumping::BackjumpMode mode,
+                           const std::vector<std::vector<int>>& voice_domains,
+                           const std::vector<std::vector<int>>& voice_rhythm_domains,
+                           const std::vector<int>& metric_domain_numerators,
+                           unsigned int random_seed = 0);
+
     // Copy constructor for search (Gecode 6: single argument)
     IntegratedMusicalSpace(IntegratedMusicalSpace& s);
 
@@ -164,10 +173,13 @@ public:
     IntVarArray& get_absolute_vars() { return absolute_vars_; }
     IntVarArray& get_interval_vars() { return interval_vars_; }
     IntVarArray& get_rhythm_vars() { return rhythm_vars_; }
+    IntVarArray& get_metric_vars() { return metric_vars_; }
     const IntVarArray& get_absolute_vars() const { return absolute_vars_; }
     const IntVarArray& get_interval_vars() const { return interval_vars_; }
     const IntVarArray& get_rhythm_vars() const { return rhythm_vars_; }
+    const IntVarArray& get_metric_vars() const { return metric_vars_; }
     bool has_rhythm_vars() const { return rhythm_vars_.size() > 0; }
+    bool has_metric_vars() const { return metric_vars_.size() > 0; }
     int get_sequence_length() const { return sequence_length_; }
     int get_num_voices() const { return num_voices_; }
 

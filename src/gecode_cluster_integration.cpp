@@ -200,11 +200,12 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
                                               unsigned int random_seed)
     : Space(), 
       sequence_length_(length), 
-      num_voices_(voices),
       absolute_vars_(*this, length * voices, 
                      note_domain.empty() ? IntSet(48, 96) : IntSet(note_domain.data(), note_domain.size())),  // Domain from config
       interval_vars_(*this, (length * voices) - voices, -12, 12),  // Interval range
       rhythm_vars_(*this, 0, 0, 0),  // No rhythm vars in single-domain constructor
+    metric_vars_(*this, 0, 0, 0),  // No metric vars in scaffold constructor
+    num_voices_(voices),
       backjump_mode_(mode),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
@@ -242,10 +243,11 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
                                               unsigned int random_seed)
     : Space(),
       sequence_length_(length),
-      num_voices_(voices),
       absolute_vars_(*this, length * voices, IntSet(0, 127)),  // Wide domain, narrowed below
       interval_vars_(*this, (length * voices) - voices, -12, 12),
       rhythm_vars_(*this, 0, 0, 0),  // No rhythm vars in pitch-only constructor
+    metric_vars_(*this, 0, 0, 0),  // No metric vars in scaffold constructor
+    num_voices_(voices),
       backjump_mode_(mode),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
@@ -289,10 +291,11 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
                                               unsigned int random_seed)
     : Space(),
       sequence_length_(length),
-      num_voices_(voices),
       absolute_vars_(*this, length * voices, IntSet(0, 127)),
       interval_vars_(*this, (length * voices) - voices, -12, 12),
       rhythm_vars_(*this, length * voices, -100000, 100000),  // Wide range including negatives for rests; narrowed by dom() below
+    metric_vars_(*this, 0, 0, 0),  // No metric vars until metric engine activation
+    num_voices_(voices),
       backjump_mode_(mode),
       solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
       vocal_space_configured_(false) {
@@ -356,6 +359,94 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 }
 
+// Per-voice pitch/rhythm domains + metric domain constructor
+IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
+                                              AdvancedBackjumping::BackjumpMode mode,
+                                              const std::vector<std::vector<int>>& voice_domains,
+                                              const std::vector<std::vector<int>>& voice_rhythm_domains,
+                                              const std::vector<int>& metric_domain_numerators,
+                                              unsigned int random_seed)
+    : Space(),
+      sequence_length_(length),
+      absolute_vars_(*this, length * voices, IntSet(0, 127)),
+      interval_vars_(*this, (length * voices) - voices, -12, 12),
+      rhythm_vars_(*this, length * voices, -100000, 100000),
+      metric_vars_(*this, length, -100000, 100000),
+      num_voices_(voices),
+      backjump_mode_(mode),
+      solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
+      vocal_space_configured_(false) {
+
+    // Narrow each voice's pitch variables
+    for (int v = 0; v < voices; ++v) {
+        if (v < (int)voice_domains.size() && !voice_domains[v].empty()) {
+            IntSet voice_dom(voice_domains[v].data(), voice_domains[v].size());
+            for (int i = 0; i < length; ++i) {
+                dom(*this, absolute_vars_[v * length + i], voice_dom);
+            }
+        }
+    }
+
+    // Narrow each voice's rhythm variables to allowed duration values and exclude 0.
+    for (int v = 0; v < voices; ++v) {
+        if (v < (int)voice_rhythm_domains.size() && !voice_rhythm_domains[v].empty()) {
+            IntSet rhythm_dom(voice_rhythm_domains[v].data(), voice_rhythm_domains[v].size());
+            for (int i = 0; i < length; ++i) {
+                dom(*this, rhythm_vars_[v * length + i], rhythm_dom);
+            }
+        } else {
+            for (int i = 0; i < length; ++i)
+                rel(*this, rhythm_vars_[v * length + i], IRT_NQ, 0);
+        }
+    }
+
+    if (metric_domain_numerators.empty()) {
+        throw std::runtime_error("Metric constructor requires non-empty metric domain");
+    }
+    std::vector<int> metric_values = metric_domain_numerators;
+    std::sort(metric_values.begin(), metric_values.end());
+    metric_values.erase(std::unique(metric_values.begin(), metric_values.end()), metric_values.end());
+    IntSet metric_dom(metric_values.data(), metric_values.size());
+    for (int i = 0; i < length; ++i) {
+        dom(*this, metric_vars_[i], metric_dom);
+    }
+
+    // Interval constraints: only enforce when BOTH consecutive positions are notes (rhythm > 0).
+    for (int voice = 0; voice < voices; ++voice) {
+        for (int i = 1; i < length; ++i) {
+            int abs_idx      = voice * length + i;
+            int prev_abs_idx = voice * length + (i - 1);
+            int int_idx      = voice * (length - 1) + (i - 1);
+            int r_cur        = voice * length + i;
+            int r_prev       = voice * length + (i - 1);
+            BoolVar cur_note  = expr(*this, rhythm_vars_[r_cur]  > 0);
+            BoolVar prev_note = expr(*this, rhythm_vars_[r_prev] > 0);
+            BoolVar both_notes = expr(*this, cur_note && prev_note);
+            IntVar diff = expr(*this, absolute_vars_[abs_idx] - absolute_vars_[prev_abs_idx]);
+            rel(*this, interval_vars_[int_idx], IRT_EQ, diff, Reify(both_notes, RM_IMP));
+        }
+    }
+
+    post_musical_constraints();
+    if (g_pitch_heuristic_enabled) {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL(select_value_by_heuristic));
+    } else if (random_seed != 0) {
+        Gecode::Rnd rng(random_seed);
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+    } else {
+        branch(*this, absolute_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
+
+    if (random_seed != 0) {
+        Gecode::Rnd rng(random_seed);
+        branch(*this, rhythm_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+        branch(*this, metric_vars_, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+    } else {
+        branch(*this, rhythm_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+        branch(*this, metric_vars_, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
+}
+
 IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)
     : Space(space),
       sequence_length_(space.sequence_length_),
@@ -367,6 +458,7 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)
     absolute_vars_.update(*this, space.absolute_vars_);
     interval_vars_.update(*this, space.interval_vars_);
     rhythm_vars_.update(*this, space.rhythm_vars_);
+    metric_vars_.update(*this, space.metric_vars_);
     
     // Copy musical rules
     for (const auto& rule : space.musical_rules_) {
@@ -614,8 +706,17 @@ std::vector<int> IntegratedMusicalSpace::get_rhythm_sequence_from_vars(int voice
 }
 
 std::vector<int> IntegratedMusicalSpace::get_metric_sequence() const {
-    // Placeholder implementation  
-    return std::vector<int>{4}; // 4/4 time
+    // Phase-1 scaffold: if metric vars exist and are assigned, surface them.
+    // Fallback keeps current behavior until full metric engine wiring lands.
+    if (metric_vars_.size() > 0) {
+        std::vector<int> sequence;
+        sequence.reserve(metric_vars_.size());
+        for (int i = 0; i < metric_vars_.size(); ++i) {
+            sequence.push_back(metric_vars_[i].assigned() ? metric_vars_[i].val() : 4);
+        }
+        return sequence;
+    }
+    return std::vector<int>{4};
 }
 
 } // namespace GecodeClusterIntegration

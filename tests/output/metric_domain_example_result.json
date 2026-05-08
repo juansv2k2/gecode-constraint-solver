@@ -1,0 +1,28 @@
+{
+  "config_file": "configs/metric_domain_example.json",
+  "problem_name": "Metric Domain Example",
+  "solutions_found": 1,
+  "solve_time_ms": 0,
+  "rules_applied": 3,
+  "solutions": [
+    {
+      "solution_index": 0,
+      "voices": [
+        {
+          "voice": 0,
+          "pitch_solution": [62, 65, 64, 67, 69, 72, 71, 60],
+          "rhythm_solution": [1, 1, 1, 1, 1, 1, 1, 1],
+          "pitch_names": ["D4", "F4", "E4", "G4", "A4", "C5", "B4", "C4"],
+          "rhythm_names": ["1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8"]
+        }
+      ],
+      "metric_signature_numerators": [4, 4, 3, 3, 3, 6, 6, 6],
+      "metric_signature": ["4/4", "4/4", "3/4", "3/4", "3/4", "6/8", "6/8", "6/8"],
+      "score": {
+        "rhythm_base": 8,
+        "metric_timeline": [{"start_index":0,"end_index":1,"numerator":4,"denominator":4}, {"start_index":2,"end_index":4,"numerator":3,"denominator":4}, {"start_index":5,"end_index":7,"numerator":6,"denominator":8}],
+        "measures": [{"measure_index":0,"start_ticks":0,"end_ticks":2,"numerator":4,"denominator":4,"events":[{"voice":0,"index":0,"pitch":62,"rhythm_ticks":1,"onset_ticks":0,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":1,"pitch":65,"rhythm_ticks":1,"onset_ticks":1,"duration_ticks":1,"is_rest":false}]}, {"measure_index":1,"start_ticks":2,"end_ticks":5,"numerator":3,"denominator":4,"events":[{"voice":0,"index":2,"pitch":64,"rhythm_ticks":1,"onset_ticks":2,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":3,"pitch":67,"rhythm_ticks":1,"onset_ticks":3,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":4,"pitch":69,"rhythm_ticks":1,"onset_ticks":4,"duration_ticks":1,"is_rest":false}]}, {"measure_index":2,"start_ticks":5,"end_ticks":11,"numerator":6,"denominator":8,"events":[{"voice":0,"index":5,"pitch":72,"rhythm_ticks":1,"onset_ticks":5,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":6,"pitch":71,"rhythm_ticks":1,"onset_ticks":6,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":7,"pitch":60,"rhythm_ticks":1,"onset_ticks":7,"duration_ticks":1,"is_rest":false}]}]
+      }
+    }
+  ]
+}
