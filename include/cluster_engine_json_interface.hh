@@ -10,7 +10,6 @@
 #define CLUSTER_ENGINE_JSON_INTERFACE_HH
 
 #include "enhanced_rule_architecture.hh"
-#include "advanced_backjumping_strategies.hh"
 #include "dual_solution_storage.hh"
 #include <string>
 #include <vector>

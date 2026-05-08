@@ -10,7 +10,6 @@
 #define MUSICAL_CONSTRAINT_SOLVER_HH
 
 #include "enhanced_rule_architecture.hh"
-#include "advanced_backjumping_strategies.hh"
 #include "dual_solution_storage.hh"
 #include "gecode_cluster_integration.hh"
 #include "dynamic_rule_compiler.hh"
@@ -468,11 +467,6 @@ public:
      * @brief Get performance statistics
      */
     std::map<std::string, double> get_performance_stats() const;
-    
-    /**
-     * @brief Get backjump analysis from last solve
-     */
-    AdvancedBackjumping::AdvancedBackjumpResult get_last_backjump_analysis() const;
     
     /**
      * @brief Get rule application statistics

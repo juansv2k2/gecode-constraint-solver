@@ -10,7 +10,6 @@
 #include <gecode/int.hh>
 #include <gecode/minimodel.hh>
 #include <gecode/search.hh>
-#include "advanced_backjumping_strategies.hh"
 #include "dual_solution_storage.hh"
 #include "enhanced_rule_architecture.hh"
 #include <memory>

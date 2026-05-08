@@ -77,8 +77,8 @@ CLUSTER_ENGINE_BACKJUMP_SOURCE = src/cluster_engine_backjump_test.cpp src/cluste
 CLUSTER_ENGINE_BACKJUMP_CXXFLAGS = -std=c++11 -O2 -Wall -g -Iinclude
 
 # GECODE INTEGRATION (PRODUCTION SYSTEM)
-gecode_cluster_integration: test_gecode_cluster_integration.cpp include/gecode_cluster_integration.hh src/gecode_cluster_integration.cpp src/advanced_backjumping_strategies.cpp
-	$(CXX) -std=c++17 $(GECODE_INC) -I./include -I./src test_gecode_cluster_integration.cpp src/gecode_cluster_integration.cpp src/advanced_backjumping_strategies.cpp $(GECODE_LIB) -o gecode_cluster_integration
+gecode_cluster_integration: test_gecode_cluster_integration.cpp include/gecode_cluster_integration.hh src/gecode_cluster_integration.cpp
+	$(CXX) -std=c++17 $(GECODE_INC) -I./include -I./src test_gecode_cluster_integration.cpp src/gecode_cluster_integration.cpp $(GECODE_LIB) -o gecode_cluster_integration
 
 # PRODUCTION MUSICAL CONSTRAINT SOLVER (COMPLETE SYSTEM)
 PRODUCTION_SOLVER_TARGET = bin/musical-constraint-solver
@@ -88,22 +88,22 @@ PRODUCTION_SOLVER_LIBS = -lgecode -lgecodeminimodel -lgecodekernel -lgecodeint -
 
 # Production Test Suite
 PRODUCTION_TEST_TARGET = bin/test-musical-solver
-PRODUCTION_TEST_SOURCE = test_musical_constraint_solver.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+PRODUCTION_TEST_SOURCE = test_musical_constraint_solver.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp
 PRODUCTION_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Simple Validation System
 SIMPLE_VALIDATION_TARGET = bin/validate-cluster-gecode
-SIMPLE_VALIDATION_SOURCE = simple_gecode_cluster_validation.cpp src/advanced_backjumping_strategies.cpp
+SIMPLE_VALIDATION_SOURCE = simple_gecode_cluster_validation.cpp
 SIMPLE_VALIDATION_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Main Interface Test (lightweight)
 MAIN_INTERFACE_TEST_EXECUTABLE = test-main-interface-exe
-MAIN_INTERFACE_TEST_SOURCE = test_main_interface.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+MAIN_INTERFACE_TEST_SOURCE = test_main_interface.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp
 MAIN_INTERFACE_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Working Gecode Demo (full demonstration)
 WORKING_DEMO_TARGET = test-working-demo
-WORKING_DEMO_SOURCE = test_working_gecode_demo.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+WORKING_DEMO_SOURCE = test_working_gecode_demo.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp
 WORKING_DEMO_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # JSON Interface Test  
@@ -118,47 +118,47 @@ CUSTOM_CONSENSUS_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Cluster Engine Main Interface (Modular System)
 CLUSTER_MAIN_INTERFACE_TARGET = cluster-engine-main
-CLUSTER_MAIN_INTERFACE_SOURCE = cluster_engine_main_interface.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+CLUSTER_MAIN_INTERFACE_SOURCE = cluster_engine_main_interface.cpp src/gecode_cluster_integration.cpp
 CLUSTER_MAIN_INTERFACE_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Cluster Engine Main Interface - Fixed Version (Modular System)
 CLUSTER_MAIN_INTERFACE_FIXED_TARGET = cluster-engine-main-fixed
-CLUSTER_MAIN_INTERFACE_FIXED_SOURCE = cluster_engine_main_interface_fixed.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+CLUSTER_MAIN_INTERFACE_FIXED_SOURCE = cluster_engine_main_interface_fixed.cpp src/gecode_cluster_integration.cpp
 CLUSTER_MAIN_INTERFACE_FIXED_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # 12-Tone Row Generator (Serial Composition System)
 TWELVE_TONE_TARGET = test-twelve-tone
-TWELVE_TONE_SOURCE = test_twelve_tone_generator.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+TWELVE_TONE_SOURCE = test_twelve_tone_generator.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp
 TWELVE_TONE_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Multiple 12-Tone Rows Generator (Variety Demonstration)
 MULTI_TWELVE_TONE_TARGET = test-multiple-twelve-tone
-MULTI_TWELVE_TONE_SOURCE = test_multiple_twelve_tone_rows.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+MULTI_TWELVE_TONE_SOURCE = test_multiple_twelve_tone_rows.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp
 MULTI_TWELVE_TONE_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # 12-Tone System Demo (Complete Demonstration)
 DEMO_TWELVE_TONE_TARGET = demo-twelve-tone
-DEMO_TWELVE_TONE_SOURCE = demo_twelve_tone_system.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+DEMO_TWELVE_TONE_SOURCE = demo_twelve_tone_system.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp
 DEMO_TWELVE_TONE_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Dynamic Constraint Solver Main Interface (Command-Line JSON Config)
 CONSTRAINT_SOLVER_MAIN_TARGET = constraint-solver-main
-CONSTRAINT_SOLVER_MAIN_SOURCE = constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp
+CONSTRAINT_SOLVER_MAIN_SOURCE = constraint_solver_main.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp
 CONSTRAINT_SOLVER_MAIN_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
 DYNAMIC_SOLVER_TARGET = bin/dynamic-solver
-DYNAMIC_SOLVER_SOURCE = src/dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+DYNAMIC_SOLVER_SOURCE = src/dynamic_constraint_solver_main.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 DYNAMIC_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Max/MSP async wrapper smoke test (SDK-independent wrapper layer)
 MAX_WRAPPER_TEST_TARGET = bin/test-max-wrapper
-MAX_WRAPPER_TEST_SOURCE = test_max_msp_wrapper.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+MAX_WRAPPER_TEST_SOURCE = test_max_msp_wrapper.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 MAX_WRAPPER_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Metric timepoint regression test
 METRIC_TIMEPOINT_TEST_TARGET = bin/test-metric-timepoints
-METRIC_TIMEPOINT_TEST_SOURCE = test_metric_timepoints.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+METRIC_TIMEPOINT_TEST_SOURCE = test_metric_timepoints.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 METRIC_TIMEPOINT_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Native Max external (.mxo). Set MAX_SDK_PATH to your local Max SDK root.
@@ -168,14 +168,14 @@ MAX_SDK_C74SUPPORT = $(if $(wildcard $(MAX_SDK_PATH)/source/max-sdk-base/c74supp
 MAX_EXTERNAL_NAME = gecode.solver
 MAX_EXTERNAL_BIN = bin/$(MAX_EXTERNAL_NAME)
 MAX_EXTERNAL_TARGET = bin/$(MAX_EXTERNAL_NAME).mxo
-MAX_EXTERNAL_SOURCE = src/max_msp_external.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+MAX_EXTERNAL_SOURCE = src/max_msp_external.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 MAX_EXTERNAL_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude \
 	-I$(MAX_SDK_C74SUPPORT)/max-includes \
 	-I$(MAX_SDK_C74SUPPORT)/msp-includes \
 	-I$(MAX_SDK_C74SUPPORT)/jit-includes
 MAX_EXTERNAL_LDFLAGS = -bundle -undefined dynamic_lookup
 
-all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET) $(WILDCARD_TEST_TARGET) $(ENHANCED_SOLVER_TARGET)
+all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET) $(WILDCARD_TEST_TARGET)
 
 # Production system - main interface
 $(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
@@ -206,11 +206,11 @@ $(CUSTOM_CONSENSUS_TEST_TARGET): $(CUSTOM_CONSENSUS_TEST_SOURCE) include/cluster
 	$(CXX) $(CUSTOM_CONSENSUS_TEST_CXXFLAGS) -o $@ $(CUSTOM_CONSENSUS_TEST_SOURCE)
 
 # Cluster Engine Main Interface (Modular System)
-$(CLUSTER_MAIN_INTERFACE_TARGET): $(CLUSTER_MAIN_INTERFACE_SOURCE) include/enhanced_rule_architecture.hh include/advanced_backjumping_strategies.hh include/dual_solution_storage.hh include/gecode_cluster_integration.hh
+$(CLUSTER_MAIN_INTERFACE_TARGET): $(CLUSTER_MAIN_INTERFACE_SOURCE) include/enhanced_rule_architecture.hh include/dual_solution_storage.hh include/gecode_cluster_integration.hh
 	$(CXX) $(CLUSTER_MAIN_INTERFACE_CXXFLAGS) $(GECODE_INC) -o $@ $(CLUSTER_MAIN_INTERFACE_SOURCE) $(GECODE_LIB)
 
 # Cluster Engine Main Interface - Fixed Version (Modular System)
-$(CLUSTER_MAIN_INTERFACE_FIXED_TARGET): $(CLUSTER_MAIN_INTERFACE_FIXED_SOURCE) include/enhanced_rule_architecture.hh include/advanced_backjumping_strategies.hh include/dual_solution_storage.hh include/gecode_cluster_integration.hh
+$(CLUSTER_MAIN_INTERFACE_FIXED_TARGET): $(CLUSTER_MAIN_INTERFACE_FIXED_SOURCE) include/enhanced_rule_architecture.hh include/dual_solution_storage.hh include/gecode_cluster_integration.hh
 	$(CXX) $(CLUSTER_MAIN_INTERFACE_FIXED_CXXFLAGS) $(GECODE_INC) -o $@ $(CLUSTER_MAIN_INTERFACE_FIXED_SOURCE) $(GECODE_LIB)
 
 # 12-Tone Row Generator (Serial Composition System)
@@ -271,7 +271,7 @@ $(MAX_EXTERNAL_TARGET): $(MAX_EXTERNAL_SOURCE) include/max_msp_solver_wrapper.hh
 
 # Wildcard Rule Extension Test Program
 WILDCARD_TEST_TARGET = wildcard-test
-WILDCARD_TEST_SOURCE = wildcard_rule_test.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
+WILDCARD_TEST_SOURCE = wildcard_rule_test.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp
 WILDCARD_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 $(WILDCARD_TEST_TARGET): $(WILDCARD_TEST_SOURCE) include/wildcard_rule_extension.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh
@@ -279,7 +279,7 @@ $(WILDCARD_TEST_TARGET): $(WILDCARD_TEST_SOURCE) include/wildcard_rule_extension
 
 # Enhanced Dynamic Solver with Wildcard Support
 ENHANCED_SOLVER_TARGET = enhanced-dynamic-solver
-ENHANCED_SOLVER_SOURCE = enhanced_dynamic_solver.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp
+ENHANCED_SOLVER_SOURCE = legacy/src-unused/enhanced_dynamic_solver.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp
 ENHANCED_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 $(ENHANCED_SOLVER_TARGET): $(ENHANCED_SOLVER_SOURCE) include/wildcard_rule_extension.hh include/dynamic_rule_compiler.hh include/musical_constraint_solver.hh

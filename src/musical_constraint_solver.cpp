@@ -2734,17 +2734,6 @@ bool Solver::validate_configuration(std::string& error_message) const {
     return true;
 }
 
-AdvancedBackjumping::AdvancedBackjumpResult Solver::get_last_backjump_analysis() const {
-    // Active search is now expressed through Gecode strategies rather than a
-    // separate backjump-analysis layer.
-    AdvancedBackjumping::AdvancedBackjumpResult result;
-    result.has_backjump = false;
-    result.minimum_backjump_distance = 1;
-    result.maximum_backjump_distance = 1;
-    result.consensus_backjump_distance = 1;
-    return result;
-}
-
 std::map<std::string, int> Solver::get_rule_statistics() const {
     std::map<std::string, int> stats;
     stats["total_rules"] = static_cast<int>(rules_.size());
