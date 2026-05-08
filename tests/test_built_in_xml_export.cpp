@@ -65,6 +65,13 @@ int main() {
     std::cout << "✅ XML string generated (" << xml_string.length() << " chars)" << std::endl;
     std::cout << "   Preview (first 200 chars):" << std::endl;
     std::cout << "   " << xml_string.substr(0, 200) << "..." << std::endl;
+
+    // Test Method 5: solution.to_musicxml() should include explicit barlines
+    std::cout << "\n📄 Test 5: MusicalSolution.to_musicxml() (barline check)" << std::endl;
+    std::string musicxml_string = solution.to_musicxml();
+    bool has_barline = musicxml_string.find("<barline location=\"right\">") != std::string::npos;
+    std::cout << "✅ MusicXML string generated (" << musicxml_string.length() << " chars)" << std::endl;
+    std::cout << "   Contains explicit barlines: " << (has_barline ? "YES" : "NO") << std::endl;
     
     // Validation
     std::cout << "\n🔍 VALIDATION" << std::endl;
@@ -87,11 +94,12 @@ int main() {
     std::cout << "\n🎯 SUMMARY" << std::endl;
     std::cout << "=========" << std::endl;
     
-    if (has_voices && has_pitch_sequence && has_rhythm_sequence && has_metadata) {
+    if (has_voices && has_pitch_sequence && has_rhythm_sequence && has_metadata && has_barline) {
         std::cout << "✅ SUCCESS: Built-in XML export functionality is working correctly!" << std::endl;
         std::cout << "   All XML export methods operational:" << std::endl;
         std::cout << "   • MusicalSolution.export_to_xml(filename)" << std::endl;
         std::cout << "   • MusicalSolution.to_xml() -> string" << std::endl;
+        std::cout << "   • MusicalSolution.to_musicxml() with explicit measure barlines" << std::endl;
         std::cout << "   • Solver.export_solution_to_xml(solution, filename)" << std::endl;
         std::cout << "   • Solver.solve_and_export_xml(filename)" << std::endl;
         std::cout << "\n   XML export is now a built-in solver functionality!" << std::endl;

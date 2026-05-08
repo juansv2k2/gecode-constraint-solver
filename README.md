@@ -31,19 +31,54 @@ All three paths use the same core solver engine. For equivalent normalized input
 
 - **MusicalConstraintSolver**: Main interface and configuration.
 - **GecodeClusterIntegration**: Constraint programming bridge between Cluster and Gecode.
-- **AdvancedBackjumping**: backjumping system (TODO).
+- **AdvancedBackjumping**: Backjumping strategy integration.
 
-**Test Status**: Interface Working | Configuration Working | Utilities Working | Solving Algorithm On Development.
+**Status**: CLI solver, Max wrapper, and Max external are operational. Metric-domain and timepoint-based metric segmentation are supported in production configs.
 
 ## Cluster Engine Architecture
 
 The implementation follows the Cluster-Engine architecture with:
 
-- **Multi-Engine Coordination**: Rhythm and pitch engines working.
-- **Musical Domain Intelligence**: Onset grids, beat structures, musical domains (TO DO).
+- **Multi-Engine Coordination**: Rhythm and pitch engines per voice with a shared metric engine.
+- **Metric Domain + Timepoints**: `r-metric-signature` supports explicit score-time boundaries (for example `"0q"`, `"4q"`, `"7q"`).
 - **Heuristic Guidance System**: Musical intelligence for candidate sorting.
 - **Advanced Backjumping**: Musical context-aware search strategies.
 - **Rule Interface System**: Specialized musical constraint types.
+
+### Metric Domain and Timepoint Semantics
+
+- Metric segments are defined by score-time boundaries (`timepoints`) rather than event indices.
+- `score_length` defines the full score span in musical units (for example `"10q"`).
+- If solved material is shorter than `score_length`, the remaining span is padded with rests in canonical score output.
+- If solved material exceeds `score_length`, the solver throws an error.
+
+Example:
+
+```json
+{
+  "score_length": "10q",
+  "engine_domains": {
+    "engine_2": {
+      "type": "metric",
+      "voice": "all",
+      "time_signatures": ["4/4", "3/4", "6/8"]
+    }
+  },
+  "rules": [
+    {
+      "rule_type": "r-metric-signature",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": ["4/4", "3/4", "6/8"]
+      },
+      "timepoints": ["0q", "4q", "7q"],
+      "target_engine": 2,
+      "engine_type": "metric"
+    }
+  ]
+}
+```
 
 ### Constraint Types
 

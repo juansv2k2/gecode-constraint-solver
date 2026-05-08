@@ -76,6 +76,14 @@ private:
     int max_solutions_ = 1;
     double timeout_ms_ = 30000.0;
 
+    std::string export_path_ = ".";
+    std::string export_filename_;
+    bool export_json_ = false;
+    bool export_txt_ = false;
+    bool export_xml_ = false;
+    bool export_png_ = false;
+    bool export_midi_ = false;
+
     mutable std::mutex mutex_;
     std::thread worker_thread_;
     std::atomic<bool> cancel_requested_;

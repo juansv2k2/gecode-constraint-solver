@@ -1,0 +1,79 @@
+{
+  "name": "Metric Domain Bad Timepoints Out Of Range",
+  "description": "Invalid metric rule with timepoint outside score_length.",
+  "solution_length": 17,
+  "score_length": "10q",
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/8"],
+      "description": "Voice 0 rhythm: uniform eighth notes"
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72],
+      "description": "Voice 0 pitch: C major scale"
+    },
+    "engine_2": {
+      "type": "metric",
+      "voice": "all",
+      "time_signatures": ["4/4", "3/4", "6/8"],
+      "tuplets": [3],
+      "beat_divisions": [2, 3],
+      "description": "Metric engine domain with three possible signatures"
+    }
+  },
+
+  "rules": [
+    {
+      "rule_type": "r-rhythmic-uniformity",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": ["1/8"]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_engine": 0,
+      "engine_type": "rhythm",
+      "enabled": true,
+      "priority": 9,
+      "description": "Voice 0 rhythm forced to 1/8"
+    },
+    {
+      "rule_type": "r-metric-signature",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": ["4/4", "3/4", "6/8"]
+      },
+      "timepoints": ["0q", "4q", "10q"],
+      "target_engine": 2,
+      "engine_type": "metric",
+      "enabled": true,
+      "priority": 8,
+      "description": "Invalid out-of-range timepoint equal to score_length"
+    }
+  ],
+
+  "search_options": {
+    "enable_metric_engine": true,
+    "random_seed": 0,
+    "timeout_ms": 10000,
+    "max_solutions": 1,
+    "branching": "first_fail"
+  },
+
+  "output_options": {
+    "export_path": "output",
+    "export_json": false,
+    "export_txt": false,
+    "export_xml": false,
+    "export_png": false,
+    "export_midi": false
+  }
+}

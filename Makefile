@@ -156,6 +156,11 @@ MAX_WRAPPER_TEST_TARGET = bin/test-max-wrapper
 MAX_WRAPPER_TEST_SOURCE = test_max_msp_wrapper.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 MAX_WRAPPER_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
+# Metric timepoint regression test
+METRIC_TIMEPOINT_TEST_TARGET = bin/test-metric-timepoints
+METRIC_TIMEPOINT_TEST_SOURCE = test_metric_timepoints.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/advanced_backjumping_strategies.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+METRIC_TIMEPOINT_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
+
 # Native Max external (.mxo). Set MAX_SDK_PATH to your local Max SDK root.
 # Example: make max-external MAX_SDK_PATH=~/dev/max-sdk
 MAX_SDK_PATH ?= $(HOME)/dev/max-sdk
@@ -231,6 +236,10 @@ $(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_so
 # Max/MSP async wrapper smoke test (SDK-independent wrapper layer)
 $(MAX_WRAPPER_TEST_TARGET): $(MAX_WRAPPER_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh
 	$(CXX) $(MAX_WRAPPER_TEST_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(MAX_WRAPPER_TEST_SOURCE) $(GECODE_LIB)
+
+# Metric timepoint regression test
+$(METRIC_TIMEPOINT_TEST_TARGET): $(METRIC_TIMEPOINT_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh
+	$(CXX) $(METRIC_TIMEPOINT_TEST_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(METRIC_TIMEPOINT_TEST_SOURCE) $(GECODE_LIB)
 
 # Native Max external (.mxo)
 $(MAX_EXTERNAL_TARGET): $(MAX_EXTERNAL_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh
@@ -363,10 +372,19 @@ test-custom-consensus: $(CUSTOM_CONSENSUS_TEST_EXECUTABLE)
 	@./$(CUSTOM_CONSENSUS_TEST_EXECUTABLE)
 	@./$(MAIN_INTERFACE_TEST_EXECUTABLE)
 
-test-max-wrapper: $(MAX_WRAPPER_TEST_TARGET)
+test-max-wrapper: $(MAX_WRAPPER_TEST_TARGET) $(METRIC_TIMEPOINT_TEST_TARGET)
 	@echo "🎛️ TESTING MAX/MSP ASYNC WRAPPER LAYER"
 	@echo "======================================"
 	@./$(MAX_WRAPPER_TEST_TARGET) benchmark-test/gecode_two_voice_global_signature_stress.json
+	@echo ""
+	@echo "🕒 RUNNING METRIC TIMEPOINT REGRESSION"
+	@echo "======================================"
+	@./$(METRIC_TIMEPOINT_TEST_TARGET)
+
+test-metric-timepoints: $(METRIC_TIMEPOINT_TEST_TARGET)
+	@echo "🕒 RUNNING METRIC TIMEPOINT REGRESSION"
+	@echo "======================================"
+	@./$(METRIC_TIMEPOINT_TEST_TARGET)
 
 max-external: $(MAX_EXTERNAL_TARGET)
 	@echo "🎛️ Built Max external: $(MAX_EXTERNAL_TARGET)"
@@ -448,4 +466,4 @@ install-deps-ubuntu:
 	sudo apt-get update
 	sudo apt-get install libgecode-dev
 
-.PHONY: all clean test test-phase1 test-all check-gecode install-deps-macos install-deps-ubuntu test-max-wrapper max-external max-package-layout max-package-smoke
+.PHONY: all clean test test-phase1 test-all check-gecode install-deps-macos install-deps-ubuntu test-max-wrapper test-metric-timepoints max-external max-package-layout max-package-smoke

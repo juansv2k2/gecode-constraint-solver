@@ -1,0 +1,26 @@
+# Simple MIDI-like export
+# Tempo: 120 BPM
+Note 74 at 0 seconds
+Note 76 at 0.5 seconds
+Note 67 at 1 seconds
+Note 62 at 1.5 seconds
+Note 64 at 2 seconds
+Note 60 at 2.5 seconds
+Note 72 at 3 seconds
+Note 65 at 3.5 seconds
+Note 71 at 4 seconds
+Note 79 at 4.5 seconds
+Note 69 at 5 seconds
+Note 77 at 5.5 seconds
+Note 69 at 6 seconds
+Note 67 at 6.5 seconds
+Note 69 at 7 seconds
+Note 72 at 7.5 seconds
+Note 64 at 8 seconds
+Note 64 at 8.5 seconds
+Note 72 at 9 seconds
+Note 60 at 9.5 seconds
+Note 65 at 10 seconds
+Note 71 at 10.5 seconds
+Note 69 at 11 seconds
+Note 64 at 11.5 seconds

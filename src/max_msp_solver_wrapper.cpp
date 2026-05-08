@@ -3,13 +3,17 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <limits>
 #include <numeric>
 #include <nlohmann/json.hpp>
 #include <sstream>
+#include <set>
 #include <stdexcept>
 #include <vector>
 #include <cctype>
+#include <regex>
 
 namespace MaxMSPWrapper {
 namespace {
@@ -69,6 +73,49 @@ int parse_duration_to_ticks(const std::string& s, int rhythm_base) {
 
     const int ticks = num * (rhythm_base / den);
     return is_rest ? -ticks : ticks;
+}
+
+int parse_score_time_to_ticks(const std::string& token, int rhythm_base, const std::string& context) {
+    if (token.empty()) {
+        throw std::runtime_error(context + ": empty time token");
+    }
+    if (rhythm_base <= 0) {
+        throw std::runtime_error(context + ": rhythm_base must be positive");
+    }
+
+    static const std::regex unit_token(R"(^\s*([0-9]+)\s*([WwHhQqEe])\s*$)");
+    std::smatch match;
+    if (std::regex_match(token, match, unit_token)) {
+        const int count = std::stoi(match[1].str());
+        const char unit = static_cast<char>(std::tolower(match[2].str()[0]));
+        int denominator = 1;
+        switch (unit) {
+            case 'w': denominator = 1; break;
+            case 'h': denominator = 2; break;
+            case 'q': denominator = 4; break;
+            case 'e': denominator = 8; break;
+            default:
+                throw std::runtime_error(context + ": unsupported time token unit in '" + token + "'");
+        }
+        if ((rhythm_base * count) % denominator != 0) {
+            throw std::runtime_error(context + ": time token '" + token + "' is not representable with rhythm_base=" + std::to_string(rhythm_base));
+        }
+        return (rhythm_base * count) / denominator;
+    }
+
+    const auto slash = token.find('/');
+    if (slash == std::string::npos) {
+        throw std::runtime_error(context + ": invalid time token '" + token + "'");
+    }
+    const int num = std::stoi(token.substr(0, slash));
+    const int den = std::stoi(token.substr(slash + 1));
+    if (num < 0 || den <= 0) {
+        throw std::runtime_error(context + ": invalid time token '" + token + "'");
+    }
+    if ((rhythm_base * num) % den != 0) {
+        throw std::runtime_error(context + ": time token '" + token + "' is not representable with rhythm_base=" + std::to_string(rhythm_base));
+    }
+    return (rhythm_base * num) / den;
 }
 
 bool json_value_to_bool_with_default(const nlohmann::json& value, bool default_value) {
@@ -135,6 +182,13 @@ std::pair<int, int> parse_time_signature_value(const nlohmann::json& value, cons
 }
 
 std::vector<int> parse_positive_int_array(const nlohmann::json& value, const std::string& context) {
+    if (value.is_number_integer()) {
+        const int v = value.get<int>();
+        if (v <= 0) {
+            throw std::runtime_error(context + ": value must be positive");
+        }
+        return {v};
+    }
     if (!value.is_array()) {
         throw std::runtime_error(context + ": expected array of positive integers");
     }
@@ -564,6 +618,81 @@ void reconstruct_flattened_max_dict_paths(nlohmann::json& cfg) {
     cfg = normalize_numeric_key_objects_to_arrays(changed ? reconstructed : cfg);
 }
 
+void coerce_scalar_array_schema_fields(nlohmann::json& value) {
+    static const std::set<std::string> array_keys = {
+        "dynamic_rules", "rules", "duration_values", "midi_values", "time_signatures",
+        "tuplets", "beat_divisions", "indices", "target_engines", "timepoints", "parameters"
+    };
+
+    if (value.is_object()) {
+        for (auto it = value.begin(); it != value.end(); ++it) {
+            const std::string key = it.key();
+            if (array_keys.count(key) > 0 && !it.value().is_array() && !it.value().is_null()) {
+                nlohmann::json wrapped = nlohmann::json::array();
+                wrapped.push_back(it.value());
+                it.value() = std::move(wrapped);
+            }
+            coerce_scalar_array_schema_fields(it.value());
+        }
+    } else if (value.is_array()) {
+        for (auto& item : value) {
+            coerce_scalar_array_schema_fields(item);
+        }
+    }
+}
+
+std::vector<int> project_metric_denominators_from_canonical(
+    const MusicalConstraintSolver::MusicalSolution::SolvedScore& score,
+    int sequence_length) {
+    std::vector<int> projected;
+    if (sequence_length <= 0) return projected;
+    projected.assign(sequence_length, 4);
+
+    std::vector<int> onset_by_index(sequence_length, std::numeric_limits<int>::max());
+    for (const auto& measure : score.measures) {
+        for (const auto& ev : measure.events) {
+            if (ev.index >= 0 && ev.index < sequence_length) {
+                onset_by_index[ev.index] = std::min(onset_by_index[ev.index], ev.onset_ticks);
+            }
+        }
+    }
+
+    bool used_tick_projection = false;
+    for (int i = 0; i < sequence_length; ++i) {
+        if (onset_by_index[i] == std::numeric_limits<int>::max()) {
+            continue;
+        }
+        used_tick_projection = true;
+        for (size_t seg_idx = 0; seg_idx < score.metric_timeline.size(); ++seg_idx) {
+            const auto& seg = score.metric_timeline[seg_idx];
+            const bool in_last = (seg_idx + 1 == score.metric_timeline.size()) &&
+                onset_by_index[i] >= seg.start_tick;
+            if ((onset_by_index[i] >= seg.start_tick && onset_by_index[i] < seg.end_tick) || in_last) {
+                projected[i] = (seg.denominator > 0) ? seg.denominator : 4;
+                break;
+            }
+        }
+    }
+
+    if (!used_tick_projection) {
+        for (const auto& seg : score.metric_timeline) {
+            const int start = std::max(0, seg.start_index);
+            const int end = std::min(sequence_length - 1, seg.end_index);
+            for (int i = start; i <= end; ++i) {
+                projected[i] = (seg.denominator > 0) ? seg.denominator : 4;
+            }
+        }
+    } else {
+        for (int i = 1; i < sequence_length; ++i) {
+            if (onset_by_index[i] == std::numeric_limits<int>::max()) {
+                projected[i] = projected[i - 1];
+            }
+        }
+    }
+
+    return projected;
+}
+
 } // namespace
 
 AsyncSolverWrapper::AsyncSolverWrapper()
@@ -693,117 +822,176 @@ void AsyncSolverWrapper::run_solve_job() {
             } else {
                 // Handle first solution (for backward compatibility)
                 const auto& solution = solutions[0];
-                
-                local_result.status = SolveStatus::SUCCESS;
-                local_result.found_solution = true;
-                local_result.message = "Found " + std::to_string(solutions.size()) + " solution(s)";
+                if (!solution.found_solution) {
+                    local_result.status = SolveStatus::FAILED;
+                    local_result.found_solution = false;
+                    local_result.message = !solution.failure_reason.empty()
+                        ? solution.failure_reason
+                        : "No solutions found";
+                } else {
+                    local_result.status = SolveStatus::SUCCESS;
+                    local_result.found_solution = true;
+                    local_result.message = "Found " + std::to_string(solutions.size()) + " solution(s)";
 
-                local_result.voice_solutions = solution.voice_solutions;
-                local_result.voice_rhythms = solution.voice_rhythms;
-                local_result.solve_time_ms = solution.solve_time_ms;
-                local_result.backjumps_performed = solution.backjumps_performed;
-                local_result.total_rules_checked = solution.total_rules_checked;
-                local_result.rhythm_base = rhythm_base_;
+                    local_result.voice_solutions = solution.voice_solutions;
+                    local_result.voice_rhythms = solution.voice_rhythms;
+                    local_result.solve_time_ms = solution.solve_time_ms;
+                    local_result.backjumps_performed = solution.backjumps_performed;
+                    local_result.total_rules_checked = solution.total_rules_checked;
+                    local_result.rhythm_base = rhythm_base_;
 
-                nlohmann::json j;
-                j["found_solution"] = true;
-                j["num_solutions"] = solutions.size();
-                j["solve_time_ms"] = solution.solve_time_ms;
-                j["backjumps_performed"] = solution.backjumps_performed;
-                j["total_rules_checked"] = solution.total_rules_checked;
-                
-                // Return all solutions
-                nlohmann::json all_solutions = nlohmann::json::array();
-                for (const auto& sol : solutions) {
-                    nlohmann::json sol_j;
-                    sol_j["voice_solutions"] = sol.voice_solutions;
+                    nlohmann::json j;
+                    j["found_solution"] = true;
+                    j["num_solutions"] = solutions.size();
+                    j["solve_time_ms"] = solution.solve_time_ms;
+                    j["backjumps_performed"] = solution.backjumps_performed;
+                    j["total_rules_checked"] = solution.total_rules_checked;
                     
-                    // Convert rhythms to fractions
-                    nlohmann::json voice_rhythm_fractions = nlohmann::json::array();
-                    for (const auto& voice : sol.voice_rhythms) {
-                        nlohmann::json v = nlohmann::json::array();
-                        for (const int tick : voice) {
-                            v.push_back(rhythm_ticks_to_fraction_string(tick, rhythm_base_));
+                    // Return all solutions
+                    nlohmann::json all_solutions = nlohmann::json::array();
+                    for (const auto& sol : solutions) {
+                        nlohmann::json sol_j;
+                        sol_j["voice_solutions"] = sol.voice_solutions;
+                        
+                        // Convert rhythms to fractions
+                        nlohmann::json voice_rhythm_fractions = nlohmann::json::array();
+                        for (const auto& voice : sol.voice_rhythms) {
+                            nlohmann::json v = nlohmann::json::array();
+                            for (const int tick : voice) {
+                                v.push_back(rhythm_ticks_to_fraction_string(tick, rhythm_base_));
+                            }
+                            voice_rhythm_fractions.push_back(v);
                         }
-                        voice_rhythm_fractions.push_back(v);
-                    }
-                    sol_j["voice_rhythms"] = voice_rhythm_fractions;
-                    sol_j["voice_rhythm_ticks"] = sol.voice_rhythms;
-                    
-                    nlohmann::json metric_signature = nlohmann::json::array();
-                    if (sol.has_canonical_score && !sol.canonical_score.metric_timeline.empty()) {
-                        std::vector<int> den_by_index(sol.metric_signature.size(), 4);
-                        for (const auto& seg : sol.canonical_score.metric_timeline) {
-                            const int start = std::max(0, seg.start_index);
-                            const int end = std::min(static_cast<int>(den_by_index.size()) - 1, seg.end_index);
-                            for (int i = start; i <= end; ++i) {
-                                den_by_index[i] = seg.denominator > 0 ? seg.denominator : 4;
+                        sol_j["voice_rhythms"] = voice_rhythm_fractions;
+                        sol_j["voice_rhythm_ticks"] = sol.voice_rhythms;
+                        
+                        nlohmann::json metric_signature = nlohmann::json::array();
+                        if (sol.has_canonical_score && !sol.canonical_score.metric_timeline.empty()) {
+                            const auto den_by_index = project_metric_denominators_from_canonical(
+                                sol.canonical_score, static_cast<int>(sol.metric_signature.size()));
+                            for (size_t i = 0; i < sol.metric_signature.size(); ++i) {
+                                std::ostringstream ts;
+                                ts << sol.metric_signature[i] << "/" << den_by_index[i];
+                                metric_signature.push_back(ts.str());
+                            }
+                        } else {
+                            for (const int numerator : sol.metric_signature) {
+                                std::ostringstream ts;
+                                ts << numerator << "/4";
+                                metric_signature.push_back(ts.str());
                             }
                         }
-                        for (size_t i = 0; i < sol.metric_signature.size(); ++i) {
-                            std::ostringstream ts;
-                            ts << sol.metric_signature[i] << "/" << den_by_index[i];
-                            metric_signature.push_back(ts.str());
-                        }
-                    } else {
-                        for (const int numerator : sol.metric_signature) {
-                            std::ostringstream ts;
-                            ts << numerator << "/4";
-                            metric_signature.push_back(ts.str());
-                        }
-                    }
-                    sol_j["metric_signature"] = metric_signature;
-                    sol_j["metric_signature_numerators"] = sol.metric_signature;
+                        sol_j["metric_signature"] = metric_signature;
+                        sol_j["metric_signature_numerators"] = sol.metric_signature;
 
-                    if (sol.has_canonical_score) {
-                        nlohmann::json score_j;
-                        score_j["rhythm_base"] = sol.canonical_score.rhythm_base;
+                        if (sol.has_canonical_score) {
+                            nlohmann::json score_j;
+                            score_j["rhythm_base"] = sol.canonical_score.rhythm_base;
 
-                        nlohmann::json metric_timeline = nlohmann::json::array();
-                        for (const auto& seg : sol.canonical_score.metric_timeline) {
-                            nlohmann::json seg_j;
-                            seg_j["start_index"] = seg.start_index;
-                            seg_j["end_index"] = seg.end_index;
-                            seg_j["numerator"] = seg.numerator;
-                            seg_j["denominator"] = seg.denominator;
-                            metric_timeline.push_back(seg_j);
-                        }
-                        score_j["metric_timeline"] = metric_timeline;
-
-                        nlohmann::json measures = nlohmann::json::array();
-                        for (const auto& measure : sol.canonical_score.measures) {
-                            nlohmann::json m_j;
-                            m_j["measure_index"] = measure.measure_index;
-                            m_j["start_ticks"] = measure.start_ticks;
-                            m_j["end_ticks"] = measure.end_ticks;
-                            m_j["numerator"] = measure.numerator;
-                            m_j["denominator"] = measure.denominator;
-
-                            nlohmann::json events = nlohmann::json::array();
-                            for (const auto& ev : measure.events) {
-                                nlohmann::json e_j;
-                                e_j["voice"] = ev.voice;
-                                e_j["index"] = ev.index;
-                                e_j["pitch"] = ev.pitch;
-                                e_j["rhythm_ticks"] = ev.rhythm;
-                                e_j["onset_ticks"] = ev.onset_ticks;
-                                e_j["duration_ticks"] = ev.duration_ticks;
-                                e_j["is_rest"] = ev.is_rest;
-                                events.push_back(e_j);
+                            nlohmann::json metric_timeline = nlohmann::json::array();
+                            for (const auto& seg : sol.canonical_score.metric_timeline) {
+                                nlohmann::json seg_j;
+                                seg_j["start_index"] = seg.start_index;
+                                seg_j["end_index"] = seg.end_index;
+                                seg_j["start_tick"] = seg.start_tick;
+                                seg_j["end_tick"] = seg.end_tick;
+                                seg_j["numerator"] = seg.numerator;
+                                seg_j["denominator"] = seg.denominator;
+                                metric_timeline.push_back(seg_j);
                             }
-                            m_j["events"] = events;
-                            measures.push_back(m_j);
-                        }
-                        score_j["measures"] = measures;
+                            score_j["metric_timeline"] = metric_timeline;
 
-                        sol_j["score"] = score_j;
+                            nlohmann::json measures = nlohmann::json::array();
+                            for (const auto& measure : sol.canonical_score.measures) {
+                                nlohmann::json m_j;
+                                m_j["measure_index"] = measure.measure_index;
+                                m_j["start_ticks"] = measure.start_ticks;
+                                m_j["end_ticks"] = measure.end_ticks;
+                                m_j["numerator"] = measure.numerator;
+                                m_j["denominator"] = measure.denominator;
+
+                                nlohmann::json events = nlohmann::json::array();
+                                for (const auto& ev : measure.events) {
+                                    nlohmann::json e_j;
+                                    e_j["voice"] = ev.voice;
+                                    e_j["index"] = ev.index;
+                                    e_j["pitch"] = ev.pitch;
+                                    e_j["rhythm_ticks"] = ev.rhythm;
+                                    e_j["onset_ticks"] = ev.onset_ticks;
+                                    e_j["duration_ticks"] = ev.duration_ticks;
+                                    e_j["is_rest"] = ev.is_rest;
+                                    events.push_back(e_j);
+                                }
+                                m_j["events"] = events;
+                                measures.push_back(m_j);
+                            }
+                            score_j["measures"] = measures;
+
+                            sol_j["score"] = score_j;
+                        }
+
+                        all_solutions.push_back(sol_j);
                     }
+                    j["solutions"] = all_solutions;
                     
-                    all_solutions.push_back(sol_j);
+                    local_result.result_json = j.dump();
+
+                    if (export_json_ || export_txt_ || export_xml_ || export_png_ || export_midi_) {
+                        try {
+                            std::filesystem::path out_dir = export_path_.empty()
+                                ? std::filesystem::path(".")
+                                : std::filesystem::path(export_path_);
+                            std::error_code mk_err;
+                            std::filesystem::create_directories(out_dir, mk_err);
+                            if (mk_err) {
+                                throw std::runtime_error("Could not create export directory: " + out_dir.string());
+                            }
+
+                            const std::string base = export_filename_.empty() ? "max_solver" : export_filename_;
+                            const std::filesystem::path base_path = out_dir / (base + "_result");
+                            std::vector<std::string> written_files;
+
+                            if (export_json_) {
+                                std::ofstream json_out(base_path.string() + ".json");
+                                if (!json_out.is_open()) {
+                                    throw std::runtime_error("Could not open JSON output file");
+                                }
+                                json_out << local_result.result_json;
+                                written_files.push_back(base_path.string() + ".json");
+                            }
+                            if (export_txt_) {
+                                std::ofstream txt_out(base_path.string() + ".txt");
+                                if (!txt_out.is_open()) {
+                                    throw std::runtime_error("Could not open TXT output file");
+                                }
+                                solution.print_solution(txt_out);
+                                written_files.push_back(base_path.string() + ".txt");
+                            }
+                            if (export_xml_) {
+                                solution.export_to_xml(base_path.string() + ".xml");
+                                written_files.push_back(base_path.string() + ".xml");
+                            }
+                            if (export_png_) {
+                                solution.export_to_png(base_path.string() + ".png");
+                                written_files.push_back(base_path.string() + ".png");
+                            }
+                            if (export_midi_) {
+                                solution.export_to_midi(base_path.string() + ".mid");
+                                written_files.push_back(base_path.string() + ".mid");
+                            }
+
+                            if (!written_files.empty()) {
+                                j["export_path_resolved"] = std::filesystem::absolute(out_dir).string();
+                                j["exported_files"] = written_files;
+                                local_result.result_json = j.dump();
+                                local_result.message += " [exports: " + std::to_string(written_files.size()) + " file(s) to " +
+                                    std::filesystem::absolute(out_dir).string() + "]";
+                            }
+                        } catch (const std::exception& ex) {
+                            local_result.message += std::string(" (export warning: ") + ex.what() + ")";
+                        }
+                    }
                 }
-                j["solutions"] = all_solutions;
-                
-                local_result.result_json = j.dump();
             }
         } catch (const std::exception& e) {
             local_result.status = SolveStatus::FAILED;
@@ -824,6 +1012,31 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
     try {
         nlohmann::json cfg = nlohmann::json::parse(config_json);
         reconstruct_flattened_max_dict_paths(cfg);
+        coerce_scalar_array_schema_fields(cfg);
+
+        export_path_ = ".";
+        export_filename_.clear();
+        export_json_ = false;
+        export_txt_ = false;
+        export_xml_ = false;
+        export_png_ = false;
+        export_midi_ = false;
+
+        if (cfg.contains("output_options") && cfg["output_options"].is_object()) {
+            const auto& oo = cfg["output_options"];
+            if (oo.contains("export_path") && oo["export_path"].is_string()) {
+                const std::string p = oo["export_path"].get<std::string>();
+                if (!p.empty()) export_path_ = p;
+            }
+            if (oo.contains("export_filename") && oo["export_filename"].is_string()) {
+                export_filename_ = oo["export_filename"].get<std::string>();
+            }
+            if (oo.contains("export_json")) export_json_ = json_value_to_bool_with_default(oo["export_json"], false);
+            if (oo.contains("export_txt")) export_txt_ = json_value_to_bool_with_default(oo["export_txt"], false);
+            if (oo.contains("export_xml")) export_xml_ = json_value_to_bool_with_default(oo["export_xml"], false);
+            if (oo.contains("export_png")) export_png_ = json_value_to_bool_with_default(oo["export_png"], false);
+            if (oo.contains("export_midi")) export_midi_ = json_value_to_bool_with_default(oo["export_midi"], false);
+        }
 
         // Backward compatibility: map legacy domains[] format to engine_domains{}.
         if ((!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object()) &&
@@ -1022,6 +1235,19 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             rd.erase(std::unique(rd.begin(), rd.end()), rd.end());
         }
 
+        if (cfg.contains("score_length") && cfg["score_length"].is_string()) {
+            sc.score_length_ticks = parse_score_time_to_ticks(
+                cfg["score_length"].get<std::string>(), rhythm_base, "score_length");
+        }
+        if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
+            cfg["search_options"].contains("require_exact_score_length")) {
+            sc.require_exact_score_length = json_value_to_bool_with_default(
+                cfg["search_options"]["require_exact_score_length"], false);
+        } else if (cfg.contains("require_exact_score_length")) {
+            sc.require_exact_score_length = json_value_to_bool_with_default(
+                cfg["require_exact_score_length"], false);
+        }
+
         sc.metric_domain = parse_metric_domain_from_engine_domains(cfg);
 
         // Keep metric solving disabled by default for safe rollout.
@@ -1077,6 +1303,13 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                     }
                 }
 
+                std::vector<std::string> timepoints;
+                if (r.contains("timepoints") && r["timepoints"].is_array()) {
+                    for (const auto& tp : r["timepoints"]) {
+                        if (tp.is_string()) timepoints.push_back(tp.get<std::string>());
+                    }
+                }
+
                 int target_engine = r.value("target_engine", -1);
                 std::vector<int> target_engines;
                 if (r.contains("target_engines") && r["target_engines"].is_array()) {
@@ -1100,20 +1333,26 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 std::vector<std::string> parameter_strings;
                 if (r.contains("constraint_function") &&
                     r["constraint_function"].is_object() &&
-                    r["constraint_function"].contains("parameters") &&
-                    r["constraint_function"]["parameters"].is_array()) {
-                    for (const auto& p : r["constraint_function"]["parameters"]) {
-                        if (p.is_number()) {
-                            parameters.push_back(p.get<double>());
-                        } else if (p.is_string()) {
-                            parameter_strings.push_back(p.get<std::string>());
+                    r["constraint_function"].contains("parameters")) {
+                    const auto& params_node = r["constraint_function"]["parameters"];
+                    if (params_node.is_array()) {
+                        for (const auto& p : params_node) {
+                            if (p.is_number()) {
+                                parameters.push_back(p.get<double>());
+                            } else if (p.is_string()) {
+                                parameter_strings.push_back(p.get<std::string>());
+                            }
                         }
+                    } else if (params_node.is_number()) {
+                        parameters.push_back(params_node.get<double>());
+                    } else if (params_node.is_string()) {
+                        parameter_strings.push_back(params_node.get<std::string>());
                     }
                 }
 
                 solver_.add_rule_config(rule_type, function, indices, target_engine,
                                         target_engines, engine_type, description,
-                                        parameters, parameter_strings);
+                                        parameters, parameter_strings, timepoints);
             }
         }
 

@@ -31,6 +31,7 @@ struct RuleConfig {
     std::string rule_type;
     std::string function;
     std::vector<int> indices;
+    std::vector<std::string> timepoints;
     int voice;
     int target_engine = -1;
     std::vector<int> target_engines;
@@ -48,6 +49,7 @@ private:
     std::string name_;
     std::string description_;
     int solution_length_;
+    std::string score_length_;
     int num_voices_;
     std::string backtrack_method_;
     std::string export_path_;
@@ -67,11 +69,14 @@ private:
     std::vector<int> pitch_range_; // User-specified [min, max] pitch range
     
     // Output options
+    bool export_json_;
+    bool export_txt_;
     bool export_xml_;
     bool export_png_;
     bool export_midi_;
     bool show_statistics_;
     bool include_analysis_;
+    std::string export_filename_;
     
     std::string trim(const std::string& str) {
         size_t first = str.find_first_not_of(" \t\n\r");
@@ -195,6 +200,12 @@ private:
                 }
             }
         }
+        else if (line.find("\"score_length\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                score_length_ = removeQuotesAndComma(line.substr(pos + 1));
+            }
+        }
         else if (line.find("\"num_voices\"") != std::string::npos) {
             size_t pos = line.find(":");
             if (pos != std::string::npos) {
@@ -215,6 +226,23 @@ private:
             size_t pos = line.find(":");
             if (pos != std::string::npos) {
                 export_path_ = removeQuotesAndComma(line.substr(pos + 1));
+            }
+        } else if (line.find("\"export_filename\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                export_filename_ = removeQuotesAndComma(line.substr(pos + 1));
+            }
+        } else if (line.find("\"export_json\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                export_json_ = (value == "true");
+            }
+        } else if (line.find("\"export_txt\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                export_txt_ = (value == "true");
             }
         } else if (line.find("\"export_xml\"") != std::string::npos) {
             size_t pos = line.find(":");
@@ -259,7 +287,7 @@ private:
 public:
     ConstraintSolverJSONParser() 
         : solution_length_(12), num_voices_(2), backtrack_method_("intelligent"), export_path_("tests/output"),
-          export_xml_(false), export_png_(false), export_midi_(false), show_statistics_(true), include_analysis_(true) {}
+                    export_json_(true), export_txt_(true), export_xml_(false), export_png_(false), export_midi_(false), show_statistics_(true), include_analysis_(true) {}
     
     bool parse(const std::string& filename) {
         std::ifstream file(filename);
@@ -400,6 +428,9 @@ public:
                         current_rule.indices = parseIntArray(line);
                         std::cout << "DEBUG: Parsed " << current_rule.indices.size() << " indices from line: " << line << std::endl;
                     }
+                    else if (line.find("\"timepoints\"") != std::string::npos) {
+                        current_rule.timepoints = parseStringArray(line);
+                    }
                     else if (line.find("\"target_engine\"") != std::string::npos) {
                         size_t pos = line.find(":");
                         if (pos != std::string::npos) {
@@ -518,9 +549,11 @@ public:
     std::string getName() const { return name_; }
     std::string getDescription() const { return description_; }
     int getSolutionLength() const { return solution_length_; }
+    std::string getScoreLength() const { return score_length_; }
     int getNumVoices() const { return num_voices_; }
     std::string getBacktrackMethod() const { return backtrack_method_; }
     std::string getExportPath() const { return export_path_; }
+    std::string getExportFilename() const { return export_filename_; }
 
     // Returns max_solutions from search_options. Returns -1 for "all".
     int getMaxSolutions(const std::string& config_file) const {
@@ -542,6 +575,8 @@ public:
     }
     
     // Output options getters
+    bool getExportJSON() const { return export_json_; }
+    bool getExportTXT() const { return export_txt_; }
     bool getExportXML() const { return export_xml_; }
     bool getExportPNG() const { return export_png_; }
     bool getExportMIDI() const { return export_midi_; }
@@ -723,6 +758,44 @@ public:
         if (num <= 0 || den <= 0)
             throw std::runtime_error(context + ": numerator and denominator must be positive in '" + s + "'");
         return {is_rest ? -num : num, den};
+    }
+
+    static int parse_score_time_to_ticks(const std::string& token, int rhythm_base, const std::string& context) {
+        if (token.empty()) {
+            throw std::runtime_error(context + ": empty time token");
+        }
+        if (rhythm_base <= 0) {
+            throw std::runtime_error(context + ": rhythm_base must be positive");
+        }
+
+        static const std::regex unit_token(R"(^\s*([0-9]+)\s*([WwHhQqEe])\s*$)");
+        std::smatch match;
+        if (std::regex_match(token, match, unit_token)) {
+            const int count = std::stoi(match[1].str());
+            const char unit = static_cast<char>(std::tolower(match[2].str()[0]));
+            int denominator = 1;
+            switch (unit) {
+                case 'w': denominator = 1; break;
+                case 'h': denominator = 2; break;
+                case 'q': denominator = 4; break;
+                case 'e': denominator = 8; break;
+                default:
+                    throw std::runtime_error(context + ": unsupported time token unit in '" + token + "'");
+            }
+            if ((rhythm_base * count) % denominator != 0) {
+                throw std::runtime_error(context + ": time token '" + token + "' is not representable with rhythm_base=" + std::to_string(rhythm_base));
+            }
+            return (rhythm_base * count) / denominator;
+        }
+
+        const auto [num, den] = parse_duration_fraction(token, context);
+        if (num < 0) {
+            throw std::runtime_error(context + ": time token cannot be negative: '" + token + "'");
+        }
+        if ((rhythm_base * num) % den != 0) {
+            throw std::runtime_error(context + ": time token '" + token + "' is not representable with rhythm_base=" + std::to_string(rhythm_base));
+        }
+        return (rhythm_base * num) / den;
     }
 
     // GCD (C++11-compatible).
@@ -993,6 +1066,22 @@ public:
         return false;
     }
 
+    bool getRequireExactScoreLength(const std::string& config_file) const {
+        std::ifstream f(config_file);
+        if (!f.is_open()) return false;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return false; }
+
+        if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
+            cfg["search_options"].contains("require_exact_score_length")) {
+            return json_to_bool(cfg["search_options"]["require_exact_score_length"], false);
+        }
+        if (cfg.contains("require_exact_score_length")) {
+            return json_to_bool(cfg["require_exact_score_length"], false);
+        }
+        return false;
+    }
+
     const std::vector<RuleConfig>& getRules() const { return rules_; }
     
     void printLoadedConfig() const {
@@ -1004,7 +1093,14 @@ public:
         std::cout << "   Backtrack Method: " << backtrack_method_ << std::endl;
         std::cout << "   Rules: " << rules_.size() << " configured" << std::endl;
         std::cout << "   Domains: " << domains_.size() << " configured" << std::endl;
-        std::cout << "   Export Options: XML=" << (export_xml_ ? "✅" : "❌") << ", PNG=" << (export_png_ ? "✅" : "❌") << ", MIDI=" << (export_midi_ ? "✅" : "❌") << std::endl;
+        std::cout << "   Export Options: JSON=" << (export_json_ ? "✅" : "❌")
+                  << ", TXT=" << (export_txt_ ? "✅" : "❌")
+                  << ", XML=" << (export_xml_ ? "✅" : "❌")
+                  << ", PNG=" << (export_png_ ? "✅" : "❌")
+                  << ", MIDI=" << (export_midi_ ? "✅" : "❌") << std::endl;
+        if (!export_filename_.empty()) {
+            std::cout << "   Export Filename: " << export_filename_ << std::endl;
+        }
         
         if (!rules_.empty()) {
             std::cout << "\n📝 Parsed Rules:" << std::endl;
@@ -1356,6 +1452,11 @@ int main(int argc, char* argv[]) {
         // Load per-voice rhythm domains from engine_domains duration_values (required, no fallback)
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
         solver_config.rhythm_base = parser.getVoiceRhythmBase();
+        if (!parser.getScoreLength().empty()) {
+            solver_config.score_length_ticks = ConstraintSolverJSONParser::parse_score_time_to_ticks(
+                parser.getScoreLength(), solver_config.rhythm_base, "score_length");
+        }
+        solver_config.require_exact_score_length = parser.getRequireExactScoreLength(config_file);
         solver_config.metric_domain = parser.getMetricDomain(config_file);
         solver_config.enable_metric_engine = parser.getEnableMetricEngine(config_file);
         solver_config.random_seed = parser.getRandomSeed(config_file);
@@ -1407,7 +1508,7 @@ int main(int argc, char* argv[]) {
                 // Pass rule configuration with target_engine information directly to solver
                 solver.add_rule_config(ruleConfig.rule_type, ruleConfig.function, ruleConfig.indices, 
                                      ruleConfig.target_engine, ruleConfig.target_engines, ruleConfig.engine_type, ruleConfig.description, 
-                                     ruleConfig.parameters, ruleConfig.parameter_strings);
+                                     ruleConfig.parameters, ruleConfig.parameter_strings, ruleConfig.timepoints);
                 std::cout << "✅ Added engine rule: " << ruleConfig.description << " (target_engine: " << ruleConfig.target_engine << ")" << std::endl;
             }
         }
@@ -1641,22 +1742,26 @@ int main(int argc, char* argv[]) {
         std::cout << "\n💾 Exporting Results" << std::endl;
         std::cout << std::string(50, '-') << std::endl;
 
-        std::string base_name = config_file;
-        size_t slash_pos = base_name.find_last_of("/\\");
-        if (slash_pos != std::string::npos) {
-            base_name = base_name.substr(slash_pos + 1);
+        std::string base_name = parser.getExportFilename();
+        if (base_name.empty()) {
+            base_name = config_file;
+            size_t slash_pos = base_name.find_last_of("/\\");
+            if (slash_pos != std::string::npos) {
+                base_name = base_name.substr(slash_pos + 1);
+            }
+            size_t dot_pos = base_name.find_last_of('.');
+            if (dot_pos != std::string::npos) base_name = base_name.substr(0, dot_pos);
         }
-        size_t dot_pos = base_name.find_last_of('.');
-        if (dot_pos != std::string::npos) base_name = base_name.substr(0, dot_pos);
 
         std::string export_dir = parser.getExportPath();
         std::string mkdir_cmd = "mkdir -p \"" + export_dir + "\"";
         system(mkdir_cmd.c_str());
 
         // ---- JSON export ----
-        std::string json_file = export_dir + "/" + base_name + "_result.json";
-        std::ofstream json_out(json_file);
-        if (json_out.is_open()) {
+        if (parser.getExportJSON()) {
+            std::string json_file = export_dir + "/" + base_name + "_result.json";
+            std::ofstream json_out(json_file);
+            if (json_out.is_open()) {
             json_out << "{\n";
             json_out << "  \"config_file\": \"" << config_file << "\",\n";
             json_out << "  \"problem_name\": \"" << parser.getName() << "\",\n";
@@ -1743,7 +1848,7 @@ int main(int argc, char* argv[]) {
                     json_out << "]";
                 }
 
-                if (solution.has_canonical_score) {
+                if (solution.has_canonical_score && parser.getIncludeAnalysis()) {
                     json_out << ",\n";
                     json_out << "      \"score\": {\n";
                     json_out << "        \"rhythm_base\": " << solution.canonical_score.rhythm_base << ",\n";
@@ -1754,6 +1859,8 @@ int main(int argc, char* argv[]) {
                         json_out << "{"
                                  << "\"start_index\":" << seg.start_index << ","
                                  << "\"end_index\":" << seg.end_index << ","
+                                 << "\"start_tick\":" << seg.start_tick << ","
+                                 << "\"end_tick\":" << seg.end_tick << ","
                                  << "\"numerator\":" << seg.numerator << ","
                                  << "\"denominator\":" << seg.denominator
                                  << "}";
@@ -1795,12 +1902,16 @@ int main(int argc, char* argv[]) {
             json_out << "\n  ]\n}\n";
             json_out.close();
             std::cout << "✅ JSON: " << json_file << std::endl;
+            } else {
+                std::cout << "❌ JSON export failed: " << json_file << std::endl;
+            }
         }
 
         // ---- TXT export ----
-        std::string txt_file = export_dir + "/" + base_name + "_result.txt";
-        std::ofstream txt_out(txt_file);
-        if (txt_out.is_open()) {
+        if (parser.getExportTXT()) {
+            std::string txt_file = export_dir + "/" + base_name + "_result.txt";
+            std::ofstream txt_out(txt_file);
+            if (txt_out.is_open()) {
             txt_out << "DYNAMIC CONSTRAINT SOLVER RESULTS\n";
             txt_out << "==================================\n\n";
             txt_out << "Configuration: " << config_file << "\n";
@@ -1845,9 +1956,12 @@ int main(int argc, char* argv[]) {
             txt_out << "  Rules applied: " << rules.size() << "\n";
             txt_out.close();
             std::cout << "✅ Text: " << txt_file << std::endl;
+            } else {
+                std::cout << "❌ Text export failed: " << txt_file << std::endl;
+            }
         }
 
-        // ---- XML / PNG (per solution) ----
+        // ---- XML / PNG / MIDI (per solution) ----
         for (size_t si = 0; si < found_solutions.size(); ++si) {
             const auto& solution = found_solutions[si];
             std::string suffix = (found_solutions.size() > 1) ? "_sol" + std::to_string(si + 1) : "";
@@ -1865,13 +1979,20 @@ int main(int argc, char* argv[]) {
                 else
                     std::cout << "❌ PNG export failed for solution " << (si + 1) << std::endl;
             }
+            if (parser.getExportMIDI()) {
+                std::string midi_file = export_dir + "/" + base_name + suffix + "_result.mid";
+                solution.export_to_midi(midi_file);
+                std::cout << "✅ MIDI: " << midi_file << std::endl;
+            }
         }
 
         // Solutions already printed by the streaming callback above.
-        std::cout << "\n📈 Performance:" << std::endl;
-        std::cout << "   Solve time: " << duration.count() << " ms" << std::endl;
-        std::cout << "   Solutions found: " << found_solutions.size() << std::endl;
-        std::cout << "   Rules applied: " << rules.size() << std::endl;
+        if (parser.getShowStatistics()) {
+            std::cout << "\n📈 Performance:" << std::endl;
+            std::cout << "   Solve time: " << duration.count() << " ms" << std::endl;
+            std::cout << "   Solutions found: " << found_solutions.size() << std::endl;
+            std::cout << "   Rules applied: " << rules.size() << std::endl;
+        }
 
         std::cout << "\n🎉 Dynamic constraint solving complete!" << std::endl;
         return 0;

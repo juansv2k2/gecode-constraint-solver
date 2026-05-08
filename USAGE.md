@@ -93,15 +93,16 @@ Every config file is a JSON object with these top-level sections:
 
 ## 3. Top-Level Options
 
-| Field              | Type   | Default          | Description                                   |
-| ------------------ | ------ | ---------------- | --------------------------------------------- |
-| `name`             | string | `""`             | Human-readable name for the problem           |
-| `description`      | string | `""`             | Free-text description                         |
-| `solution_length`  | int    | `12`             | Number of notes per voice                     |
-| `num_voices`       | int    | `2`              | Number of simultaneous voices                 |
-| `backtrack_method` | string | `"intelligent"`  | Search strategy (see below)                   |
-| `export_path`      | string | `"tests/output"` | Directory for output files                    |
-| `num_engines`      | int    | auto             | Override total engine count (usually omitted) |
+| Field              | Type   | Default          | Description                                                                      |
+| ------------------ | ------ | ---------------- | -------------------------------------------------------------------------------- |
+| `name`             | string | `""`             | Human-readable name for the problem                                              |
+| `description`      | string | `""`             | Free-text description                                                            |
+| `solution_length`  | int    | `12`             | Number of notes per voice                                                        |
+| `score_length`     | string | omitted          | Optional score duration in musical time, e.g. `"10q"` for ten quarter-note units |
+| `num_voices`       | int    | `2`              | Number of simultaneous voices                                                    |
+| `backtrack_method` | string | `"intelligent"`  | Search strategy (see below)                                                      |
+| `export_path`      | string | `"tests/output"` | Directory for output files                                                       |
+| `num_engines`      | int    | auto             | Override total engine count (usually omitted)                                    |
 
 **`backtrack_method` values:**
 
@@ -193,6 +194,30 @@ Both pitch and rhythm engines **must** declare explicit domains. There are no de
 | `voice`           | yes      | Voice index this engine belongs to (0-based)                                                                                                                     |
 | `duration_values` | yes      | Note-value fractions: `"1/1"` (whole), `"1/2"` (half), `"1/4"` (quarter), `"1/8"` (eighth), `"1/16"` (sixteenth). Dotted values like `"3/8"` are also supported. |
 | `description`     | no       | Free-text label                                                                                                                                                  |
+
+**Metric domain fields:**
+
+| Field             | Required | Description                                              |
+| ----------------- | -------- | -------------------------------------------------------- |
+| `type`            | yes      | `"metric"`                                               |
+| `voice`           | yes      | Usually `"all"` for the shared metric engine             |
+| `time_signatures` | yes      | Allowed signatures, e.g. `["4/4", "3/4", "6/8"]`         |
+| `tuplets`         | no       | Allowed tuplets for metric-domain generation, e.g. `[3]` |
+| `beat_divisions`  | no       | Allowed beat subdivisions, e.g. `[2, 3]`                 |
+| `description`     | no       | Free-text label                                          |
+
+Metric domain example:
+
+```json
+"engine_4": {
+  "type": "metric",
+  "voice": "all",
+  "time_signatures": ["4/4", "3/4", "6/8"],
+  "tuplets": [3],
+  "beat_divisions": [2, 3],
+  "description": "Shared metric engine"
+}
+```
 
 > **Note:** Multi-value rhythm domains (e.g. `["1/4", "1/8", "1/2"]`) allow the solver to freely choose a duration for each note position within those options.
 
@@ -353,7 +378,7 @@ These rules use named constraint functions and target a specific engine by index
 }
 ```
 
-**Rhythm rule example** (forces all notes to quarter notes, duration value = 4):
+**Rhythm rule example** (forces all notes to quarter notes):
 
 ```json
 {
@@ -361,7 +386,7 @@ These rules use named constraint functions and target a specific engine by index
   "constraint_function": {
     "type": "builtin",
     "function": "equal_values",
-    "parameters": [4]
+    "parameters": ["1/4"]
   },
   "indices": [0, 1, 2, 3, 4, 5, 6, 7],
   "target_engine": 0,
@@ -371,7 +396,7 @@ These rules use named constraint functions and target a specific engine by index
 }
 ```
 
-**Metric (time signature) rule example** (sets 4/4):
+**Metric (time signature) rule example** (segment-based metric assignment over score time):
 
 ```json
 {
@@ -379,9 +404,9 @@ These rules use named constraint functions and target a specific engine by index
   "constraint_function": {
     "type": "builtin",
     "function": "equal_values",
-    "parameters": [4]
+    "parameters": ["4/4", "3/4", "6/8"]
   },
-  "indices": [0],
+  "timepoints": ["0q", "4q", "7q"],
   "target_engine": 4,
   "engine_type": "metric",
   "enabled": true,
@@ -389,7 +414,32 @@ These rules use named constraint functions and target a specific engine by index
 }
 ```
 
-> The `parameters` value for `equal_values` on a metric engine is the numerator of the time signature (e.g. `4` for 4/4, `3` for 3/4).
+> With `r-metric-signature`, `timepoints` are score-time boundaries, not event indices. The example above means `[0q..4q) = 4/4`, `[4q..7q) = 3/4`, `[7q..end) = 6/8`.
+>
+> Metric time strings use the same parser as `score_length`: `q` = quarter-note units, so `"10q"` means a total score span of ten quarter notes.
+>
+> Score-length behavior: if solved material is shorter than `score_length`, the remaining span is padded with rests in canonical score output; if solved material is longer than `score_length`, solving fails.
+
+Metric timepoint example (four segments):
+
+```json
+{
+  "score_length": "12q",
+  "rules": [
+    {
+      "rule_type": "r-metric-signature",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": ["4/4", "3/4", "2/4", "4/4"]
+      },
+      "timepoints": ["0q", "4q", "7q", "9q"],
+      "target_engine": 4,
+      "engine_type": "metric"
+    }
+  ]
+}
+```
 
 ---
 
@@ -649,6 +699,10 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 
 ```json
 "output_options": {
+  "export_path": "output",
+  "export_filename": "my_result_name",
+  "export_json": true,
+  "export_txt": true,
   "export_xml": true,
   "export_png": false,
   "export_midi": false,
@@ -657,13 +711,17 @@ For the rhythm rules above the corresponding rule JSON looks exactly like a pitc
 }
 ```
 
-| Field              | Type | Default | Description                                           |
-| ------------------ | ---- | ------- | ----------------------------------------------------- |
-| `export_xml`       | bool | `false` | Write MusicXML file alongside JSON/text results       |
-| `export_png`       | bool | `false` | Write PNG score image (requires external tooling)     |
-| `export_midi`      | bool | `false` | Write MIDI file                                       |
-| `show_statistics`  | bool | `true`  | Print solve time, rules checked, backjumps in console |
-| `include_analysis` | bool | `true`  | Include interval analysis in text output              |
+| Field              | Type   | Default         | Description                                                     |
+| ------------------ | ------ | --------------- | --------------------------------------------------------------- |
+| `export_path`      | string | `tests/output`  | Directory for generated files                                   |
+| `export_filename`  | string | config basename | Optional explicit base filename used for all outputs            |
+| `export_json`      | bool   | `true`          | Write JSON result file                                          |
+| `export_txt`       | bool   | `true`          | Write text result file                                          |
+| `export_xml`       | bool   | `false`         | Write MusicXML file                                             |
+| `export_png`       | bool   | `false`         | Write PNG score image (requires external tooling)               |
+| `export_midi`      | bool   | `false`         | Write MIDI-like export (`.mid`)                                 |
+| `show_statistics`  | bool   | `true`          | Print final performance summary in console                      |
+| `include_analysis` | bool   | `true`          | Include canonical score analysis block (`score`) in JSON export |
 
 ---
 
@@ -1094,6 +1152,8 @@ Search options control solve limits, branching strategy, randomization, and heur
 
 ```json
 "search_options": {
+  "enable_metric_engine": true,
+  "require_exact_score_length": false,
   "timeout_ms": 30000,
   "max_solutions": 1,
   "branching": "first_fail",
@@ -1105,12 +1165,14 @@ Search options control solve limits, branching strategy, randomization, and heur
 
 ### 8.1 Core Search Fields
 
-| Field           | Type   | Default        | Description                                                                            |
-| --------------- | ------ | -------------- | -------------------------------------------------------------------------------------- |
-| `timeout_ms`    | int    | `30000`        | Maximum solve time in milliseconds. Search stops after this duration even if unsolved. |
-| `max_solutions` | int    | `1`            | Number of solutions to return. `-1` means find all solutions.                          |
-| `branching`     | string | `"first_fail"` | Variable selection strategy (see section 8.2).                                         |
-| `random_seed`   | int    | deterministic  | Seed policy for randomized tie-breaking (see section 8.3).                             |
+| Field                        | Type   | Default        | Description                                                                                  |
+| ---------------------------- | ------ | -------------- | -------------------------------------------------------------------------------------------- |
+| `enable_metric_engine`       | bool   | `false`        | Enables the shared metric engine when metric domains and metric rules are present.           |
+| `require_exact_score_length` | bool   | `false`        | Legacy/compatibility flag. Current behavior pads underfill with rests; overflow still fails. |
+| `timeout_ms`                 | int    | `30000`        | Maximum solve time in milliseconds. Search stops after this duration even if unsolved.       |
+| `max_solutions`              | int    | `1`            | Number of solutions to return. `-1` means find all solutions.                                |
+| `branching`                  | string | `"first_fail"` | Variable selection strategy (see section 8.2).                                               |
+| `random_seed`                | int    | deterministic  | Seed policy for randomized tie-breaking (see section 8.3).                                   |
 
 ### 8.2 Variable Selection (`branching`)
 
@@ -1281,7 +1343,7 @@ This example creates a 2-voice, 8-note sequence where:
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [4]
+        "parameters": ["1/4"]
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "target_engine": 0,
@@ -1295,7 +1357,7 @@ This example creates a 2-voice, 8-note sequence where:
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [4]
+        "parameters": ["1/4"]
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "target_engine": 2,
@@ -1309,9 +1371,9 @@ This example creates a 2-voice, 8-note sequence where:
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [4]
+        "parameters": ["4/4"]
       },
-      "indices": [0],
+      "timepoints": ["0q"],
       "target_engine": 4,
       "engine_type": "metric",
       "enabled": true,
@@ -1327,6 +1389,10 @@ This example creates a 2-voice, 8-note sequence where:
   },
 
   "output_options": {
+    "export_path": "tests/output",
+    "export_filename": "full_config_example",
+    "export_json": true,
+    "export_txt": true,
     "export_xml": true,
     "export_png": false,
     "export_midi": false,
@@ -1340,13 +1406,16 @@ This example creates a 2-voice, 8-note sequence where:
 
 ## 12. Output Files
 
-After a successful solve, the solver writes files to `export_path/`:
+After a successful solve, the solver writes files to `export_path/`.
+If `output_options.export_filename` is set, that value is used as the basename; otherwise the config filename basename is used.
 
 | File                        | Description                                                                  |
 | --------------------------- | ---------------------------------------------------------------------------- |
 | `<config_name>_result.json` | Machine-readable result: MIDI values, note names, rhythm, metric, statistics |
 | `<config_name>_result.txt`  | Human-readable result: per-voice note lists with MIDI numbers and names      |
 | `<config_name>_result.xml`  | MusicXML (if `export_xml: true`)                                             |
+| `<config_name>_result.mid`  | MIDI-like export (if `export_midi: true`)                                    |
+| `<config_name>_result.png`  | PNG score image (if `export_png: true`)                                      |
 
 **JSON result structure:**
 

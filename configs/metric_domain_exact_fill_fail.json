@@ -1,0 +1,96 @@
+{
+  "name": "Metric Domain Exact Fill Failure",
+  "description": "Same metric timeline as metric_domain_example but requires exact fill of score_length.",
+  "solution_length": 17,
+  "score_length": "10q",
+  "num_voices": 1,
+  "backtrack_method": "intelligent",
+
+  "engine_domains": {
+    "engine_0": {
+      "type": "rhythm",
+      "voice": 0,
+      "duration_values": ["1/8"],
+      "description": "Voice 0 rhythm: uniform eighth notes"
+    },
+    "engine_1": {
+      "type": "pitch",
+      "voice": 0,
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72],
+      "description": "Voice 0 pitch: C major scale"
+    },
+    "engine_2": {
+      "type": "metric",
+      "voice": "all",
+      "time_signatures": ["4/4", "3/4", "6/8"],
+      "tuplets": [3],
+      "beat_divisions": [2, 3],
+      "description": "Metric engine domain with three possible signatures"
+    }
+  },
+
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-engine",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_engine": 1,
+      "engine_type": "pitch",
+      "enabled": true,
+      "priority": 10,
+      "description": "Voice 0 pitches are all different"
+    },
+    {
+      "rule_type": "r-rhythmic-uniformity",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": ["1/8"]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_engine": 0,
+      "engine_type": "rhythm",
+      "enabled": true,
+      "priority": 9,
+      "description": "Voice 0 rhythm forced to 1/8"
+    },
+    {
+      "rule_type": "r-metric-signature",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": ["4/4", "3/4", "6/8"]
+      },
+      "timepoints": ["0q", "4q", "7q"],
+      "target_engine": 2,
+      "engine_type": "metric",
+      "enabled": true,
+      "priority": 8,
+      "description": "Segment mapping: [0q..4q)=4/4, [4q..7q)=3/4, [7q..10q)=6/8"
+    }
+  ],
+
+  "search_options": {
+    "enable_metric_engine": true,
+    "require_exact_score_length": true,
+    "random_seed": 0,
+    "timeout_ms": 10000,
+    "max_solutions": 1,
+    "branching": "first_fail"
+  },
+
+  "output_options": {
+    "export_path": "output",
+    "export_json": false,
+    "export_txt": false,
+    "export_xml": false,
+    "export_png": false,
+    "export_midi": false,
+    "show_statistics": true,
+    "include_analysis": true
+  }
+}

@@ -84,6 +84,14 @@ struct SolverConfig {
     // Updated by getVoiceRhythmDomains(); used by display logic.
     int rhythm_base = 1;
 
+    // Optional total score span expressed in ticks using rhythm_base as the whole-note unit.
+    // -1 means unspecified and preserves current event-count-driven behavior.
+    int score_length_ticks = -1;
+
+    // If true, solved voice durations must exactly fill score_length_ticks.
+    // If false, they may end earlier but may never overflow the score span.
+    bool require_exact_score_length = false;
+
     // Metric domain candidates used by the metric engine.
     // Phase-0/1 scaffold: this data is intentionally passive until
     // metric-engine activation is enabled and posting logic is wired.
@@ -128,6 +136,8 @@ struct SolverConfig {
  */
 struct MusicalSolution {
     struct MetricSegment {
+        int start_tick = 0;
+        int end_tick = 0;
         int start_index = 0;
         int end_index = 0;
         int numerator = 4;
@@ -258,6 +268,7 @@ private:
         std::string rule_type;
         std::string function;
         std::vector<int> indices;
+        std::vector<std::string> timepoints;
         int target_engine;
         std::vector<int> target_engines;  // For cross-engine rules
         std::string engine_type;
@@ -351,7 +362,8 @@ public:
                         const std::vector<int>& target_engines,
                         const std::string& engine_type, const std::string& description,
                         const std::vector<double>& parameters = {},
-                        const std::vector<std::string>& parameter_strings = {});
+                        const std::vector<std::string>& parameter_strings = {},
+                        const std::vector<std::string>& timepoints = {});
     
     /**
      * @brief Add multiple rules

@@ -213,6 +213,40 @@ bool configure_from_json_payload(t_maxsolver* x, const std::string& json_text, c
 
 nlohmann::json max_dictionary_to_json(t_dictionary* d);
 
+void normalize_array_schema_fields(nlohmann::json& value) {
+    static const std::set<std::string> array_keys = {
+        "dynamic_rules",
+        "rules",
+        "duration_values",
+        "midi_values",
+        "time_signatures",
+        "tuplets",
+        "beat_divisions",
+        "indices",
+        "target_engines",
+        "timepoints",
+        "parameters",
+        "voice_solutions",
+        "voice_rhythms"
+    };
+
+    if (value.is_object()) {
+        for (auto it = value.begin(); it != value.end(); ++it) {
+            const std::string key = it.key();
+            if (array_keys.count(key) > 0 && !it.value().is_array() && !it.value().is_null()) {
+                nlohmann::json wrapped = nlohmann::json::array();
+                wrapped.push_back(it.value());
+                it.value() = std::move(wrapped);
+            }
+            normalize_array_schema_fields(it.value());
+        }
+    } else if (value.is_array()) {
+        for (auto& item : value) {
+            normalize_array_schema_fields(item);
+        }
+    }
+}
+
 nlohmann::json atom_to_json_value(const t_atom& a) {
     const auto type = atom_gettype(const_cast<t_atom*>(&a));
     if (type == A_LONG) {
@@ -453,8 +487,10 @@ void maxsolver_config_dict(t_maxsolver* x, t_symbol* dict_name) {
         return;
     }
 
-    const nlohmann::json j = max_dictionary_to_json(d);
+    nlohmann::json j = max_dictionary_to_json(d);
     dictobj_release(d);
+
+    normalize_array_schema_fields(j);
 
     const std::string json_text = j.dump();
 
@@ -475,8 +511,10 @@ void maxsolver_config_dict_debug(t_maxsolver* x, t_symbol* dict_name) {
         return;
     }
 
-    const nlohmann::json j = max_dictionary_to_json(d);
+    nlohmann::json j = max_dictionary_to_json(d);
     dictobj_release(d);
+
+    normalize_array_schema_fields(j);
 
     const std::string json_text = j.dump();
 
