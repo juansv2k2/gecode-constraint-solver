@@ -92,15 +92,15 @@ Every config file is a JSON object with these top-level sections:
 
 ## 3. Top-Level Options
 
-| Field              | Type   | Default          | Description                                                                      |
-| ------------------ | ------ | ---------------- | -------------------------------------------------------------------------------- |
-| `name`             | string | `""`             | Human-readable name for the problem                                              |
-| `description`      | string | `""`             | Free-text description                                                            |
-| `solution_length`  | int    | `12`             | Number of notes per voice                                                        |
-| `score_length`     | string | omitted          | Optional score duration in musical time, e.g. `"10q"` for ten quarter-note units |
-| `num_voices`       | int    | `2`              | Number of simultaneous voices                                                    |
-| `export_path`      | string | `"tests/output"` | Directory for output files                                                       |
-| `num_engines`      | int    | auto             | Override total engine count (usually omitted)                                    |
+| Field             | Type   | Default          | Description                                                                      |
+| ----------------- | ------ | ---------------- | -------------------------------------------------------------------------------- |
+| `name`            | string | `""`             | Human-readable name for the problem                                              |
+| `description`     | string | `""`             | Free-text description                                                            |
+| `solution_length` | int    | `12`             | Number of notes per voice                                                        |
+| `score_length`    | string | omitted          | Optional score duration in musical time, e.g. `"10q"` for ten quarter-note units |
+| `num_voices`      | int    | `2`              | Number of simultaneous voices                                                    |
+| `export_path`     | string | `"tests/output"` | Directory for output files                                                       |
+| `num_engines`     | int    | auto             | Override total engine count (usually omitted)                                    |
 
 Search behavior is configured in `search_options` (section 8), not by a top-level backtracking field.
 
@@ -1166,25 +1166,25 @@ Search options control solve limits, branching strategy, randomization, and heur
 | `require_exact_score_length` | bool   | `false`        | Legacy/compatibility flag. Current behavior pads underfill with rests; overflow still fails. |
 | `timeout_ms`                 | int    | `30000`        | Maximum solve time in milliseconds. Search stops after this duration even if unsolved.       |
 | `max_solutions`              | int    | `1`            | Number of solutions to return. `-1` means find all solutions.                                |
-| `engine`                     | string | `"dfs"`       | Search engine. Current supported value is `"dfs"`.                                          |
+| `engine`                     | string | `"dfs"`        | Search engine. Current supported value is `"dfs"`.                                           |
 | `branching`                  | string | `"first_fail"` | Variable selection strategy (see section 8.2).                                               |
-| `value_order`                | string | `"min"`       | Value ordering strategy (see section 8.3).                                                   |
-| `restart_policy`             | string | `"none"`      | Restart behavior. Current supported value is `"none"`.                                      |
+| `value_order`                | string | `"min"`        | Value ordering strategy (see section 8.3).                                                   |
+| `restart_policy`             | string | `"none"`       | Restart behavior. Current supported value is `"none"`.                                       |
 | `random_seed`                | int    | deterministic  | Seed policy for randomized tie-breaking (see section 8.3).                                   |
 
 ### 8.2 Variable Selection (`branching`)
 
-| Value          | Strategy                                                                                   | When to use                                             |
-| -------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `"first_fail"` | Pick variable with smallest remaining domain, break ties arbitrarily (recommended default) | Most constraint problems; fast pruning.                 |
+| Value           | Strategy                                                                                   | When to use                                                               |
+| --------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `"first_fail"`  | Pick variable with smallest remaining domain, break ties arbitrarily (recommended default) | Most constraint problems; fast pruning.                                   |
 | `"input_order"` | Pick variables in score order                                                              | Phrase-driven problems where early musical context should be fixed first. |
 
 ### 8.3 Value Ordering (`value_order`)
 
-| Value         | Strategy                                                                     | When to use |
-| ------------- | ---------------------------------------------------------------------------- | ----------- |
-| `"min"`       | Always try lowest value first                                                | Deterministic debugging and repeatable regression tests. |
-| `"random"`    | Randomized value choice using `random_seed`                                 | Generate controlled variation and explore alternatives. |
+| Value         | Strategy                                                                           | When to use                                                              |
+| ------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `"min"`       | Always try lowest value first                                                      | Deterministic debugging and repeatable regression tests.                 |
+| `"random"`    | Randomized value choice using `random_seed`                                        | Generate controlled variation and explore alternatives.                  |
 | `"heuristic"` | Use heuristic scoring (`heuristic_preference` / `heuristic_energy`) when available | Musical shaping tasks (stepwise motion, consonance, register targeting). |
 
 One-line musical rule of thumb: for dense harmonic/counterpoint constraints use `first_fail`; for style-shaping melodic generation use `heuristic`; for exploratory ideation use `random` with a fixed positive seed.
