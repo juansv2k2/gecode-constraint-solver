@@ -102,6 +102,7 @@ void emit_status(t_maxsolver* x, const char* status, const char* message) {
 }
 
 void emit_result_lists(t_maxsolver* x, const MaxMSPWrapper::SolveResult& result) {
+    // For backward compatibility: emit first solution using old format
     for (size_t v = 0; v < result.voice_solutions.size(); ++v) {
         const auto& voice = result.voice_solutions[v];
         std::vector<t_atom> atoms(voice.size() + 1);
@@ -122,6 +123,67 @@ void emit_result_lists(t_maxsolver* x, const MaxMSPWrapper::SolveResult& result)
         }
         outlet_anything(x->list_outlet, s_voice_rhythm_sym, static_cast<short>(atoms.size()), atoms.data());
     }
+}
+
+void emit_all_solutions(t_maxsolver* x, const std::string& result_json_str) {
+    try {
+        nlohmann::json result = nlohmann::json::parse(result_json_str);
+        if (!result.contains("solutions") || !result["solutions"].is_array()) return;
+
+        const auto& solutions = result["solutions"];
+        t_symbol* open  = gensym("(");
+        t_symbol* close = gensym(")");
+
+        std::vector<t_atom> all;
+
+        // outer open paren — wraps all solutions
+        atom_setsym(&all.emplace_back(), open);
+
+        for (const auto& solution : solutions) {
+            atom_setsym(&all.emplace_back(), open);   // solution open
+
+            // metric sublist
+            atom_setsym(&all.emplace_back(), open);
+            if (solution.contains("metric_signature") && solution["metric_signature"].is_array()) {
+                for (const auto& ts : solution["metric_signature"])
+                    if (ts.is_string())
+                        atom_setsym(&all.emplace_back(), gensym(ts.get<std::string>().c_str()));
+            }
+            atom_setsym(&all.emplace_back(), close);
+
+            // pitch sublists (one per voice)
+            if (solution.contains("voice_solutions") && solution["voice_solutions"].is_array()) {
+                for (const auto& pitches : solution["voice_solutions"]) {
+                    atom_setsym(&all.emplace_back(), open);
+                    if (pitches.is_array())
+                        for (const auto& p : pitches)
+                            if (p.is_number())
+                                atom_setlong(&all.emplace_back(), static_cast<t_atom_long>(p.get<int>()));
+                    atom_setsym(&all.emplace_back(), close);
+                }
+            }
+
+            // rhythm sublists (one per voice)
+            if (solution.contains("voice_rhythms") && solution["voice_rhythms"].is_array()) {
+                for (const auto& rhythms : solution["voice_rhythms"]) {
+                    atom_setsym(&all.emplace_back(), open);
+                    if (rhythms.is_array())
+                        for (const auto& r : rhythms)
+                            if (r.is_string())
+                                atom_setsym(&all.emplace_back(), gensym(r.get<std::string>().c_str()));
+                    atom_setsym(&all.emplace_back(), close);
+                }
+            }
+
+            atom_setsym(&all.emplace_back(), close);  // solution close
+        }
+
+        // outer close paren
+        atom_setsym(&all.emplace_back(), close);
+
+        outlet_list(x->list_outlet, nullptr, static_cast<short>(all.size()), all.data());
+
+    } catch (const std::exception&) {}
 }
 
 void emit_result_json(t_maxsolver* x, const std::string& json_payload) {
@@ -334,7 +396,10 @@ void maxsolver_poll(t_maxsolver* x) {
 
     MaxMSPWrapper::SolveResult result;
     if (x->wrapper->take_result(result)) {
-        emit_result_lists(x, result);
+        // Emit all solutions from the JSON
+        emit_all_solutions(x, result.result_json);
+        
+        // Also emit JSON for inspection
         emit_result_json(x, result.result_json);
 
         const std::string st = x->wrapper->get_status_string();
@@ -461,7 +526,7 @@ void maxsolver_get_last(t_maxsolver* x) {
         return;
     }
 
-    emit_result_lists(x, result);
+    emit_all_solutions(x, result.result_json);
     emit_result_json(x, result.result_json);
     const std::string st = x->wrapper->get_status_string();
     emit_status(x, st.c_str(), result.message.c_str());

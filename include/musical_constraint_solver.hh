@@ -98,6 +98,13 @@ struct SolverConfig {
     // - >0: evaluate only first K candidate values from domain iterator (approximate, faster)
     int heuristic_top_k = 0;
     bool heuristic_trace = false;
+    
+    // Solution enumeration
+    // max_solutions:
+    // - 1: find one solution (default)
+    // - -1 or any negative: find all solutions (exhaustive)
+    // - N > 1: find up to N solutions
+    int max_solutions = 1;
 };
 
 /**
@@ -203,6 +210,7 @@ private:
         std::string engine_type;
         std::string description;
         std::vector<double> parameters;
+        std::vector<std::string> parameter_strings;
     };
     
     SolverConfig config_;
@@ -289,7 +297,8 @@ public:
                         const std::vector<int>& indices, int target_engine, 
                         const std::vector<int>& target_engines,
                         const std::string& engine_type, const std::string& description,
-                        const std::vector<double>& parameters = {});
+                        const std::vector<double>& parameters = {},
+                        const std::vector<std::string>& parameter_strings = {});
     
     /**
      * @brief Add multiple rules

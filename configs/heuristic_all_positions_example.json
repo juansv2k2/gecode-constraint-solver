@@ -10,7 +10,7 @@
     "engine_0": {
       "type": "rhythm",
       "voice": 0,
-      "duration_values": ["1/4"],
+      "duration_values": ["1/8"],
       "description": "Voice 0: quarter notes only"
     },
     "engine_1": {
@@ -34,6 +34,12 @@
         67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86, 88, 90, 91
       ],
       "description": "Voice 1: C major starting from G4, two octaves"
+    },
+    "engine_4": {
+      "type": "metric",
+      "voice": "all",
+      "time_signature": ["4/4", "3/4", "6/8"],
+      "description": "possible time signatures are 4/4, 3/4 and 6/8"
     }
   },
 
@@ -84,21 +90,21 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [4]
+        "parameters": ["1/8"]
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "target_engine": 0,
       "engine_type": "rhythm",
       "enabled": true,
       "priority": 7,
-      "description": "Voice 0: all quarter notes"
+      "description": "Voice 0: all eighth notes"
     },
     {
       "rule_type": "r-rhythmic-uniformity",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [4]
+        "parameters": ["1/4"]
       },
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "target_engine": 2,
@@ -112,14 +118,14 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [4]
+        "parameters": ["4/4", "3/4", "6/8"]
       },
-      "indices": [0],
+      "indices": [0, 2, 4],
       "target_engine": 4,
       "engine_type": "metric",
       "enabled": true,
       "priority": 6,
-      "description": "4/4 time"
+      "description": "alternating time signatures"
     }
   ],
 

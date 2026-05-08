@@ -16,6 +16,7 @@
 #include <gecode/search.hh>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 #include <iomanip>
 #include <limits>
@@ -75,6 +76,31 @@ int eval_index_expression(const std::string& expr, int i) {
         return std::stoi(expr);
     }
     return i;
+}
+
+int parse_duration_to_ticks(const std::string& s, int rhythm_base) {
+    if (rhythm_base <= 0) {
+        throw std::runtime_error("Invalid rhythm_base for duration parsing");
+    }
+
+    const bool is_rest = !s.empty() && s[0] == '-';
+    const std::string core = is_rest ? s.substr(1) : s;
+    const auto slash = core.find('/');
+    if (slash == std::string::npos) {
+        throw std::runtime_error("Invalid rhythmic value '" + s + "' (expected fraction like 1/4)");
+    }
+
+    const int num = std::stoi(core.substr(0, slash));
+    const int den = std::stoi(core.substr(slash + 1));
+    if (num <= 0 || den <= 0) {
+        throw std::runtime_error("Invalid rhythmic value '" + s + "'");
+    }
+    if ((rhythm_base % den) != 0) {
+        throw std::runtime_error("Rhythmic value '" + s + "' incompatible with rhythm base " + std::to_string(rhythm_base));
+    }
+
+    const int ticks = num * (rhythm_base / den);
+    return is_rest ? -ticks : ticks;
 }
 
 std::string substitute_wildcard_string(const std::string& input, int voice_a, int voice_b, int i) {
@@ -982,14 +1008,15 @@ void Solver::add_rules(const std::vector<std::shared_ptr<MusicalConstraints::Mus
     rules_.insert(rules_.end(), rules.begin(), rules.end());
 }
 
-void Solver::add_rule_config(const std::string& rule_type, const std::string& function, 
-                            const std::vector<int>& indices, int target_engine, 
-                            const std::vector<int>& target_engines,
-                            const std::string& engine_type, const std::string& description,
-                            const std::vector<double>& parameters) {
+void Solver::add_rule_config(const std::string& rule_type, const std::string& function,
+                const std::vector<int>& indices, int target_engine,
+                const std::vector<int>& target_engines,
+                const std::string& engine_type, const std::string& description,
+                const std::vector<double>& parameters,
+                const std::vector<std::string>& parameter_strings) {
     // Preserve full rule metadata for engine-targeted posting in build_configured_space_.
     engine_rule_configs_.push_back({rule_type, function, indices, target_engine, target_engines,
-                                    engine_type, description, parameters});
+                    engine_type, description, parameters, parameter_strings});
     
     // Convert JSON rule configuration to actual MusicalRule objects based on rule_type or function
     if ((rule_type == "r-pitches-one-engine" || rule_type == "r-pitches-all-different" || 
@@ -1270,7 +1297,12 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
     // POST ENGINE-TARGETED RULES
     for (const auto& cfg : engine_rule_configs_) {
-        if (!(cfg.function == "all_different" || cfg.rule_type == "r-pitches-all-different" || cfg.rule_type == "r-twelve-tone-voice1")) {
+        const bool is_all_different_rule =
+            (cfg.function == "all_different" || cfg.rule_type == "r-pitches-all-different" || cfg.rule_type == "r-twelve-tone-voice1");
+        const bool is_rhythmic_uniformity_rule =
+            (cfg.rule_type == "r-rhythmic-uniformity");
+
+        if (!is_all_different_rule && !is_rhythmic_uniformity_rule) {
             continue;
         }
 
@@ -1283,7 +1315,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
 
         if (targets.empty()) {
-            throw std::runtime_error("all_different rule '" + cfg.description + "' has no target engine");
+            throw std::runtime_error("rule '" + cfg.description + "' has no target engine");
         }
 
         std::vector<int> selected_indices = cfg.indices;
@@ -1296,7 +1328,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         const int metric_engine_index = config_.num_voices * 2;
         for (int engine : targets) {
             if (engine == metric_engine_index) {
-                throw std::runtime_error("all_different rule '" + cfg.description + "' cannot target metric engine " + std::to_string(engine));
+                throw std::runtime_error("rule '" + cfg.description + "' cannot target metric engine " + std::to_string(engine));
             }
 
             const bool is_pitch_engine = (engine % 2) == 1;
@@ -1304,17 +1336,17 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
             if (!cfg.engine_type.empty()) {
                 if (cfg.engine_type == "pitch" && !is_pitch_engine) {
-                    throw std::runtime_error("all_different rule '" + cfg.description + "' declares engine_type='pitch' but targets non-pitch engine " + std::to_string(engine));
+                    throw std::runtime_error("rule '" + cfg.description + "' declares engine_type='pitch' but targets non-pitch engine " + std::to_string(engine));
                 }
                 if (cfg.engine_type == "rhythm" && !is_rhythm_engine) {
-                    throw std::runtime_error("all_different rule '" + cfg.description + "' declares engine_type='rhythm' but targets non-rhythm engine " + std::to_string(engine));
+                    throw std::runtime_error("rule '" + cfg.description + "' declares engine_type='rhythm' but targets non-rhythm engine " + std::to_string(engine));
                 }
                 if (cfg.engine_type == "metric") {
-                    throw std::runtime_error("all_different rule '" + cfg.description + "' cannot use engine_type='metric'");
+                    throw std::runtime_error("rule '" + cfg.description + "' cannot use engine_type='metric'");
                 }
             }
 
-            if (is_pitch_engine) {
+            if (is_all_different_rule && is_pitch_engine) {
                 const int voice = engine / 2;
                 if (voice < 0 || voice >= config_.num_voices) {
                     throw std::runtime_error("all_different rule '" + cfg.description + "' has out-of-range pitch engine " + std::to_string(engine));
@@ -1330,7 +1362,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 if (vars.size() > 1) {
                     Gecode::distinct(*gecode_space, vars);
                 }
-            } else if (is_rhythm_engine) {
+            } else if (is_all_different_rule && is_rhythm_engine) {
                 const int voice = engine / 2;
                 if (voice < 0 || voice >= config_.num_voices) {
                     throw std::runtime_error("all_different rule '" + cfg.description + "' has out-of-range rhythm engine " + std::to_string(engine));
@@ -1348,6 +1380,66 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 }
                 if (vars.size() > 1) {
                     Gecode::distinct(*gecode_space, vars);
+                }
+            } else if (is_rhythmic_uniformity_rule) {
+                if (!is_rhythm_engine) {
+                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' must target rhythm engines only");
+                }
+                if (!gecode_space->has_rhythm_vars()) {
+                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' targets rhythm engine but rhythm vars are unavailable");
+                }
+
+                const int voice = engine / 2;
+                if (voice < 0 || voice >= config_.num_voices) {
+                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' has out-of-range rhythm engine " + std::to_string(engine));
+                }
+
+                if (voice < 0 || voice >= static_cast<int>(config_.voice_rhythm_domains.size())) {
+                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' has no rhythm domain for voice " + std::to_string(voice));
+                }
+
+                std::vector<int> allowed_ticks;
+                for (const auto& s : cfg.parameter_strings) {
+                    allowed_ticks.push_back(parse_duration_to_ticks(s, config_.rhythm_base));
+                }
+                for (double p : cfg.parameters) {
+                    allowed_ticks.push_back(static_cast<int>(std::lround(p)));
+                }
+
+                if (allowed_ticks.empty()) {
+                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' requires at least one parameter value");
+                }
+
+                std::sort(allowed_ticks.begin(), allowed_ticks.end());
+                allowed_ticks.erase(std::unique(allowed_ticks.begin(), allowed_ticks.end()), allowed_ticks.end());
+
+                const auto& domain_ticks = config_.voice_rhythm_domains[voice];
+                for (int tick : allowed_ticks) {
+                    if (std::find(domain_ticks.begin(), domain_ticks.end(), tick) == domain_ticks.end()) {
+                        throw std::runtime_error(
+                            "r-rhythmic-uniformity rule '" + cfg.description +
+                            "' parameter value " + std::to_string(tick) +
+                            " is not present in rhythm domain for voice " + std::to_string(voice));
+                    }
+                }
+
+                Gecode::IntSet allowed_set(allowed_ticks.data(), static_cast<int>(allowed_ticks.size()));
+
+                Gecode::IntVarArgs vars;
+                for (int idx : selected_indices) {
+                    if (idx < 0 || idx >= config_.sequence_length) {
+                        throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                    }
+                    vars << gecode_space->get_rhythm_vars()[voice * config_.sequence_length + idx];
+                }
+
+                if (vars.size() > 0) {
+                    // Every selected rhythm must be one of the allowed values.
+                    Gecode::dom(*gecode_space, vars, allowed_set);
+                    // Uniformity: all selected positions use the same value (chosen from allowed_set).
+                    if (vars.size() > 1) {
+                        Gecode::rel(*gecode_space, vars, Gecode::IRT_EQ);
+                    }
                 }
             }
         }

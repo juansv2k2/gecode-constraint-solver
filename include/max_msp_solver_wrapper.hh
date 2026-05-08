@@ -73,6 +73,8 @@ public:
 private:
     MusicalConstraintSolver::Solver solver_;
     bool configured_;
+    int max_solutions_ = 1;
+    double timeout_ms_ = 30000.0;
 
     mutable std::mutex mutex_;
     std::thread worker_thread_;

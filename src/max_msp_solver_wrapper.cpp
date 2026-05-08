@@ -531,21 +531,23 @@ void AsyncSolverWrapper::run_solve_job() {
         local_result.message = "Solve cancelled before start";
     } else {
         try {
-            MusicalConstraintSolver::MusicalSolution solution = solver_.solve();
+            // Use solve_multiple() to handle both single and multiple solutions
+            auto solutions = solver_.solve_multiple(max_solutions_, static_cast<int>(timeout_ms_));
 
             if (cancel_requested_.load()) {
                 local_result.status = SolveStatus::CANCELLED;
                 local_result.message = "Solve cancelled";
-            } else if (!solution.found_solution) {
+            } else if (solutions.empty()) {
                 local_result.status = SolveStatus::FAILED;
                 local_result.found_solution = false;
-                local_result.message = solution.failure_reason.empty()
-                    ? "No solution found"
-                    : solution.failure_reason;
+                local_result.message = "No solutions found";
             } else {
+                // Handle first solution (for backward compatibility)
+                const auto& solution = solutions[0];
+                
                 local_result.status = SolveStatus::SUCCESS;
                 local_result.found_solution = true;
-                local_result.message = "Solution found";
+                local_result.message = "Found " + std::to_string(solutions.size()) + " solution(s)";
 
                 local_result.voice_solutions = solution.voice_solutions;
                 local_result.voice_rhythms = solution.voice_rhythms;
@@ -556,31 +558,42 @@ void AsyncSolverWrapper::run_solve_job() {
 
                 nlohmann::json j;
                 j["found_solution"] = true;
+                j["num_solutions"] = solutions.size();
                 j["solve_time_ms"] = solution.solve_time_ms;
                 j["backjumps_performed"] = solution.backjumps_performed;
                 j["total_rules_checked"] = solution.total_rules_checked;
-                j["voice_solutions"] = solution.voice_solutions;
-                // Return rhythm durations in musical fraction form for Max consumers.
-                nlohmann::json voice_rhythm_fractions = nlohmann::json::array();
-                for (const auto& voice : solution.voice_rhythms) {
-                    nlohmann::json v = nlohmann::json::array();
-                    for (const int tick : voice) {
-                        v.push_back(rhythm_ticks_to_fraction_string(tick, rhythm_base_));
+                
+                // Return all solutions
+                nlohmann::json all_solutions = nlohmann::json::array();
+                for (const auto& sol : solutions) {
+                    nlohmann::json sol_j;
+                    sol_j["voice_solutions"] = sol.voice_solutions;
+                    
+                    // Convert rhythms to fractions
+                    nlohmann::json voice_rhythm_fractions = nlohmann::json::array();
+                    for (const auto& voice : sol.voice_rhythms) {
+                        nlohmann::json v = nlohmann::json::array();
+                        for (const int tick : voice) {
+                            v.push_back(rhythm_ticks_to_fraction_string(tick, rhythm_base_));
+                        }
+                        voice_rhythm_fractions.push_back(v);
                     }
-                    voice_rhythm_fractions.push_back(v);
+                    sol_j["voice_rhythms"] = voice_rhythm_fractions;
+                    sol_j["voice_rhythm_ticks"] = sol.voice_rhythms;
+                    
+                    nlohmann::json metric_signature = nlohmann::json::array();
+                    for (const int numerator : sol.metric_signature) {
+                        std::ostringstream ts;
+                        ts << numerator << "/4";
+                        metric_signature.push_back(ts.str());
+                    }
+                    sol_j["metric_signature"] = metric_signature;
+                    sol_j["metric_signature_numerators"] = sol.metric_signature;
+                    
+                    all_solutions.push_back(sol_j);
                 }
-                j["voice_rhythms"] = voice_rhythm_fractions;
-                j["voice_rhythm_ticks"] = solution.voice_rhythms;
-
-                // Report meter in musical notation while keeping raw values for compatibility.
-                nlohmann::json metric_signature = nlohmann::json::array();
-                for (const int numerator : solution.metric_signature) {
-                    std::ostringstream ts;
-                    ts << numerator << "/4";
-                    metric_signature.push_back(ts.str());
-                }
-                j["metric_signature"] = metric_signature;
-                j["metric_signature_numerators"] = solution.metric_signature;
+                j["solutions"] = all_solutions;
+                
                 local_result.result_json = j.dump();
             }
         } catch (const std::exception& e) {
@@ -677,6 +690,12 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
             if (so.contains("timeout_ms") && so["timeout_ms"].is_number()) {
                 sc.timeout_seconds = so["timeout_ms"].get<double>() / 1000.0;
+                timeout_ms_ = so["timeout_ms"].get<double>();
+            }
+
+            if (so.contains("max_solutions") && so["max_solutions"].is_number_integer()) {
+                max_solutions_ = so["max_solutions"].get<int>();
+                sc.max_solutions = max_solutions_;
             }
 
             if (so.contains("heuristic_top_k") && so["heuristic_top_k"].is_number_integer()) {
@@ -856,17 +875,23 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 std::string description = r.value("description", std::string(""));
 
                 std::vector<double> parameters;
+                std::vector<std::string> parameter_strings;
                 if (r.contains("constraint_function") &&
                     r["constraint_function"].is_object() &&
                     r["constraint_function"].contains("parameters") &&
                     r["constraint_function"]["parameters"].is_array()) {
                     for (const auto& p : r["constraint_function"]["parameters"]) {
-                        if (p.is_number()) parameters.push_back(p.get<double>());
+                        if (p.is_number()) {
+                            parameters.push_back(p.get<double>());
+                        } else if (p.is_string()) {
+                            parameter_strings.push_back(p.get<std::string>());
+                        }
                     }
                 }
 
                 solver_.add_rule_config(rule_type, function, indices, target_engine,
-                                        target_engines, engine_type, description, parameters);
+                                        target_engines, engine_type, description,
+                                        parameters, parameter_strings);
             }
         }
 

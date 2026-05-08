@@ -38,6 +38,7 @@ struct RuleConfig {
     int priority;
     std::string description;
     std::vector<double> parameters;
+    std::vector<std::string> parameter_strings;
 };
 
 // Robust JSON parser for constraint solver configuration
@@ -139,6 +140,30 @@ private:
                     } catch (...) {
                         // Skip invalid doubles
                     }
+                }
+            }
+        }
+        return result;
+    }
+
+    std::vector<std::string> parseStringArray(const std::string& arrayStr) {
+        std::vector<std::string> result;
+        std::string cleaned = arrayStr;
+
+        size_t start = cleaned.find('[');
+        size_t end = cleaned.find_last_of(']');
+
+        if (start != std::string::npos && end != std::string::npos && start < end) {
+            std::string content = cleaned.substr(start + 1, end - start - 1);
+            std::stringstream ss(content);
+            std::string item;
+
+            while (std::getline(ss, item, ',')) {
+                item = trim(item);
+                if (!item.empty() && item.length() >= 2 &&
+                    ((item.front() == '"' && item.back() == '"') ||
+                     (item.front() == '\'' && item.back() == '\''))) {
+                    result.push_back(item.substr(1, item.length() - 2));
                 }
             }
         }
@@ -335,6 +360,7 @@ public:
                             if (line.find("[") != std::string::npos && line.find("]") != std::string::npos) {
                                 // Single line array
                                 current_rule.parameters = parseDoubleArray(line);
+                                current_rule.parameter_strings = parseStringArray(line);
                             } else {
                                 // Start of multiline array
                                 in_parameters_array = true;
@@ -349,6 +375,7 @@ public:
                         parameters_content += " " + line;
                         if (line.find("]") != std::string::npos) {
                             current_rule.parameters = parseDoubleArray(parameters_content);
+                            current_rule.parameter_strings = parseStringArray(parameters_content);
                             in_parameters_array = false;
                             parameters_content.clear();
                         }
@@ -1202,7 +1229,7 @@ int main(int argc, char* argv[]) {
                 // Pass rule configuration with target_engine information directly to solver
                 solver.add_rule_config(ruleConfig.rule_type, ruleConfig.function, ruleConfig.indices, 
                                      ruleConfig.target_engine, ruleConfig.target_engines, ruleConfig.engine_type, ruleConfig.description, 
-                                     ruleConfig.parameters);
+                                     ruleConfig.parameters, ruleConfig.parameter_strings);
                 std::cout << "✅ Added engine rule: " << ruleConfig.description << " (target_engine: " << ruleConfig.target_engine << ")" << std::endl;
             }
         }
