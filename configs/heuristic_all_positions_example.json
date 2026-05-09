@@ -2,6 +2,7 @@
   "name": "C Major Stepwise with Parallel Fifths",
   "description": "Voice 0: C major, stepwise, all different. Voice 1: a fifth above.",
   "solution_length": 8,
+  "score_length": "8q",
   "num_voices": 2,
   "dynamic_rules": [
     {
@@ -20,69 +21,31 @@
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "all_different",
-        "parameters": []
-      },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ],
-      "engine_type": "pitch",
+      "constraint": "all_different",
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "enabled": true,
       "priority": 10,
       "description": "Voice 1 and 2: all notes different",
-      "target_voices": [
-        0,
-        1
-      ],
+      "target_voices": [0, 1],
       "target_component": "pitch"
     },
     {
       "id": "stepwise_motion",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_voices",
-      "pattern_offsets": [
-        0,
-        1
-      ],
+      "pattern_offsets": [0, 1],
       "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "enabled": true,
       "priority": 9,
       "description": "Voice 0: consecutive notes are a step apart",
-      "target_voices": [
-        0,
-        1
-      ],
+      "target_voices": [0, 1],
       "target_component": "pitch"
     },
     {
       "rule_type": "r-rhythmic-uniformity",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": [
-          "1/8"
-        ]
-      },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ],
-      "engine_type": "rhythm",
+      "constraint": "equal_values",
+      "parameters": ["1/8"],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "enabled": true,
       "priority": 7,
       "description": "Voice 0: all eighth notes",
@@ -91,24 +54,9 @@
     },
     {
       "rule_type": "r-rhythmic-uniformity",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": [
-          "1/4"
-        ]
-      },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ],
-      "engine_type": "rhythm",
+      "constraint": "equal_values",
+      "parameters": ["1/4"],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "enabled": true,
       "priority": 7,
       "description": "Voice 1: all quarter notes",
@@ -117,21 +65,9 @@
     },
     {
       "rule_type": "r-metric-signature",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": [
-          "4/4",
-          "3/4",
-          "6/8"
-        ]
-      },
-      "indices": [
-        0,
-        2,
-        4
-      ],
-      "engine_type": "metric",
+      "constraint": "equal_values",
+      "parameters": ["4/4", "3/4", "6/8"],
+      "timepoints": ["0q", "2q", "4q"],
       "enabled": true,
       "priority": 6,
       "description": "alternating time signatures"
@@ -154,67 +90,31 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": [
-          "1/8"
-        ],
+        "duration_values": ["1/8"],
         "description": "Voice 0: quarter notes only"
       },
       "pitch": {
         "midi_values": [
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71,
-          72,
-          74,
-          76,
-          77,
-          79,
-          81,
-          83,
-          84
+          60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84
         ],
         "description": "Voice 0: C major, two octaves"
       }
     },
     {
       "rhythm": {
-        "duration_values": [
-          "1/4"
-        ],
+        "duration_values": ["1/4"],
         "description": "Voice 1: quarter notes only"
       },
       "pitch": {
         "midi_values": [
-          67,
-          69,
-          71,
-          72,
-          74,
-          76,
-          77,
-          79,
-          81,
-          83,
-          84,
-          86,
-          88,
-          90,
-          91
+          67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86, 88, 90, 91
         ],
         "description": "Voice 1: C major starting from G4, two octaves"
       }
     }
   ],
   "meter": {
-    "time_signatures": [
-      "4/4",
-      "3/4",
-      "6/8"
-    ],
+    "time_signatures": ["4/4", "3/4", "6/8"],
     "description": "possible time signatures are 4/4, 3/4 and 6/8"
   }
 }

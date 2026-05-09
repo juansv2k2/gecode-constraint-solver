@@ -677,15 +677,19 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
     // Shorthand alias for built-in rules:
     // "constraint": "all_different"
     // -> "constraint_function": {"type":"builtin","function":"all_different","parameters":[]}
-    if (rule_type != "wildcard_constraint" && type_field != "index" &&
-        !rule.contains("constraint_function") && rule.contains("constraint") &&
-        rule["constraint"].is_string()) {
-        rule["constraint_function"] = nlohmann::json::object();
-        rule["constraint_function"]["type"] = "builtin";
-        rule["constraint_function"]["function"] = rule["constraint"].get<std::string>();
-        rule["constraint_function"]["parameters"] = nlohmann::json::array();
+    if (rule_type != "wildcard_constraint" && type_field != "index") {
+        if (!rule.contains("constraint_function") && rule.contains("constraint") &&
+            rule["constraint"].is_string()) {
+            rule["constraint_function"] = nlohmann::json::object();
+            rule["constraint_function"]["type"] = "builtin";
+            rule["constraint_function"]["function"] = rule["constraint"].get<std::string>();
+            rule["constraint_function"]["parameters"] = nlohmann::json::array();
+        }
 
-        if (rule.contains("parameters")) {
+        // If top-level shorthand parameters are present, keep constraint_function
+        // parameters in sync even when constraint_function already exists.
+        if (rule.contains("constraint_function") && rule["constraint_function"].is_object() &&
+            rule.contains("parameters")) {
             if (rule["parameters"].is_array()) {
                 rule["constraint_function"]["parameters"] = rule["parameters"];
             } else {
