@@ -726,8 +726,7 @@ MusicalConstraints::DualSolutionStorage IntegratedMusicalSpace::export_to_dual_s
 std::vector<int> IntegratedMusicalSpace::get_rhythm_sequence(int voice) const {
     throw std::runtime_error(
         "get_rhythm_sequence() has no fallback. "
-        "Provide 'duration_values' for voice " + std::to_string(voice) +
-        " rhythm engine (engine_" + std::to_string(voice * 2) + ") in engine_domains.");
+        "Provide voices[" + std::to_string(voice) + "].rhythm.duration_values in the config.");
 }
 
 std::vector<int> IntegratedMusicalSpace::get_pitch_sequence(int voice) const {

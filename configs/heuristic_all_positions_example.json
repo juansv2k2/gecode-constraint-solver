@@ -9,7 +9,7 @@
       "id": "prefer_parallel_fifths",
       "type": "heuristic_energy",
       "wildcard_type": "for_all_positions",
-      "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)",
+      "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 10)",
       "mode": "real_heuristic",
       "candidate_voice": 1,
       "weight": 10,
@@ -62,15 +62,6 @@
       "description": "Voice 1: all quarter notes",
       "target_voice": 1,
       "target_component": "rhythm"
-    },
-    {
-      "rule_type": "r-metric-signature",
-      "constraint": "equal_values",
-      "parameters": ["4/4", "3/4"],
-      "timepoints": ["0q", "5q"],
-      "enabled": true,
-      "priority": 6,
-      "description": "alternating time signatures"
     }
   ],
   "search_options": {
@@ -79,7 +70,8 @@
     "max_solutions": 1,
     "branching": "first_fail",
     "value_order": "heuristic",
-    "heuristic_trace": false
+    "heuristic_trace": false,
+    "enable_metric_engine": true
   },
   "output_options": {
     "export_xml": true,
@@ -117,7 +109,7 @@
     }
   ],
   "meter": {
-    "time_signatures": ["4/4", "3/4"],
-    "description": "possible time signatures are 4/4, 3/4"
+    "time_signatures": ["2/4"],
+    "description": "possible time signatures is 4/4"
   }
 }

@@ -1,13 +1,13 @@
 {
   "name": "Metric Domain Simple",
   "description": "Voice-first metric example with timepoint segmentation.",
-  "solution_length": 12,
-  "score_length": "12q",
+  "solution_length": 20,
+  "score_length": "20q",
   "num_voices": 4,
   "voices": [
     {
       "rhythm": {
-        "duration_values": ["1/4"]
+        "duration_values": ["1/8"]
       },
       "pitch": {
         "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]
@@ -94,8 +94,8 @@
     {
       "rule_type": "r-metric-signature",
       "constraint": "equal_values",
-      "parameters": ["4/4", "3/4", "2/4", "4/4"],
-      "timepoints": ["0q", "4q", "7q", "9q"]
+      "parameters": ["4/4", "3/4"],
+      "timepoints": ["0q", "4q"]
     }
   ],
   "search_options": {
@@ -103,7 +103,7 @@
     "enable_metric_engine": true,
     "require_exact_score_length": true,
     "branching": "first_fail",
-    "value_order": "heuristic",
+    "value_order": "random",
     "restart_policy": "none",
     "max_solutions": 1,
     "timeout_ms": 20000,

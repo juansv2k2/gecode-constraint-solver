@@ -189,7 +189,7 @@ Metric rules are automatically targeted to the metric engine (last engine).
 }
 ```
 
-`parameters`: `[source_engine, target_engine]`
+`parameters`: optional rule-specific values only. For voice relationships, use `target_voice` or `target_voices` plus `target_component`.
 
 **Retrograde Inversion:**
 
@@ -761,7 +761,7 @@ Result: All-different notes, biased toward middle C (MIDI 66).
 
 The wrapper still normalizes legacy patterns:
 
-- `engine_domains`, `domains.voice_domains`, `note_domain`
+- `domains.voice_domains`, `note_domain`
 - `configuration` blocks
 - legacy rule targeting (`voice`, wildcard scopes, inferred voice refs)
 - built-in shorthand `constraint` and dynamic rule `constraint` alias
@@ -771,7 +771,7 @@ Use the modern voice-first contract for all new configs.
 ## Common Errors
 
 - **`missing target_voice/target_voices`**: Add `target_voice` or `target_voices` + `target_component` for non-metric built-ins.
-- **`Missing required object: engine_domains`**: Legacy shape — migrate to `voices`.
+- **`'engine_domains' is deprecated`**: Migrate to top-level `voices`.
 - **Metric timepoint errors**: Ensure `timepoints` are strictly increasing and within `score_length`.
 - **No solutions found with heuristic**: Heuristics never relax constraints — check that constraints aren't contradictory independent of heuristics.
 

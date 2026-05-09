@@ -259,7 +259,6 @@ void normalize_array_schema_fields(nlohmann::json& value) {
         "tuplets",
         "beat_divisions",
         "indices",
-        "target_engines",
         "timepoints",
         "parameters",
         "voice_solutions",

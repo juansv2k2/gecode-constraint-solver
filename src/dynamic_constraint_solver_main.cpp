@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <limits>
 #include <cctype>
+#include <functional>
 
 using namespace DynamicRules;
 
@@ -33,6 +34,9 @@ struct RuleConfig {
     std::vector<int> indices;
     std::vector<std::string> timepoints;
     int voice;
+    int target_voice = -1;
+    std::vector<int> target_voices;
+    std::string target_component;
     int target_engine = -1;
     std::vector<int> target_engines;
     std::string engine_type;
@@ -42,6 +46,126 @@ struct RuleConfig {
     std::vector<double> parameters;
     std::vector<std::string> parameter_strings;
 };
+
+static int engine_index_for_voice_component(int voice, const std::string& component, int num_voices) {
+    if (voice < 0 || voice >= num_voices) {
+        throw std::runtime_error(
+            "voice index " + std::to_string(voice) + " is out of range for " +
+            std::to_string(num_voices) + " voices");
+    }
+    if (component == "rhythm") return voice * 2;
+    if (component == "pitch") return voice * 2 + 1;
+    throw std::runtime_error(
+        "unsupported target_component '" + component + "'; expected 'pitch' or 'rhythm'");
+}
+
+static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_voices) {
+    if (!rule.is_object()) return;
+
+    const std::string rule_id = rule.value("id", rule.value("rule_type", std::string("rule")));
+    const std::string rule_type = rule.value("rule_type", std::string(""));
+    const std::string type_field = rule.value("type", std::string(""));
+
+    if (type_field == "index") return;
+
+    if (rule_type == "r-metric-signature") {
+        if (rule.contains("target_voice") || rule.contains("target_voices") ||
+            rule.contains("target_component") || rule.contains("target_engine") ||
+            rule.contains("target_engines")) {
+            throw std::runtime_error(
+                "rule '" + rule_id + "' is metric-targeted implicitly and must not specify voice/component/engine targets");
+        }
+        rule["target_engine"] = num_voices * 2;
+        rule["engine_type"] = "metric";
+        return;
+    }
+
+    if (rule.contains("target_engine") || rule.contains("target_engines")) {
+        throw std::runtime_error(
+            "rule '" + rule_id + "' uses deprecated engine targeting; use target_voice/target_voices instead");
+    }
+
+    bool has_target_voice = rule.contains("target_voice") && rule["target_voice"].is_number_integer();
+    bool has_target_voices = rule.contains("target_voices") && rule["target_voices"].is_array() && !rule["target_voices"].empty();
+
+    if (!has_target_voice && !has_target_voices && rule.contains("voice") && rule["voice"].is_number_integer()) {
+        rule["target_voice"] = rule["voice"].get<int>();
+        has_target_voice = true;
+    }
+
+    if (!has_target_voice && !has_target_voices && rule.contains("constraint") && rule["constraint"].is_string()) {
+        std::set<int> voices_from_constraint;
+        static const std::regex kVoiceRef(R"(voice\[(\d+)\])");
+        const std::string expr = rule["constraint"].get<std::string>();
+        const bool has_voice_variable = expr.find("voice[v]") != std::string::npos;
+        for (std::sregex_iterator it(expr.begin(), expr.end(), kVoiceRef), end; it != end; ++it) {
+            voices_from_constraint.insert(std::stoi((*it)[1].str()));
+        }
+
+        if (voices_from_constraint.size() == 1) {
+            rule["target_voice"] = *voices_from_constraint.begin();
+            has_target_voice = true;
+        } else if (!voices_from_constraint.empty()) {
+            nlohmann::json many = nlohmann::json::array();
+            for (int voice : voices_from_constraint) {
+                if (voice >= 0 && voice < num_voices) many.push_back(voice);
+            }
+            if (!many.empty()) {
+                rule["target_voices"] = std::move(many);
+                has_target_voices = true;
+            }
+        } else if (has_voice_variable) {
+            nlohmann::json all = nlohmann::json::array();
+            for (int voice = 0; voice < num_voices; ++voice) all.push_back(voice);
+            if (!all.empty()) {
+                rule["target_voices"] = std::move(all);
+                has_target_voices = true;
+            }
+        }
+    }
+
+    if (has_target_voice && has_target_voices) {
+        throw std::runtime_error(
+            "rule '" + rule_id + "' must specify either target_voice or target_voices, not both");
+    }
+    if (!has_target_voice && !has_target_voices) {
+        throw std::runtime_error(
+            "rule '" + rule_id + "' is missing target_voice/target_voices");
+    }
+
+    std::string target_component = rule.value("target_component", std::string(""));
+    if (target_component.empty()) {
+        const std::string engine_type = rule.value("engine_type", std::string(""));
+        if (engine_type == "pitch" || engine_type == "rhythm") {
+            target_component = engine_type;
+        }
+    }
+    if (target_component.empty()) {
+        target_component = "pitch";
+    }
+    if (!rule.contains("engine_type")) {
+        rule["engine_type"] = target_component;
+    }
+
+    if (has_target_voice) {
+        const int voice = rule["target_voice"].get<int>();
+        rule["target_engine"] = engine_index_for_voice_component(voice, target_component, num_voices);
+    } else {
+        nlohmann::json target_engines = nlohmann::json::array();
+        nlohmann::json normalized_target_voices = nlohmann::json::array();
+        for (const auto& voice_json : rule["target_voices"]) {
+            if (!voice_json.is_number_integer()) {
+                throw std::runtime_error(
+                    "rule '" + rule_id + "' target_voices must contain integers only");
+            }
+            const int voice = voice_json.get<int>();
+            normalized_target_voices.push_back(voice);
+            target_engines.push_back(engine_index_for_voice_component(voice, target_component, num_voices));
+        }
+        rule["target_voices"] = std::move(normalized_target_voices);
+        rule["target_engines"] = std::move(target_engines);
+    }
+}
 
 // Robust JSON parser for constraint solver configuration
 class ConstraintSolverJSONParser {
@@ -284,6 +408,47 @@ public:
                     export_json_(true), export_txt_(true), export_xml_(false), export_png_(false), export_midi_(false), show_statistics_(true), include_analysis_(true) {}
     
     bool parse(const std::string& filename) {
+        // Strict frontend schema checks before the legacy line parser runs.
+        {
+            std::ifstream strict_file(filename);
+            if (strict_file.is_open()) {
+                try {
+                    nlohmann::json strict_cfg;
+                    strict_file >> strict_cfg;
+
+                    if (strict_cfg.contains("engine_domains")) {
+                        std::cout << "❌ Config validation error: 'engine_domains' is deprecated. "
+                                  << "Use top-level 'voices' with per-voice pitch/rhythm domains." << std::endl;
+                        return false;
+                    }
+
+                    if (strict_cfg.contains("rules") && (strict_cfg["rules"].is_array() || strict_cfg["rules"].is_object())) {
+                        std::vector<nlohmann::json> rule_entries;
+                        if (strict_cfg["rules"].is_array()) {
+                            for (const auto& r : strict_cfg["rules"]) rule_entries.push_back(r);
+                        } else {
+                            for (auto it = strict_cfg["rules"].begin(); it != strict_cfg["rules"].end(); ++it) {
+                                rule_entries.push_back(it.value());
+                            }
+                        }
+
+                        for (const auto& r : rule_entries) {
+                            if (!r.is_object()) continue;
+                            if (r.contains("target_engine") || r.contains("target_engines")) {
+                                const std::string id = r.value("id", r.value("rule_type", std::string("rule")));
+                                std::cout << "❌ Config validation error: rule '" << id
+                                          << "' uses deprecated engine targeting. "
+                                          << "Use target_voice/target_voices with target_component." << std::endl;
+                                return false;
+                            }
+                        }
+                    }
+                } catch (...) {
+                    // Let the existing line parser report malformed config details.
+                }
+            }
+        }
+
         std::ifstream file(filename);
         if (!file.is_open()) {
             std::cout << "❌ Cannot open config file: " << filename << std::endl;
@@ -344,6 +509,7 @@ public:
                     current_rule.priority = 5;
                     current_rule.enabled = true;
                     current_rule.engine_type = "pitch";
+                    current_rule.target_component = "";
                     continue;
                 }
                 
@@ -352,12 +518,46 @@ public:
                     in_rule_object = false;
                     in_constraint_function = false;
                     if (!current_rule.rule_type.empty()) {
+                        if (current_rule.rule_type == "r-metric-signature" &&
+                            current_rule.target_engine < 0 && current_rule.target_engines.empty()) {
+                            current_rule.target_engine = num_voices_ * 2;
+                            current_rule.engine_type = "metric";
+                        }
+
+                        if (current_rule.target_engine < 0 && current_rule.target_engines.empty()) {
+                            std::string target_component = current_rule.target_component;
+                            if (target_component.empty() &&
+                                (current_rule.engine_type == "pitch" || current_rule.engine_type == "rhythm")) {
+                                target_component = current_rule.engine_type;
+                            }
+                            if (target_component.empty()) {
+                                target_component = "pitch";
+                            }
+
+                            if (current_rule.target_voice >= 0) {
+                                current_rule.target_engine = engine_index_for_voice_component(
+                                    current_rule.target_voice, target_component, num_voices_);
+                                if (current_rule.engine_type.empty()) {
+                                    current_rule.engine_type = target_component;
+                                }
+                            } else if (!current_rule.target_voices.empty()) {
+                                current_rule.target_engines.clear();
+                                for (int voice_idx : current_rule.target_voices) {
+                                    current_rule.target_engines.push_back(
+                                        engine_index_for_voice_component(voice_idx, target_component, num_voices_));
+                                }
+                                if (current_rule.engine_type.empty()) {
+                                    current_rule.engine_type = target_component;
+                                }
+                            }
+                        }
+
                         const bool has_target_engine = (current_rule.target_engine >= 0);
                         const bool has_target_engines = !current_rule.target_engines.empty();
                         if (!has_target_engine && !has_target_engines) {
                             std::cout << "❌ Rule validation error: rule '"
                                       << (current_rule.description.empty() ? current_rule.rule_type : current_rule.description)
-                                      << "' is missing explicit target_engine/target_engines" << std::endl;
+                                      << "' is missing target_voice/target_voices" << std::endl;
                             return false;
                         }
                         rules_.push_back(current_rule);
@@ -425,17 +625,43 @@ public:
                     else if (line.find("\"timepoints\"") != std::string::npos) {
                         current_rule.timepoints = parseStringArray(line);
                     }
+                    else if (line.find("\"parameters\"") != std::string::npos) {
+                        // Support shorthand top-level parameters in rules.
+                        if (line.find("[") != std::string::npos && line.find("]") != std::string::npos) {
+                            current_rule.parameters = parseDoubleArray(line);
+                            current_rule.parameter_strings = parseStringArray(line);
+                        } else {
+                            in_parameters_array = true;
+                            parameters_content = line;
+                        }
+                    }
                     else if (line.find("\"target_engine\"") != std::string::npos) {
+                        std::cout << "❌ Rule validation error: deprecated field 'target_engine' is not allowed. "
+                                  << "Use target_voice/target_voices with target_component." << std::endl;
+                        return false;
+                    }
+                    else if (line.find("\"target_engines\"") != std::string::npos) {
+                        std::cout << "❌ Rule validation error: deprecated field 'target_engines' is not allowed. "
+                                  << "Use target_voice/target_voices with target_component." << std::endl;
+                        return false;
+                    }
+                    else if (line.find("\"target_voice\"") != std::string::npos) {
                         size_t pos = line.find(":");
                         if (pos != std::string::npos) {
                             std::string value = removeQuotesAndComma(line.substr(pos + 1));
                             try {
-                                current_rule.target_engine = std::stoi(value);
+                                current_rule.target_voice = std::stoi(value);
                             } catch (...) {}
                         }
                     }
-                    else if (line.find("\"target_engines\"") != std::string::npos) {
-                        current_rule.target_engines = parseIntArray(line);
+                    else if (line.find("\"target_voices\"") != std::string::npos) {
+                        current_rule.target_voices = parseIntArray(line);
+                    }
+                    else if (line.find("\"target_component\"") != std::string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != std::string::npos) {
+                            current_rule.target_component = removeQuotesAndComma(line.substr(pos + 1));
+                        }
                     }
                     else if (line.find("\"voice\"") != std::string::npos) {
                         size_t pos = line.find(":");
@@ -752,9 +978,8 @@ public:
         return all_values;
     }
 
-    // Returns per-voice pitch domains from engine_domains section.
+    // Returns per-voice pitch domains from voices section.
     // voice_domains[v] = sorted unique midi values for voice v.
-    // Falls back to getPitchDomainValues() for any voice not covered.
     std::vector<std::vector<int>> getVoicePitchDomains(const std::string& config_file) const {
         std::vector<std::vector<int>> result(num_voices_);
 
@@ -764,36 +989,87 @@ public:
         nlohmann::json cfg;
         f >> cfg;
 
-        if (!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object())
-            throw std::runtime_error("Config is missing required 'engine_domains' section");
+        if (cfg.contains("engine_domains")) {
+            throw std::runtime_error(
+                "'engine_domains' is deprecated in CLI configs. Use top-level 'voices' with per-voice pitch/rhythm domains.");
+        }
+        if (!cfg.contains("voices") || (!cfg["voices"].is_array() && !cfg["voices"].is_object())) {
+            throw std::runtime_error("Config is missing required 'voices' section");
+        }
 
-        for (auto& [key, val] : cfg["engine_domains"].items()) {
-            std::string type = val.value("type", "");
-            if (type != "pitch") continue;
-
-            int voice = val.value("voice", -1);
-            if (voice < 0 || voice >= num_voices_)
-                throw std::runtime_error("engine_domains['" + key + "']: invalid or missing 'voice' field");
-
-            if (!val.contains("midi_values") || !val["midi_values"].is_array())
-                throw std::runtime_error("engine_domains['" + key + "']: pitch engine must have 'midi_values' array");
-
-            std::vector<int> domain_values;
-            for (int v : val["midi_values"]) domain_values.push_back(v);
-            std::sort(domain_values.begin(), domain_values.end());
-            domain_values.erase(std::unique(domain_values.begin(), domain_values.end()), domain_values.end());
-            result[voice] = std::move(domain_values);
+        if (cfg["voices"].is_array()) {
+            const auto& voices = cfg["voices"];
+            if (static_cast<int>(voices.size()) != num_voices_) {
+                throw std::runtime_error("'num_voices' must match voices array length");
+            }
+            for (size_t v = 0; v < voices.size(); ++v) {
+                const auto& voice = voices[v];
+                if (!voice.is_object()) {
+                    throw std::runtime_error("voices[" + std::to_string(v) + "] must be an object");
+                }
+                if (!voice.contains("pitch")) {
+                    throw std::runtime_error("voices[" + std::to_string(v) + "] is missing 'pitch'");
+                }
+                const auto& pitch = voice["pitch"];
+                const auto* midi_values = static_cast<const nlohmann::json*>(nullptr);
+                if (pitch.is_object() && pitch.contains("midi_values") && pitch["midi_values"].is_array()) {
+                    midi_values = &pitch["midi_values"];
+                } else if (pitch.is_array()) {
+                    midi_values = &pitch;
+                }
+                if (!midi_values) {
+                    throw std::runtime_error("voices[" + std::to_string(v) + "].pitch must contain 'midi_values' array");
+                }
+                for (const auto& pv : *midi_values) {
+                    if (!pv.is_number_integer()) {
+                        throw std::runtime_error("voices[" + std::to_string(v) + "].pitch.midi_values entries must be integers");
+                    }
+                    result[v].push_back(pv.get<int>());
+                }
+                std::sort(result[v].begin(), result[v].end());
+                result[v].erase(std::unique(result[v].begin(), result[v].end()), result[v].end());
+            }
+        } else {
+            const auto& voices = cfg["voices"];
+            for (int v = 0; v < num_voices_; ++v) {
+                const std::string key = std::to_string(v);
+                if (!voices.contains(key) || !voices[key].is_object()) {
+                    throw std::runtime_error("voices object must contain contiguous numeric keys 0..num_voices-1");
+                }
+                const auto& voice = voices[key];
+                if (!voice.contains("pitch")) {
+                    throw std::runtime_error("voices['" + key + "'] is missing 'pitch'");
+                }
+                const auto& pitch = voice["pitch"];
+                const auto* midi_values = static_cast<const nlohmann::json*>(nullptr);
+                if (pitch.is_object() && pitch.contains("midi_values") && pitch["midi_values"].is_array()) {
+                    midi_values = &pitch["midi_values"];
+                } else if (pitch.is_array()) {
+                    midi_values = &pitch;
+                }
+                if (!midi_values) {
+                    throw std::runtime_error("voices['" + key + "'].pitch must contain 'midi_values' array");
+                }
+                for (const auto& pv : *midi_values) {
+                    if (!pv.is_number_integer()) {
+                        throw std::runtime_error("voices['" + key + "'].pitch.midi_values entries must be integers");
+                    }
+                    result[v].push_back(pv.get<int>());
+                }
+                std::sort(result[v].begin(), result[v].end());
+                result[v].erase(std::unique(result[v].begin(), result[v].end()), result[v].end());
+            }
         }
 
         for (int v = 0; v < num_voices_; ++v) {
             if (result[v].empty())
-                throw std::runtime_error("Voice " + std::to_string(v) + " has no midi_values in engine_domains");
+                throw std::runtime_error("Voice " + std::to_string(v) + " has no pitch midi_values in voices");
         }
 
         return result;
     }
 
-    // Returns per-voice rhythm domains from engine_domains section.
+    // Returns per-voice rhythm domains from voices section.
     // voice_rhythm_domains[v] = list of allowed duration values (ints) for voice v.
     // Throws with a clear message if any voice is missing a rhythm engine entry.
 
@@ -966,25 +1242,36 @@ public:
         nlohmann::json cfg;
         f >> cfg;
 
-        if (!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object())
-            throw std::runtime_error("Config is missing required 'engine_domains' section");
+        if (cfg.contains("engine_domains")) {
+            throw std::runtime_error(
+                "'engine_domains' is deprecated in CLI configs. Use top-level 'voices' with per-voice pitch/rhythm domains.");
+        }
+        if (!cfg.contains("voices") || (!cfg["voices"].is_array() && !cfg["voices"].is_object())) {
+            throw std::runtime_error("Config is missing required 'voices' section");
+        }
 
-        for (auto& [key, val] : cfg["engine_domains"].items()) {
-            std::string type = val.value("type", "");
-            if (type != "rhythm") continue;
+        auto read_voice_rhythm = [&](int voice, const nlohmann::json& voice_node, const std::string& ctx) {
+            if (!voice_node.is_object()) {
+                throw std::runtime_error(ctx + " must be an object");
+            }
+            if (!voice_node.contains("rhythm")) {
+                throw std::runtime_error(ctx + " is missing 'rhythm'");
+            }
 
-            int voice = val.value("voice", -1);
-            if (voice < 0 || voice >= num_voices_)
-                throw std::runtime_error("engine_domains['" + key + "']: invalid or missing 'voice' field");
+            const auto& rhythm = voice_node["rhythm"];
+            const nlohmann::json* duration_values = nullptr;
+            if (rhythm.is_object() && rhythm.contains("duration_values") && rhythm["duration_values"].is_array()) {
+                duration_values = &rhythm["duration_values"];
+            } else if (rhythm.is_array()) {
+                duration_values = &rhythm;
+            }
 
-            if (!val.contains("duration_values") || !val["duration_values"].is_array())
-                throw std::runtime_error(
-                    "engine_domains['" + key + "']: rhythm engine must have 'duration_values' array. "
-                    "Use note-value fractions, e.g. \"duration_values\": [\"1/4\"] for quarter notes.");
+            if (!duration_values) {
+                throw std::runtime_error(ctx + ".rhythm must contain 'duration_values' array");
+            }
 
-            std::string ctx = "engine_domains['" + key + "']";
             std::vector<std::pair<int,int>> raw_fractions;
-            for (const auto& item : val["duration_values"]) {
+            for (const auto& item : *duration_values) {
                 if (item.is_string()) {
                     raw_fractions.push_back(parse_duration_fraction(item.get<std::string>(), ctx));
                 } else if (item.is_number_integer()) {
@@ -997,21 +1284,33 @@ public:
             if (raw_fractions.empty())
                 throw std::runtime_error(ctx + ": 'duration_values' must not be empty");
             raw_per_voice[voice] = std::move(raw_fractions);
+        };
+
+        if (cfg["voices"].is_array()) {
+            const auto& voices = cfg["voices"];
+            if (static_cast<int>(voices.size()) != num_voices_) {
+                throw std::runtime_error("'num_voices' must match voices array length");
+            }
+            for (int v = 0; v < num_voices_; ++v) {
+                read_voice_rhythm(v, voices[v], "voices[" + std::to_string(v) + "]");
+            }
+        } else {
+            const auto& voices = cfg["voices"];
+            for (int v = 0; v < num_voices_; ++v) {
+                const std::string key = std::to_string(v);
+                if (!voices.contains(key)) {
+                    throw std::runtime_error("voices object must contain contiguous numeric keys 0..num_voices-1");
+                }
+                read_voice_rhythm(v, voices[key], "voices['" + key + "']");
+            }
         }
 
         // Check every voice has a rhythm domain.
         for (int v = 0; v < num_voices_; ++v) {
             if (raw_per_voice[v].empty()) {
-                int rhythm_engine_idx = v * 2;
                 throw std::runtime_error(
                     "Voice " + std::to_string(v) + " has no rhythm domain. "
-                    "Add an entry to 'engine_domains' with:\n"
-                    "  \"engine_" + std::to_string(rhythm_engine_idx) + "\": {\n"
-                    "    \"type\": \"rhythm\",\n"
-                    "    \"voice\": " + std::to_string(v) + ",\n"
-                    "    \"duration_values\": [\"1/4\"],\n"
-                    "    \"description\": \"Voice " + std::to_string(v) + " rhythm\"\n"
-                    "  }");
+                    "Add voices[" + std::to_string(v) + "].rhythm.duration_values, e.g. [\"1/4\"]");
             }
         }
 
@@ -1048,62 +1347,64 @@ public:
         f >> cfg;
 
         std::vector<MusicalConstraintSolver::SolverConfig::MetricDomainEntry> out;
-        if (!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object()) {
-            return out;
-        }
+        auto append_metric_entry = [&out](const std::pair<int, int>& ts,
+                                          const std::vector<int>& tuplets,
+                                          const std::vector<int>& beat_divisions) {
+            MusicalConstraintSolver::SolverConfig::MetricDomainEntry entry;
+            entry.numerator = ts.first;
+            entry.denominator = ts.second;
+            entry.tuplets = tuplets;
+            entry.beat_divisions = beat_divisions;
+            out.push_back(std::move(entry));
+        };
 
-        for (auto& [key, val] : cfg["engine_domains"].items()) {
-            if (!val.is_object()) continue;
-            const std::string type = val.value("type", "");
-            if (type != "metric") continue;
-
-            const std::string ctx = "engine_domains['" + key + "']";
+        // Preferred source for dynamic CLI configs: top-level meter/metric section.
+        if ((cfg.contains("meter") && cfg["meter"].is_object()) ||
+            (cfg.contains("metric") && cfg["metric"].is_object())) {
+            const auto& meter = cfg.contains("meter") && cfg["meter"].is_object() ? cfg["meter"] : cfg["metric"];
             std::vector<std::pair<int, int>> signatures;
 
-            if (val.contains("time_signatures")) {
-                if (!val["time_signatures"].is_array() || val["time_signatures"].empty()) {
-                    throw std::runtime_error(ctx + ": 'time_signatures' must be a non-empty array");
+            if (meter.contains("time_signatures")) {
+                if (!meter["time_signatures"].is_array() || meter["time_signatures"].empty()) {
+                    throw std::runtime_error("meter: 'time_signatures' must be a non-empty array");
                 }
-                for (size_t i = 0; i < val["time_signatures"].size(); ++i) {
+                for (size_t i = 0; i < meter["time_signatures"].size(); ++i) {
                     signatures.push_back(parse_time_signature_value(
-                        val["time_signatures"][i], ctx + " time_signatures[" + std::to_string(i) + "]"));
+                        meter["time_signatures"][i], "meter time_signatures[" + std::to_string(i) + "]"));
                 }
-            } else if (val.contains("time_signature")) {
-                const auto& ts = val["time_signature"];
+            } else if (meter.contains("time_signature")) {
+                const auto& ts = meter["time_signature"];
                 if (ts.is_array() && !ts.empty() &&
                     (ts[0].is_string() || ts[0].is_array() || ts[0].is_object())) {
                     for (size_t i = 0; i < ts.size(); ++i) {
                         signatures.push_back(parse_time_signature_value(
-                            ts[i], ctx + " time_signature[" + std::to_string(i) + "]"));
+                            ts[i], "meter time_signature[" + std::to_string(i) + "]"));
                     }
                 } else {
-                    signatures.push_back(parse_time_signature_value(ts, ctx + " time_signature"));
+                    signatures.push_back(parse_time_signature_value(ts, "meter time_signature"));
                 }
-            } else if (val.contains("numerator") || val.contains("denominator")) {
-                signatures.push_back(parse_time_signature_value(val, ctx));
-            } else {
-                throw std::runtime_error(
-                    ctx + ": metric domain requires one of: 'time_signatures', 'time_signature', or numerator/denominator");
+            } else if (meter.contains("numerator") || meter.contains("denominator")) {
+                signatures.push_back(parse_time_signature_value(meter, "meter"));
             }
 
             std::vector<int> tuplets;
-            if (val.contains("tuplets")) {
-                tuplets = parse_positive_int_array(val["tuplets"], ctx + " tuplets");
+            if (meter.contains("tuplets")) {
+                tuplets = parse_positive_int_array(meter["tuplets"], "meter tuplets");
             }
 
             std::vector<int> beat_divisions;
-            if (val.contains("beat_divisions")) {
-                beat_divisions = parse_positive_int_array(val["beat_divisions"], ctx + " beat_divisions");
+            if (meter.contains("beat_divisions")) {
+                beat_divisions = parse_positive_int_array(meter["beat_divisions"], "meter beat_divisions");
             }
 
             for (const auto& ts : signatures) {
-                MusicalConstraintSolver::SolverConfig::MetricDomainEntry entry;
-                entry.numerator = ts.first;
-                entry.denominator = ts.second;
-                entry.tuplets = tuplets;
-                entry.beat_divisions = beat_divisions;
-                out.push_back(std::move(entry));
+                append_metric_entry(ts, tuplets, beat_divisions);
             }
+        }
+
+        if (out.empty() && cfg.contains("engine_domains")) {
+            throw std::runtime_error(
+                "metric domain via 'engine_domains' is deprecated in CLI configs. Use top-level 'meter' or 'metric'.");
         }
 
         return out;
@@ -1504,10 +1805,10 @@ int main(int argc, char* argv[]) {
         MusicalConstraintSolver::SolverConfig solver_config;
         solver_config.sequence_length = parser.getSolutionLength();
         
-        // Load per-voice pitch domains from engine_domains midi_values (required, no fallback)
+        // Load per-voice pitch domains from voices[*].pitch.midi_values
         solver_config.voice_domains = parser.getVoicePitchDomains(config_file);
 
-        // Load per-voice rhythm domains from engine_domains duration_values (required, no fallback)
+        // Load per-voice rhythm domains from voices[*].rhythm.duration_values
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
         solver_config.rhythm_base = parser.getVoiceRhythmBase();
         if (!parser.getScoreLength().empty()) {
@@ -1541,11 +1842,11 @@ int main(int argc, char* argv[]) {
         const auto& rules = parser.getRules();
         for (const auto& ruleConfig : rules) {
             if (ruleConfig.enabled) {
-                // Pass rule configuration with target_engine information directly to solver
+                // Pass normalized rule targeting to the solver's internal engine mapping.
                 solver.add_rule_config(ruleConfig.rule_type, ruleConfig.function, ruleConfig.indices, 
                                      ruleConfig.target_engine, ruleConfig.target_engines, ruleConfig.engine_type, ruleConfig.description, 
                                      ruleConfig.parameters, ruleConfig.parameter_strings, ruleConfig.timepoints);
-                std::cout << "✅ Added engine rule: " << ruleConfig.description << " (target_engine: " << ruleConfig.target_engine << ")" << std::endl;
+                std::cout << "✅ Added rule: " << ruleConfig.description << std::endl;
             }
         }
         
@@ -1556,10 +1857,37 @@ int main(int argc, char* argv[]) {
             if (file.is_open()) {
                 nlohmann::json config;
                 file >> config;
+
+                auto is_rule_enabled = [](const nlohmann::json& rule_json) -> bool {
+                    if (!rule_json.is_object() || !rule_json.contains("enabled")) {
+                        return true;
+                    }
+                    const auto& enabled = rule_json["enabled"];
+                    if (enabled.is_boolean()) {
+                        return enabled.get<bool>();
+                    }
+                    if (enabled.is_number_integer()) {
+                        return enabled.get<int>() != 0;
+                    }
+                    if (enabled.is_string()) {
+                        std::string s = enabled.get<std::string>();
+                        std::transform(s.begin(), s.end(), s.begin(),
+                                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                        return (s == "true" || s == "1" || s == "yes" || s == "on");
+                    }
+                    return true;
+                };
                 
                 if (config.contains("dynamic_rules") && config["dynamic_rules"].is_array()) {
-                    std::vector<nlohmann::json> dynamic_rules = config["dynamic_rules"];
-                    std::cout << "   Found " << dynamic_rules.size() << " dynamic rules to compile" << std::endl;
+                    std::vector<nlohmann::json> dynamic_rules;
+                    for (const auto& rule_json : config["dynamic_rules"]) {
+                        if (is_rule_enabled(rule_json)) {
+                            dynamic_rules.push_back(rule_json);
+                        }
+                    }
+
+                    std::cout << "   Found " << config["dynamic_rules"].size()
+                              << " dynamic rules (" << dynamic_rules.size() << " enabled)" << std::endl;
                     
                     solver.load_dynamic_rules(dynamic_rules);
                 } else {
@@ -1576,15 +1904,22 @@ int main(int argc, char* argv[]) {
                     int index_count = 0;
                     std::vector<nlohmann::json> compiled_rules; // Store for later application
                     
-                    for (const auto& rule_json : enhanced_rules) {
+                    for (const auto& rule_json_in : enhanced_rules) {
                         try {
+                            if (!is_rule_enabled(rule_json_in)) {
+                                continue;
+                            }
+
+                            nlohmann::json rule_json = rule_json_in;
+                            normalize_rule_targeting_for_cli_json(rule_json, solver_config.num_voices);
+
                             std::string rule_type = rule_json.value("rule_type", "unknown");
                             std::string type_field = rule_json.value("type", "");
 
                             const bool has_target_engine = rule_json.contains("target_engine") && rule_json["target_engine"].is_number_integer() && rule_json["target_engine"].get<int>() >= 0;
                             const bool has_target_engines = rule_json.contains("target_engines") && rule_json["target_engines"].is_array() && !rule_json["target_engines"].empty();
                             if (!rule_type.empty() && !has_target_engine && !has_target_engines && type_field != "index") {
-                                throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing explicit target_engine/target_engines");
+                                throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing target_voice/target_voices after normalization");
                             }
                             
                             if (rule_type == "wildcard_constraint") {
