@@ -1909,8 +1909,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             }
         }
 
-        int global_min = 127;
-        int global_max = 0;
         for (int v = 0; v < sc.num_voices; ++v) {
             auto& d = sc.voice_domains[v];
             if (d.empty()) {
@@ -1918,11 +1916,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             }
             std::sort(d.begin(), d.end());
             d.erase(std::unique(d.begin(), d.end()), d.end());
-            global_min = std::min(global_min, d.front());
-            global_max = std::max(global_max, d.back());
         }
-        sc.min_note = global_min;
-        sc.max_note = global_max;
 
         int rhythm_base = 1;
         for (int v = 0; v < sc.num_voices; ++v) {

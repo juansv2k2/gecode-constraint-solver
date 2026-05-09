@@ -1738,7 +1738,7 @@ void Solver::initialize_solver() {
     
     // Create solution storage
     solution_storage_ = std::make_unique<MusicalConstraints::DualSolutionStorage>(
-        config_.sequence_length * config_.num_voices, MusicalConstraints::DomainType::ABSOLUTE_DOMAIN, config_.min_note);
+        config_.sequence_length * config_.num_voices, MusicalConstraints::DomainType::ABSOLUTE_DOMAIN);
     
     // Initialize dynamic rule system
     compiled_rules_ = std::make_unique<DynamicRules::CompiledRuleSet>();
@@ -2048,20 +2048,13 @@ std::vector<MusicalSolution> Solver::solve_multiple(
 // Build a fully-configured Gecode space (all constraints posted, no search).
 // ---------------------------------------------------------------------------
 GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space_() {
-    // BUILD PER-VOICE DOMAINS
+    // BUILD PER-VOICE DOMAINS (required — each voice must have its domain set)
     std::vector<std::vector<int>> all_voice_domains = config_.voice_domains;
     if (all_voice_domains.empty()) {
-        std::vector<int> global_domain;
-        for (int i = config_.min_note; i <= config_.max_note; ++i)
-            global_domain.push_back(i);
-        for (int v = 0; v < config_.num_voices; ++v)
-            all_voice_domains.push_back(global_domain);
-    } else {
-        std::vector<int> global_domain;
-        for (int i = config_.min_note; i <= config_.max_note; ++i)
-            global_domain.push_back(i);
-        while ((int)all_voice_domains.size() < config_.num_voices)
-            all_voice_domains.push_back(global_domain);
+        throw std::runtime_error("voice_domains is empty — each voice must specify its pitch domain");
+    }
+    if ((int)all_voice_domains.size() < config_.num_voices) {
+        throw std::runtime_error("voice_domains has fewer entries than num_voices");
     }
 
     const unsigned int effective_random_seed = resolve_effective_random_seed(config_.random_seed);
@@ -2460,8 +2453,6 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         }
     }
 
-    gecode_space->constrain_note_range(config_.min_note, config_.max_note);
-
     if (retrograde_inversion_enabled_) {
         std::cout << "🎯 APPLYING RETROGRADE INVERSION CONSTRAINT!" << std::endl;
         std::cout << "   Inversion center: " << retrograde_inversion_center_ << " (MIDI)" << std::endl;
@@ -2721,10 +2712,6 @@ bool Solver::solve_and_export_png(const std::string& filename) {
 bool Solver::validate_configuration(std::string& error_message) const {
     if (config_.sequence_length < 1) {
         error_message = "Sequence length must be positive";
-        return false;
-    }
-    if (config_.min_note >= config_.max_note) {
-        error_message = "Min note must be less than max note";
         return false;
     }
     if (config_.max_interval_size < 1) {

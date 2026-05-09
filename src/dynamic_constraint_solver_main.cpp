@@ -1525,23 +1525,6 @@ int main(int argc, char* argv[]) {
         solver_config.value_selection = parser.getValueSelection(config_file);
         solver_config.restart_policy = parser.getRestartPolicy(config_file);
 
-        // Derive global min/max from the union of all voice domains
-        {
-            int global_min = INT_MAX, global_max = INT_MIN;
-            for (const auto& vd : solver_config.voice_domains) {
-                global_min = std::min(global_min, vd.front());
-                global_max = std::max(global_max, vd.back());
-            }
-            solver_config.min_note = global_min;
-            solver_config.max_note = global_max;
-            std::cout << "   Global pitch range (derived from voice domains): [" << global_min << "..." << global_max << "]" << std::endl;
-            for (int v = 0; v < (int)solver_config.voice_domains.size(); ++v) {
-                const auto& vd = solver_config.voice_domains[v];
-                std::cout << "     Voice " << v << ": " << vd.size() << " values ["
-                          << vd.front() << "..." << vd.back() << "]" << std::endl;
-            }
-        }
-        
         solver_config.num_voices = parser.getNumVoices();
         solver_config.allow_repetitions = false;
         solver_config.style = MusicalConstraintSolver::SolverConfig::CONTEMPORARY;

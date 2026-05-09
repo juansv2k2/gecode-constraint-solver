@@ -49,8 +49,6 @@ Wrapper path (same as used by Max):
   "solution_length": 8,
   "num_voices": 2,
   "score_length": "12q",
-  "min_note": 48,
-  "max_note": 96,
   "voices": [ ... ],
   "meter": { ... },
   "rules": [ ... ],
@@ -70,7 +68,6 @@ Wrapper path (same as used by Max):
 
 - `name`, `description`: Metadata strings
 - `score_length`: Total musical score length (e.g., `"8q"` = 8 quarter notes)
-- `min_note`, `max_note`: Global MIDI note limits (default 48–96)
 - `meter`: Metric signature configuration
 - `rules`: Built-in constraints
 - `dynamic_rules`: Expression-based constraints and heuristics
@@ -562,8 +559,6 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 | `name`            | string |          | Config label                                |
 | `description`     | string |          | Human-readable description                  |
 | `score_length`    | string |          | e.g. `"8q"` = 8 quarter notes               |
-| `min_note`        | int    |          | Global pitch lower bound (default 48)       |
-| `max_note`        | int    |          | Global pitch upper bound (default 96)       |
 | `meter`           | object |          | Metric engine configuration                 |
 | `rules`           | array  |          | Built-in constraints                        |
 | `dynamic_rules`   | array  |          | Expression-based constraints and heuristics |

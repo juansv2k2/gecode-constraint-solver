@@ -39,9 +39,7 @@ struct SolverConfig {
     // Basic sequence parameters
     int sequence_length = 8;
     int num_voices = 1;
-    int min_note = 60;  // C4
-    int max_note = 84;  // C6
-    
+
     // Search configuration aligned to Gecode search concepts.
     enum class SearchEngine {
         DFS
@@ -74,8 +72,7 @@ struct SolverConfig {
     bool verbose_output = true;
     bool show_rule_statistics = false;
     
-    // Per-voice pitch domains. If non-empty, voice_domains[v] is used for voice v
-    // instead of the global min_note..max_note range.
+    // Per-voice pitch domains. Required — voice_domains[v] defines allowed MIDI values for voice v.
     std::vector<std::vector<int>> voice_domains;
 
     // Per-voice rhythm domains. voice_rhythm_domains[v] = allowed duration values
