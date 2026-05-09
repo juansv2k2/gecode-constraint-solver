@@ -1,253 +1,435 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Cluster Engine Configuration Schema",
-  "description": "JSON configuration format for musical constraint solving that mirrors the original Lisp cluster engine interface",
-
+  "title": "Voice-First Musical Constraint Configuration",
+  "description": "User-facing JSON configuration for musical constraint solving with contiguous voices, optional meter, voice-based rule targets, and dynamic heuristic rules.",
   "type": "object",
   "required": [
     "solution_length",
     "num_voices",
-    "backtrack_method",
-    "rules",
-    "domains"
+    "voices"
   ],
-
   "properties": {
     "solution_length": {
       "type": "integer",
       "minimum": 1,
       "maximum": 1000,
-      "description": "Number of variables in the solution (equivalent to first argument in Lisp)"
+      "description": "Number of event slots per voice."
     },
-
+    "score_length": {
+      "type": "string",
+      "description": "Optional total score length using q-based notation, for example 10q or 36q."
+    },
     "num_voices": {
       "type": "integer",
       "minimum": 1,
       "maximum": 10,
-      "description": "Number of voices (determines engine count: 2*voices + 1)"
+      "description": "Number of contiguous voices. This must match the length of voices when voices is an array."
     },
-
-    "backtrack_method": {
-      "type": "string",
-      "enum": ["chronological", "intelligent", "musical", "minimal"],
-      "description": "Backtracking strategy (equivalent to second argument in Lisp)"
+    "voices": {
+      "oneOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/voiceDomain"
+          }
+        },
+        {
+          "type": "object",
+          "description": "Alternative object form. Keys must be contiguous numeric strings starting at 0.",
+          "patternProperties": {
+            "^[0-9]+$": {
+              "$ref": "#/definitions/voiceDomain"
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "Contiguous voice definitions. Array form is preferred because ordering is explicit."
     },
-
+    "meter": {
+      "type": "object",
+      "description": "Optional global metric domain. Metric targeting is implicit for metric rules.",
+      "properties": {
+        "time_signatures": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+/[0-9]+$"
+          }
+        },
+        "tuplets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "beat_divisions": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "time_signatures"
+      ]
+    },
     "rules": {
       "type": "array",
-      "description": "List of musical constraint rules (equivalent to rule list in Lisp)",
+      "description": "Voice-first built-in rules. Do not use target_engine or target_engines in user-facing configs.",
       "items": {
-        "type": "object",
-        "required": ["rule_type", "constraint_function", "indices"],
-        "properties": {
-          "rule_type": {
-            "type": "string",
-            "enum": [
-              "r-pitches-one-voice",
-              "r-index-pitches-one-voice",
-              "r-chords",
-              "r-jbs-one-voice",
-              "r-metric-hierarchy",
-              "r-rhythm-hierarchy",
-              "r-pitches-two-voices",
-              "r-rhythms-one-voice",
-              "r-custom"
-            ],
-            "description": "Type of rule (equivalent to ce::r-pitches-one-voice etc.)"
-          },
-
-          "constraint_function": {
-            "type": "object",
-            "description": "The actual constraint logic (equivalent to lambda function)",
-            "oneOf": [
-              {
-                "properties": {
-                  "type": "builtin",
-                  "function": {
-                    "type": "string",
-                    "enum": [
-                      "not_equal",
-                      "equal",
-                      "less_than",
-                      "greater_than",
-                      "interval_size",
-                      "consonant_interval",
-                      "stepwise",
-                      "jump_resolution"
-                    ]
-                  },
-                  "parameters": {
-                    "type": "array",
-                    "items": { "type": "number" }
-                  }
-                }
-              },
-              {
-                "properties": {
-                  "type": "lambda",
-                  "variables": {
-                    "type": "array",
-                    "items": { "type": "string" }
-                  },
-                  "expression": {
-                    "type": "string",
-                    "description": "Mathematical expression using variables"
-                  }
-                }
-              }
-            ]
-          },
-
-          "indices": {
-            "type": "array",
-            "description": "Variable indices this rule applies to (equivalent to quote sections)",
-            "items": { "type": "integer" }
-          },
-
-          "voice": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Which voice this rule applies to (if applicable)"
-          },
-
-          "engine_type": {
-            "type": "string",
-            "enum": ["rhythm", "pitch", "metric"],
-            "description": "Which type of engine this rule targets"
-          },
-
-          "enabled": {
-            "type": "boolean",
-            "default": true,
-            "description": "Whether this rule is active"
-          },
-
-          "priority": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10,
-            "default": 5,
-            "description": "Rule application priority"
-          }
-        }
+        "$ref": "#/definitions/rule"
       }
     },
-
-    "domains": {
+    "dynamic_rules": {
+      "type": "array",
+      "description": "Optional expression-based hard constraints and heuristics.",
+      "items": {
+        "type": "object"
+      }
+    },
+    "search_options": {
       "type": "object",
-      "required": ["metric_domain", "voice_domains"],
-      "description": "Domain definitions for each engine type",
-
+      "description": "Search configuration options.",
       "properties": {
-        "metric_domain": {
-          "type": "object",
-          "description": "Global metric domain (engine N, where N = 2*voices)",
-          "required": ["time_signatures", "subdivisions"],
-          "properties": {
-            "time_signatures": {
-              "type": "array",
-              "items": {
-                "type": "array",
-                "items": { "type": "integer" },
-                "minItems": 2,
-                "maxItems": 2
-              },
-              "examples": [
-                [
-                  [4, 4],
-                  [3, 4],
-                  [2, 4],
-                  [5, 8],
-                  [7, 8]
-                ]
-              ]
-            },
-            "subdivisions": {
-              "type": "array",
-              "items": {
-                "type": "array",
-                "items": { "type": "integer" }
-              },
-              "examples": [
-                [
-                  [1, 2, 3, 4, 6],
-                  [1, 2, 3, 4, 6]
-                ]
-              ]
-            },
-            "beat_structures": {
-              "type": "array",
-              "description": "Optional beat hierarchy structures"
-            }
-          }
+        "engine": {
+          "type": "string",
+          "enum": [
+            "dfs"
+          ]
         },
-
-        "voice_domains": {
-          "type": "array",
-          "description": "Domains for each voice (rhythm and pitch engines)",
-          "items": {
-            "type": "object",
-            "required": ["rhythm_domain", "pitch_domain"],
-            "properties": {
-              "voice_index": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "rhythm_domain": {
-                "type": "array",
-                "description": "Rhythmic values (fractions as [numerator, denominator])",
-                "items": {
-                  "type": "array",
-                  "items": { "type": "integer" },
-                  "minItems": 2,
-                  "maxItems": 2
-                },
-                "examples": [
-                  [
-                    [1, 12],
-                    [1, 24],
-                    [1, 16],
-                    [1, 8],
-                    [1, 4],
-                    [1, 2]
-                  ]
-                ]
-              },
-              "pitch_domain": {
-                "type": "array",
-                "description": "Available pitch values (MIDI numbers)",
-                "items": { "type": "integer" },
-                "examples": [
-                  [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-
-    "search_config": {
-      "type": "object",
-      "description": "Additional search configuration options",
-      "properties": {
-        "max_iterations": {
+        "timeout_ms": {
           "type": "integer",
-          "default": 10000
+          "minimum": 0
         },
-        "timeout_seconds": {
-          "type": "number",
-          "default": 30.0
+        "max_solutions": {
+          "type": "integer"
         },
-        "enable_heuristics": {
-          "type": "boolean",
-          "default": true
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0
         },
-        "debug_mode": {
+        "branching": {
+          "type": "string",
+          "enum": [
+            "first_fail",
+            "input_order"
+          ]
+        },
+        "value_order": {
+          "type": "string",
+          "enum": [
+            "min",
+            "random",
+            "heuristic"
+          ]
+        },
+        "restart_policy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "luby"
+          ]
+        },
+        "enable_metric_engine": {
           "type": "boolean",
           "default": false
+        },
+        "require_exact_score_length": {
+          "type": "boolean",
+          "default": false
+        },
+        "heuristic_top_k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "heuristic_trace": {
+          "type": "boolean"
         }
       }
+    },
+    "output_options": {
+      "type": "object",
+      "description": "Optional export and presentation settings.",
+      "properties": {
+        "export_path": {
+          "type": "string"
+        },
+        "export_filename": {
+          "type": "string"
+        },
+        "export_json": {
+          "type": "boolean"
+        },
+        "export_txt": {
+          "type": "boolean"
+        },
+        "export_xml": {
+          "type": "boolean"
+        },
+        "export_png": {
+          "type": "boolean"
+        },
+        "export_midi": {
+          "type": "boolean"
+        },
+        "show_statistics": {
+          "type": "boolean"
+        },
+        "include_analysis": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "voiceDomain": {
+      "type": "object",
+      "properties": {
+        "rhythm": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/rhythmDomainObject"
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "pitch": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/pitchDomainObject"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "rhythm",
+        "pitch"
+      ],
+      "additionalProperties": false
+    },
+    "rhythmDomainObject": {
+      "type": "object",
+      "properties": {
+        "duration_values": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration_values"
+      ],
+      "additionalProperties": false
+    },
+    "pitchDomainObject": {
+      "type": "object",
+      "properties": {
+        "midi_values": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "midi_values"
+      ],
+      "additionalProperties": false
+    },
+    "constraintFunction": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "function": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "type",
+        "function"
+      ],
+      "additionalProperties": true
+    },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "rule_type": {
+          "type": "string",
+          "enum": [
+            "r-pitches-one-engine",
+            "r-rhythmic-uniformity",
+            "r-cross-voice-no-unisons",
+            "r-metric-signature",
+            "r-pitches-all-different",
+            "r-twelve-tone-voice1",
+            "r-palindrome-voice",
+            "r-palindrome-voice2"
+          ]
+        },
+        "constraint_function": {
+          "$ref": "#/definitions/constraintFunction"
+        },
+        "indices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "timepoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "target_voice": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Single voice target for pitch or rhythm rules."
+        },
+        "target_voices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "Multiple voice targets for cross-voice rules."
+        },
+        "target_component": {
+          "type": "string",
+          "enum": [
+            "pitch",
+            "rhythm"
+          ],
+          "description": "Required for non-metric built-in rules."
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_type",
+        "constraint_function"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "rule_type": {
+                "const": "r-metric-signature"
+              }
+            },
+            "required": [
+              "rule_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "timepoints"
+            ]
+          },
+          "else": {
+            "required": [
+              "indices",
+              "target_component"
+            ],
+            "oneOf": [
+              {
+                "required": [
+                  "target_voice"
+                ]
+              },
+              {
+                "required": [
+                  "target_voices"
+                ]
+              }
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "target_engine"
+                  ]
+                },
+                {
+                  "required": [
+                    "target_engines"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   }
 }

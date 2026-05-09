@@ -3,9 +3,6 @@
   "description": "Test arithmetic expressions in dynamic rules",
   "solution_length": 4,
   "num_voices": 1,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "dynamic_rules": [
     {
       "id": "first_note_c4",
@@ -13,7 +10,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[0]",
-        "right": { "value": 60 }
+        "right": {
+          "value": 60
+        }
       },
       "mode": "constraint",
       "description": "First note is C4"
@@ -27,11 +26,19 @@
         "right": {
           "operator": "+",
           "left": "voice[0].pitch[0]",
-          "right": { "value": 2 }
+          "right": {
+            "value": 2
+          }
         }
       },
       "mode": "constraint",
       "description": "Second note = first note + 2 semitones"
     }
-  ]
+  ],
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

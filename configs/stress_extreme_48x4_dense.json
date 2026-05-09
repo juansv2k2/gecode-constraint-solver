@@ -3,68 +3,10 @@
   "description": "High-density benchmark: 4 voices x 48 steps with dense same-time, shifted, and intra-voice separation constraints.",
   "solution_length": 48,
   "num_voices": 4,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 1,
-    "timeout_ms": 180000
-  },
-  "engine_domains": {
-    "engine_0": {
-      "type": "rhythm",
-      "voice": 0,
-      "duration_values": ["1/16", "1/8", "3/16", "1/4", "3/8", "1/2"]
-    },
-    "engine_1": {
-      "type": "pitch",
-      "voice": 0,
-      "midi_values": [
-        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
-        66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
-        84
-      ]
-    },
-    "engine_2": {
-      "type": "rhythm",
-      "voice": 1,
-      "duration_values": ["1/16", "1/8", "3/16", "1/4", "3/8", "1/2"]
-    },
-    "engine_3": {
-      "type": "pitch",
-      "voice": 1,
-      "midi_values": [
-        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
-        66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
-        84
-      ]
-    },
-    "engine_4": {
-      "type": "rhythm",
-      "voice": 2,
-      "duration_values": ["1/16", "1/8", "3/16", "1/4", "3/8", "1/2"]
-    },
-    "engine_5": {
-      "type": "pitch",
-      "voice": 2,
-      "midi_values": [
-        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
-        66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
-        84
-      ]
-    },
-    "engine_6": {
-      "type": "rhythm",
-      "voice": 3,
-      "duration_values": ["1/16", "1/8", "3/16", "1/4", "3/8", "1/2"]
-    },
-    "engine_7": {
-      "type": "pitch",
-      "voice": 3,
-      "midi_values": [
-        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
-        66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
-        84
-      ]
-    }
+    "timeout_ms": 180000,
+    "branching": "first_fail"
   },
   "rules": [
     {
@@ -74,12 +16,26 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_engine": 1,
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Voice 0 local all-different first block"
+      "description": "Voice 0 local all-different first block",
+      "target_voice": 0,
+      "target_component": "pitch"
     }
   ],
   "dynamic_rules": [
@@ -8383,7 +8339,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[0]",
-        "right": { "value": 60 }
+        "right": {
+          "value": 60
+        }
       },
       "mode": "constraint",
       "description": "Anchor v0 start"
@@ -8394,7 +8352,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[1].pitch[0]",
-        "right": { "value": 61 }
+        "right": {
+          "value": 61
+        }
       },
       "mode": "constraint",
       "description": "Anchor v1 start"
@@ -8405,7 +8365,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[2].pitch[0]",
-        "right": { "value": 62 }
+        "right": {
+          "value": 62
+        }
       },
       "mode": "constraint",
       "description": "Anchor v2 start"
@@ -8416,7 +8378,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[3].pitch[0]",
-        "right": { "value": 63 }
+        "right": {
+          "value": 63
+        }
       },
       "mode": "constraint",
       "description": "Anchor v3 start"
@@ -8427,7 +8391,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[47]",
-        "right": { "value": 72 }
+        "right": {
+          "value": 72
+        }
       },
       "mode": "constraint",
       "description": "Anchor v0 end"
@@ -8438,7 +8404,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[1].pitch[47]",
-        "right": { "value": 73 }
+        "right": {
+          "value": 73
+        }
       },
       "mode": "constraint",
       "description": "Anchor v1 end"
@@ -8449,7 +8417,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[2].pitch[47]",
-        "right": { "value": 74 }
+        "right": {
+          "value": 74
+        }
       },
       "mode": "constraint",
       "description": "Anchor v2 end"
@@ -8460,10 +8430,226 @@
       "expression": {
         "operator": "==",
         "left": "voice[3].pitch[47]",
-        "right": { "value": 75 }
+        "right": {
+          "value": 75
+        }
       },
       "mode": "constraint",
       "description": "Anchor v3 end"
+    }
+  ],
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "3/16",
+          "1/4",
+          "3/8",
+          "1/2"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "3/16",
+          "1/4",
+          "3/8",
+          "1/2"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "3/16",
+          "1/4",
+          "3/8",
+          "1/2"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "3/16",
+          "1/4",
+          "3/8",
+          "1/2"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84
+        ]
+      }
     }
   ]
 }

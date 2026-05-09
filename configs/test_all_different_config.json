@@ -3,9 +3,6 @@
   "description": "Test just the all-different constraint to verify it works.",
   "solution_length": 4,
   "num_voices": 1,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -14,21 +11,24 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3],
-      "target_engine": 1,
+      "indices": [
+        0,
+        1,
+        2,
+        3
+      ],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Voice 0: All 4 pitches different"
+      "description": "Voice 0: All 4 pitches different",
+      "target_voice": 0,
+      "target_component": "pitch"
     }
   ],
-
-  "domains": [
-    {
-      "domain_type": "pitch",
-      "min_value": 60,
-      "max_value": 71,
-      "name": "C4-B4"
-    }
-  ]
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

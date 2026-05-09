@@ -4,8 +4,13 @@
     "description": "Test basic math: 60-7=53",
     "num_voices": 2,
     "sequence_length": 1,
-    "pitch_range": [36, 128],
-    "rhythm_values": [1]
+    "pitch_range": [
+      36,
+      128
+    ],
+    "rhythm_values": [
+      1
+    ]
   },
   "rules": [
     {

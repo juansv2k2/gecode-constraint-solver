@@ -3,9 +3,6 @@
   "description": "Test constraints on all positions to verify enforcement",
   "solution_length": 4,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "dynamic_rules": [
     {
       "id": "voice1_pos0_C4",
@@ -13,7 +10,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[0]",
-        "right": { "value": 60 }
+        "right": {
+          "value": 60
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 Position 0: C4"
@@ -24,7 +23,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[1]",
-        "right": { "value": 62 }
+        "right": {
+          "value": 62
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 Position 1: D4"
@@ -35,7 +36,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[2]",
-        "right": { "value": 64 }
+        "right": {
+          "value": 64
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 Position 2: E4"
@@ -46,7 +49,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[3]",
-        "right": { "value": 65 }
+        "right": {
+          "value": 65
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 Position 3: F4"
@@ -60,11 +65,19 @@
         "right": {
           "operator": "+",
           "left": "voice[0].pitch[0]",
-          "right": { "value": 7 }
+          "right": {
+            "value": 7
+          }
         }
       },
       "mode": "constraint",
       "description": "Voice 2 Position 0: Perfect fifth above voice 1"
     }
-  ]
+  ],
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

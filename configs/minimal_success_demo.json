@@ -4,8 +4,15 @@
     "description": "Minimal working: Voice 1 C4->D4, Voice 2 follows below",
     "num_voices": 2,
     "sequence_length": 2,
-    "pitch_range": [60, 72],
-    "rhythm_values": [1, 2, 4]
+    "pitch_range": [
+      60,
+      72
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ]
   },
   "rules": [
     {

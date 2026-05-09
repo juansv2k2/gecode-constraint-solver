@@ -3,9 +3,6 @@
   "description": "Test configuration with custom export path",
   "solution_length": 6,
   "num_voices": 1,
-  "backtrack_method": "intelligent",
-  "export_path": "/Users/juanvassallo/GitHub/gecode-constraint-solver/custom_results",
-
   "rules": [
     {
       "rule_type": "r-pitches-one-voice",
@@ -14,7 +11,14 @@
         "function": "not_equal",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3, 4, 5],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
       "voice": 0,
       "engine_type": "pitch",
       "enabled": true,
@@ -26,14 +30,25 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal",
-        "parameters": [60, 0]
+        "parameters": [
+          60,
+          0
+        ]
       },
-      "indices": [0],
+      "indices": [
+        0
+      ],
       "voice": 0,
       "engine_type": "pitch",
       "enabled": true,
       "priority": 5,
       "description": "Start with C4"
     }
-  ]
+  ],
+  "output_options": {
+    "export_path": "/Users/juanvassallo/GitHub/gecode-constraint-solver/custom_results"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

@@ -1,7 +1,16 @@
 {
   "sequence_length": 4,
   "num_voices": 2,
-  "note_domain": [60, 62, 64, 65, 67, 69, 71, 72],
+  "note_domain": [
+    60,
+    62,
+    64,
+    65,
+    67,
+    69,
+    71,
+    72
+  ],
   "search_config": {
     "backjump_mode": "intelligent_backjump",
     "solution_limit": 1

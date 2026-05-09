@@ -53,6 +53,9 @@ done
 
 echo "[smoke] package metadata and assets present"
 
+echo "[smoke] building Max external (make max-external)..."
+make -C "$ROOT_DIR" max-external
+
 if [[ -d "$BUILT_BUNDLE" ]]; then
   rm -rf "$PKG_DIR/externals/gecode.solver.mxo"
   cp -R "$BUILT_BUNDLE" "$PKG_DIR/externals/"

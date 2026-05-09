@@ -4,7 +4,6 @@
   "solution_length": 12,
   "num_voices": 4,
   "num_engines": 9,
-  "backtrack_method": "intelligent",
   "export_path": "benchmark-test/output",
   "rules": [],
   "dynamic_rules": [
@@ -876,7 +875,9 @@
           "left": "voice[2].pitch[0]",
           "right": "voice[0].pitch[0]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=0"
@@ -891,7 +892,9 @@
           "left": "voice[2].pitch[1]",
           "right": "voice[0].pitch[1]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=1"
@@ -906,7 +909,9 @@
           "left": "voice[2].pitch[2]",
           "right": "voice[0].pitch[2]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=2"
@@ -921,7 +926,9 @@
           "left": "voice[2].pitch[3]",
           "right": "voice[0].pitch[3]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=3"
@@ -936,7 +943,9 @@
           "left": "voice[2].pitch[4]",
           "right": "voice[0].pitch[4]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=4"
@@ -951,7 +960,9 @@
           "left": "voice[2].pitch[5]",
           "right": "voice[0].pitch[5]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=5"
@@ -966,7 +977,9 @@
           "left": "voice[2].pitch[6]",
           "right": "voice[0].pitch[6]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=6"
@@ -981,7 +994,9 @@
           "left": "voice[2].pitch[7]",
           "right": "voice[0].pitch[7]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=7"
@@ -996,7 +1011,9 @@
           "left": "voice[2].pitch[8]",
           "right": "voice[0].pitch[8]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=8"
@@ -1011,7 +1028,9 @@
           "left": "voice[2].pitch[9]",
           "right": "voice[0].pitch[9]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=9"
@@ -1026,7 +1045,9 @@
           "left": "voice[2].pitch[10]",
           "right": "voice[0].pitch[10]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=10"
@@ -1041,7 +1062,9 @@
           "left": "voice[2].pitch[11]",
           "right": "voice[0].pitch[11]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 3 inversion mapping i=11"
@@ -1056,7 +1079,9 @@
           "left": "voice[3].pitch[0]",
           "right": "voice[0].pitch[11]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=0"
@@ -1071,7 +1096,9 @@
           "left": "voice[3].pitch[1]",
           "right": "voice[0].pitch[10]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=1"
@@ -1086,7 +1113,9 @@
           "left": "voice[3].pitch[2]",
           "right": "voice[0].pitch[9]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=2"
@@ -1101,7 +1130,9 @@
           "left": "voice[3].pitch[3]",
           "right": "voice[0].pitch[8]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=3"
@@ -1116,7 +1147,9 @@
           "left": "voice[3].pitch[4]",
           "right": "voice[0].pitch[7]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=4"
@@ -1131,7 +1164,9 @@
           "left": "voice[3].pitch[5]",
           "right": "voice[0].pitch[6]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=5"
@@ -1146,7 +1181,9 @@
           "left": "voice[3].pitch[6]",
           "right": "voice[0].pitch[5]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=6"
@@ -1161,7 +1198,9 @@
           "left": "voice[3].pitch[7]",
           "right": "voice[0].pitch[4]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=7"
@@ -1176,7 +1215,9 @@
           "left": "voice[3].pitch[8]",
           "right": "voice[0].pitch[3]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=8"
@@ -1191,7 +1232,9 @@
           "left": "voice[3].pitch[9]",
           "right": "voice[0].pitch[2]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=9"
@@ -1206,7 +1249,9 @@
           "left": "voice[3].pitch[10]",
           "right": "voice[0].pitch[1]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=10"
@@ -1221,7 +1266,9 @@
           "left": "voice[3].pitch[11]",
           "right": "voice[0].pitch[0]"
         },
-        "right": { "value": 123 }
+        "right": {
+          "value": 123
+        }
       },
       "mode": "constraint",
       "description": "Voice 4 inversion-retrograde mapping i=11"
@@ -1231,56 +1278,132 @@
     "engine_0": {
       "type": "rhythm",
       "voice": 0,
-      "duration_values": ["1/4"],
+      "duration_values": [
+        "1/4"
+      ],
       "description": "Voice 1 rhythm domain"
     },
     "engine_1": {
       "type": "pitch",
       "voice": 0,
-      "midi_values": [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67],
+      "midi_values": [
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
       "description": "Voice 1 pitch domain"
     },
     "engine_2": {
       "type": "rhythm",
       "voice": 1,
-      "duration_values": ["1/4"],
+      "duration_values": [
+        "1/4"
+      ],
       "description": "Voice 2 rhythm domain"
     },
     "engine_3": {
       "type": "pitch",
       "voice": 1,
-      "midi_values": [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67],
+      "midi_values": [
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
       "description": "Voice 2 pitch domain"
     },
     "engine_4": {
       "type": "rhythm",
       "voice": 2,
-      "duration_values": ["1/4"],
+      "duration_values": [
+        "1/4"
+      ],
       "description": "Voice 3 rhythm domain"
     },
     "engine_5": {
       "type": "pitch",
       "voice": 2,
-      "midi_values": [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67],
+      "midi_values": [
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
       "description": "Voice 3 pitch domain"
     },
     "engine_6": {
       "type": "rhythm",
       "voice": 3,
-      "duration_values": ["1/4"],
+      "duration_values": [
+        "1/4"
+      ],
       "description": "Voice 4 rhythm domain"
     },
     "engine_7": {
       "type": "pitch",
       "voice": 3,
-      "midi_values": [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67],
+      "midi_values": [
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
       "description": "Voice 4 pitch domain"
     },
     "engine_8": {
       "type": "metric",
-      "time_signatures": [[4, 4]],
-      "subdivisions": [1, 2, 4],
-      "beat_structures": [["strong", "weak", "medium", "weak"]],
+      "time_signatures": [
+        [
+          4,
+          4
+        ]
+      ],
+      "subdivisions": [
+        1,
+        2,
+        4
+      ],
+      "beat_structures": [
+        [
+          "strong",
+          "weak",
+          "medium",
+          "weak"
+        ]
+      ],
       "description": "Metric domain"
     }
   },
@@ -1290,7 +1413,8 @@
     "search_strategy": "depth_first",
     "variable_ordering": "random",
     "value_ordering": "random",
-    "random_seed": 424242
+    "random_seed": 424242,
+    "branching": "first_fail"
   },
   "output_options": {
     "format": "both",

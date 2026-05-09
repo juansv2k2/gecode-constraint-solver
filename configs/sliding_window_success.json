@@ -4,8 +4,15 @@
     "description": "Clear chromatic ascending pattern with voice 2 parallel motion, extended MIDI range",
     "num_voices": 2,
     "sequence_length": 10,
-    "pitch_range": [36, 128],
-    "rhythm_values": [1, 2, 4],
+    "pitch_range": [
+      36,
+      128
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ],
     "time_signature": "3/4"
   },
   "rules": [
@@ -22,7 +29,10 @@
       "rule_id": "voice1_chromatic_up",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] + 1",
       "description": "Rule 2: (SLIDING WINDOW) Voice 1 chromatic ascent +1 semitone per step"
     },

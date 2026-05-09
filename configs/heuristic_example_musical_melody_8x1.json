@@ -3,23 +3,11 @@
   "description": "Combines hard constraints with multi-priority heuristics. IMPORTANT: Fixed seed (123) = reproducible deterministic results (good for testing). For varied solutions each run, try different seeds or use random_seed: 99999999 (generates random seed).",
   "solution_length": 6,
   "num_voices": 1,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 123,
     "timeout_ms": 5000,
-    "heuristic_trace": false
-  },
-  "engine_domains": {
-    "engine_0": {
-      "type": "rhythm",
-      "voice": 0,
-      "duration_values": ["1/8", "1/4"]
-    },
-    "engine_1": {
-      "type": "pitch",
-      "voice": 0,
-      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
-    }
+    "heuristic_trace": false,
+    "branching": "first_fail"
   },
   "rules": [],
   "dynamic_rules": [
@@ -126,9 +114,21 @@
         "condition": {
           "function": "any_of",
           "args": [
-            { "operator": "==", "left": "?current", "right": 60 },
-            { "operator": "==", "left": "?current", "right": 64 },
-            { "operator": "==", "left": "?current", "right": 67 }
+            {
+              "operator": "==",
+              "left": "?current",
+              "right": 60
+            },
+            {
+              "operator": "==",
+              "left": "?current",
+              "right": 64
+            },
+            {
+              "operator": "==",
+              "left": "?current",
+              "right": 67
+            }
           ]
         },
         "true_val": 2,
@@ -148,13 +148,41 @@
         "left": 3,
         "right": {
           "function": "abs",
-          "args": [{ "operator": "-", "left": "?current", "right": 65 }]
+          "args": [
+            {
+              "operator": "-",
+              "left": "?current",
+              "right": 65
+            }
+          ]
         }
       },
       "mode": "real_heuristic",
       "weight": 1,
       "priority": 1,
       "direction": "maximize"
+    }
+  ],
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
+      }
     }
   ]
 }

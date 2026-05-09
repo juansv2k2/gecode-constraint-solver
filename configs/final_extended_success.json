@@ -4,8 +4,15 @@
     "description": "C4->D4->C#4, voice 2 exactly 7 semitones below, full MIDI range, 3/4 time",
     "num_voices": 2,
     "sequence_length": 3,
-    "pitch_range": [36, 128],
-    "rhythm_values": [1, 2, 4],
+    "pitch_range": [
+      36,
+      128
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ],
     "time_signature": "3/4"
   },
   "rules": [

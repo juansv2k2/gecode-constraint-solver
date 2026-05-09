@@ -25,6 +25,7 @@ namespace {
 t_class* s_maxsolver_class = nullptr;
 t_symbol* s_status_sym = nullptr;
 t_symbol* s_json_sym = nullptr;
+t_symbol* s_export_sym = nullptr;
 t_symbol* s_voice_pitch_sym = nullptr;
 t_symbol* s_voice_rhythm_sym = nullptr;
 
@@ -33,9 +34,10 @@ typedef struct _maxsolver {
 
     MaxMSPWrapper::AsyncSolverWrapper* wrapper;
 
-    // Outlet order in object box (left to right): list, json, status
+    // Outlet order in object box (left to right): list, json, export, status
     void* list_outlet;
     void* json_outlet;
+    void* export_outlet;
     void* status_outlet;
 
     void* poll_clock;
@@ -94,11 +96,45 @@ std::string rhythm_tick_to_fraction(int tick_value, int rhythm_base) {
     return oss.str();
 }
 
-void emit_status(t_maxsolver* x, const char* status, const char* message) {
+void emit_status(t_maxsolver* x, const char* status, const char* message = nullptr) {
+    if (!x || !x->status_outlet) return;
+
     t_atom out[2];
-    atom_setsym(out + 0, gensym(status));
-    atom_setsym(out + 1, gensym(message ? message : ""));
-    outlet_anything(x->status_outlet, s_status_sym, 2, out);
+    atom_setsym(out + 0, gensym(status ? status : "unknown"));
+
+    const bool has_message = (message && message[0]);
+    if (has_message) {
+        atom_setsym(out + 1, gensym(message));
+        outlet_anything(x->status_outlet, s_status_sym, 2, out);
+    } else {
+        outlet_anything(x->status_outlet, s_status_sym, 1, out);
+    }
+}
+
+void emit_export_info(t_maxsolver* x, const std::string& result_json_str) {
+    if (!x || !x->export_outlet || result_json_str.empty()) return;
+
+    try {
+        const nlohmann::json result = nlohmann::json::parse(result_json_str);
+        if (!result.contains("exported_files") || !result["exported_files"].is_array()) {
+            return;
+        }
+
+        std::vector<t_atom> atoms;
+        atoms.reserve(result["exported_files"].size());
+        for (const auto& file_path : result["exported_files"]) {
+            if (!file_path.is_string()) continue;
+            t_atom a;
+            const std::string path = file_path.get<std::string>();
+            atom_setsym(&a, gensym(path.c_str()));
+            atoms.push_back(a);
+        }
+
+        if (!atoms.empty()) {
+            outlet_anything(x->export_outlet, s_export_sym, static_cast<short>(atoms.size()), atoms.data());
+        }
+    } catch (const std::exception&) {
+    }
 }
 
 void emit_result_lists(t_maxsolver* x, const MaxMSPWrapper::SolveResult& result) {
@@ -435,6 +471,7 @@ void maxsolver_poll(t_maxsolver* x) {
         
         // Also emit JSON for inspection
         emit_result_json(x, result.result_json);
+        emit_export_info(x, result.result_json);
 
         const std::string st = x->wrapper->get_status_string();
         emit_status(x, st.c_str(), result.message.c_str());
@@ -522,7 +559,7 @@ void maxsolver_config_dict_debug(t_maxsolver* x, t_symbol* dict_name) {
     atom_setsym(&a, gensym(json_text.c_str()));
     outlet_anything(x->json_outlet, s_json_sym, 1, &a);
 
-    emit_status(x, "idle", "Dumped dict JSON to console/json outlet");
+    emit_status(x, "debug", "Dumped dict JSON to console/json outlet");
 }
 
 void maxsolver_solve(t_maxsolver* x) {
@@ -553,7 +590,7 @@ void maxsolver_status(t_maxsolver* x) {
     outlet_anything(x->json_outlet, s_json_sym, 1, &a);
 
     const std::string status_text = x->wrapper->get_status_string();
-    emit_status(x, status_text.c_str(), "Status snapshot");
+    emit_status(x, status_text.c_str());
 }
 
 void maxsolver_get_last(t_maxsolver* x) {
@@ -566,6 +603,7 @@ void maxsolver_get_last(t_maxsolver* x) {
 
     emit_all_solutions(x, result.result_json);
     emit_result_json(x, result.result_json);
+    emit_export_info(x, result.result_json);
     const std::string st = x->wrapper->get_status_string();
     emit_status(x, st.c_str(), result.message.c_str());
 }
@@ -582,12 +620,13 @@ void* maxsolver_new(t_symbol* s, long argc, t_atom* argv) {
 
     // Create outlets right-to-left.
     x->status_outlet = outlet_new(reinterpret_cast<t_object*>(x), nullptr);
+    x->export_outlet = outlet_new(reinterpret_cast<t_object*>(x), nullptr);
     x->json_outlet = outlet_new(reinterpret_cast<t_object*>(x), nullptr);
     x->list_outlet = outlet_new(reinterpret_cast<t_object*>(x), nullptr);
 
     x->poll_clock = clock_new(x, reinterpret_cast<method>(maxsolver_poll));
 
-    emit_status(x, "unconfigured", "Send config <json> then solve");
+    emit_status(x, "unconfigured");
     return x;
 }
 
@@ -616,9 +655,11 @@ void maxsolver_assist(t_maxsolver* x, void* b, long m, long a, char* s) {
         if (a == 0) {
             snprintf_zero(s, 512, "Lists: voice_pitch / voice_rhythm");
         } else if (a == 1) {
-            snprintf_zero(s, 512, "JSON/status payload");
+            snprintf_zero(s, 512, "JSON solve payload");
+        } else if (a == 2) {
+            snprintf_zero(s, 512, "Export metadata (path/files)");
         } else {
-            snprintf_zero(s, 512, "Status messages");
+            snprintf_zero(s, 512, "Status only");
         }
     }
 }
@@ -629,6 +670,7 @@ extern "C" C74_EXPORT void ext_main(void* r) {
     (void)r;
     s_status_sym = gensym("status");
     s_json_sym = gensym("json");
+    s_export_sym = gensym("export");
     s_voice_pitch_sym = gensym("voice_pitch");
     s_voice_rhythm_sym = gensym("voice_rhythm");
 

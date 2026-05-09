@@ -3,9 +3,6 @@
   "description": "Test just the perfect fifth intervals constraint.",
   "solution_length": 4,
   "num_voices": 1,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "rules": [
     {
       "rule_type": "r-perfect-fifth-intervals",
@@ -14,21 +11,24 @@
         "function": "consecutive_perfect_fifths",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3],
-      "target_engine": 1,
+      "indices": [
+        0,
+        1,
+        2,
+        3
+      ],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Perfect fifth intervals between consecutive notes"
+      "description": "Perfect fifth intervals between consecutive notes",
+      "target_voice": 0,
+      "target_component": "pitch"
     }
   ],
-
-  "domains": [
-    {
-      "domain_type": "pitch",
-      "min_value": 48,
-      "max_value": 96,
-      "name": "C3-C7"
-    }
-  ]
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

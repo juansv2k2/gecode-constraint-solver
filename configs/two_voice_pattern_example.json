@@ -4,8 +4,15 @@
     "description": "Demonstrates voice relationships and interval patterns",
     "num_voices": 2,
     "sequence_length": 6,
-    "pitch_range": [60, 72],
-    "rhythm_values": [1, 2, 4]
+    "pitch_range": [
+      60,
+      72
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ]
   },
   "rules": [
     {
@@ -13,7 +20,7 @@
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_positions",
       "constraint": "voice[0].pitch[i] >= 63",
-      "description": "Voice 1: stays in upper range (E♭4+)"
+      "description": "Voice 1: stays in upper range (E\u266d4+)"
     },
     {
       "rule_id": "voice2_below_voice1",

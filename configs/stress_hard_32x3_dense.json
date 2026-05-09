@@ -3,304 +3,3287 @@
   "description": "Hard-but-measurable benchmark: 3 voices x 32 with dense anti-alignment constraints.",
   "solution_length": 32,
   "num_voices": 3,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 1,
-    "timeout_ms": 180000
-  },
-  "engine_domains": {
-    "engine_0": { "type": "rhythm", "voice": 0, "duration_values": ["1/16", "1/8", "3/16", "1/4", "3/8"] },
-    "engine_1": { "type": "pitch", "voice": 0, "midi_values": [52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78] },
-    "engine_2": { "type": "rhythm", "voice": 1, "duration_values": ["1/16", "1/8", "3/16", "1/4", "3/8"] },
-    "engine_3": { "type": "pitch", "voice": 1, "midi_values": [52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78] },
-    "engine_4": { "type": "rhythm", "voice": 2, "duration_values": ["1/16", "1/8", "3/16", "1/4", "3/8"] },
-    "engine_5": { "type": "pitch", "voice": 2, "midi_values": [52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78] }
+    "timeout_ms": 180000,
+    "branching": "first_fail"
   },
   "rules": [],
   "dynamic_rules": [
-    {"id":"no_unison_0_1_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[0]","right":"voice[1].pitch[0]"},"mode":"constraint","description":"No unison v0/v1 at 0"},
-    {"id":"no_unison_0_1_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[1]","right":"voice[1].pitch[1]"},"mode":"constraint","description":"No unison v0/v1 at 1"},
-    {"id":"no_unison_0_1_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[2]","right":"voice[1].pitch[2]"},"mode":"constraint","description":"No unison v0/v1 at 2"},
-    {"id":"no_unison_0_1_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[3]","right":"voice[1].pitch[3]"},"mode":"constraint","description":"No unison v0/v1 at 3"},
-    {"id":"no_unison_0_1_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[4]","right":"voice[1].pitch[4]"},"mode":"constraint","description":"No unison v0/v1 at 4"},
-    {"id":"no_unison_0_1_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[5]","right":"voice[1].pitch[5]"},"mode":"constraint","description":"No unison v0/v1 at 5"},
-    {"id":"no_unison_0_1_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[6]","right":"voice[1].pitch[6]"},"mode":"constraint","description":"No unison v0/v1 at 6"},
-    {"id":"no_unison_0_1_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[7]","right":"voice[1].pitch[7]"},"mode":"constraint","description":"No unison v0/v1 at 7"},
-    {"id":"no_unison_0_1_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[8]","right":"voice[1].pitch[8]"},"mode":"constraint","description":"No unison v0/v1 at 8"},
-    {"id":"no_unison_0_1_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[9]","right":"voice[1].pitch[9]"},"mode":"constraint","description":"No unison v0/v1 at 9"},
-    {"id":"no_unison_0_1_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[10]","right":"voice[1].pitch[10]"},"mode":"constraint","description":"No unison v0/v1 at 10"},
-    {"id":"no_unison_0_1_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[11]","right":"voice[1].pitch[11]"},"mode":"constraint","description":"No unison v0/v1 at 11"},
-    {"id":"no_unison_0_1_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[12]","right":"voice[1].pitch[12]"},"mode":"constraint","description":"No unison v0/v1 at 12"},
-    {"id":"no_unison_0_1_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[13]","right":"voice[1].pitch[13]"},"mode":"constraint","description":"No unison v0/v1 at 13"},
-    {"id":"no_unison_0_1_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[14]","right":"voice[1].pitch[14]"},"mode":"constraint","description":"No unison v0/v1 at 14"},
-    {"id":"no_unison_0_1_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[15]","right":"voice[1].pitch[15]"},"mode":"constraint","description":"No unison v0/v1 at 15"},
-    {"id":"no_unison_0_1_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[16]","right":"voice[1].pitch[16]"},"mode":"constraint","description":"No unison v0/v1 at 16"},
-    {"id":"no_unison_0_1_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[17]","right":"voice[1].pitch[17]"},"mode":"constraint","description":"No unison v0/v1 at 17"},
-    {"id":"no_unison_0_1_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[18]","right":"voice[1].pitch[18]"},"mode":"constraint","description":"No unison v0/v1 at 18"},
-    {"id":"no_unison_0_1_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[19]","right":"voice[1].pitch[19]"},"mode":"constraint","description":"No unison v0/v1 at 19"},
-    {"id":"no_unison_0_1_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[20]","right":"voice[1].pitch[20]"},"mode":"constraint","description":"No unison v0/v1 at 20"},
-    {"id":"no_unison_0_1_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[21]","right":"voice[1].pitch[21]"},"mode":"constraint","description":"No unison v0/v1 at 21"},
-    {"id":"no_unison_0_1_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[22]","right":"voice[1].pitch[22]"},"mode":"constraint","description":"No unison v0/v1 at 22"},
-    {"id":"no_unison_0_1_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[23]","right":"voice[1].pitch[23]"},"mode":"constraint","description":"No unison v0/v1 at 23"},
-    {"id":"no_unison_0_1_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[24]","right":"voice[1].pitch[24]"},"mode":"constraint","description":"No unison v0/v1 at 24"},
-    {"id":"no_unison_0_1_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[25]","right":"voice[1].pitch[25]"},"mode":"constraint","description":"No unison v0/v1 at 25"},
-    {"id":"no_unison_0_1_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[26]","right":"voice[1].pitch[26]"},"mode":"constraint","description":"No unison v0/v1 at 26"},
-    {"id":"no_unison_0_1_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[27]","right":"voice[1].pitch[27]"},"mode":"constraint","description":"No unison v0/v1 at 27"},
-    {"id":"no_unison_0_1_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[28]","right":"voice[1].pitch[28]"},"mode":"constraint","description":"No unison v0/v1 at 28"},
-    {"id":"no_unison_0_1_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[29]","right":"voice[1].pitch[29]"},"mode":"constraint","description":"No unison v0/v1 at 29"},
-    {"id":"no_unison_0_1_30","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[30]","right":"voice[1].pitch[30]"},"mode":"constraint","description":"No unison v0/v1 at 30"},
-    {"id":"no_unison_0_1_31","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[31]","right":"voice[1].pitch[31]"},"mode":"constraint","description":"No unison v0/v1 at 31"},
-    {"id":"no_unison_0_2_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[0]","right":"voice[2].pitch[0]"},"mode":"constraint","description":"No unison v0/v2 at 0"},
-    {"id":"no_unison_0_2_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[1]","right":"voice[2].pitch[1]"},"mode":"constraint","description":"No unison v0/v2 at 1"},
-    {"id":"no_unison_0_2_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[2]","right":"voice[2].pitch[2]"},"mode":"constraint","description":"No unison v0/v2 at 2"},
-    {"id":"no_unison_0_2_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[3]","right":"voice[2].pitch[3]"},"mode":"constraint","description":"No unison v0/v2 at 3"},
-    {"id":"no_unison_0_2_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[4]","right":"voice[2].pitch[4]"},"mode":"constraint","description":"No unison v0/v2 at 4"},
-    {"id":"no_unison_0_2_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[5]","right":"voice[2].pitch[5]"},"mode":"constraint","description":"No unison v0/v2 at 5"},
-    {"id":"no_unison_0_2_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[6]","right":"voice[2].pitch[6]"},"mode":"constraint","description":"No unison v0/v2 at 6"},
-    {"id":"no_unison_0_2_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[7]","right":"voice[2].pitch[7]"},"mode":"constraint","description":"No unison v0/v2 at 7"},
-    {"id":"no_unison_0_2_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[8]","right":"voice[2].pitch[8]"},"mode":"constraint","description":"No unison v0/v2 at 8"},
-    {"id":"no_unison_0_2_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[9]","right":"voice[2].pitch[9]"},"mode":"constraint","description":"No unison v0/v2 at 9"},
-    {"id":"no_unison_0_2_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[10]","right":"voice[2].pitch[10]"},"mode":"constraint","description":"No unison v0/v2 at 10"},
-    {"id":"no_unison_0_2_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[11]","right":"voice[2].pitch[11]"},"mode":"constraint","description":"No unison v0/v2 at 11"},
-    {"id":"no_unison_0_2_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[12]","right":"voice[2].pitch[12]"},"mode":"constraint","description":"No unison v0/v2 at 12"},
-    {"id":"no_unison_0_2_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[13]","right":"voice[2].pitch[13]"},"mode":"constraint","description":"No unison v0/v2 at 13"},
-    {"id":"no_unison_0_2_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[14]","right":"voice[2].pitch[14]"},"mode":"constraint","description":"No unison v0/v2 at 14"},
-    {"id":"no_unison_0_2_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[15]","right":"voice[2].pitch[15]"},"mode":"constraint","description":"No unison v0/v2 at 15"},
-    {"id":"no_unison_0_2_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[16]","right":"voice[2].pitch[16]"},"mode":"constraint","description":"No unison v0/v2 at 16"},
-    {"id":"no_unison_0_2_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[17]","right":"voice[2].pitch[17]"},"mode":"constraint","description":"No unison v0/v2 at 17"},
-    {"id":"no_unison_0_2_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[18]","right":"voice[2].pitch[18]"},"mode":"constraint","description":"No unison v0/v2 at 18"},
-    {"id":"no_unison_0_2_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[19]","right":"voice[2].pitch[19]"},"mode":"constraint","description":"No unison v0/v2 at 19"},
-    {"id":"no_unison_0_2_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[20]","right":"voice[2].pitch[20]"},"mode":"constraint","description":"No unison v0/v2 at 20"},
-    {"id":"no_unison_0_2_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[21]","right":"voice[2].pitch[21]"},"mode":"constraint","description":"No unison v0/v2 at 21"},
-    {"id":"no_unison_0_2_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[22]","right":"voice[2].pitch[22]"},"mode":"constraint","description":"No unison v0/v2 at 22"},
-    {"id":"no_unison_0_2_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[23]","right":"voice[2].pitch[23]"},"mode":"constraint","description":"No unison v0/v2 at 23"},
-    {"id":"no_unison_0_2_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[24]","right":"voice[2].pitch[24]"},"mode":"constraint","description":"No unison v0/v2 at 24"},
-    {"id":"no_unison_0_2_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[25]","right":"voice[2].pitch[25]"},"mode":"constraint","description":"No unison v0/v2 at 25"},
-    {"id":"no_unison_0_2_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[26]","right":"voice[2].pitch[26]"},"mode":"constraint","description":"No unison v0/v2 at 26"},
-    {"id":"no_unison_0_2_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[27]","right":"voice[2].pitch[27]"},"mode":"constraint","description":"No unison v0/v2 at 27"},
-    {"id":"no_unison_0_2_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[28]","right":"voice[2].pitch[28]"},"mode":"constraint","description":"No unison v0/v2 at 28"},
-    {"id":"no_unison_0_2_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[29]","right":"voice[2].pitch[29]"},"mode":"constraint","description":"No unison v0/v2 at 29"},
-    {"id":"no_unison_0_2_30","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[30]","right":"voice[2].pitch[30]"},"mode":"constraint","description":"No unison v0/v2 at 30"},
-    {"id":"no_unison_0_2_31","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[31]","right":"voice[2].pitch[31]"},"mode":"constraint","description":"No unison v0/v2 at 31"},
-    {"id":"no_unison_1_2_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[0]","right":"voice[2].pitch[0]"},"mode":"constraint","description":"No unison v1/v2 at 0"},
-    {"id":"no_unison_1_2_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[1]","right":"voice[2].pitch[1]"},"mode":"constraint","description":"No unison v1/v2 at 1"},
-    {"id":"no_unison_1_2_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[2]","right":"voice[2].pitch[2]"},"mode":"constraint","description":"No unison v1/v2 at 2"},
-    {"id":"no_unison_1_2_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[3]","right":"voice[2].pitch[3]"},"mode":"constraint","description":"No unison v1/v2 at 3"},
-    {"id":"no_unison_1_2_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[4]","right":"voice[2].pitch[4]"},"mode":"constraint","description":"No unison v1/v2 at 4"},
-    {"id":"no_unison_1_2_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[5]","right":"voice[2].pitch[5]"},"mode":"constraint","description":"No unison v1/v2 at 5"},
-    {"id":"no_unison_1_2_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[6]","right":"voice[2].pitch[6]"},"mode":"constraint","description":"No unison v1/v2 at 6"},
-    {"id":"no_unison_1_2_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[7]","right":"voice[2].pitch[7]"},"mode":"constraint","description":"No unison v1/v2 at 7"},
-    {"id":"no_unison_1_2_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[8]","right":"voice[2].pitch[8]"},"mode":"constraint","description":"No unison v1/v2 at 8"},
-    {"id":"no_unison_1_2_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[9]","right":"voice[2].pitch[9]"},"mode":"constraint","description":"No unison v1/v2 at 9"},
-    {"id":"no_unison_1_2_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[10]","right":"voice[2].pitch[10]"},"mode":"constraint","description":"No unison v1/v2 at 10"},
-    {"id":"no_unison_1_2_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[11]","right":"voice[2].pitch[11]"},"mode":"constraint","description":"No unison v1/v2 at 11"},
-    {"id":"no_unison_1_2_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[12]","right":"voice[2].pitch[12]"},"mode":"constraint","description":"No unison v1/v2 at 12"},
-    {"id":"no_unison_1_2_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[13]","right":"voice[2].pitch[13]"},"mode":"constraint","description":"No unison v1/v2 at 13"},
-    {"id":"no_unison_1_2_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[14]","right":"voice[2].pitch[14]"},"mode":"constraint","description":"No unison v1/v2 at 14"},
-    {"id":"no_unison_1_2_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[15]","right":"voice[2].pitch[15]"},"mode":"constraint","description":"No unison v1/v2 at 15"},
-    {"id":"no_unison_1_2_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[16]","right":"voice[2].pitch[16]"},"mode":"constraint","description":"No unison v1/v2 at 16"},
-    {"id":"no_unison_1_2_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[17]","right":"voice[2].pitch[17]"},"mode":"constraint","description":"No unison v1/v2 at 17"},
-    {"id":"no_unison_1_2_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[18]","right":"voice[2].pitch[18]"},"mode":"constraint","description":"No unison v1/v2 at 18"},
-    {"id":"no_unison_1_2_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[19]","right":"voice[2].pitch[19]"},"mode":"constraint","description":"No unison v1/v2 at 19"},
-    {"id":"no_unison_1_2_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[20]","right":"voice[2].pitch[20]"},"mode":"constraint","description":"No unison v1/v2 at 20"},
-    {"id":"no_unison_1_2_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[21]","right":"voice[2].pitch[21]"},"mode":"constraint","description":"No unison v1/v2 at 21"},
-    {"id":"no_unison_1_2_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[22]","right":"voice[2].pitch[22]"},"mode":"constraint","description":"No unison v1/v2 at 22"},
-    {"id":"no_unison_1_2_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[23]","right":"voice[2].pitch[23]"},"mode":"constraint","description":"No unison v1/v2 at 23"},
-    {"id":"no_unison_1_2_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[24]","right":"voice[2].pitch[24]"},"mode":"constraint","description":"No unison v1/v2 at 24"},
-    {"id":"no_unison_1_2_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[25]","right":"voice[2].pitch[25]"},"mode":"constraint","description":"No unison v1/v2 at 25"},
-    {"id":"no_unison_1_2_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[26]","right":"voice[2].pitch[26]"},"mode":"constraint","description":"No unison v1/v2 at 26"},
-    {"id":"no_unison_1_2_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[27]","right":"voice[2].pitch[27]"},"mode":"constraint","description":"No unison v1/v2 at 27"},
-    {"id":"no_unison_1_2_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[28]","right":"voice[2].pitch[28]"},"mode":"constraint","description":"No unison v1/v2 at 28"},
-    {"id":"no_unison_1_2_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[29]","right":"voice[2].pitch[29]"},"mode":"constraint","description":"No unison v1/v2 at 29"},
-    {"id":"no_unison_1_2_30","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[30]","right":"voice[2].pitch[30]"},"mode":"constraint","description":"No unison v1/v2 at 30"},
-    {"id":"no_unison_1_2_31","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[31]","right":"voice[2].pitch[31]"},"mode":"constraint","description":"No unison v1/v2 at 31"},
-    {"id":"no_shift_0_1_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[0]","right":"voice[1].pitch[1]"},"mode":"constraint","description":"No shifted match v0[0] vs v1[1]"},
-    {"id":"no_shift_0_1_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[1]","right":"voice[1].pitch[2]"},"mode":"constraint","description":"No shifted match v0[1] vs v1[2]"},
-    {"id":"no_shift_0_1_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[2]","right":"voice[1].pitch[3]"},"mode":"constraint","description":"No shifted match v0[2] vs v1[3]"},
-    {"id":"no_shift_0_1_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[3]","right":"voice[1].pitch[4]"},"mode":"constraint","description":"No shifted match v0[3] vs v1[4]"},
-    {"id":"no_shift_0_1_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[4]","right":"voice[1].pitch[5]"},"mode":"constraint","description":"No shifted match v0[4] vs v1[5]"},
-    {"id":"no_shift_0_1_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[5]","right":"voice[1].pitch[6]"},"mode":"constraint","description":"No shifted match v0[5] vs v1[6]"},
-    {"id":"no_shift_0_1_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[6]","right":"voice[1].pitch[7]"},"mode":"constraint","description":"No shifted match v0[6] vs v1[7]"},
-    {"id":"no_shift_0_1_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[7]","right":"voice[1].pitch[8]"},"mode":"constraint","description":"No shifted match v0[7] vs v1[8]"},
-    {"id":"no_shift_0_1_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[8]","right":"voice[1].pitch[9]"},"mode":"constraint","description":"No shifted match v0[8] vs v1[9]"},
-    {"id":"no_shift_0_1_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[9]","right":"voice[1].pitch[10]"},"mode":"constraint","description":"No shifted match v0[9] vs v1[10]"},
-    {"id":"no_shift_0_1_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[10]","right":"voice[1].pitch[11]"},"mode":"constraint","description":"No shifted match v0[10] vs v1[11]"},
-    {"id":"no_shift_0_1_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[11]","right":"voice[1].pitch[12]"},"mode":"constraint","description":"No shifted match v0[11] vs v1[12]"},
-    {"id":"no_shift_0_1_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[12]","right":"voice[1].pitch[13]"},"mode":"constraint","description":"No shifted match v0[12] vs v1[13]"},
-    {"id":"no_shift_0_1_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[13]","right":"voice[1].pitch[14]"},"mode":"constraint","description":"No shifted match v0[13] vs v1[14]"},
-    {"id":"no_shift_0_1_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[14]","right":"voice[1].pitch[15]"},"mode":"constraint","description":"No shifted match v0[14] vs v1[15]"},
-    {"id":"no_shift_0_1_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[15]","right":"voice[1].pitch[16]"},"mode":"constraint","description":"No shifted match v0[15] vs v1[16]"},
-    {"id":"no_shift_0_1_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[16]","right":"voice[1].pitch[17]"},"mode":"constraint","description":"No shifted match v0[16] vs v1[17]"},
-    {"id":"no_shift_0_1_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[17]","right":"voice[1].pitch[18]"},"mode":"constraint","description":"No shifted match v0[17] vs v1[18]"},
-    {"id":"no_shift_0_1_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[18]","right":"voice[1].pitch[19]"},"mode":"constraint","description":"No shifted match v0[18] vs v1[19]"},
-    {"id":"no_shift_0_1_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[19]","right":"voice[1].pitch[20]"},"mode":"constraint","description":"No shifted match v0[19] vs v1[20]"},
-    {"id":"no_shift_0_1_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[20]","right":"voice[1].pitch[21]"},"mode":"constraint","description":"No shifted match v0[20] vs v1[21]"},
-    {"id":"no_shift_0_1_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[21]","right":"voice[1].pitch[22]"},"mode":"constraint","description":"No shifted match v0[21] vs v1[22]"},
-    {"id":"no_shift_0_1_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[22]","right":"voice[1].pitch[23]"},"mode":"constraint","description":"No shifted match v0[22] vs v1[23]"},
-    {"id":"no_shift_0_1_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[23]","right":"voice[1].pitch[24]"},"mode":"constraint","description":"No shifted match v0[23] vs v1[24]"},
-    {"id":"no_shift_0_1_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[24]","right":"voice[1].pitch[25]"},"mode":"constraint","description":"No shifted match v0[24] vs v1[25]"},
-    {"id":"no_shift_0_1_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[25]","right":"voice[1].pitch[26]"},"mode":"constraint","description":"No shifted match v0[25] vs v1[26]"},
-    {"id":"no_shift_0_1_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[26]","right":"voice[1].pitch[27]"},"mode":"constraint","description":"No shifted match v0[26] vs v1[27]"},
-    {"id":"no_shift_0_1_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[27]","right":"voice[1].pitch[28]"},"mode":"constraint","description":"No shifted match v0[27] vs v1[28]"},
-    {"id":"no_shift_0_1_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[28]","right":"voice[1].pitch[29]"},"mode":"constraint","description":"No shifted match v0[28] vs v1[29]"},
-    {"id":"no_shift_0_1_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[29]","right":"voice[1].pitch[30]"},"mode":"constraint","description":"No shifted match v0[29] vs v1[30]"},
-    {"id":"no_shift_0_1_30","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[30]","right":"voice[1].pitch[31]"},"mode":"constraint","description":"No shifted match v0[30] vs v1[31]"},
-    {"id":"no_shift_0_2_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[0]","right":"voice[2].pitch[1]"},"mode":"constraint","description":"No shifted match v0[0] vs v2[1]"},
-    {"id":"no_shift_0_2_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[1]","right":"voice[2].pitch[2]"},"mode":"constraint","description":"No shifted match v0[1] vs v2[2]"},
-    {"id":"no_shift_0_2_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[2]","right":"voice[2].pitch[3]"},"mode":"constraint","description":"No shifted match v0[2] vs v2[3]"},
-    {"id":"no_shift_0_2_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[3]","right":"voice[2].pitch[4]"},"mode":"constraint","description":"No shifted match v0[3] vs v2[4]"},
-    {"id":"no_shift_0_2_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[4]","right":"voice[2].pitch[5]"},"mode":"constraint","description":"No shifted match v0[4] vs v2[5]"},
-    {"id":"no_shift_0_2_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[5]","right":"voice[2].pitch[6]"},"mode":"constraint","description":"No shifted match v0[5] vs v2[6]"},
-    {"id":"no_shift_0_2_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[6]","right":"voice[2].pitch[7]"},"mode":"constraint","description":"No shifted match v0[6] vs v2[7]"},
-    {"id":"no_shift_0_2_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[7]","right":"voice[2].pitch[8]"},"mode":"constraint","description":"No shifted match v0[7] vs v2[8]"},
-    {"id":"no_shift_0_2_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[8]","right":"voice[2].pitch[9]"},"mode":"constraint","description":"No shifted match v0[8] vs v2[9]"},
-    {"id":"no_shift_0_2_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[9]","right":"voice[2].pitch[10]"},"mode":"constraint","description":"No shifted match v0[9] vs v2[10]"},
-    {"id":"no_shift_0_2_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[10]","right":"voice[2].pitch[11]"},"mode":"constraint","description":"No shifted match v0[10] vs v2[11]"},
-    {"id":"no_shift_0_2_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[11]","right":"voice[2].pitch[12]"},"mode":"constraint","description":"No shifted match v0[11] vs v2[12]"},
-    {"id":"no_shift_0_2_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[12]","right":"voice[2].pitch[13]"},"mode":"constraint","description":"No shifted match v0[12] vs v2[13]"},
-    {"id":"no_shift_0_2_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[13]","right":"voice[2].pitch[14]"},"mode":"constraint","description":"No shifted match v0[13] vs v2[14]"},
-    {"id":"no_shift_0_2_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[14]","right":"voice[2].pitch[15]"},"mode":"constraint","description":"No shifted match v0[14] vs v2[15]"},
-    {"id":"no_shift_0_2_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[15]","right":"voice[2].pitch[16]"},"mode":"constraint","description":"No shifted match v0[15] vs v2[16]"},
-    {"id":"no_shift_0_2_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[16]","right":"voice[2].pitch[17]"},"mode":"constraint","description":"No shifted match v0[16] vs v2[17]"},
-    {"id":"no_shift_0_2_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[17]","right":"voice[2].pitch[18]"},"mode":"constraint","description":"No shifted match v0[17] vs v2[18]"},
-    {"id":"no_shift_0_2_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[18]","right":"voice[2].pitch[19]"},"mode":"constraint","description":"No shifted match v0[18] vs v2[19]"},
-    {"id":"no_shift_0_2_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[19]","right":"voice[2].pitch[20]"},"mode":"constraint","description":"No shifted match v0[19] vs v2[20]"},
-    {"id":"no_shift_0_2_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[20]","right":"voice[2].pitch[21]"},"mode":"constraint","description":"No shifted match v0[20] vs v2[21]"},
-    {"id":"no_shift_0_2_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[21]","right":"voice[2].pitch[22]"},"mode":"constraint","description":"No shifted match v0[21] vs v2[22]"},
-    {"id":"no_shift_0_2_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[22]","right":"voice[2].pitch[23]"},"mode":"constraint","description":"No shifted match v0[22] vs v2[23]"},
-    {"id":"no_shift_0_2_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[23]","right":"voice[2].pitch[24]"},"mode":"constraint","description":"No shifted match v0[23] vs v2[24]"},
-    {"id":"no_shift_0_2_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[24]","right":"voice[2].pitch[25]"},"mode":"constraint","description":"No shifted match v0[24] vs v2[25]"},
-    {"id":"no_shift_0_2_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[25]","right":"voice[2].pitch[26]"},"mode":"constraint","description":"No shifted match v0[25] vs v2[26]"},
-    {"id":"no_shift_0_2_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[26]","right":"voice[2].pitch[27]"},"mode":"constraint","description":"No shifted match v0[26] vs v2[27]"},
-    {"id":"no_shift_0_2_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[27]","right":"voice[2].pitch[28]"},"mode":"constraint","description":"No shifted match v0[27] vs v2[28]"},
-    {"id":"no_shift_0_2_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[28]","right":"voice[2].pitch[29]"},"mode":"constraint","description":"No shifted match v0[28] vs v2[29]"},
-    {"id":"no_shift_0_2_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[29]","right":"voice[2].pitch[30]"},"mode":"constraint","description":"No shifted match v0[29] vs v2[30]"},
-    {"id":"no_shift_0_2_30","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[30]","right":"voice[2].pitch[31]"},"mode":"constraint","description":"No shifted match v0[30] vs v2[31]"},
-    {"id":"no_shift_1_2_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[0]","right":"voice[2].pitch[1]"},"mode":"constraint","description":"No shifted match v1[0] vs v2[1]"},
-    {"id":"no_shift_1_2_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[1]","right":"voice[2].pitch[2]"},"mode":"constraint","description":"No shifted match v1[1] vs v2[2]"},
-    {"id":"no_shift_1_2_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[2]","right":"voice[2].pitch[3]"},"mode":"constraint","description":"No shifted match v1[2] vs v2[3]"},
-    {"id":"no_shift_1_2_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[3]","right":"voice[2].pitch[4]"},"mode":"constraint","description":"No shifted match v1[3] vs v2[4]"},
-    {"id":"no_shift_1_2_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[4]","right":"voice[2].pitch[5]"},"mode":"constraint","description":"No shifted match v1[4] vs v2[5]"},
-    {"id":"no_shift_1_2_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[5]","right":"voice[2].pitch[6]"},"mode":"constraint","description":"No shifted match v1[5] vs v2[6]"},
-    {"id":"no_shift_1_2_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[6]","right":"voice[2].pitch[7]"},"mode":"constraint","description":"No shifted match v1[6] vs v2[7]"},
-    {"id":"no_shift_1_2_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[7]","right":"voice[2].pitch[8]"},"mode":"constraint","description":"No shifted match v1[7] vs v2[8]"},
-    {"id":"no_shift_1_2_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[8]","right":"voice[2].pitch[9]"},"mode":"constraint","description":"No shifted match v1[8] vs v2[9]"},
-    {"id":"no_shift_1_2_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[9]","right":"voice[2].pitch[10]"},"mode":"constraint","description":"No shifted match v1[9] vs v2[10]"},
-    {"id":"no_shift_1_2_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[10]","right":"voice[2].pitch[11]"},"mode":"constraint","description":"No shifted match v1[10] vs v2[11]"},
-    {"id":"no_shift_1_2_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[11]","right":"voice[2].pitch[12]"},"mode":"constraint","description":"No shifted match v1[11] vs v2[12]"},
-    {"id":"no_shift_1_2_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[12]","right":"voice[2].pitch[13]"},"mode":"constraint","description":"No shifted match v1[12] vs v2[13]"},
-    {"id":"no_shift_1_2_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[13]","right":"voice[2].pitch[14]"},"mode":"constraint","description":"No shifted match v1[13] vs v2[14]"},
-    {"id":"no_shift_1_2_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[14]","right":"voice[2].pitch[15]"},"mode":"constraint","description":"No shifted match v1[14] vs v2[15]"},
-    {"id":"no_shift_1_2_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[15]","right":"voice[2].pitch[16]"},"mode":"constraint","description":"No shifted match v1[15] vs v2[16]"},
-    {"id":"no_shift_1_2_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[16]","right":"voice[2].pitch[17]"},"mode":"constraint","description":"No shifted match v1[16] vs v2[17]"},
-    {"id":"no_shift_1_2_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[17]","right":"voice[2].pitch[18]"},"mode":"constraint","description":"No shifted match v1[17] vs v2[18]"},
-    {"id":"no_shift_1_2_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[18]","right":"voice[2].pitch[19]"},"mode":"constraint","description":"No shifted match v1[18] vs v2[19]"},
-    {"id":"no_shift_1_2_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[19]","right":"voice[2].pitch[20]"},"mode":"constraint","description":"No shifted match v1[19] vs v2[20]"},
-    {"id":"no_shift_1_2_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[20]","right":"voice[2].pitch[21]"},"mode":"constraint","description":"No shifted match v1[20] vs v2[21]"},
-    {"id":"no_shift_1_2_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[21]","right":"voice[2].pitch[22]"},"mode":"constraint","description":"No shifted match v1[21] vs v2[22]"},
-    {"id":"no_shift_1_2_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[22]","right":"voice[2].pitch[23]"},"mode":"constraint","description":"No shifted match v1[22] vs v2[23]"},
-    {"id":"no_shift_1_2_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[23]","right":"voice[2].pitch[24]"},"mode":"constraint","description":"No shifted match v1[23] vs v2[24]"},
-    {"id":"no_shift_1_2_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[24]","right":"voice[2].pitch[25]"},"mode":"constraint","description":"No shifted match v1[24] vs v2[25]"},
-    {"id":"no_shift_1_2_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[25]","right":"voice[2].pitch[26]"},"mode":"constraint","description":"No shifted match v1[25] vs v2[26]"},
-    {"id":"no_shift_1_2_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[26]","right":"voice[2].pitch[27]"},"mode":"constraint","description":"No shifted match v1[26] vs v2[27]"},
-    {"id":"no_shift_1_2_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[27]","right":"voice[2].pitch[28]"},"mode":"constraint","description":"No shifted match v1[27] vs v2[28]"},
-    {"id":"no_shift_1_2_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[28]","right":"voice[2].pitch[29]"},"mode":"constraint","description":"No shifted match v1[28] vs v2[29]"},
-    {"id":"no_shift_1_2_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[29]","right":"voice[2].pitch[30]"},"mode":"constraint","description":"No shifted match v1[29] vs v2[30]"},
-    {"id":"no_shift_1_2_30","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[30]","right":"voice[2].pitch[31]"},"mode":"constraint","description":"No shifted match v1[30] vs v2[31]"},
-    {"id":"anti_repeat2_0_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[0]","right":"voice[0].pitch[2]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[1]","right":"voice[0].pitch[3]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[2]","right":"voice[0].pitch[4]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[3]","right":"voice[0].pitch[5]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[4]","right":"voice[0].pitch[6]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[5]","right":"voice[0].pitch[7]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[6]","right":"voice[0].pitch[8]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[7]","right":"voice[0].pitch[9]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[8]","right":"voice[0].pitch[10]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[9]","right":"voice[0].pitch[11]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[10]","right":"voice[0].pitch[12]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[11]","right":"voice[0].pitch[13]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[12]","right":"voice[0].pitch[14]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[13]","right":"voice[0].pitch[15]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[14]","right":"voice[0].pitch[16]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[15]","right":"voice[0].pitch[17]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[16]","right":"voice[0].pitch[18]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[17]","right":"voice[0].pitch[19]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[18]","right":"voice[0].pitch[20]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[19]","right":"voice[0].pitch[21]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[20]","right":"voice[0].pitch[22]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[21]","right":"voice[0].pitch[23]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[22]","right":"voice[0].pitch[24]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[23]","right":"voice[0].pitch[25]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[24]","right":"voice[0].pitch[26]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[25]","right":"voice[0].pitch[27]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[26]","right":"voice[0].pitch[28]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[27]","right":"voice[0].pitch[29]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[28]","right":"voice[0].pitch[30]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_0_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[0].pitch[29]","right":"voice[0].pitch[31]"},"mode":"constraint","description":"No repeat at distance 2 voice 0"},
-    {"id":"anti_repeat2_1_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[0]","right":"voice[1].pitch[2]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[1]","right":"voice[1].pitch[3]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[2]","right":"voice[1].pitch[4]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[3]","right":"voice[1].pitch[5]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[4]","right":"voice[1].pitch[6]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[5]","right":"voice[1].pitch[7]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[6]","right":"voice[1].pitch[8]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[7]","right":"voice[1].pitch[9]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[8]","right":"voice[1].pitch[10]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[9]","right":"voice[1].pitch[11]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[10]","right":"voice[1].pitch[12]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[11]","right":"voice[1].pitch[13]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[12]","right":"voice[1].pitch[14]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[13]","right":"voice[1].pitch[15]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[14]","right":"voice[1].pitch[16]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[15]","right":"voice[1].pitch[17]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[16]","right":"voice[1].pitch[18]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[17]","right":"voice[1].pitch[19]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[18]","right":"voice[1].pitch[20]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[19]","right":"voice[1].pitch[21]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[20]","right":"voice[1].pitch[22]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[21]","right":"voice[1].pitch[23]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[22]","right":"voice[1].pitch[24]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[23]","right":"voice[1].pitch[25]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[24]","right":"voice[1].pitch[26]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[25]","right":"voice[1].pitch[27]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[26]","right":"voice[1].pitch[28]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[27]","right":"voice[1].pitch[29]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[28]","right":"voice[1].pitch[30]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_1_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[1].pitch[29]","right":"voice[1].pitch[31]"},"mode":"constraint","description":"No repeat at distance 2 voice 1"},
-    {"id":"anti_repeat2_2_0","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[0]","right":"voice[2].pitch[2]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_1","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[1]","right":"voice[2].pitch[3]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_2","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[2]","right":"voice[2].pitch[4]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_3","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[3]","right":"voice[2].pitch[5]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_4","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[4]","right":"voice[2].pitch[6]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_5","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[5]","right":"voice[2].pitch[7]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_6","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[6]","right":"voice[2].pitch[8]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_7","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[7]","right":"voice[2].pitch[9]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_8","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[8]","right":"voice[2].pitch[10]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_9","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[9]","right":"voice[2].pitch[11]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_10","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[10]","right":"voice[2].pitch[12]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_11","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[11]","right":"voice[2].pitch[13]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_12","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[12]","right":"voice[2].pitch[14]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_13","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[13]","right":"voice[2].pitch[15]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_14","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[14]","right":"voice[2].pitch[16]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_15","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[15]","right":"voice[2].pitch[17]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_16","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[16]","right":"voice[2].pitch[18]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_17","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[17]","right":"voice[2].pitch[19]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_18","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[18]","right":"voice[2].pitch[20]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_19","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[19]","right":"voice[2].pitch[21]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_20","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[20]","right":"voice[2].pitch[22]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_21","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[21]","right":"voice[2].pitch[23]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_22","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[22]","right":"voice[2].pitch[24]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_23","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[23]","right":"voice[2].pitch[25]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_24","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[24]","right":"voice[2].pitch[26]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_25","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[25]","right":"voice[2].pitch[27]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_26","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[26]","right":"voice[2].pitch[28]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_27","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[27]","right":"voice[2].pitch[29]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_28","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[28]","right":"voice[2].pitch[30]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anti_repeat2_2_29","type":"basic_constraint","expression":{"operator":"!=","left":"voice[2].pitch[29]","right":"voice[2].pitch[31]"},"mode":"constraint","description":"No repeat at distance 2 voice 2"},
-    {"id":"anchor_v0_start","type":"basic_constraint","expression":{"operator":"==","left":"voice[0].pitch[0]","right":{"value":60}},"mode":"constraint","description":"Anchor v0 start"},
-    {"id":"anchor_v1_start","type":"basic_constraint","expression":{"operator":"==","left":"voice[1].pitch[0]","right":{"value":61}},"mode":"constraint","description":"Anchor v1 start"},
-    {"id":"anchor_v2_start","type":"basic_constraint","expression":{"operator":"==","left":"voice[2].pitch[0]","right":{"value":62}},"mode":"constraint","description":"Anchor v2 start"},
-    {"id":"anchor_v0_end","type":"basic_constraint","expression":{"operator":"==","left":"voice[0].pitch[31]","right":{"value":70}},"mode":"constraint","description":"Anchor v0 end"},
-    {"id":"anchor_v1_end","type":"basic_constraint","expression":{"operator":"==","left":"voice[1].pitch[31]","right":{"value":71}},"mode":"constraint","description":"Anchor v1 end"},
-    {"id":"anchor_v2_end","type":"basic_constraint","expression":{"operator":"==","left":"voice[2].pitch[31]","right":{"value":72}},"mode":"constraint","description":"Anchor v2 end"}  ]
+    {
+      "id": "no_unison_0_1_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[1].pitch[0]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 0"
+    },
+    {
+      "id": "no_unison_0_1_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[1].pitch[1]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 1"
+    },
+    {
+      "id": "no_unison_0_1_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[2]",
+        "right": "voice[1].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 2"
+    },
+    {
+      "id": "no_unison_0_1_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[3]",
+        "right": "voice[1].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 3"
+    },
+    {
+      "id": "no_unison_0_1_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[4]",
+        "right": "voice[1].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 4"
+    },
+    {
+      "id": "no_unison_0_1_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[5]",
+        "right": "voice[1].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 5"
+    },
+    {
+      "id": "no_unison_0_1_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[6]",
+        "right": "voice[1].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 6"
+    },
+    {
+      "id": "no_unison_0_1_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[7]",
+        "right": "voice[1].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 7"
+    },
+    {
+      "id": "no_unison_0_1_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[8]",
+        "right": "voice[1].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 8"
+    },
+    {
+      "id": "no_unison_0_1_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[9]",
+        "right": "voice[1].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 9"
+    },
+    {
+      "id": "no_unison_0_1_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[10]",
+        "right": "voice[1].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 10"
+    },
+    {
+      "id": "no_unison_0_1_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[11]",
+        "right": "voice[1].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 11"
+    },
+    {
+      "id": "no_unison_0_1_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[12]",
+        "right": "voice[1].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 12"
+    },
+    {
+      "id": "no_unison_0_1_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[13]",
+        "right": "voice[1].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 13"
+    },
+    {
+      "id": "no_unison_0_1_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[14]",
+        "right": "voice[1].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 14"
+    },
+    {
+      "id": "no_unison_0_1_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[15]",
+        "right": "voice[1].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 15"
+    },
+    {
+      "id": "no_unison_0_1_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[16]",
+        "right": "voice[1].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 16"
+    },
+    {
+      "id": "no_unison_0_1_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[17]",
+        "right": "voice[1].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 17"
+    },
+    {
+      "id": "no_unison_0_1_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[18]",
+        "right": "voice[1].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 18"
+    },
+    {
+      "id": "no_unison_0_1_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[19]",
+        "right": "voice[1].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 19"
+    },
+    {
+      "id": "no_unison_0_1_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[20]",
+        "right": "voice[1].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 20"
+    },
+    {
+      "id": "no_unison_0_1_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[21]",
+        "right": "voice[1].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 21"
+    },
+    {
+      "id": "no_unison_0_1_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[22]",
+        "right": "voice[1].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 22"
+    },
+    {
+      "id": "no_unison_0_1_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[23]",
+        "right": "voice[1].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 23"
+    },
+    {
+      "id": "no_unison_0_1_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[24]",
+        "right": "voice[1].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 24"
+    },
+    {
+      "id": "no_unison_0_1_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[25]",
+        "right": "voice[1].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 25"
+    },
+    {
+      "id": "no_unison_0_1_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[26]",
+        "right": "voice[1].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 26"
+    },
+    {
+      "id": "no_unison_0_1_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[27]",
+        "right": "voice[1].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 27"
+    },
+    {
+      "id": "no_unison_0_1_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[28]",
+        "right": "voice[1].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 28"
+    },
+    {
+      "id": "no_unison_0_1_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[29]",
+        "right": "voice[1].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 29"
+    },
+    {
+      "id": "no_unison_0_1_30",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[30]",
+        "right": "voice[1].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 30"
+    },
+    {
+      "id": "no_unison_0_1_31",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[31]",
+        "right": "voice[1].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v1 at 31"
+    },
+    {
+      "id": "no_unison_0_2_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[2].pitch[0]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 0"
+    },
+    {
+      "id": "no_unison_0_2_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[2].pitch[1]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 1"
+    },
+    {
+      "id": "no_unison_0_2_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[2]",
+        "right": "voice[2].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 2"
+    },
+    {
+      "id": "no_unison_0_2_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[3]",
+        "right": "voice[2].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 3"
+    },
+    {
+      "id": "no_unison_0_2_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[4]",
+        "right": "voice[2].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 4"
+    },
+    {
+      "id": "no_unison_0_2_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[5]",
+        "right": "voice[2].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 5"
+    },
+    {
+      "id": "no_unison_0_2_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[6]",
+        "right": "voice[2].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 6"
+    },
+    {
+      "id": "no_unison_0_2_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[7]",
+        "right": "voice[2].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 7"
+    },
+    {
+      "id": "no_unison_0_2_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[8]",
+        "right": "voice[2].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 8"
+    },
+    {
+      "id": "no_unison_0_2_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[9]",
+        "right": "voice[2].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 9"
+    },
+    {
+      "id": "no_unison_0_2_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[10]",
+        "right": "voice[2].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 10"
+    },
+    {
+      "id": "no_unison_0_2_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[11]",
+        "right": "voice[2].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 11"
+    },
+    {
+      "id": "no_unison_0_2_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[12]",
+        "right": "voice[2].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 12"
+    },
+    {
+      "id": "no_unison_0_2_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[13]",
+        "right": "voice[2].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 13"
+    },
+    {
+      "id": "no_unison_0_2_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[14]",
+        "right": "voice[2].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 14"
+    },
+    {
+      "id": "no_unison_0_2_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[15]",
+        "right": "voice[2].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 15"
+    },
+    {
+      "id": "no_unison_0_2_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[16]",
+        "right": "voice[2].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 16"
+    },
+    {
+      "id": "no_unison_0_2_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[17]",
+        "right": "voice[2].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 17"
+    },
+    {
+      "id": "no_unison_0_2_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[18]",
+        "right": "voice[2].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 18"
+    },
+    {
+      "id": "no_unison_0_2_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[19]",
+        "right": "voice[2].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 19"
+    },
+    {
+      "id": "no_unison_0_2_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[20]",
+        "right": "voice[2].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 20"
+    },
+    {
+      "id": "no_unison_0_2_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[21]",
+        "right": "voice[2].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 21"
+    },
+    {
+      "id": "no_unison_0_2_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[22]",
+        "right": "voice[2].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 22"
+    },
+    {
+      "id": "no_unison_0_2_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[23]",
+        "right": "voice[2].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 23"
+    },
+    {
+      "id": "no_unison_0_2_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[24]",
+        "right": "voice[2].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 24"
+    },
+    {
+      "id": "no_unison_0_2_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[25]",
+        "right": "voice[2].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 25"
+    },
+    {
+      "id": "no_unison_0_2_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[26]",
+        "right": "voice[2].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 26"
+    },
+    {
+      "id": "no_unison_0_2_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[27]",
+        "right": "voice[2].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 27"
+    },
+    {
+      "id": "no_unison_0_2_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[28]",
+        "right": "voice[2].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 28"
+    },
+    {
+      "id": "no_unison_0_2_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[29]",
+        "right": "voice[2].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 29"
+    },
+    {
+      "id": "no_unison_0_2_30",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[30]",
+        "right": "voice[2].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 30"
+    },
+    {
+      "id": "no_unison_0_2_31",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[31]",
+        "right": "voice[2].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No unison v0/v2 at 31"
+    },
+    {
+      "id": "no_unison_1_2_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[0]",
+        "right": "voice[2].pitch[0]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 0"
+    },
+    {
+      "id": "no_unison_1_2_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[1]",
+        "right": "voice[2].pitch[1]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 1"
+    },
+    {
+      "id": "no_unison_1_2_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[2]",
+        "right": "voice[2].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 2"
+    },
+    {
+      "id": "no_unison_1_2_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[3]",
+        "right": "voice[2].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 3"
+    },
+    {
+      "id": "no_unison_1_2_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[4]",
+        "right": "voice[2].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 4"
+    },
+    {
+      "id": "no_unison_1_2_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[5]",
+        "right": "voice[2].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 5"
+    },
+    {
+      "id": "no_unison_1_2_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[6]",
+        "right": "voice[2].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 6"
+    },
+    {
+      "id": "no_unison_1_2_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[7]",
+        "right": "voice[2].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 7"
+    },
+    {
+      "id": "no_unison_1_2_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[8]",
+        "right": "voice[2].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 8"
+    },
+    {
+      "id": "no_unison_1_2_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[9]",
+        "right": "voice[2].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 9"
+    },
+    {
+      "id": "no_unison_1_2_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[10]",
+        "right": "voice[2].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 10"
+    },
+    {
+      "id": "no_unison_1_2_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[11]",
+        "right": "voice[2].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 11"
+    },
+    {
+      "id": "no_unison_1_2_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[12]",
+        "right": "voice[2].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 12"
+    },
+    {
+      "id": "no_unison_1_2_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[13]",
+        "right": "voice[2].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 13"
+    },
+    {
+      "id": "no_unison_1_2_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[14]",
+        "right": "voice[2].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 14"
+    },
+    {
+      "id": "no_unison_1_2_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[15]",
+        "right": "voice[2].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 15"
+    },
+    {
+      "id": "no_unison_1_2_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[16]",
+        "right": "voice[2].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 16"
+    },
+    {
+      "id": "no_unison_1_2_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[17]",
+        "right": "voice[2].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 17"
+    },
+    {
+      "id": "no_unison_1_2_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[18]",
+        "right": "voice[2].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 18"
+    },
+    {
+      "id": "no_unison_1_2_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[19]",
+        "right": "voice[2].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 19"
+    },
+    {
+      "id": "no_unison_1_2_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[20]",
+        "right": "voice[2].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 20"
+    },
+    {
+      "id": "no_unison_1_2_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[21]",
+        "right": "voice[2].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 21"
+    },
+    {
+      "id": "no_unison_1_2_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[22]",
+        "right": "voice[2].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 22"
+    },
+    {
+      "id": "no_unison_1_2_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[23]",
+        "right": "voice[2].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 23"
+    },
+    {
+      "id": "no_unison_1_2_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[24]",
+        "right": "voice[2].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 24"
+    },
+    {
+      "id": "no_unison_1_2_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[25]",
+        "right": "voice[2].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 25"
+    },
+    {
+      "id": "no_unison_1_2_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[26]",
+        "right": "voice[2].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 26"
+    },
+    {
+      "id": "no_unison_1_2_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[27]",
+        "right": "voice[2].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 27"
+    },
+    {
+      "id": "no_unison_1_2_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[28]",
+        "right": "voice[2].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 28"
+    },
+    {
+      "id": "no_unison_1_2_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[29]",
+        "right": "voice[2].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 29"
+    },
+    {
+      "id": "no_unison_1_2_30",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[30]",
+        "right": "voice[2].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 30"
+    },
+    {
+      "id": "no_unison_1_2_31",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[31]",
+        "right": "voice[2].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No unison v1/v2 at 31"
+    },
+    {
+      "id": "no_shift_0_1_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[1].pitch[1]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[0] vs v1[1]"
+    },
+    {
+      "id": "no_shift_0_1_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[1].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[1] vs v1[2]"
+    },
+    {
+      "id": "no_shift_0_1_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[2]",
+        "right": "voice[1].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[2] vs v1[3]"
+    },
+    {
+      "id": "no_shift_0_1_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[3]",
+        "right": "voice[1].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[3] vs v1[4]"
+    },
+    {
+      "id": "no_shift_0_1_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[4]",
+        "right": "voice[1].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[4] vs v1[5]"
+    },
+    {
+      "id": "no_shift_0_1_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[5]",
+        "right": "voice[1].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[5] vs v1[6]"
+    },
+    {
+      "id": "no_shift_0_1_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[6]",
+        "right": "voice[1].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[6] vs v1[7]"
+    },
+    {
+      "id": "no_shift_0_1_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[7]",
+        "right": "voice[1].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[7] vs v1[8]"
+    },
+    {
+      "id": "no_shift_0_1_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[8]",
+        "right": "voice[1].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[8] vs v1[9]"
+    },
+    {
+      "id": "no_shift_0_1_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[9]",
+        "right": "voice[1].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[9] vs v1[10]"
+    },
+    {
+      "id": "no_shift_0_1_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[10]",
+        "right": "voice[1].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[10] vs v1[11]"
+    },
+    {
+      "id": "no_shift_0_1_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[11]",
+        "right": "voice[1].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[11] vs v1[12]"
+    },
+    {
+      "id": "no_shift_0_1_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[12]",
+        "right": "voice[1].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[12] vs v1[13]"
+    },
+    {
+      "id": "no_shift_0_1_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[13]",
+        "right": "voice[1].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[13] vs v1[14]"
+    },
+    {
+      "id": "no_shift_0_1_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[14]",
+        "right": "voice[1].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[14] vs v1[15]"
+    },
+    {
+      "id": "no_shift_0_1_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[15]",
+        "right": "voice[1].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[15] vs v1[16]"
+    },
+    {
+      "id": "no_shift_0_1_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[16]",
+        "right": "voice[1].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[16] vs v1[17]"
+    },
+    {
+      "id": "no_shift_0_1_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[17]",
+        "right": "voice[1].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[17] vs v1[18]"
+    },
+    {
+      "id": "no_shift_0_1_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[18]",
+        "right": "voice[1].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[18] vs v1[19]"
+    },
+    {
+      "id": "no_shift_0_1_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[19]",
+        "right": "voice[1].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[19] vs v1[20]"
+    },
+    {
+      "id": "no_shift_0_1_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[20]",
+        "right": "voice[1].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[20] vs v1[21]"
+    },
+    {
+      "id": "no_shift_0_1_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[21]",
+        "right": "voice[1].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[21] vs v1[22]"
+    },
+    {
+      "id": "no_shift_0_1_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[22]",
+        "right": "voice[1].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[22] vs v1[23]"
+    },
+    {
+      "id": "no_shift_0_1_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[23]",
+        "right": "voice[1].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[23] vs v1[24]"
+    },
+    {
+      "id": "no_shift_0_1_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[24]",
+        "right": "voice[1].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[24] vs v1[25]"
+    },
+    {
+      "id": "no_shift_0_1_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[25]",
+        "right": "voice[1].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[25] vs v1[26]"
+    },
+    {
+      "id": "no_shift_0_1_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[26]",
+        "right": "voice[1].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[26] vs v1[27]"
+    },
+    {
+      "id": "no_shift_0_1_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[27]",
+        "right": "voice[1].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[27] vs v1[28]"
+    },
+    {
+      "id": "no_shift_0_1_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[28]",
+        "right": "voice[1].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[28] vs v1[29]"
+    },
+    {
+      "id": "no_shift_0_1_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[29]",
+        "right": "voice[1].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[29] vs v1[30]"
+    },
+    {
+      "id": "no_shift_0_1_30",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[30]",
+        "right": "voice[1].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[30] vs v1[31]"
+    },
+    {
+      "id": "no_shift_0_2_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[2].pitch[1]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[0] vs v2[1]"
+    },
+    {
+      "id": "no_shift_0_2_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[2].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[1] vs v2[2]"
+    },
+    {
+      "id": "no_shift_0_2_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[2]",
+        "right": "voice[2].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[2] vs v2[3]"
+    },
+    {
+      "id": "no_shift_0_2_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[3]",
+        "right": "voice[2].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[3] vs v2[4]"
+    },
+    {
+      "id": "no_shift_0_2_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[4]",
+        "right": "voice[2].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[4] vs v2[5]"
+    },
+    {
+      "id": "no_shift_0_2_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[5]",
+        "right": "voice[2].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[5] vs v2[6]"
+    },
+    {
+      "id": "no_shift_0_2_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[6]",
+        "right": "voice[2].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[6] vs v2[7]"
+    },
+    {
+      "id": "no_shift_0_2_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[7]",
+        "right": "voice[2].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[7] vs v2[8]"
+    },
+    {
+      "id": "no_shift_0_2_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[8]",
+        "right": "voice[2].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[8] vs v2[9]"
+    },
+    {
+      "id": "no_shift_0_2_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[9]",
+        "right": "voice[2].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[9] vs v2[10]"
+    },
+    {
+      "id": "no_shift_0_2_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[10]",
+        "right": "voice[2].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[10] vs v2[11]"
+    },
+    {
+      "id": "no_shift_0_2_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[11]",
+        "right": "voice[2].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[11] vs v2[12]"
+    },
+    {
+      "id": "no_shift_0_2_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[12]",
+        "right": "voice[2].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[12] vs v2[13]"
+    },
+    {
+      "id": "no_shift_0_2_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[13]",
+        "right": "voice[2].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[13] vs v2[14]"
+    },
+    {
+      "id": "no_shift_0_2_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[14]",
+        "right": "voice[2].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[14] vs v2[15]"
+    },
+    {
+      "id": "no_shift_0_2_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[15]",
+        "right": "voice[2].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[15] vs v2[16]"
+    },
+    {
+      "id": "no_shift_0_2_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[16]",
+        "right": "voice[2].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[16] vs v2[17]"
+    },
+    {
+      "id": "no_shift_0_2_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[17]",
+        "right": "voice[2].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[17] vs v2[18]"
+    },
+    {
+      "id": "no_shift_0_2_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[18]",
+        "right": "voice[2].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[18] vs v2[19]"
+    },
+    {
+      "id": "no_shift_0_2_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[19]",
+        "right": "voice[2].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[19] vs v2[20]"
+    },
+    {
+      "id": "no_shift_0_2_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[20]",
+        "right": "voice[2].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[20] vs v2[21]"
+    },
+    {
+      "id": "no_shift_0_2_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[21]",
+        "right": "voice[2].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[21] vs v2[22]"
+    },
+    {
+      "id": "no_shift_0_2_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[22]",
+        "right": "voice[2].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[22] vs v2[23]"
+    },
+    {
+      "id": "no_shift_0_2_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[23]",
+        "right": "voice[2].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[23] vs v2[24]"
+    },
+    {
+      "id": "no_shift_0_2_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[24]",
+        "right": "voice[2].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[24] vs v2[25]"
+    },
+    {
+      "id": "no_shift_0_2_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[25]",
+        "right": "voice[2].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[25] vs v2[26]"
+    },
+    {
+      "id": "no_shift_0_2_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[26]",
+        "right": "voice[2].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[26] vs v2[27]"
+    },
+    {
+      "id": "no_shift_0_2_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[27]",
+        "right": "voice[2].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[27] vs v2[28]"
+    },
+    {
+      "id": "no_shift_0_2_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[28]",
+        "right": "voice[2].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[28] vs v2[29]"
+    },
+    {
+      "id": "no_shift_0_2_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[29]",
+        "right": "voice[2].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[29] vs v2[30]"
+    },
+    {
+      "id": "no_shift_0_2_30",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[30]",
+        "right": "voice[2].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v0[30] vs v2[31]"
+    },
+    {
+      "id": "no_shift_1_2_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[0]",
+        "right": "voice[2].pitch[1]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[0] vs v2[1]"
+    },
+    {
+      "id": "no_shift_1_2_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[1]",
+        "right": "voice[2].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[1] vs v2[2]"
+    },
+    {
+      "id": "no_shift_1_2_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[2]",
+        "right": "voice[2].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[2] vs v2[3]"
+    },
+    {
+      "id": "no_shift_1_2_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[3]",
+        "right": "voice[2].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[3] vs v2[4]"
+    },
+    {
+      "id": "no_shift_1_2_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[4]",
+        "right": "voice[2].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[4] vs v2[5]"
+    },
+    {
+      "id": "no_shift_1_2_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[5]",
+        "right": "voice[2].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[5] vs v2[6]"
+    },
+    {
+      "id": "no_shift_1_2_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[6]",
+        "right": "voice[2].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[6] vs v2[7]"
+    },
+    {
+      "id": "no_shift_1_2_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[7]",
+        "right": "voice[2].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[7] vs v2[8]"
+    },
+    {
+      "id": "no_shift_1_2_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[8]",
+        "right": "voice[2].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[8] vs v2[9]"
+    },
+    {
+      "id": "no_shift_1_2_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[9]",
+        "right": "voice[2].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[9] vs v2[10]"
+    },
+    {
+      "id": "no_shift_1_2_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[10]",
+        "right": "voice[2].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[10] vs v2[11]"
+    },
+    {
+      "id": "no_shift_1_2_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[11]",
+        "right": "voice[2].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[11] vs v2[12]"
+    },
+    {
+      "id": "no_shift_1_2_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[12]",
+        "right": "voice[2].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[12] vs v2[13]"
+    },
+    {
+      "id": "no_shift_1_2_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[13]",
+        "right": "voice[2].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[13] vs v2[14]"
+    },
+    {
+      "id": "no_shift_1_2_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[14]",
+        "right": "voice[2].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[14] vs v2[15]"
+    },
+    {
+      "id": "no_shift_1_2_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[15]",
+        "right": "voice[2].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[15] vs v2[16]"
+    },
+    {
+      "id": "no_shift_1_2_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[16]",
+        "right": "voice[2].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[16] vs v2[17]"
+    },
+    {
+      "id": "no_shift_1_2_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[17]",
+        "right": "voice[2].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[17] vs v2[18]"
+    },
+    {
+      "id": "no_shift_1_2_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[18]",
+        "right": "voice[2].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[18] vs v2[19]"
+    },
+    {
+      "id": "no_shift_1_2_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[19]",
+        "right": "voice[2].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[19] vs v2[20]"
+    },
+    {
+      "id": "no_shift_1_2_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[20]",
+        "right": "voice[2].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[20] vs v2[21]"
+    },
+    {
+      "id": "no_shift_1_2_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[21]",
+        "right": "voice[2].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[21] vs v2[22]"
+    },
+    {
+      "id": "no_shift_1_2_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[22]",
+        "right": "voice[2].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[22] vs v2[23]"
+    },
+    {
+      "id": "no_shift_1_2_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[23]",
+        "right": "voice[2].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[23] vs v2[24]"
+    },
+    {
+      "id": "no_shift_1_2_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[24]",
+        "right": "voice[2].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[24] vs v2[25]"
+    },
+    {
+      "id": "no_shift_1_2_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[25]",
+        "right": "voice[2].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[25] vs v2[26]"
+    },
+    {
+      "id": "no_shift_1_2_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[26]",
+        "right": "voice[2].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[26] vs v2[27]"
+    },
+    {
+      "id": "no_shift_1_2_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[27]",
+        "right": "voice[2].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[27] vs v2[28]"
+    },
+    {
+      "id": "no_shift_1_2_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[28]",
+        "right": "voice[2].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[28] vs v2[29]"
+    },
+    {
+      "id": "no_shift_1_2_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[29]",
+        "right": "voice[2].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[29] vs v2[30]"
+    },
+    {
+      "id": "no_shift_1_2_30",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[30]",
+        "right": "voice[2].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No shifted match v1[30] vs v2[31]"
+    },
+    {
+      "id": "anti_repeat2_0_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[0].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[1]",
+        "right": "voice[0].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[2]",
+        "right": "voice[0].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[3]",
+        "right": "voice[0].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[4]",
+        "right": "voice[0].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[5]",
+        "right": "voice[0].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[6]",
+        "right": "voice[0].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[7]",
+        "right": "voice[0].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[8]",
+        "right": "voice[0].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[9]",
+        "right": "voice[0].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[10]",
+        "right": "voice[0].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[11]",
+        "right": "voice[0].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[12]",
+        "right": "voice[0].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[13]",
+        "right": "voice[0].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[14]",
+        "right": "voice[0].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[15]",
+        "right": "voice[0].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[16]",
+        "right": "voice[0].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[17]",
+        "right": "voice[0].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[18]",
+        "right": "voice[0].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[19]",
+        "right": "voice[0].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[20]",
+        "right": "voice[0].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[21]",
+        "right": "voice[0].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[22]",
+        "right": "voice[0].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[23]",
+        "right": "voice[0].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[24]",
+        "right": "voice[0].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[25]",
+        "right": "voice[0].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[26]",
+        "right": "voice[0].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[27]",
+        "right": "voice[0].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[28]",
+        "right": "voice[0].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_0_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[29]",
+        "right": "voice[0].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 0"
+    },
+    {
+      "id": "anti_repeat2_1_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[0]",
+        "right": "voice[1].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[1]",
+        "right": "voice[1].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[2]",
+        "right": "voice[1].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[3]",
+        "right": "voice[1].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[4]",
+        "right": "voice[1].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[5]",
+        "right": "voice[1].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[6]",
+        "right": "voice[1].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[7]",
+        "right": "voice[1].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[8]",
+        "right": "voice[1].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[9]",
+        "right": "voice[1].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[10]",
+        "right": "voice[1].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[11]",
+        "right": "voice[1].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[12]",
+        "right": "voice[1].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[13]",
+        "right": "voice[1].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[14]",
+        "right": "voice[1].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[15]",
+        "right": "voice[1].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[16]",
+        "right": "voice[1].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[17]",
+        "right": "voice[1].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[18]",
+        "right": "voice[1].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[19]",
+        "right": "voice[1].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[20]",
+        "right": "voice[1].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[21]",
+        "right": "voice[1].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[22]",
+        "right": "voice[1].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[23]",
+        "right": "voice[1].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[24]",
+        "right": "voice[1].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[25]",
+        "right": "voice[1].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[26]",
+        "right": "voice[1].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[27]",
+        "right": "voice[1].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[28]",
+        "right": "voice[1].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_1_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[1].pitch[29]",
+        "right": "voice[1].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 1"
+    },
+    {
+      "id": "anti_repeat2_2_0",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[0]",
+        "right": "voice[2].pitch[2]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_1",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[1]",
+        "right": "voice[2].pitch[3]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_2",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[2]",
+        "right": "voice[2].pitch[4]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_3",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[3]",
+        "right": "voice[2].pitch[5]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_4",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[4]",
+        "right": "voice[2].pitch[6]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_5",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[5]",
+        "right": "voice[2].pitch[7]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_6",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[6]",
+        "right": "voice[2].pitch[8]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_7",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[7]",
+        "right": "voice[2].pitch[9]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_8",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[8]",
+        "right": "voice[2].pitch[10]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_9",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[9]",
+        "right": "voice[2].pitch[11]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_10",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[10]",
+        "right": "voice[2].pitch[12]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_11",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[11]",
+        "right": "voice[2].pitch[13]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_12",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[12]",
+        "right": "voice[2].pitch[14]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_13",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[13]",
+        "right": "voice[2].pitch[15]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_14",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[14]",
+        "right": "voice[2].pitch[16]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_15",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[15]",
+        "right": "voice[2].pitch[17]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_16",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[16]",
+        "right": "voice[2].pitch[18]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_17",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[17]",
+        "right": "voice[2].pitch[19]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_18",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[18]",
+        "right": "voice[2].pitch[20]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_19",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[19]",
+        "right": "voice[2].pitch[21]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_20",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[20]",
+        "right": "voice[2].pitch[22]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_21",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[21]",
+        "right": "voice[2].pitch[23]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_22",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[22]",
+        "right": "voice[2].pitch[24]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_23",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[23]",
+        "right": "voice[2].pitch[25]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_24",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[24]",
+        "right": "voice[2].pitch[26]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_25",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[25]",
+        "right": "voice[2].pitch[27]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_26",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[26]",
+        "right": "voice[2].pitch[28]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_27",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[27]",
+        "right": "voice[2].pitch[29]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_28",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[28]",
+        "right": "voice[2].pitch[30]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anti_repeat2_2_29",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "!=",
+        "left": "voice[2].pitch[29]",
+        "right": "voice[2].pitch[31]"
+      },
+      "mode": "constraint",
+      "description": "No repeat at distance 2 voice 2"
+    },
+    {
+      "id": "anchor_v0_start",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[0]",
+        "right": {
+          "value": 60
+        }
+      },
+      "mode": "constraint",
+      "description": "Anchor v0 start"
+    },
+    {
+      "id": "anchor_v1_start",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[0]",
+        "right": {
+          "value": 61
+        }
+      },
+      "mode": "constraint",
+      "description": "Anchor v1 start"
+    },
+    {
+      "id": "anchor_v2_start",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[2].pitch[0]",
+        "right": {
+          "value": 62
+        }
+      },
+      "mode": "constraint",
+      "description": "Anchor v2 start"
+    },
+    {
+      "id": "anchor_v0_end",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[0].pitch[31]",
+        "right": {
+          "value": 70
+        }
+      },
+      "mode": "constraint",
+      "description": "Anchor v0 end"
+    },
+    {
+      "id": "anchor_v1_end",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[1].pitch[31]",
+        "right": {
+          "value": 71
+        }
+      },
+      "mode": "constraint",
+      "description": "Anchor v1 end"
+    },
+    {
+      "id": "anchor_v2_end",
+      "type": "basic_constraint",
+      "expression": {
+        "operator": "==",
+        "left": "voice[2].pitch[31]",
+        "right": {
+          "value": 72
+        }
+      },
+      "mode": "constraint",
+      "description": "Anchor v2 end"
+    }
+  ],
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "3/16",
+          "1/4",
+          "3/8"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "3/16",
+          "1/4",
+          "3/8"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "3/16",
+          "1/4",
+          "3/8"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78
+        ]
+      }
+    }
+  ]
 }

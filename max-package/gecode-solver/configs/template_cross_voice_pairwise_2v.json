@@ -3,23 +3,67 @@
   "description": "Pairwise wildcard across voice pairs (v1, v2).",
   "solution_length": 8,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 0,
-    "timeout_ms": 5000
+    "timeout_ms": 5000,
+    "branching": "first_fail"
   },
-  "engine_domains": {
-    "engine_0": { "type": "rhythm", "voice": 0, "duration_values": ["1/8", "1/4"] },
-    "engine_1": { "type": "pitch", "voice": 0, "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71] },
-    "engine_2": { "type": "rhythm", "voice": 1, "duration_values": ["1/8", "1/4"] },
-    "engine_3": { "type": "pitch", "voice": 1, "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71] }
-  },
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71
+        ]
+      }
+    }
+  ],
   "rules": [],
   "dynamic_rules": [
     {
       "id": "hard_start_different",
       "type": "basic_constraint",
-      "expression": { "operator": "!=", "left": "voice[0].pitch[0]", "right": "voice[1].pitch[0]" },
+      "expression": {
+        "operator": "!=",
+        "left": "voice[0].pitch[0]",
+        "right": "voice[1].pitch[0]"
+      },
       "mode": "true_false",
       "description": "Optional hard seed constraint"
     },
@@ -27,7 +71,9 @@
       "id": "pairwise_separation_energy",
       "type": "heuristic_energy",
       "wildcard_type": "for_all_pairs",
-      "pattern_offsets": [0],
+      "pattern_offsets": [
+        0
+      ],
       "step_size": 1,
       "cross_voices": true,
       "expression": {
@@ -36,7 +82,11 @@
         "right": {
           "function": "abs",
           "args": [
-            { "operator": "-", "left": "voice[v1].pitch[i]", "right": "voice[v2].pitch[i]" }
+            {
+              "operator": "-",
+              "left": "voice[v1].pitch[i]",
+              "right": "voice[v2].pitch[i]"
+            }
           ]
         }
       },

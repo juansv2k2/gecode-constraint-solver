@@ -65,24 +65,30 @@ void test_metric_timepoint_success() {
     const auto payload = json::parse(result.result_json);
     const auto& solution = payload.at("solutions").at(0);
     const auto& timeline = solution.at("score").at("metric_timeline");
+    const auto& voice_solutions = solution.at("voice_solutions");
 
-    assert_true(timeline.size() == 3, "Expected three metric segments in " + config_path);
+    assert_true(voice_solutions.size() == 4, "Expected four voices in solved example config");
+
+    assert_true(timeline.size() == 4, "Expected four metric segments in " + config_path);
     assert_true(timeline.at(0).at("start_tick") == 0, "Expected first segment to start at tick 0");
     assert_true(timeline.at(0).at("end_tick") == 8, "Expected first segment to end at tick 8");
     assert_true(timeline.at(1).at("start_tick") == 8, "Expected second segment to start at tick 8");
     assert_true(timeline.at(1).at("end_tick") == 14, "Expected second segment to end at tick 14");
     assert_true(timeline.at(2).at("start_tick") == 14, "Expected third segment to start at tick 14");
-    assert_true(timeline.at(2).at("end_tick") == 20, "Expected third segment to end at tick 20");
+    assert_true(timeline.at(2).at("end_tick") == 18, "Expected third segment to end at tick 18");
+    assert_true(timeline.at(3).at("start_tick") == 18, "Expected fourth segment to start at tick 18");
+    assert_true(timeline.at(3).at("end_tick") == 72, "Expected fourth segment to end at score_length tick 72");
 
     assert_true(timeline.at(0).contains("start_index"), "Expected compatibility field start_index on metric segment");
     assert_true(timeline.at(0).contains("end_index"), "Expected compatibility field end_index on metric segment");
-    assert_true(timeline.at(2).at("end_index") == 16, "Expected last segment compatibility end_index to match 17-event example");
+    assert_true(timeline.at(3).at("end_index") == 23, "Expected last segment compatibility end_index to match 24-event example");
 
     const auto numerators = solution.at("metric_signature_numerators").get<std::vector<int>>();
-    assert_true(numerators.size() == 17, "Expected 17 projected metric numerators for example config");
+    assert_true(numerators.size() == 24, "Expected 24 projected metric numerators for example config");
     assert_true(numerators.at(0) == 4 && numerators.at(7) == 4, "Expected first segment numerator projection to be 4");
     assert_true(numerators.at(8) == 3 && numerators.at(13) == 3, "Expected second segment numerator projection to be 3");
-    assert_true(numerators.at(14) == 6 && numerators.at(16) == 6, "Expected third segment numerator projection to be 6");
+    assert_true(numerators.at(14) == 2 && numerators.at(17) == 2, "Expected third segment numerator projection to be 2");
+    assert_true(numerators.at(18) == 4 && numerators.at(23) == 4, "Expected fourth segment numerator projection to be 4");
 }
 
 void test_metric_timepoint_exact_fill_success() {

@@ -3,9 +3,6 @@
   "description": "Force specific values to prove constraints work",
   "solution_length": 4,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "dynamic_rules": [
     {
       "id": "force_different_notes",
@@ -35,7 +32,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[0]",
-        "right": { "value": 60 }
+        "right": {
+          "value": 60
+        }
       },
       "mode": "constraint",
       "description": "Voice 1: Start on C4"
@@ -55,10 +54,18 @@
             }
           ]
         },
-        "right": { "value": 3 }
+        "right": {
+          "value": 3
+        }
       },
       "mode": "constraint",
       "description": "Voice 1: Stepwise motion (max 3 semitones)"
     }
-  ]
+  ],
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

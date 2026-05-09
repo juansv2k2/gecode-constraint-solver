@@ -4,8 +4,15 @@
     "description": "C4->D4->C#4 pattern, voice 2 stays in domain [60-71]",
     "num_voices": 2,
     "sequence_length": 3,
-    "pitch_range": [36, 128],
-    "rhythm_values": [1, 2, 4]
+    "pitch_range": [
+      36,
+      128
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ]
   },
   "rules": [
     {

@@ -4,8 +4,15 @@
     "description": "Test if extended domain works with basic constraints",
     "num_voices": 2,
     "sequence_length": 3,
-    "pitch_range": [36, 128],
-    "rhythm_values": [1, 2, 4],
+    "pitch_range": [
+      36,
+      128
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ],
     "time_signature": "3/4"
   },
   "rules": [

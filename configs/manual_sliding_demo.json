@@ -4,7 +4,10 @@
     "description": "Manual sequence to show sliding window works: C4->C#4->D4->D#4->E4 pattern",
     "num_voices": 2,
     "sequence_length": 10,
-    "pitch_range": [36, 128]
+    "pitch_range": [
+      36,
+      128
+    ]
   },
   "rules": [
     {

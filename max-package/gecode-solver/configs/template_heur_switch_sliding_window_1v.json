@@ -3,22 +3,45 @@
   "description": "Boolean preference rule over all adjacent note pairs.",
   "solution_length": 8,
   "num_voices": 1,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 0,
-    "timeout_ms": 5000
+    "timeout_ms": 5000,
+    "branching": "first_fail"
   },
-  "engine_domains": {
-    "engine_0": { "type": "rhythm", "voice": 0, "duration_values": ["1/8", "1/4"] },
-    "engine_1": { "type": "pitch", "voice": 0, "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71] }
-  },
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71
+        ]
+      }
+    }
+  ],
   "rules": [],
   "dynamic_rules": [
     {
       "id": "prefer_stepwise",
       "type": "heuristic_preference",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "step_size": 1,
       "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "mode": "heur_switch",

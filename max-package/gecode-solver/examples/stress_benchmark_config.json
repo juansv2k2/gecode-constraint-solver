@@ -3,43 +3,139 @@
   "description": "Benchmark-oriented stress case with longer sequence length, wider pitch/rhythm domains, palindrome coupling, and many local dynamic constraints.",
   "solution_length": 16,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 1,
-    "timeout_ms": 120000
+    "timeout_ms": 120000,
+    "branching": "first_fail"
   },
-
   "engine_domains": {
     "engine_0": {
       "type": "rhythm",
       "voice": 0,
-      "duration_values": ["1/8", "1/4", "1/2"]
+      "duration_values": [
+        "1/8",
+        "1/4",
+        "1/2"
+      ]
     },
     "engine_1": {
       "type": "pitch",
       "voice": 0,
       "midi_values": [
-        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-        64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-        80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
       ]
     },
     "engine_2": {
       "type": "rhythm",
       "voice": 1,
-      "duration_values": ["1/8", "1/4", "1/2"]
+      "duration_values": [
+        "1/8",
+        "1/4",
+        "1/2"
+      ]
     },
     "engine_3": {
       "type": "pitch",
       "voice": 1,
       "midi_values": [
-        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-        64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-        80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
       ]
     }
   },
-
   "rules": [
     {
       "rule_type": "r-twelve-tone-voice1",
@@ -48,7 +144,24 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
       "target_engine": 1,
       "engine_type": "pitch",
       "enabled": true,
@@ -60,9 +173,29 @@
       "constraint_function": {
         "type": "builtin",
         "function": "palindrome_of_engine",
-        "parameters": [1, 3]
+        "parameters": [
+          1,
+          3
+        ]
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
       "target_engine": 3,
       "engine_type": "pitch",
       "enabled": true,
@@ -70,7 +203,6 @@
       "description": "Voice 2: Exact palindrome of Voice 1"
     }
   ],
-
   "dynamic_rules": [
     {
       "id": "cross_no_unison_0",
@@ -263,7 +395,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 0 within an octave"
@@ -283,7 +417,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 1 within an octave"
@@ -303,7 +439,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 2 within an octave"
@@ -323,7 +461,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 3 within an octave"
@@ -343,7 +483,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 4 within an octave"
@@ -363,7 +505,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 5 within an octave"
@@ -383,7 +527,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 6 within an octave"
@@ -403,7 +549,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 1 interval 7 within an octave"
@@ -423,7 +571,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 0 within an octave"
@@ -443,7 +593,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 1 within an octave"
@@ -463,7 +615,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 2 within an octave"
@@ -483,7 +637,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 3 within an octave"
@@ -503,7 +659,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 4 within an octave"
@@ -523,7 +681,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 5 within an octave"
@@ -543,7 +703,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 6 within an octave"
@@ -563,7 +725,9 @@
             }
           ]
         },
-        "right": { "value": 12 }
+        "right": {
+          "value": 12
+        }
       },
       "mode": "constraint",
       "description": "Voice 2 interval 7 within an octave"

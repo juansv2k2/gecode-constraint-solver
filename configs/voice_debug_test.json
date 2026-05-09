@@ -4,8 +4,15 @@
     "description": "Test if voice relationships work at all",
     "num_voices": 2,
     "sequence_length": 2,
-    "pitch_range": [36, 128],
-    "rhythm_values": [1, 2, 4]
+    "pitch_range": [
+      36,
+      128
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ]
   },
   "rules": [
     {

@@ -3,33 +3,11 @@
   "description": "Single cross-voice wildcard heuristic expanded across all voice pairs and positions.",
   "solution_length": 8,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 5,
     "timeout_ms": 30000,
-    "heuristic_trace": true
-  },
-  "engine_domains": {
-    "engine_0": {
-      "type": "rhythm",
-      "voice": 0,
-      "duration_values": ["1/8", "1/4"]
-    },
-    "engine_1": {
-      "type": "pitch",
-      "voice": 0,
-      "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71]
-    },
-    "engine_2": {
-      "type": "rhythm",
-      "voice": 1,
-      "duration_values": ["1/8", "1/4"]
-    },
-    "engine_3": {
-      "type": "pitch",
-      "voice": 1,
-      "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71]
-    }
+    "heuristic_trace": true,
+    "branching": "first_fail"
   },
   "rules": [],
   "dynamic_rules": [
@@ -48,7 +26,9 @@
       "id": "prefer_contrary_interval_everywhere",
       "type": "heuristic_energy",
       "wildcard_type": "for_all_pairs",
-      "pattern_offsets": [0],
+      "pattern_offsets": [
+        0
+      ],
       "step_size": 1,
       "cross_voices": true,
       "expression": {
@@ -93,6 +73,52 @@
       "priority": 0,
       "direction": "maximize",
       "description": "Secondary local preference: keep candidates around MIDI 64"
+    }
+  ],
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71
+        ]
+      }
     }
   ]
 }

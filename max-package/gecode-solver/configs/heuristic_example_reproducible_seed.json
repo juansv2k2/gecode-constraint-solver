@@ -3,24 +3,34 @@
   "description": "Fixed seed (123) produces the SAME melody every run. This demonstrates reproducibility for testing/debugging. Change 'random_seed' to make solutions vary.",
   "solution_length": 6,
   "num_voices": 1,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 123,
     "timeout_ms": 5000,
-    "heuristic_trace": false
+    "heuristic_trace": false,
+    "branching": "first_fail"
   },
-  "engine_domains": {
-    "engine_0": {
-      "type": "rhythm",
-      "voice": 0,
-      "duration_values": ["1/8", "1/4"]
-    },
-    "engine_1": {
-      "type": "pitch",
-      "voice": 0,
-      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
+      }
     }
-  },
+  ],
   "rules": [],
   "dynamic_rules": [
     {
@@ -81,9 +91,12 @@
     {
       "id": "heur_stepwise_preference",
       "type": "heuristic_preference",
-      "description": "Priority 5: Prefer stepwise motion (±2 semitones) for smooth melody",
+      "description": "Priority 5: Prefer stepwise motion (\u00b12 semitones) for smooth melody",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "step_size": 1,
       "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "mode": "heur_switch",
@@ -100,9 +113,21 @@
         "condition": {
           "function": "any_of",
           "args": [
-            { "operator": "==", "left": "?current", "right": 60 },
-            { "operator": "==", "left": "?current", "right": 64 },
-            { "operator": "==", "left": "?current", "right": 67 }
+            {
+              "operator": "==",
+              "left": "?current",
+              "right": 60
+            },
+            {
+              "operator": "==",
+              "left": "?current",
+              "right": 64
+            },
+            {
+              "operator": "==",
+              "left": "?current",
+              "right": 67
+            }
           ]
         },
         "true_val": 1,
@@ -123,7 +148,11 @@
         "right": {
           "function": "abs",
           "args": [
-            { "operator": "-", "left": "?current", "right": 65 }
+            {
+              "operator": "-",
+              "left": "?current",
+              "right": 65
+            }
           ]
         }
       },

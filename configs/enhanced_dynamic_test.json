@@ -3,9 +3,6 @@
   "description": "Test new features: IN, ABS, MOD, multi-voice",
   "solution_length": 6,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "dynamic_rules": [
     {
       "id": "voice1_c_major_notes",
@@ -14,9 +11,24 @@
         "operator": "in",
         "left": {
           "function": "mod",
-          "args": ["voice[0].pitch[0]", { "value": 12 }]
+          "args": [
+            "voice[0].pitch[0]",
+            {
+              "value": 12
+            }
+          ]
         },
-        "right": { "value": [0, 2, 4, 5, 7, 9, 11] }
+        "right": {
+          "value": [
+            0,
+            2,
+            4,
+            5,
+            7,
+            9,
+            11
+          ]
+        }
       },
       "mode": "constraint",
       "description": "Voice 1: First note must be in C Major scale"
@@ -30,7 +42,9 @@
         "right": {
           "operator": "+",
           "left": "voice[0].pitch[0]",
-          "right": { "value": 7 }
+          "right": {
+            "value": 7
+          }
         }
       },
       "mode": "constraint",
@@ -42,10 +56,18 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[0]",
-        "right": { "value": 60 }
+        "right": {
+          "value": 60
+        }
       },
       "mode": "constraint",
       "description": "Voice 1: Start on C4"
     }
-  ]
+  ],
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

@@ -3,36 +3,10 @@
   "description": "Backtracking-heavy benchmark: tight pitch pool with long sequence and coupled constraints.",
   "solution_length": 18,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
   "search_options": {
     "random_seed": 1,
-    "timeout_ms": 120000
-  },
-  "engine_domains": {
-    "engine_0": {
-      "type": "rhythm",
-      "voice": 0,
-      "duration_values": ["1/8", "1/4"]
-    },
-    "engine_1": {
-      "type": "pitch",
-      "voice": 0,
-      "midi_values": [
-        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77
-      ]
-    },
-    "engine_2": {
-      "type": "rhythm",
-      "voice": 1,
-      "duration_values": ["1/8", "1/4"]
-    },
-    "engine_3": {
-      "type": "pitch",
-      "voice": 1,
-      "midi_values": [
-        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77
-      ]
-    }
+    "timeout_ms": 120000,
+    "branching": "first_fail"
   },
   "rules": [
     {
@@ -42,26 +16,69 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-      "target_engine": 1,
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Voice 1 all-different over the full 18-note pool"
+      "description": "Voice 1 all-different over the full 18-note pool",
+      "target_voice": 0,
+      "target_component": "pitch"
     },
     {
       "rule_type": "r-palindrome-voice2",
       "constraint_function": {
         "type": "builtin",
         "function": "palindrome_of_engine",
-        "parameters": [1, 3]
+        "parameters": [
+          1,
+          3
+        ]
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-      "target_engine": 3,
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 9,
-      "description": "Voice 2 exact palindrome of Voice 1"
+      "description": "Voice 2 exact palindrome of Voice 1",
+      "target_voice": 1,
+      "target_component": "pitch"
     }
   ],
   "dynamic_rules": [
@@ -71,7 +88,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[0]",
-        "right": { "value": 60 }
+        "right": {
+          "value": 60
+        }
       },
       "mode": "constraint",
       "description": "Anchor first note"
@@ -82,7 +101,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[9]",
-        "right": { "value": 69 }
+        "right": {
+          "value": 69
+        }
       },
       "mode": "constraint",
       "description": "Anchor middle note"
@@ -93,7 +114,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[17]",
-        "right": { "value": 77 }
+        "right": {
+          "value": 77
+        }
       },
       "mode": "constraint",
       "description": "Anchor last note"
@@ -196,6 +219,68 @@
       },
       "mode": "constraint",
       "description": "No unison at 8"
+    }
+  ],
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77
+        ]
+      }
     }
   ]
 }

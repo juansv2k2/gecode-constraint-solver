@@ -5,6 +5,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <numeric>
 #include <nlohmann/json.hpp>
@@ -274,6 +275,623 @@ parse_metric_domain_from_engine_domains(const nlohmann::json& cfg) {
     return out;
 }
 
+std::vector<MusicalConstraintSolver::SolverConfig::MetricDomainEntry>
+parse_metric_domain_from_meter(const nlohmann::json& cfg) {
+    std::vector<MusicalConstraintSolver::SolverConfig::MetricDomainEntry> out;
+    if (!cfg.contains("meter") || !cfg["meter"].is_object()) {
+        if (!cfg.contains("metric") || !cfg["metric"].is_object()) {
+            return out;
+        }
+    }
+
+    const auto& meter = cfg.contains("meter") && cfg["meter"].is_object() ? cfg["meter"] : cfg["metric"];
+    std::vector<std::pair<int, int>> signatures;
+
+    if (meter.contains("time_signatures")) {
+        if (!meter["time_signatures"].is_array() || meter["time_signatures"].empty()) {
+            throw std::runtime_error("meter: 'time_signatures' must be a non-empty array");
+        }
+        for (size_t i = 0; i < meter["time_signatures"].size(); ++i) {
+            signatures.push_back(parse_time_signature_value(
+                meter["time_signatures"][i], "meter time_signatures[" + std::to_string(i) + "]"));
+        }
+    } else if (meter.contains("time_signature")) {
+        const auto& ts = meter["time_signature"];
+        if (ts.is_array() && !ts.empty() &&
+            (ts[0].is_string() || ts[0].is_array() || ts[0].is_object())) {
+            for (size_t i = 0; i < ts.size(); ++i) {
+                signatures.push_back(parse_time_signature_value(
+                    ts[i], "meter time_signature[" + std::to_string(i) + "]"));
+            }
+        } else {
+            signatures.push_back(parse_time_signature_value(ts, "meter time_signature"));
+        }
+    } else if (meter.contains("numerator") || meter.contains("denominator")) {
+        signatures.push_back(parse_time_signature_value(meter, "meter"));
+    }
+
+    std::vector<int> tuplets;
+    if (meter.contains("tuplets")) {
+        tuplets = parse_positive_int_array(meter["tuplets"], "meter tuplets");
+    }
+
+    std::vector<int> beat_divisions;
+    if (meter.contains("beat_divisions")) {
+        beat_divisions = parse_positive_int_array(meter["beat_divisions"], "meter beat_divisions");
+    }
+
+    for (const auto& ts : signatures) {
+        MusicalConstraintSolver::SolverConfig::MetricDomainEntry entry;
+        entry.numerator = ts.first;
+        entry.denominator = ts.second;
+        entry.tuplets = tuplets;
+        entry.beat_divisions = beat_divisions;
+        out.push_back(std::move(entry));
+    }
+
+    return out;
+}
+
+void normalize_voice_domain_entry(const nlohmann::json& source,
+                                 int voice_index,
+                                 nlohmann::json& mapped) {
+    if (!source.is_object()) return;
+
+    if (source.contains("rhythm")) {
+        const auto& rhythm = source["rhythm"];
+        const std::string rhythm_key = "engine_" + std::to_string(voice_index * 2);
+        mapped[rhythm_key] = nlohmann::json::object();
+        mapped[rhythm_key]["type"] = "rhythm";
+        mapped[rhythm_key]["voice"] = voice_index;
+        if (rhythm.is_object()) {
+            if (rhythm.contains("duration_values")) {
+                mapped[rhythm_key]["duration_values"] = rhythm["duration_values"];
+            }
+            if (rhythm.contains("description")) {
+                mapped[rhythm_key]["description"] = rhythm["description"];
+            }
+        } else {
+            mapped[rhythm_key]["duration_values"] = rhythm;
+        }
+    }
+
+    if (source.contains("pitch")) {
+        const auto& pitch = source["pitch"];
+        const std::string pitch_key = "engine_" + std::to_string(voice_index * 2 + 1);
+        mapped[pitch_key] = nlohmann::json::object();
+        mapped[pitch_key]["type"] = "pitch";
+        mapped[pitch_key]["voice"] = voice_index;
+        if (pitch.is_object()) {
+            if (pitch.contains("midi_values")) {
+                mapped[pitch_key]["midi_values"] = pitch["midi_values"];
+            }
+            if (pitch.contains("description")) {
+                mapped[pitch_key]["description"] = pitch["description"];
+            }
+        } else {
+            mapped[pitch_key]["midi_values"] = pitch;
+        }
+    }
+}
+
+std::string fraction_array_to_duration_string(const nlohmann::json& value) {
+    if (!value.is_array() || value.size() != 2 ||
+        !value[0].is_number() || !value[1].is_number()) {
+        return "";
+    }
+
+    const int num = static_cast<int>(std::lround(value[0].get<double>()));
+    const int den = static_cast<int>(std::lround(value[1].get<double>()));
+    if (num <= 0 || den <= 0) return "";
+    return std::to_string(num) + "/" + std::to_string(den);
+}
+
+void preprocess_legacy_config(nlohmann::json& cfg) {
+    if (cfg.contains("configuration") && cfg["configuration"].is_object()) {
+        const auto& legacy = cfg["configuration"];
+        if (!cfg.contains("solution_length") && legacy.contains("sequence_length") && legacy["sequence_length"].is_number_integer()) {
+            cfg["solution_length"] = legacy["sequence_length"];
+        }
+        if (!cfg.contains("num_voices") && legacy.contains("num_voices") && legacy["num_voices"].is_number_integer()) {
+            cfg["num_voices"] = legacy["num_voices"];
+        }
+        if (!cfg.contains("meter") && legacy.contains("time_signature") && legacy["time_signature"].is_string()) {
+            cfg["meter"] = nlohmann::json::object();
+            cfg["meter"]["time_signatures"] = nlohmann::json::array({legacy["time_signature"]});
+        }
+        if (!cfg.contains("voices") && legacy.contains("pitch_range") && legacy["pitch_range"].is_array() && legacy["pitch_range"].size() == 2) {
+            const int num_voices = cfg.value("num_voices", 1);
+            const int lo = static_cast<int>(std::lround(legacy["pitch_range"][0].get<double>()));
+            const int hi = static_cast<int>(std::lround(legacy["pitch_range"][1].get<double>()));
+            nlohmann::json voices = nlohmann::json::array();
+            for (int v = 0; v < std::max(1, num_voices); ++v) {
+                nlohmann::json voice = nlohmann::json::object();
+                voice["rhythm"] = nlohmann::json::object({{"duration_values", nlohmann::json::array({"1/4"})}});
+                nlohmann::json pitches = nlohmann::json::array();
+                for (int p = lo; p <= hi; ++p) pitches.push_back(p);
+                voice["pitch"] = nlohmann::json::object({{"midi_values", pitches}});
+                voices.push_back(std::move(voice));
+            }
+            cfg["voices"] = std::move(voices);
+        }
+    }
+
+    if (!cfg.contains("voices") && cfg.contains("note_domain") && cfg["note_domain"].is_array()) {
+        const int num_voices = std::max(1, cfg.value("num_voices", 1));
+        nlohmann::json voices = nlohmann::json::array();
+        for (int v = 0; v < num_voices; ++v) {
+            nlohmann::json voice = nlohmann::json::object();
+            voice["rhythm"] = nlohmann::json::object({{"duration_values", nlohmann::json::array({"1/4"})}});
+            voice["pitch"] = nlohmann::json::object({{"midi_values", cfg["note_domain"]}});
+            voices.push_back(std::move(voice));
+        }
+        cfg["voices"] = std::move(voices);
+    }
+
+    if (cfg.contains("domains") && cfg["domains"].is_object()) {
+        const auto& domains = cfg["domains"];
+
+        if (!cfg.contains("meter") && domains.contains("metric_domain") && domains["metric_domain"].is_object()) {
+            const auto& metric = domains["metric_domain"];
+            nlohmann::json meter = nlohmann::json::object();
+
+            if (metric.contains("time_signatures") && metric["time_signatures"].is_array()) {
+                nlohmann::json ts = nlohmann::json::array();
+                for (const auto& item : metric["time_signatures"]) {
+                    if (item.is_string()) {
+                        ts.push_back(item);
+                    } else if (item.is_array() && item.size() >= 2 && item[0].is_number() && item[1].is_number()) {
+                        const int n = static_cast<int>(std::lround(item[0].get<double>()));
+                        const int d = static_cast<int>(std::lround(item[1].get<double>()));
+                        if (n > 0 && d > 0) ts.push_back(std::to_string(n) + "/" + std::to_string(d));
+                    }
+                }
+                if (!ts.empty()) {
+                    meter["time_signatures"] = std::move(ts);
+                }
+            }
+
+            if (metric.contains("subdivisions")) {
+                if (metric["subdivisions"].is_array() && !metric["subdivisions"].empty() && metric["subdivisions"][0].is_array()) {
+                    meter["beat_divisions"] = metric["subdivisions"][0];
+                } else {
+                    meter["beat_divisions"] = metric["subdivisions"];
+                }
+            }
+
+            if (!meter.empty()) {
+                cfg["meter"] = std::move(meter);
+            }
+        }
+
+        if (!cfg.contains("voices") && domains.contains("voice_domains") && domains["voice_domains"].is_array()) {
+            int max_voice = -1;
+            for (const auto& vd : domains["voice_domains"]) {
+                if (vd.is_object() && vd.contains("voice_index") && vd["voice_index"].is_number_integer()) {
+                    max_voice = std::max(max_voice, vd["voice_index"].get<int>());
+                }
+            }
+            if (max_voice >= 0) {
+                nlohmann::json voices = nlohmann::json::array();
+                for (int i = 0; i <= max_voice; ++i) voices.push_back(nlohmann::json::object());
+
+                for (const auto& vd : domains["voice_domains"]) {
+                    if (!vd.is_object() || !vd.contains("voice_index") || !vd["voice_index"].is_number_integer()) continue;
+                    const int v = vd["voice_index"].get<int>();
+                    if (v < 0 || v > max_voice) continue;
+
+                    nlohmann::json voice = nlohmann::json::object();
+
+                    if (vd.contains("pitch_domain") && vd["pitch_domain"].is_array()) {
+                        voice["pitch"] = nlohmann::json::object({{"midi_values", vd["pitch_domain"]}});
+                    }
+
+                    if (vd.contains("rhythm_domain") && vd["rhythm_domain"].is_array()) {
+                        nlohmann::json durations = nlohmann::json::array();
+                        for (const auto& rv : vd["rhythm_domain"]) {
+                            if (rv.is_string()) {
+                                durations.push_back(rv);
+                            } else if (rv.is_number()) {
+                                const double raw = rv.get<double>();
+                                if (std::isfinite(raw) && std::abs(raw) > 1e-12) {
+                                    const bool is_rest = raw < 0.0;
+                                    const double abs_value = std::abs(raw);
+                                    int best_num = 0;
+                                    int best_den = 1;
+                                    double best_err = std::numeric_limits<double>::infinity();
+                                    for (int den = 1; den <= 1024; ++den) {
+                                        const int num = static_cast<int>(std::round(abs_value * den));
+                                        if (num <= 0) continue;
+                                        const double approx = static_cast<double>(num) / static_cast<double>(den);
+                                        const double err = std::abs(approx - abs_value);
+                                        if (err < best_err) {
+                                            best_err = err;
+                                            best_num = num;
+                                            best_den = den;
+                                            if (err < 1e-9) break;
+                                        }
+                                    }
+                                    if (best_num > 0) {
+                                        const int g = gcd_int(best_num, best_den);
+                                        best_num /= g;
+                                        best_den /= g;
+                                        std::ostringstream oss;
+                                        if (is_rest) oss << "-";
+                                        oss << best_num << "/" << best_den;
+                                        durations.push_back(oss.str());
+                                    }
+                                }
+                            } else if (rv.is_array()) {
+                                const std::string frac = fraction_array_to_duration_string(rv);
+                                if (!frac.empty()) durations.push_back(frac);
+                            }
+                        }
+                        if (!durations.empty()) {
+                            voice["rhythm"] = nlohmann::json::object({{"duration_values", durations}});
+                        }
+                    }
+
+                    voices[v] = std::move(voice);
+                }
+
+                cfg["voices"] = std::move(voices);
+                cfg["num_voices"] = max_voice + 1;
+            }
+        }
+    }
+
+    if (!cfg.contains("voices") && !cfg.contains("engine_domains")) {
+        const int num_voices = std::max(1, cfg.value("num_voices", 1));
+        nlohmann::json default_pitches = nlohmann::json::array();
+        for (int midi = 60; midi <= 72; ++midi) {
+            default_pitches.push_back(midi);
+        }
+
+        nlohmann::json voices = nlohmann::json::array();
+        for (int v = 0; v < num_voices; ++v) {
+            nlohmann::json voice = nlohmann::json::object();
+            voice["rhythm"] = nlohmann::json::object({{"duration_values", nlohmann::json::array({"1/4"})}});
+            voice["pitch"] = nlohmann::json::object({{"midi_values", default_pitches}});
+            voices.push_back(std::move(voice));
+        }
+        cfg["voices"] = std::move(voices);
+        cfg["num_voices"] = num_voices;
+    }
+}
+
+bool normalize_voices_to_engine_domains(const nlohmann::json& cfg, nlohmann::json& mapped, int& normalized_voice_count) {
+    if (!cfg.contains("voices")) {
+        normalized_voice_count = 0;
+        return false;
+    }
+
+    const auto& voices = cfg["voices"];
+    if (!voices.is_object() && !voices.is_array()) {
+        throw std::runtime_error("voices must be an object or array");
+    }
+
+    mapped = nlohmann::json::object();
+    int next_voice_index = 0;
+
+    if (voices.is_array()) {
+        for (size_t i = 0; i < voices.size(); ++i) {
+            const auto& voice = voices[i];
+            if (voice.is_null()) {
+                throw std::runtime_error(
+                    "voices array must not contain gaps; missing voice at index " + std::to_string(i));
+            }
+            if (!voice.is_object()) {
+                throw std::runtime_error(
+                    "voices array entries must be objects; invalid entry at index " + std::to_string(i));
+            }
+
+            if (voice.contains("voice") && voice["voice"].is_number_integer() &&
+                voice["voice"].get<int>() != static_cast<int>(i)) {
+                throw std::runtime_error(
+                    "voices array must use contiguous positions; entry " + std::to_string(i) +
+                    " conflicts with explicit voice index " + std::to_string(voice["voice"].get<int>()));
+            }
+
+            const int voice_index = static_cast<int>(i);
+            normalize_voice_domain_entry(voice, voice_index, mapped);
+            next_voice_index = std::max(next_voice_index, voice_index + 1);
+        }
+    } else {
+        std::vector<int> object_voice_indices;
+        for (auto it = voices.begin(); it != voices.end(); ++it) {
+            const auto& voice = it.value();
+            if (!voice.is_object()) continue;
+
+            int voice_index = -1;
+            try {
+                voice_index = std::stoi(it.key());
+            } catch (...) {
+                throw std::runtime_error("voices object keys must be contiguous numeric strings starting at 0");
+            }
+
+            if (voice_index < 0) {
+                throw std::runtime_error("voices object keys must be contiguous numeric strings starting at 0");
+            }
+
+            if (voice.contains("voice") && voice["voice"].is_number_integer() &&
+                voice["voice"].get<int>() != voice_index) {
+                throw std::runtime_error(
+                    "voices object entry '" + it.key() + "' conflicts with explicit voice index " +
+                    std::to_string(voice["voice"].get<int>()));
+            }
+
+            object_voice_indices.push_back(voice_index);
+            next_voice_index = std::max(next_voice_index, voice_index + 1);
+        }
+
+        std::sort(object_voice_indices.begin(), object_voice_indices.end());
+        object_voice_indices.erase(
+            std::unique(object_voice_indices.begin(), object_voice_indices.end()),
+            object_voice_indices.end());
+
+        for (int expected = 0; expected < static_cast<int>(object_voice_indices.size()); ++expected) {
+            if (object_voice_indices[expected] != expected) {
+                throw std::runtime_error(
+                    "voices object must use contiguous keys 0..N-1; missing voice " + std::to_string(expected));
+            }
+        }
+
+        for (auto it = voices.begin(); it != voices.end(); ++it) {
+            const auto& voice = it.value();
+            if (!voice.is_object()) continue;
+
+            const int voice_index = std::stoi(it.key());
+            normalize_voice_domain_entry(voice, voice_index, mapped);
+        }
+    }
+
+    normalized_voice_count = next_voice_index;
+    return true;
+}
+
+int engine_index_for_voice_component(int voice, const std::string& component, int num_voices) {
+    if (voice < 0 || voice >= num_voices) {
+        throw std::runtime_error(
+            "voice index " + std::to_string(voice) + " is out of range for " +
+            std::to_string(num_voices) + " voices");
+    }
+
+    if (component == "rhythm") {
+        return voice * 2;
+    }
+    if (component == "pitch") {
+        return voice * 2 + 1;
+    }
+
+    throw std::runtime_error(
+        "unsupported target_component '" + component + "'; expected 'pitch' or 'rhythm'");
+}
+
+void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
+    if (!rule.is_object()) return;
+
+    const std::string rule_id = rule.value("id", rule.value("rule_type", std::string("rule")));
+    const std::string rule_type = rule.value("rule_type", std::string(""));
+    const std::string type_field = rule.value("type", std::string(""));
+
+    if (type_field == "index") {
+        return;
+    }
+
+    if (rule.contains("target_engine") || rule.contains("target_engines")) {
+        throw std::runtime_error(
+            "rule '" + rule_id + "' uses legacy engine targeting; use target_voice/target_voices instead");
+    }
+
+    if (rule_type == "r-metric-signature") {
+        if (rule.contains("target_voice") || rule.contains("target_voices") || rule.contains("target_component")) {
+            throw std::runtime_error(
+                "rule '" + rule_id + "' is metric-targeted implicitly and must not specify voice/component targets");
+        }
+
+        rule["target_engine"] = num_voices * 2;
+        rule["engine_type"] = "metric";
+        return;
+    }
+
+    bool has_target_voice = rule.contains("target_voice") && rule["target_voice"].is_number_integer();
+    bool has_target_voices = rule.contains("target_voices") && rule["target_voices"].is_array() && !rule["target_voices"].empty();
+
+    if (!has_target_voice && !has_target_voices) {
+        if (rule.contains("voice")) {
+            if (rule["voice"].is_number_integer()) {
+                rule["target_voice"] = rule["voice"].get<int>();
+                has_target_voice = true;
+            } else if (rule["voice"].is_null()) {
+                nlohmann::json all = nlohmann::json::array();
+                for (int voice = 0; voice < num_voices; ++voice) {
+                    all.push_back(voice);
+                }
+                if (!all.empty()) {
+                    rule["target_voices"] = std::move(all);
+                    has_target_voices = true;
+                }
+            }
+        }
+    }
+
+    if (!has_target_voice && !has_target_voices && rule.contains("constraint") && rule["constraint"].is_string()) {
+        std::set<int> voices_from_constraint;
+        static const std::regex kVoiceRef(R"(voice\[(\d+)\])");
+        const std::string expr = rule["constraint"].get<std::string>();
+        const bool has_voice_variable = expr.find("voice[v]") != std::string::npos;
+        for (std::sregex_iterator it(expr.begin(), expr.end(), kVoiceRef), end; it != end; ++it) {
+            voices_from_constraint.insert(std::stoi((*it)[1].str()));
+        }
+
+        if (voices_from_constraint.size() == 1) {
+            rule["target_voice"] = *voices_from_constraint.begin();
+            has_target_voice = true;
+        } else if (!voices_from_constraint.empty()) {
+            nlohmann::json many = nlohmann::json::array();
+            for (int voice : voices_from_constraint) {
+                if (voice >= 0 && voice < num_voices) {
+                    many.push_back(voice);
+                }
+            }
+            if (!many.empty()) {
+                rule["target_voices"] = std::move(many);
+                has_target_voices = true;
+            }
+        } else if (has_voice_variable) {
+            nlohmann::json all = nlohmann::json::array();
+            for (int voice = 0; voice < num_voices; ++voice) {
+                all.push_back(voice);
+            }
+            if (!all.empty()) {
+                rule["target_voices"] = std::move(all);
+                has_target_voices = true;
+            }
+        }
+    }
+
+    if (!has_target_voice && !has_target_voices && rule.contains("constraint") && rule["constraint"].is_object()) {
+        std::set<int> voices_in_ast;
+        std::function<void(const nlohmann::json&)> collect_voices = [&](const nlohmann::json& node) {
+            if (node.is_object()) {
+                if (node.contains("type") && node["type"].is_string() && node["type"].get<std::string>() == "voice_access" &&
+                    node.contains("voice") && node["voice"].is_number_integer()) {
+                    voices_in_ast.insert(node["voice"].get<int>());
+                }
+                for (auto it = node.begin(); it != node.end(); ++it) {
+                    collect_voices(it.value());
+                }
+            } else if (node.is_array()) {
+                for (const auto& child : node) {
+                    collect_voices(child);
+                }
+            }
+        };
+        collect_voices(rule["constraint"]);
+
+        if (voices_in_ast.size() == 1) {
+            rule["target_voice"] = *voices_in_ast.begin();
+            has_target_voice = true;
+        } else if (!voices_in_ast.empty()) {
+            nlohmann::json many = nlohmann::json::array();
+            for (int voice : voices_in_ast) {
+                if (voice >= 0 && voice < num_voices) {
+                    many.push_back(voice);
+                }
+            }
+            if (!many.empty()) {
+                rule["target_voices"] = std::move(many);
+                has_target_voices = true;
+            }
+        }
+    }
+
+    if (!has_target_voice && !has_target_voices && rule.contains("scope") && rule["scope"].is_string()) {
+        const std::string scope = rule["scope"].get<std::string>();
+        if (scope == "each_voice" || scope == "cross_voices" || scope == "all_voices") {
+            nlohmann::json all = nlohmann::json::array();
+            for (int voice = 0; voice < num_voices; ++voice) {
+                all.push_back(voice);
+            }
+            if (!all.empty()) {
+                rule["target_voices"] = std::move(all);
+                has_target_voices = true;
+            }
+        }
+    }
+
+    if (!has_target_voice && !has_target_voices &&
+        rule.value("rule_type", std::string("")) == "wildcard_constraint" &&
+        rule.value("wildcard_type", std::string("")) == "for_all_voices") {
+        nlohmann::json all = nlohmann::json::array();
+        for (int voice = 0; voice < num_voices; ++voice) {
+            all.push_back(voice);
+        }
+        if (!all.empty()) {
+            rule["target_voices"] = std::move(all);
+            has_target_voices = true;
+        }
+    }
+
+    if (!has_target_voice && !has_target_voices &&
+        rule.value("rule_type", std::string("")) == "wildcard_constraint") {
+        nlohmann::json all = nlohmann::json::array();
+        for (int voice = 0; voice < num_voices; ++voice) {
+            all.push_back(voice);
+        }
+        if (!all.empty()) {
+            rule["target_voices"] = std::move(all);
+            has_target_voices = true;
+        }
+    }
+
+    if (has_target_voice && has_target_voices) {
+        throw std::runtime_error(
+            "rule '" + rule_id + "' must specify either target_voice or target_voices, not both");
+    }
+
+    if (!has_target_voice && !has_target_voices) {
+        throw std::runtime_error(
+            "rule '" + rule_id + "' is missing target_voice/target_voices");
+    }
+
+    std::string target_component = rule.value("target_component", std::string(""));
+    if (target_component.empty()) {
+        const std::string engine_type = rule.value("engine_type", std::string(""));
+        if (engine_type == "pitch" || engine_type == "rhythm") {
+            target_component = engine_type;
+        }
+    }
+    if (target_component.empty()) {
+        target_component = "pitch";
+    }
+
+    if (!rule.contains("engine_type") && rule_type != "r-metric-signature") {
+        rule["engine_type"] = target_component;
+    }
+
+    if (has_target_voice) {
+        const int voice = rule["target_voice"].get<int>();
+        rule["target_engine"] = engine_index_for_voice_component(voice, target_component, num_voices);
+    } else {
+        nlohmann::json target_engines = nlohmann::json::array();
+        nlohmann::json normalized_target_voices = nlohmann::json::array();
+        for (const auto& voice_json : rule["target_voices"]) {
+            if (!voice_json.is_number_integer()) {
+                throw std::runtime_error(
+                    "rule '" + rule_id + "' target_voices must contain integers only");
+            }
+            const int voice = voice_json.get<int>();
+            normalized_target_voices.push_back(voice);
+            target_engines.push_back(engine_index_for_voice_component(voice, target_component, num_voices));
+        }
+        rule["target_voices"] = std::move(normalized_target_voices);
+        rule["target_engines"] = std::move(target_engines);
+
+        if (rule.contains("constraint_function") && rule["constraint_function"].is_object() &&
+            rule["constraint_function"].value("function", std::string("")) == "no_unisons_between_engines") {
+            rule["constraint_function"]["parameters"] = rule["target_engines"];
+        }
+    }
+}
+
+void normalize_rules_to_engine_targets(nlohmann::json& cfg, int num_voices) {
+    if (!cfg.contains("rules") || (!cfg["rules"].is_array() && !cfg["rules"].is_object())) {
+        return;
+    }
+
+    if (cfg["rules"].is_array()) {
+        for (auto& rule : cfg["rules"]) {
+            normalize_rule_targeting(rule, num_voices);
+        }
+        return;
+    }
+
+    for (auto it = cfg["rules"].begin(); it != cfg["rules"].end(); ++it) {
+        normalize_rule_targeting(it.value(), num_voices);
+    }
+}
+
 std::string numeric_duration_to_fraction_string(double value) {
     if (!std::isfinite(value) || std::abs(value) < 1e-12) {
         throw std::runtime_error("Invalid numeric duration value");
@@ -404,7 +1022,7 @@ GecodeClusterIntegration::VariableBranchingStrategy parse_variable_branching(con
     if (branching == "first_fail") {
         return GecodeClusterIntegration::VariableBranchingStrategy::FIRST_FAIL;
     }
-    if (branching == "input_order") {
+    if (branching == "input_order" || branching == "sequential") {
         return GecodeClusterIntegration::VariableBranchingStrategy::INPUT_ORDER;
     }
     throw std::runtime_error("search_options.branching: unsupported value '" + branching + "'");
@@ -667,7 +1285,7 @@ void reconstruct_flattened_max_dict_paths(nlohmann::json& cfg) {
 void coerce_scalar_array_schema_fields(nlohmann::json& value) {
     static const std::set<std::string> array_keys = {
         "dynamic_rules", "rules", "duration_values", "midi_values", "time_signatures",
-        "tuplets", "beat_divisions", "indices", "target_engines", "timepoints", "parameters"
+        "tuplets", "beat_divisions", "indices", "target_engines", "target_voices", "timepoints", "parameters"
     };
 
     if (value.is_object()) {
@@ -840,10 +1458,6 @@ std::string AsyncSolverWrapper::get_status_json() const {
     std::lock_guard<std::mutex> lock(mutex_);
     nlohmann::json j;
     j["status"] = status_to_string(status_);
-    j["configured"] = configured_;
-    j["running"] = (status_ == SolveStatus::RUNNING);
-    j["result_ready"] = result_ready_.load();
-    j["last_message"] = last_result_.message;
     return j.dump();
 }
 
@@ -994,7 +1608,7 @@ void AsyncSolverWrapper::run_solve_job() {
                             }
 
                             const std::string base = export_filename_.empty() ? "max_solver" : export_filename_;
-                            const std::filesystem::path base_path = out_dir / (base + "_result");
+                            const std::filesystem::path base_path = out_dir / base;
                             std::vector<std::string> written_files;
 
                             if (export_json_) {
@@ -1030,8 +1644,6 @@ void AsyncSolverWrapper::run_solve_job() {
                                 j["export_path_resolved"] = std::filesystem::absolute(out_dir).string();
                                 j["exported_files"] = written_files;
                                 local_result.result_json = j.dump();
-                                local_result.message += " [exports: " + std::to_string(written_files.size()) + " file(s) to " +
-                                    std::filesystem::absolute(out_dir).string() + "]";
                             }
                         } catch (const std::exception& ex) {
                             local_result.message += std::string(" (export warning: ") + ex.what() + ")";
@@ -1059,6 +1671,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         nlohmann::json cfg = nlohmann::json::parse(config_json);
         reconstruct_flattened_max_dict_paths(cfg);
         coerce_scalar_array_schema_fields(cfg);
+        preprocess_legacy_config(cfg);
 
         export_path_ = ".";
         export_filename_.clear();
@@ -1067,6 +1680,15 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         export_xml_ = false;
         export_png_ = false;
         export_midi_ = false;
+
+        MusicalConstraintSolver::SolverConfig sc;
+        sc.sequence_length = cfg.value("solution_length", 12);
+        sc.num_voices = cfg.value("num_voices", 2);
+        sc.search_engine = parse_search_engine(cfg);
+        sc.variable_branching = parse_variable_branching(cfg);
+        sc.value_selection = parse_value_selection(cfg);
+        sc.restart_policy = parse_restart_policy(cfg);
+        sc.verbose_output = false;
 
         if (cfg.contains("output_options") && cfg["output_options"].is_object()) {
             const auto& oo = cfg["output_options"];
@@ -1084,7 +1706,33 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             if (oo.contains("export_midi")) export_midi_ = json_value_to_bool_with_default(oo["export_midi"], false);
         }
 
-        // Backward compatibility: map legacy domains[] format to engine_domains{}.
+        if (cfg.contains("voices")) {
+            nlohmann::json mapped;
+            int normalized_voice_count = 0;
+            if (normalize_voices_to_engine_domains(cfg, mapped, normalized_voice_count)) {
+                cfg["engine_domains"] = std::move(mapped);
+                if (cfg.contains("num_voices") && cfg["num_voices"].is_number_integer() &&
+                    cfg["num_voices"].get<int>() != normalized_voice_count) {
+                    throw std::runtime_error(
+                        "num_voices does not match voices definition; expected " +
+                        std::to_string(normalized_voice_count) + " but got " +
+                        std::to_string(cfg["num_voices"].get<int>()));
+                }
+                sc.num_voices = normalized_voice_count;
+            }
+        }
+
+        normalize_rules_to_engine_targets(cfg, sc.num_voices);
+
+        if (cfg.contains("meter") || cfg.contains("metric")) {
+            const auto metric_from_meter = parse_metric_domain_from_meter(cfg);
+            if (!metric_from_meter.empty()) {
+                sc.metric_domain = metric_from_meter;
+            }
+        } else {
+            sc.metric_domain = parse_metric_domain_from_engine_domains(cfg);
+        }
+
         if ((!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object()) &&
             cfg.contains("domains") && (cfg["domains"].is_array() || cfg["domains"].is_object())) {
             nlohmann::json mapped = nlohmann::json::object();
@@ -1101,19 +1749,13 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
             for (const auto& d : domain_entries) {
                 if (!d.is_object()) continue;
-
                 int voice = d.value("voice", -1);
                 if (voice < 0) {
                     const int engine_id = d.value("engine_id", -1);
                     if (engine_id >= 0) {
-                        if ((engine_id % 2) == 0) {
-                            voice = engine_id / 2;
-                        } else {
-                            voice = (engine_id - 1) / 2;
-                        }
+                        voice = ((engine_id % 2) == 0) ? (engine_id / 2) : ((engine_id - 1) / 2);
                     }
                 }
-
                 if (voice < 0) continue;
 
                 const std::string type = d.value("type", std::string(""));
@@ -1129,7 +1771,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 mapped[key] = nlohmann::json::object();
                 mapped[key]["type"] = type;
                 mapped[key]["voice"] = voice;
-
                 if (d.contains("values")) {
                     if (type == "pitch") {
                         mapped[key]["midi_values"] = d["values"];
@@ -1141,38 +1782,25 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             cfg["engine_domains"] = mapped;
         }
 
-        MusicalConstraintSolver::SolverConfig sc;
-        sc.sequence_length = cfg.value("solution_length", 12);
-        sc.num_voices = cfg.value("num_voices", 2);
-        sc.search_engine = parse_search_engine(cfg);
-        sc.variable_branching = parse_variable_branching(cfg);
-        sc.value_selection = parse_value_selection(cfg);
-        sc.restart_policy = parse_restart_policy(cfg);
-        sc.verbose_output = false;
-
         if (cfg.contains("search_options") && cfg["search_options"].is_object()) {
             const auto& so = cfg["search_options"];
             if (so.contains("random_seed") && so["random_seed"].is_number_unsigned()) {
                 sc.random_seed = so["random_seed"].get<unsigned int>();
             } else if (so.contains("random_seed") && so["random_seed"].is_number_integer()) {
-                int s = so["random_seed"].get<int>();
+                const int s = so["random_seed"].get<int>();
                 sc.random_seed = s <= 0 ? 0u : static_cast<unsigned int>(s);
             }
-
             if (so.contains("timeout_ms") && so["timeout_ms"].is_number()) {
                 sc.timeout_seconds = so["timeout_ms"].get<double>() / 1000.0;
                 timeout_ms_ = so["timeout_ms"].get<double>();
             }
-
             if (so.contains("max_solutions") && so["max_solutions"].is_number_integer()) {
                 max_solutions_ = so["max_solutions"].get<int>();
                 sc.max_solutions = max_solutions_;
             }
-
             if (so.contains("heuristic_top_k") && so["heuristic_top_k"].is_number_integer()) {
                 sc.heuristic_top_k = std::max(0, so["heuristic_top_k"].get<int>());
             }
-
             if (so.contains("heuristic_trace") && so["heuristic_trace"].is_boolean()) {
                 sc.heuristic_trace = so["heuristic_trace"].get<bool>();
             }
@@ -1195,56 +1823,50 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             if (!domain.is_object()) continue;
 
             const std::string type = domain.value("type", std::string(""));
-            if (type == "pitch") {
-                const int voice = domain.value("voice", -1);
-                if (voice < 0 || voice >= sc.num_voices) continue;
-                if (domain.contains("midi_values")) {
-                    const auto& midi = domain["midi_values"];
-                    if (midi.is_array()) {
-                        for (const auto& v : midi) {
-                            if (v.is_number_integer()) {
-                                sc.voice_domains[voice].push_back(v.get<int>());
-                            } else if (v.is_number_float()) {
-                                sc.voice_domains[voice].push_back(static_cast<int>(std::lround(v.get<double>())));
-                            } else if (v.is_string()) {
-                                const auto parsed = parse_int_list_from_string(v.get<std::string>());
-                                sc.voice_domains[voice].insert(sc.voice_domains[voice].end(), parsed.begin(), parsed.end());
-                            }
+            const int voice = domain.value("voice", -1);
+            if (voice < 0 || voice >= sc.num_voices) continue;
+
+            if (type == "pitch" && domain.contains("midi_values")) {
+                const auto& midi = domain["midi_values"];
+                if (midi.is_array()) {
+                    for (const auto& v : midi) {
+                        if (v.is_number_integer()) {
+                            sc.voice_domains[voice].push_back(v.get<int>());
+                        } else if (v.is_number_float()) {
+                            sc.voice_domains[voice].push_back(static_cast<int>(std::lround(v.get<double>())));
+                        } else if (v.is_string()) {
+                            const auto parsed = parse_int_list_from_string(v.get<std::string>());
+                            sc.voice_domains[voice].insert(sc.voice_domains[voice].end(), parsed.begin(), parsed.end());
                         }
-                    } else if (midi.is_number_integer()) {
-                        sc.voice_domains[voice].push_back(midi.get<int>());
-                    } else if (midi.is_number_float()) {
-                        sc.voice_domains[voice].push_back(static_cast<int>(std::lround(midi.get<double>())));
-                    } else if (midi.is_string()) {
-                        const auto parsed = parse_int_list_from_string(midi.get<std::string>());
-                        sc.voice_domains[voice].insert(sc.voice_domains[voice].end(), parsed.begin(), parsed.end());
                     }
+                } else if (midi.is_number_integer()) {
+                    sc.voice_domains[voice].push_back(midi.get<int>());
+                } else if (midi.is_number_float()) {
+                    sc.voice_domains[voice].push_back(static_cast<int>(std::lround(midi.get<double>())));
+                } else if (midi.is_string()) {
+                    const auto parsed = parse_int_list_from_string(midi.get<std::string>());
+                    sc.voice_domains[voice].insert(sc.voice_domains[voice].end(), parsed.begin(), parsed.end());
                 }
-            } else if (type == "rhythm") {
-                const int voice = domain.value("voice", -1);
-                if (voice < 0 || voice >= sc.num_voices) continue;
-                if (domain.contains("duration_values")) {
-                    const auto& durations = domain["duration_values"];
-                    if (durations.is_array()) {
-                        for (const auto& dv : durations) {
-                            if (dv.is_string()) {
-                                const auto parsed = parse_duration_list_from_string(dv.get<std::string>());
-                                rhythm_strings[voice].insert(rhythm_strings[voice].end(), parsed.begin(), parsed.end());
-                            } else if (dv.is_number()) {
-                                rhythm_strings[voice].push_back(numeric_duration_to_fraction_string(dv.get<double>()));
-                            }
+            } else if (type == "rhythm" && domain.contains("duration_values")) {
+                const auto& durations = domain["duration_values"];
+                if (durations.is_array()) {
+                    for (const auto& dv : durations) {
+                        if (dv.is_string()) {
+                            const auto parsed = parse_duration_list_from_string(dv.get<std::string>());
+                            rhythm_strings[voice].insert(rhythm_strings[voice].end(), parsed.begin(), parsed.end());
+                        } else if (dv.is_number()) {
+                            rhythm_strings[voice].push_back(numeric_duration_to_fraction_string(dv.get<double>()));
                         }
-                    } else if (durations.is_string()) {
-                        const auto parsed = parse_duration_list_from_string(durations.get<std::string>());
-                        rhythm_strings[voice].insert(rhythm_strings[voice].end(), parsed.begin(), parsed.end());
-                    } else if (durations.is_number()) {
-                        rhythm_strings[voice].push_back(numeric_duration_to_fraction_string(durations.get<double>()));
                     }
+                } else if (durations.is_string()) {
+                    const auto parsed = parse_duration_list_from_string(durations.get<std::string>());
+                    rhythm_strings[voice].insert(rhythm_strings[voice].end(), parsed.begin(), parsed.end());
+                } else if (durations.is_number()) {
+                    rhythm_strings[voice].push_back(numeric_duration_to_fraction_string(durations.get<double>()));
                 }
             }
         }
 
-        // Validate pitch domains and compute global pitch range.
         int global_min = 127;
         int global_max = 0;
         for (int v = 0; v < sc.num_voices; ++v) {
@@ -1260,18 +1882,15 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         sc.min_note = global_min;
         sc.max_note = global_max;
 
-        // Compute rhythm base and convert all duration strings to integer ticks.
         int rhythm_base = 1;
         for (int v = 0; v < sc.num_voices; ++v) {
             if (rhythm_strings[v].empty()) {
-                // Backward compatibility for pitch-only configs.
                 rhythm_strings[v].push_back("1/4");
             }
             for (const auto& s : rhythm_strings[v]) {
                 rhythm_base = lcm_int(rhythm_base, parse_duration_denominator(s));
             }
         }
-
         sc.rhythm_base = rhythm_base;
         rhythm_base_ = rhythm_base;
         sc.voice_rhythm_domains.assign(sc.num_voices, {});
@@ -1297,9 +1916,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 cfg["require_exact_score_length"], false);
         }
 
-        sc.metric_domain = parse_metric_domain_from_engine_domains(cfg);
-
-        // Keep metric solving disabled by default for safe rollout.
         sc.enable_metric_engine = false;
         if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
             cfg["search_options"].contains("enable_metric_engine")) {
@@ -1313,7 +1929,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         solver_.clear_rules();
         solver_.clear_dynamic_rules();
 
-        // Legacy rules[] handling (rule_type / constraint_function.function, etc.)
         if (cfg.contains("rules") && (cfg["rules"].is_array() || cfg["rules"].is_object())) {
             std::vector<nlohmann::json> rule_entries;
             if (cfg["rules"].is_array()) {
@@ -1336,7 +1951,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                     function = r["constraint_function"].value("function", std::string(""));
                 }
 
-                // Be tolerant of dict-shaped payloads where function may be missing.
                 if (function.empty()) {
                     if (rule_type == "r-twelve-tone-voice1") {
                         function = "all_different";
@@ -1370,14 +1984,11 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 const bool has_target_engine = target_engine >= 0;
                 const bool has_target_engines = !target_engines.empty();
                 if (!rule_type.empty() && !has_target_engine && !has_target_engines) {
-                    throw std::runtime_error(
-                        "rule '" + (r.value("id", std::string("")) .empty() ? rule_type : r.value("id", std::string(""))) +
-                        "' is missing explicit target_engine/target_engines");
+                    throw std::runtime_error("rule '" + r.value("id", rule_type) + "' is missing explicit target_engine/target_engines");
                 }
 
                 std::string engine_type = r.value("engine_type", std::string(""));
                 std::string description = r.value("description", std::string(""));
-
                 std::vector<double> parameters;
                 std::vector<std::string> parameter_strings;
                 if (r.contains("constraint_function") &&
@@ -1405,7 +2016,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             }
         }
 
-        // Dynamic rules path.
         if (cfg.contains("dynamic_rules") && cfg["dynamic_rules"].is_array()) {
             std::vector<nlohmann::json> dynamic_rules;
             for (const auto& dr : cfg["dynamic_rules"]) {
@@ -1414,10 +2024,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             solver_.load_dynamic_rules(dynamic_rules);
         }
 
-        // Enhanced rules processing parity with CLI:
-        // - wildcard_constraint rules in rules[]
-        // - index rules in rules[] (type == "index")
-        // - expression-based rules embedded in rules[]
         if (cfg.contains("rules") && (cfg["rules"].is_array() || cfg["rules"].is_object())) {
             std::vector<nlohmann::json> enhanced_rules;
             if (cfg["rules"].is_array()) {
@@ -1437,7 +2043,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
                     const std::string rule_type = rule_json.value("rule_type", "");
                     const std::string type_field = rule_json.value("type", "");
-
                     const bool has_target_engine = rule_json.contains("target_engine") && rule_json["target_engine"].is_number_integer() && rule_json["target_engine"].get<int>() >= 0;
                     const bool has_target_engines = rule_json.contains("target_engines") && rule_json["target_engines"].is_array() && !rule_json["target_engines"].empty();
                     if (!rule_type.empty() && !has_target_engine && !has_target_engines && type_field != "index") {
@@ -1465,7 +2070,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         };
 
                         const int voice = rule_json["voice"].get<int>();
-                        const int rhythm_base = sc.rhythm_base;
+                        const int rhythm_base_local = sc.rhythm_base;
                         std::vector<IndexEvent> events;
 
                         for (size_t ei = 0; ei < rule_json["events"].size(); ++ei) {
@@ -1481,7 +2086,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                                 ? GecodeClusterIntegration::IntegratedMusicalSpace::REST_PITCH_SENTINEL
                                 : ev[2].get<int>();
 
-                            const int rhythm_ticks = parse_duration_to_ticks(rhythm_str, rhythm_base);
+                            const int rhythm_ticks = parse_duration_to_ticks(rhythm_str, rhythm_base_local);
                             const bool is_rest = (rhythm_ticks < 0);
                             if (is_rest && !pitch_is_null) {
                                 throw std::runtime_error("index rule '" + rule_id + "' event[" + std::to_string(ei) + "]: rest rhythm requires null pitch");
@@ -1525,8 +2130,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         solver_.load_dynamic_rules(single_rule);
                     }
                 } catch (...) {
-                    // Keep wrapper behavior tolerant: invalid enhanced rules are skipped,
-                    // matching CLI's best-effort loading approach.
                 }
             }
         }

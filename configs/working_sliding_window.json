@@ -4,8 +4,13 @@
     "description": "Simple sliding window that should work",
     "num_voices": 1,
     "sequence_length": 4,
-    "pitch_range": [60, 72],
-    "rhythm_values": [1],
+    "pitch_range": [
+      60,
+      72
+    ],
+    "rhythm_values": [
+      1
+    ],
     "time_signature": "4/4"
   },
   "rules": [
@@ -22,7 +27,10 @@
       "rule_id": "plus3_sliding",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3",
       "description": "SLIDING WINDOW +3 semitones"
     }

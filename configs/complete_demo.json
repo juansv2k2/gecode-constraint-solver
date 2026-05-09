@@ -3,9 +3,6 @@
   "description": "Comprehensive demonstration of working dynamic rule system",
   "solution_length": 8,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "dynamic_rules": [
     {
       "id": "voice1_C_major",
@@ -14,9 +11,16 @@
         "operator": "in",
         "left": {
           "function": "mod",
-          "args": ["voice[0].pitch[0]", { "value": 12 }]
+          "args": [
+            "voice[0].pitch[0]",
+            {
+              "value": 12
+            }
+          ]
         },
-        "right": { "value": [0, 2, 4, 5, 7, 9, 11] }
+        "right": {
+          "value": [0, 2, 4, 5, 7, 9, 11]
+        }
       },
       "mode": "constraint",
       "description": "Voice 1: First note in C Major scale"
@@ -30,7 +34,9 @@
         "right": {
           "operator": "+",
           "left": "voice[0].pitch[0]",
-          "right": { "value": 7 }
+          "right": {
+            "value": 7
+          }
         }
       },
       "mode": "constraint",
@@ -51,10 +57,18 @@
             }
           ]
         },
-        "right": { "value": 3 }
+        "right": {
+          "value": 3
+        }
       },
       "mode": "constraint",
       "description": "Voice 1: Melodic step motion (max 3 semitones)"
     }
-  ]
+  ],
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }

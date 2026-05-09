@@ -2,8 +2,15 @@
   "configuration": {
     "num_voices": 2,
     "sequence_length": 8,
-    "pitch_range": [60, 72],
-    "rhythm_values": [1, 2, 4],
+    "pitch_range": [
+      60,
+      72
+    ],
+    "rhythm_values": [
+      1,
+      2,
+      4
+    ],
     "search_timeout": 30,
     "export_path": "tests/output"
   },
@@ -12,7 +19,10 @@
       "rule_id": "stepwise_motion_everywhere",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "abs(voice[v].pitch[i] - voice[v].pitch[i+1]) <= 2",
       "scope": "each_voice",
       "weight": 7,
@@ -22,7 +32,10 @@
       "rule_id": "no_repetitions_anywhere",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
       "scope": "each_voice",
       "weight": 8,
@@ -32,7 +45,11 @@
       "rule_id": "no_three_identical",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sequence_pattern",
-      "pattern_offsets": [0, 1, 2],
+      "pattern_offsets": [
+        0,
+        1,
+        2
+      ],
       "constraint": "not (voice[v].pitch[i] == voice[v].pitch[i+1] and voice[v].pitch[i+1] == voice[v].pitch[i+2])",
       "scope": "each_voice",
       "weight": 9,
@@ -51,7 +68,10 @@
       "rule_id": "no_parallel_fifths",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "not ((voice[0].pitch[i] - voice[1].pitch[i]) % 12 == 7 and (voice[0].pitch[i+1] - voice[1].pitch[i+1]) % 12 == 7)",
       "scope": "cross_voices",
       "weight": 10,

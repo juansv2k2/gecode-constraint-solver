@@ -3,9 +3,6 @@
   "description": "Constraints that force musical variety",
   "solution_length": 4,
   "num_voices": 2,
-  "backtrack_method": "intelligent",
-  "export_path": "tests/output",
-
   "dynamic_rules": [
     {
       "id": "voice1_start_C4",
@@ -13,7 +10,9 @@
       "expression": {
         "operator": "==",
         "left": "voice[0].pitch[0]",
-        "right": { "value": 60 }
+        "right": {
+          "value": 60
+        }
       },
       "mode": "constraint",
       "description": "Voice 1: Start on C4"
@@ -27,7 +26,9 @@
         "right": {
           "operator": "+",
           "left": "voice[0].pitch[0]",
-          "right": { "value": 2 }
+          "right": {
+            "value": 2
+          }
         }
       },
       "mode": "constraint",
@@ -42,11 +43,19 @@
         "right": {
           "operator": "+",
           "left": "voice[0].pitch[0]",
-          "right": { "value": 4 }
+          "right": {
+            "value": 4
+          }
         }
       },
       "mode": "constraint",
       "description": "Voice 2: First note is major third above voice 1 (E4)"
     }
-  ]
+  ],
+  "output_options": {
+    "export_path": "tests/output"
+  },
+  "search_options": {
+    "branching": "first_fail"
+  }
 }
