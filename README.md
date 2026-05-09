@@ -1,353 +1,153 @@
 # Gecode Musical Constraint Solver
 
-**Polyphonic Musical Constraint System**
+Polyphonic musical constraint solving in C++17 on top of Gecode, with dynamic expression rules, wildcard rules, metric segmentation, and Max/MSP integration.
 
-A C++ implementation of a polyphonic musical constraint solving with dynamic rule system, music intelligence and full arithmetic expression parsing. Inspired on the advanced capabilities of Cluster-Engine by Örjan Sandred, optimized for the Gecode constraint programming.
+## What Is Current
 
-## Technical Architecture
+- User-facing configs are voice-first: `voices` + optional `meter`.
+- Built-in rule targeting is voice-based: `target_voice` or `target_voices` with `target_component`.
+- Search strategy is configured via `search_options`.
+- `backtrack_method` is deprecated and removed from current examples.
+- Wrapper compatibility layer still accepts several legacy config shapes and normalizes them.
 
-## Features
+## Front Ends
 
-- **Dynamic rules using Algebraic Expressions**: For example `voice[v].pitch[i+1] == voice[v].pitch[i] + 3`
-- **Wildcard Constraint Rules**: Sliding window patterns on single- and cross-voice relationships.
-- **Heuristic Guidance System**: Score-based candidate ordering with `heuristic_preference` and `heuristic_energy` modes; voice-specific heuristics via `candidate_voice` for harmonic and interval control.
-- **Multi-Engine Architecture**: Separate rhythm/pitch engines per voice + global metric engine.
-- **DualSolutionStorage**: Absolute and interval representation.
-- **JSON Configuration**: Configuration interface with dynamic constraints.
-- **MusicXML Export**: Direct export to standard notation format.
-- **Fast Performance**: Millisecond-level solving for many scenarios (stress cases can be significantly slower).
+- `bin/dynamic-solver`: CLI runner.
+- `bin/test-max-wrapper`: wrapper harness (same normalization path used by Max).
+- `bin/gecode.solver.mxo`: Max external.
 
-## Front-End Architecture
+All three use the same core solver.
 
-This repository exposes one shared solver core through three front-ends:
+## Quick Start
 
-- **`bin/dynamic-solver`**: command-line interface for config-file based runs.
-- **`bin/test-max-wrapper`**: console harness that exercises the async wrapper path used by Max.
-- **`gecode.solver` Max external**: Max/MSP object for `config_file`, `config_dict`, async solve, and status/result outlets.
+### Build
 
-All three paths use the same core solver engine. For equivalent normalized input, constraint behavior should match across CLI, wrapper test, and Max.
+```bash
+make bin/dynamic-solver
+make bin/test-max-wrapper
+make max-external
+```
 
-### Core Components
+### Run
 
-- **MusicalConstraintSolver**: Main interface and configuration.
-- **GecodeClusterIntegration**: Constraint programming bridge between Cluster and Gecode.
-- **Gecode Search Strategies**: Configurable variable/value ordering via `search_options`.
+```bash
+bin/dynamic-solver configs/metric_domain_example.json
+./bin/test-max-wrapper configs/metric_domain_example.json
+```
 
-**Status**: CLI solver, Max wrapper, and Max external are operational. Metric-domain and timepoint-based metric segmentation are supported in production configs.
-
-## Cluster Engine Architecture
-
-The implementation follows the Cluster-Engine architecture with:
-
-- **Multi-Engine Coordination**: Rhythm and pitch engines per voice with a shared metric engine.
-- **Metric Domain + Timepoints**: `r-metric-signature` supports explicit score-time boundaries (for example `"0q"`, `"4q"`, `"7q"`).
-- **Heuristic Guidance System**: Musical intelligence for candidate sorting.
-- **Gecode-Native Search**: DFS with configurable branching and value ordering.
-- **Rule Interface System**: Specialized musical constraint types.
-
-### Metric Domain and Timepoint Semantics
-
-- Metric segments are defined by score-time boundaries (`timepoints`) rather than event indices.
-- `score_length` defines the full score span in musical units (for example `"10q"`).
-- If solved material is shorter than `score_length`, the remaining span is padded with rests in canonical score output.
-- If solved material exceeds `score_length`, the solver throws an error.
-
-Example:
+## Current Config Shape
 
 ```json
 {
-  "score_length": "10q",
-  "engine_domains": {
-    "engine_2": {
-      "type": "metric",
-      "voice": "all",
-      "time_signatures": ["4/4", "3/4", "6/8"]
+  "name": "Example",
+  "solution_length": 8,
+  "num_voices": 2,
+  "voices": [
+    {
+      "rhythm": { "duration_values": ["1/8", "1/4"] },
+      "pitch": { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
+    },
+    {
+      "rhythm": { "duration_values": ["1/4"] },
+      "pitch": { "midi_values": [55, 57, 59, 60, 62, 64, 65, 67] }
     }
+  ],
+  "meter": {
+    "time_signatures": ["4/4", "3/4"],
+    "beat_divisions": [2, 3]
   },
   "rules": [
+    {
+      "rule_type": "r-pitches-one-engine",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "all_different",
+        "parameters": []
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_voice": 0,
+      "target_component": "pitch"
+    },
+    {
+      "rule_type": "r-rhythmic-uniformity",
+      "constraint_function": {
+        "type": "builtin",
+        "function": "equal_values",
+        "parameters": ["1/4"]
+      },
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "target_voice": 1,
+      "target_component": "rhythm"
+    },
     {
       "rule_type": "r-metric-signature",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": ["4/4", "3/4", "6/8"]
+        "parameters": ["4/4", "3/4"]
       },
-      "timepoints": ["0q", "4q", "7q"],
-      "target_engine": 2,
-      "engine_type": "metric"
+      "timepoints": ["0q", "4q"]
     }
-  ]
-}
-```
-
-### Constraint Types
-
-- **Single- and Multi-voice Constraints**: Sophisticated multi-voice relation rules.
-- **Arithmetic Relations**: Mathematical relationships between musical elements.
-- **Interval Constraints**: Control melodic steps and harmonic intervals.
-- **Temporal Patterns**: Rhythmic and metric constraint systems.
-
-## Extending the Solver
-
-To add new musical constraints:
-
-1. **Cluster Engine advanced rule structures**: Examine rule types in `cluster-engine-sources/`
-2. **Refine constraint configuration**: Investigate rule creation in JSON configuration.
-3. **Investigate heuristic constraints logic**: Add weights, perhaps corpus-based integrations.
-
-## Next Steps
-
-Potential extension by adding pre-compiled rules (for example JBS library):
-
-- Generic rules (repetition, difference, etc.)
-- Interval rules
-- Pitch/MOD rules
-- Shaping rules
-- Distance rules
-- Structure rules
-- Matrix rules
-- Markov rules
-
-## Repository Structure
-
-```
-├── bin/                   # Compiled executables
-├── configs/               # JSON configuration files
-├── docs/                  # Documentation and guides
-├── include/               # Header files
-├── output/                # Generated XML and result files
-├── scripts/               # Python utilities (JSON→XML export)
-├── src/                   # C++ source files
-└── tests/                 # Test source files
-```
-
-## Quick Start
-
-### Prerequisites
-
-#### Core System Requirements
-
-- **C++ Compiler**: g++ with C++17 support (GCC 7+ or Clang 5+)
-- **Build System**: GNU Make
-- **Package Manager**: pkg-config for library detection
-
-#### Required Dependencies
-
-- **Gecode**: Constraint programming library (version 6.0+)
-  - Libraries: libgecodeminimodel, libgecodeint, libgecodesearch, libgecodekernel, libgecodesupport, libgecodeflatzinc
-
-#### Python Dependencies (for XML export)
-
-- **Python 3**: Version 3.7 or higher
-- **music21**: Python library for music analysis and generation
-  ```bash
-  pip install music21
-  ```
-
-#### Installation Commands
-
-**macOS (Homebrew):**
-
-```bash
-# Install Gecode
-brew install gecode
-
-# Install Python dependencies
-pip3 install music21
-```
-
-**Ubuntu/Debian:**
-
-```bash
-# Install build tools and Gecode
-sudo apt-get update
-sudo apt-get install build-essential pkg-config libgecode-dev
-
-# Install Python and dependencies
-sudo apt-get install python3 python3-pip
-pip3 install music21
-```
-
-**Fedora/Red Hat:**
-
-```bash
-# Install build tools and Gecode
-sudo dnf install gcc-c++ make pkg-config gecode-devel
-
-# Install Python dependencies
-sudo dnf install python3 python3-pip
-pip3 install music21
-```
-
-#### Verification
-
-Test your installation:
-
-```bash
-# Check Gecode installation
-pkg-config --exists gecode && echo "Gecode found" || echo "Gecode not found"
-
-# Check Python dependencies
-python3 -c "import music21; print('music21 available')" 2>/dev/null || echo "music21 not found"
-
-# Check build system
-make --version && echo "Make available" || echo "Make not found"
-```
-
-### Build & Run
-
-````bash
-# Build
-make bin/dynamic-solver
-
-# Test arithmetic constraints
-bin/dynamic-solver configs/direct_arithmetic_test.json
-
-# Test complex progressions
-bin/dynamic-solver configs/multiple_arithmetic_test.json
-
-## Configuration Format
-
-```json
-{
-  "configuration": {
-    "num_voices": 2,
-    "sequence_length": 12,
-    "pitch_range": [60, 80]
+  ],
+  "search_options": {
+    "engine": "dfs",
+    "branching": "first_fail",
+    "value_order": "heuristic",
+    "restart_policy": "none",
+    "timeout_ms": 30000,
+    "max_solutions": 1,
+    "random_seed": 42
   },
-  "rules": [
-    {
-      "rule_type": "wildcard_constraint",
-      "wildcard_type": "sliding_window",
-      "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3",
-      "description": "Each note +3 semitones higher"
-    }
-  ]
+  "output_options": {
+    "export_path": "output",
+    "export_json": true,
+    "export_txt": true,
+    "export_xml": false,
+    "export_png": false,
+    "export_midi": false
+  }
 }
-````
-
-## Examples
-
-### Arithmetic Constraints
-
-```bash
-bin/dynamic-solver configs/direct_arithmetic_test.json
-# Output: C4 → D#4 (60 → 63)
 ```
 
-### Musical Progressions
+## Search Strategy
 
-```bash
-bin/dynamic-solver configs/multiple_arithmetic_test.json
-# Output: C4 → E4 → G4 → C5 (major chord + octave)
-```
+Use `search_options`:
 
-### 12-Tone Generation
+- `branching`: `first_fail` or `input_order`
+- `value_order`: `min`, `random`, or `heuristic`
+- `restart_policy`: `none` or `luby`
 
-```bash
-bin/dynamic-solver configs/twelve_tone_config.json
-# Output: Complete chromatic twelve-tone row with counterpoint
-```
+Notes:
 
-## Performance
+- `backtrack_method` is deprecated.
+- Legacy `branching: "sequential"` is normalized to `input_order` by the wrapper compatibility path.
 
-| Operation          | Typical Time |
-| ------------------ | ------------ |
-| Constraint parsing | <1ms         |
-| Arithmetic solving | 0-6ms        |
-| XML export         | <10ms        |
+## Metric Timepoints
+
+`r-metric-signature` uses score-time boundaries (`timepoints`) in `q` units (quarter-note units).
+
+- Example: `timepoints: ["0q", "4q", "7q"]`.
+- Optional `score_length` defines total score span.
+
+## Max Integration
+
+Use `config_file` or `config_dict` with the `gecode.solver` object. For details, see:
+
+- [USAGE.md](USAGE.md)
+- [max-usage.md](max-usage.md)
+- [usage-in-max.md](usage-in-max.md)
 
 ## Documentation
 
-- [Twelve-Tone Usage Guide](docs/TWELVE_TONE_USAGE.md)
-- [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
-- [Benchmarks](docs/BENCHMARKS.md)
-- [Usage Guide (including heuristic modes and wildcard heuristics)](USAGE.md)
+- [Usage Guide](USAGE.md)
+- [Max Usage](max-usage.md)
 - [JSON Schema](configs/cluster_config_schema.json)
-- [Usage in Max](usage-in-max.md)
+- [Twelve-Tone Usage](docs/TWELVE_TONE_USAGE.md)
+- [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
 
 ## Development
 
 ```bash
-make bin/dynamic-solver     # Main interface
-make test-all               # Run all tests
-make clean                  # Clean build artifacts
+make test-all
+make clean
 ```
-
-### Working Tests (SAFE TO RUN)
-
-```bash
-# Interface functionality test (Comprehensive, Safe)
-make test-main-interface && ./test-main-interface
-
-# Interface examples (Comprehensive Examples)
-make main-interface-example && ./main-interface-example
-
-# Core validation (Basic Integration Test)
-make validate-production && ./simple-gecode-cluster-validation
-```
-
-### Tests with Known Issues
-
-```bash
-# Has solver bounds issues - fixable
-make test-production && ./test-musical-constraint-solver
-```
-
-### Test Coverage
-
-- **Interface Setup & Configuration**: All working
-- **Rule Factory & Management**: Complete coverage
-- **Utilities & Analysis**: MIDI/interval conversion working
-- **Performance Monitoring**: Statistics and timing working
-- **Integration Architecture**: Gecode-cluster bridge ready
-- **Actual Solving**: Has bounds checking issue (debugging needed)
-
-### Latest Achievements
-
-- **Arithmetic Constraints**: Native `voice[v].pitch[i] + 3` support
-- **Pattern Variables**: Dynamic `i`, `v` substitution
-- **Sliding Window**: Sequential constraint application
-
-### Complete Usage Examples
-
-- **[test_main_interface.cpp](test_main_interface.cpp)** - Interface test covering all functionality
-- **[main_interface_example.cpp](main_interface_example.cpp)** - Comprehensive usage examples
-- **[simple_gecode_cluster_validation.cpp](simple_gecode_cluster_validation.cpp)** - Core validation
-
-### Adding Musical Rules
-
-```cpp
-// Implement MusicalRule interface
-class CustomRule : public MusicalRule {
-    bool check(const MusicalSolution& solution) override;
-    std::string description() override;
-};
-```
-
-### Search Strategy Tuning
-
-Use `search_options` in config files to control active Gecode search behavior:
-
-```json
-"search_options": {
-  "engine": "dfs",
-  "branching": "first_fail",
-  "value_order": "heuristic",
-  "restart_policy": "none",
-  "random_seed": 42
-}
-```
-
-Musical guidance:
-
-- `branching: "first_fail"` usually works best for dense harmonic constraints (counterpoint, strict cross-voice intervals) because it prunes contradictions early.
-- `branching: "input_order"` is useful for phrase-shape problems where early notes define the style and you want left-to-right musical commitment.
-- `value_order: "heuristic"` is best when you provide heuristic rules and want musically plausible lines quickly (stepwise melody, register control, consonance bias).
-- `value_order: "min"` is best for deterministic debugging and reproducible regression tests.
-- `value_order: "random"` with a nonzero `random_seed` is best for generating controlled variation across multiple runs.
-
-## License
-
-This musical constraint solver is based on Gecode examples and inspired by JBS-Constraints. See respective licenses for details.
-an experimental constraint solver based on Gecode

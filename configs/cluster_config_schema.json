@@ -3,11 +3,7 @@
   "title": "Voice-First Musical Constraint Configuration",
   "description": "User-facing JSON configuration for musical constraint solving with contiguous voices, optional meter, voice-based rule targets, and dynamic heuristic rules.",
   "type": "object",
-  "required": [
-    "solution_length",
-    "num_voices",
-    "voices"
-  ],
+  "required": ["solution_length", "num_voices", "voices"],
   "properties": {
     "solution_length": {
       "type": "integer",
@@ -77,9 +73,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "time_signatures"
-      ]
+      "required": ["time_signatures"]
     },
     "rules": {
       "type": "array",
@@ -101,9 +95,7 @@
       "properties": {
         "engine": {
           "type": "string",
-          "enum": [
-            "dfs"
-          ]
+          "enum": ["dfs"]
         },
         "timeout_ms": {
           "type": "integer",
@@ -118,25 +110,15 @@
         },
         "branching": {
           "type": "string",
-          "enum": [
-            "first_fail",
-            "input_order"
-          ]
+          "enum": ["first_fail", "input_order"]
         },
         "value_order": {
           "type": "string",
-          "enum": [
-            "min",
-            "random",
-            "heuristic"
-          ]
+          "enum": ["min", "random", "heuristic"]
         },
         "restart_policy": {
           "type": "string",
-          "enum": [
-            "none",
-            "luby"
-          ]
+          "enum": ["none", "luby"]
         },
         "enable_metric_engine": {
           "type": "boolean",
@@ -227,10 +209,7 @@
           ]
         }
       },
-      "required": [
-        "rhythm",
-        "pitch"
-      ],
+      "required": ["rhythm", "pitch"],
       "additionalProperties": false
     },
     "rhythmDomainObject": {
@@ -253,9 +232,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "duration_values"
-      ],
+      "required": ["duration_values"],
       "additionalProperties": false
     },
     "pitchDomainObject": {
@@ -271,9 +248,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "midi_values"
-      ],
+      "required": ["midi_values"],
       "additionalProperties": false
     },
     "constraintFunction": {
@@ -299,10 +274,7 @@
           }
         }
       },
-      "required": [
-        "type",
-        "function"
-      ],
+      "required": ["type", "function"],
       "additionalProperties": true
     },
     "rule": {
@@ -356,10 +328,7 @@
         },
         "target_component": {
           "type": "string",
-          "enum": [
-            "pitch",
-            "rhythm"
-          ],
+          "enum": ["pitch", "rhythm"],
           "description": "Required for non-metric built-in rules."
         },
         "enabled": {
@@ -374,10 +343,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "rule_type",
-        "constraint_function"
-      ],
+      "required": ["rule_type", "constraint_function"],
       "additionalProperties": true,
       "allOf": [
         {
@@ -387,43 +353,28 @@
                 "const": "r-metric-signature"
               }
             },
-            "required": [
-              "rule_type"
-            ]
+            "required": ["rule_type"]
           },
           "then": {
-            "required": [
-              "timepoints"
-            ]
+            "required": ["timepoints"]
           },
           "else": {
-            "required": [
-              "indices",
-              "target_component"
-            ],
+            "required": ["indices", "target_component"],
             "oneOf": [
               {
-                "required": [
-                  "target_voice"
-                ]
+                "required": ["target_voice"]
               },
               {
-                "required": [
-                  "target_voices"
-                ]
+                "required": ["target_voices"]
               }
             ],
             "not": {
               "anyOf": [
                 {
-                  "required": [
-                    "target_engine"
-                  ]
+                  "required": ["target_engine"]
                 },
                 {
-                  "required": [
-                    "target_engines"
-                  ]
+                  "required": ["target_engines"]
                 }
               ]
             }

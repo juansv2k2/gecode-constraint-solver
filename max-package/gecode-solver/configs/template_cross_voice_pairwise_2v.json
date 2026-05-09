@@ -11,46 +11,18 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": [
-          "1/8",
-          "1/4"
-        ]
+        "duration_values": ["1/8", "1/4"]
       },
       "pitch": {
-        "midi_values": [
-          55,
-          57,
-          59,
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71
-        ]
+        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71]
       }
     },
     {
       "rhythm": {
-        "duration_values": [
-          "1/8",
-          "1/4"
-        ]
+        "duration_values": ["1/8", "1/4"]
       },
       "pitch": {
-        "midi_values": [
-          55,
-          57,
-          59,
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71
-        ]
+        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71]
       }
     }
   ],
@@ -71,9 +43,7 @@
       "id": "pairwise_separation_energy",
       "type": "heuristic_energy",
       "wildcard_type": "for_all_pairs",
-      "pattern_offsets": [
-        0
-      ],
+      "pattern_offsets": [0],
       "step_size": 1,
       "cross_voices": true,
       "expression": {

@@ -1,10 +1,10 @@
 # Using the Solver in Max
 
-This guide explains how to run the `gecode.solver` Max external with file-based and dict-based configuration, how to read outlets, and how to troubleshoot common failures.
+This guide covers the current `gecode.solver` Max external workflow and the updated config contract.
 
-## 1. Object and Message Surface
+## 1. Object and Messages
 
-Create the object:
+Object:
 
 - `gecode.solver`
 
@@ -19,168 +19,112 @@ Supported inlet messages:
 - `status`
 - `get_last`
 
-## 2. Outlet Behavior
-
-The object has three outlets:
+## 2. Outlets
 
 - Left outlet: list messages `voice_pitch` and `voice_rhythm`
-- Middle outlet: `json` payload (status snapshots and solve result payloads)
-- Right outlet: status messages (`unconfigured`, `idle`, `running`, `success`, `failed`, `cancelled`) with a human-readable message
+- Middle outlet: `json` payload (status snapshots and result payloads)
+- Right outlet: status updates (`unconfigured`, `idle`, `running`, `success`, `failed`, `cancelled`) plus message text
 
-Typical solve lifecycle:
+Typical lifecycle:
 
 1. Configure (`config_file` or `config_dict`)
-2. Receive status `idle`
+2. Wait for `idle`
 3. Send `solve`
-4. Receive status `running`
-5. Receive result lists and JSON, then final status `success` or `failed`
+4. Observe `running`
+5. Read result payload and terminal status
 
-## 3. Recommended Configuration Workflows
+## 3. Current Config Guidance
 
-### A) File-based (stable baseline)
+Prefer voice-first configs:
 
-Use an absolute path:
+- `voices` (+ optional `meter`)
+- built-in rules with `target_voice` / `target_voices` + `target_component`
+- `search_options` for search strategy
 
-- `config_file "/Users/.../gecode-constraint-solver/configs/stress_sat_24.json"`
+Deprecated:
 
-Then:
+- `backtrack_method`
 
-- `solve`
+The wrapper still normalizes many legacy config shapes, but new Max patches should emit current fields.
 
-### B) Dict-based (best for live edits in patchers)
+## 4. File-Based Workflow
 
-1. Create `dict demo_cfg`
-2. Read config into dict:
-   - `read "/Users/.../configs/twelve_tone_palindrome_config.json"`
-3. Apply edits with `set ...`
-4. Send:
-   - `config_dict demo_cfg`
-5. Send:
-   - `solve`
+```text
+config_file "/Users/.../gecode-constraint-solver/configs/metric_domain_example.json"
+solve
+```
 
-Use `config_dict_debug demo_cfg` when debugging schema translation. It emits normalized JSON so you can inspect what the solver actually receives.
+Use absolute paths.
 
-## 4. Message Examples
+## 5. Dict-Based Workflow
 
-Run a config from file:
+1. Create/load a dict.
+2. Edit fields (`set ...`).
+3. Send `config_dict <dict_name>`.
+4. Send `solve`.
 
-- `config_file "/Users/.../configs/stress_near_unsat_18.json"`
-- `solve`
+For debugging normalization:
 
-Request status snapshot at any time:
+- `config_dict_debug <dict_name>`
 
-- `status`
+This emits the normalized JSON that the solver receives.
 
-Cancel a long solve:
+## 6. Search Strategy in Max Configs
 
-- `cancel`
+Use `search_options`:
 
-Get the last completed result again:
+```json
+"search_options": {
+  "engine": "dfs",
+  "branching": "first_fail",
+  "value_order": "heuristic",
+  "restart_policy": "none",
+  "timeout_ms": 30000,
+  "max_solutions": 1,
+  "random_seed": 42
+}
+```
 
-- `get_last`
+Allowed values:
 
-## 5. Understanding Result Payloads
+- `branching`: `first_fail`, `input_order`
+- `value_order`: `min`, `random`, `heuristic`
+- `restart_policy`: `none`, `luby`
 
-Pitch and rhythm arrive both as list messages and JSON.
+## 7. Result Payload Notes
 
 - `voice_pitch <voice_index> ...`
 - `voice_rhythm <voice_index> ...`
 
-Rhythms are exposed in musical fraction form for Max consumers. JSON payloads may also include raw rhythm ticks for compatibility.
+Rhythm lists are emitted as musical fractions. JSON may also include rhythm ticks for compatibility.
 
-## 6. Troubleshooting
+## 8. Troubleshooting
 
-### Configuration fails immediately
+### Configure fails immediately
 
-Symptoms:
+Check:
 
-- Status becomes `failed` after `config_*`
+- absolute path correctness (`config_file`)
+- dict existence (`config_dict`)
+- required config sections (`solution_length`, `num_voices`, `voices`)
 
-Checks:
+Use `config_dict_debug` to inspect normalized payloads.
 
-- File path is absolute and readable (for `config_file`)
-- Dict name exists (for `config_dict`)
-- Required schema sections are present (`engine_domains`, valid rules)
+### Solve is UNSAT
 
-Tip:
-
-- Use `config_dict_debug <dict>` to inspect flattened or transformed dict fields before solving.
-
-### Solve returns UNSAT, then later SAT should still work
-
-Expected behavior:
-
-- An UNSAT run does not permanently poison the object state.
-- Reconfigure and solve again in the same object instance.
+UNSAT does not poison the object.
 
 Recommended sequence:
 
-1. `config_file` (or `config_dict`) for new scenario
+1. Reconfigure
 2. Wait for `idle`
-3. `solve`
+3. Solve again
 
-### Long-running benchmark in Max
+### Long runs
 
-Use:
+- use `status` snapshots
+- use `cancel` to stop current run
 
-- `status` periodically for snapshots
-- `cancel` to stop the current run
+## 9. Consistency Note
 
-After cancel:
-
-- Reconfigure (optional but recommended for clean intent)
-- Run `solve` again
-
-### Duplicate/noisy errors in patching flow
-
-Prefer:
-
-- One explicit configure step
-- Then one solve step
-
-Avoid sending overlapping `solve` commands while state is already `running`.
-
-## 7. Practical Benchmark Loop in Max
-
-A reliable loop for comparative tests:
-
-1. Load config A (`config_file ...`)
-2. `solve`
-3. Capture final JSON and status
-4. Load config B
-5. `solve`
-6. Repeat
-
-For parameter sweeps, switch to dict workflow:
-
-1. Keep one base dict loaded
-2. Apply one `set ...` mutation
-3. `config_dict ...`
-4. `solve`
-5. Record output
-
-### Dict Array Fields
-
-When using `config_dict`, the external automatically detects keys that should be JSON arrays (`dynamic_rules`, `rules`) and handles both single-item and multi-item dict entries correctly. If you store a single rule object in the dict at key `dynamic_rules`, it will be properly converted to `"dynamic_rules": [{...}]` in the internal JSON representation.
-
-**Example:** Setting a single heuristic rule via dict:
-
-```
-dict ruledict @name dynamic_rules[0]
-# This creates a dict entry named "dynamic_rules[0]"
-dict ruledict set id prefer_parallel_fifths
-dict ruledict set type heuristic_energy
-dict ruledict set mode real_heuristic
-dict ruledict set expression "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)"
-dict ruledict set candidate_voice 1
-dict ruledict set weight 10
-
-# Then pass to solver:
-config_dict ruledict
-```
-
-This is properly converted to the canonical array structure internally.
-
-## 8. Front-End Consistency Note
-
-`gecode.solver` (Max), `bin/test-max-wrapper`, and `bin/dynamic-solver` are front-ends over the same core solver engine. If behavior diverges, first compare normalized JSON payloads and runtime seed/search options to confirm the inputs are actually equivalent.
+`gecode.solver` (Max), `bin/test-max-wrapper`, and `bin/dynamic-solver` are front-ends over the same core solver. If behavior diverges, compare normalized JSON and `search_options` first.

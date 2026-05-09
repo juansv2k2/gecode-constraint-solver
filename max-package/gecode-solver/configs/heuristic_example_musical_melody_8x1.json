@@ -12,22 +12,10 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": [
-          "1/8",
-          "1/4"
-        ]
+        "duration_values": ["1/8", "1/4"]
       },
       "pitch": {
-        "midi_values": [
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71,
-          72
-        ]
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
       }
     }
   ],
