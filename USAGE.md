@@ -237,5 +237,4 @@ For new configs, use the voice-first contract directly.
 
 - [README.md](README.md)
 - [max-usage.md](max-usage.md)
-- [usage-in-max.md](usage-in-max.md)
 - [configs/cluster_config_schema.json](configs/cluster_config_schema.json)

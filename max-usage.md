@@ -1,14 +1,14 @@
 # Max Usage Guide
 
-This file mirrors the current Max usage contract for `gecode.solver`.
+This guide covers the current `gecode.solver` Max external workflow and config contract.
 
-## Object and Messages
+## 1. Object and Messages
 
 Object:
 
 - `gecode.solver`
 
-Messages:
+Supported inlet messages:
 
 - `config <json>`
 - `config_file <absolute_path>`
@@ -19,29 +19,55 @@ Messages:
 - `status`
 - `get_last`
 
-## Outlets
+## 2. Outlets
 
-- Left: `voice_pitch`, `voice_rhythm`
-- Middle: `json` payloads
-- Right: status + message
+- Left outlet: list messages `voice_pitch` and `voice_rhythm`
+- Middle outlet: `json` payload (status snapshots and result payloads)
+- Right outlet: status updates (`unconfigured`, `idle`, `running`, `success`, `failed`, `cancelled`) plus message text
 
-## Recommended Config Contract
+Typical lifecycle:
 
-Use voice-first configs:
+1. Configure (`config_file` or `config_dict`)
+2. Wait for `idle`
+3. Send `solve`
+4. Observe `running`
+5. Read result payload and terminal status
 
-- `solution_length`
-- `num_voices`
-- `voices`
-- optional `meter`
-- `rules` / `dynamic_rules`
-- `search_options`
-- `output_options`
+## 3. Current Config Guidance
 
-Deprecated:
+Prefer voice-first configs:
 
-- `backtrack_method`
+- `voices` (+ optional `meter`)
+- built-in rules with `target_voice` / `target_voices` + `target_component`
+- `search_options` for search strategy
 
-## Search Strategy
+The wrapper still normalizes many legacy config shapes, but new Max patches should emit current fields directly.
+
+## 4. File-Based Workflow
+
+```text
+config_file "/Users/.../gecode-constraint-solver/configs/metric_domain_example.json"
+solve
+```
+
+Use absolute paths.
+
+## 5. Dict-Based Workflow
+
+1. Create/load a dict.
+2. Edit fields (`set ...`).
+3. Send `config_dict <dict_name>`.
+4. Send `solve`.
+
+For debugging normalization:
+
+- `config_dict_debug <dict_name>`
+
+This emits the normalized JSON that the solver receives.
+
+## 6. Search Strategy in Max Configs
+
+Use `search_options`:
 
 ```json
 "search_options": {
@@ -61,29 +87,45 @@ Allowed values:
 - `value_order`: `min`, `random`, `heuristic`
 - `restart_policy`: `none`, `luby`
 
-## File Workflow
+## 7. Result Payload Notes
 
-```text
-config_file "/Users/.../gecode-constraint-solver/configs/metric_domain_example.json"
-solve
-```
+- `voice_pitch <voice_index> ...`
+- `voice_rhythm <voice_index> ...`
 
-## Dict Workflow
+Rhythm lists are emitted as musical fractions. JSON may also include rhythm ticks for compatibility.
 
-1. Build/edit dict.
-2. `config_dict <dict_name>`.
-3. `solve`.
+## 8. Troubleshooting
 
-Use `config_dict_debug` to inspect normalized JSON.
+### Configure fails immediately
 
-## Troubleshooting
+Check:
 
-- Configure failure: check path/dict and required top-level fields.
-- UNSAT: reconfigure and solve again; state is reusable.
-- Long run: poll with `status`; stop with `cancel`.
+- absolute path correctness (`config_file`)
+- dict existence (`config_dict`)
+- required config sections (`solution_length`, `num_voices`, `voices`)
 
-## Cross-Reference
+Use `config_dict_debug` to inspect normalized payloads.
 
-- [usage-in-max.md](usage-in-max.md)
+### Solve is UNSAT
+
+UNSAT does not poison the object.
+
+Recommended sequence:
+
+1. Reconfigure
+2. Wait for `idle`
+3. Solve again
+
+### Long runs
+
+- use `status` snapshots
+- use `cancel` to stop current run
+
+## 9. Consistency Note
+
+`gecode.solver` (Max), `bin/test-max-wrapper`, and `bin/dynamic-solver` are front-ends over the same core solver. If behavior diverges, compare normalized JSON and `search_options` first.
+
+## 10. Cross-Reference
+
 - [USAGE.md](USAGE.md)
 - [README.md](README.md)

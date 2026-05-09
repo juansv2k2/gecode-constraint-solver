@@ -135,7 +135,6 @@ Use `config_file` or `config_dict` with the `gecode.solver` object. For details,
 
 - [USAGE.md](USAGE.md)
 - [max-usage.md](max-usage.md)
-- [usage-in-max.md](usage-in-max.md)
 
 ## Documentation
 
