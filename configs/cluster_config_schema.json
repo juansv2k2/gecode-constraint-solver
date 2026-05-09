@@ -299,6 +299,34 @@
         "constraint_function": {
           "$ref": "#/definitions/constraintFunction"
         },
+        "constraint": {
+          "type": "string",
+          "description": "Shorthand for builtin function name. Equivalent to constraint_function.function with type=builtin."
+        },
+        "parameters": {
+          "description": "Optional shorthand alias for constraint_function.parameters when using constraint shorthand.",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
         "indices": {
           "type": "array",
           "items": {
@@ -343,9 +371,19 @@
           "type": "string"
         }
       },
-      "required": ["rule_type", "constraint_function"],
+      "required": ["rule_type"],
       "additionalProperties": true,
       "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": ["constraint_function"]
+            },
+            {
+              "required": ["constraint"]
+            }
+          ]
+        },
         {
           "if": {
             "properties": {

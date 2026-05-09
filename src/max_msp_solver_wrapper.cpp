@@ -674,6 +674,26 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
     const std::string rule_type = rule.value("rule_type", std::string(""));
     const std::string type_field = rule.value("type", std::string(""));
 
+    // Shorthand alias for built-in rules:
+    // "constraint": "all_different"
+    // -> "constraint_function": {"type":"builtin","function":"all_different","parameters":[]}
+    if (rule_type != "wildcard_constraint" && type_field != "index" &&
+        !rule.contains("constraint_function") && rule.contains("constraint") &&
+        rule["constraint"].is_string()) {
+        rule["constraint_function"] = nlohmann::json::object();
+        rule["constraint_function"]["type"] = "builtin";
+        rule["constraint_function"]["function"] = rule["constraint"].get<std::string>();
+        rule["constraint_function"]["parameters"] = nlohmann::json::array();
+
+        if (rule.contains("parameters")) {
+            if (rule["parameters"].is_array()) {
+                rule["constraint_function"]["parameters"] = rule["parameters"];
+            } else {
+                rule["constraint_function"]["parameters"] = nlohmann::json::array({rule["parameters"]});
+            }
+        }
+    }
+
     if (type_field == "index") {
         return;
     }
@@ -889,6 +909,23 @@ void normalize_rules_to_engine_targets(nlohmann::json& cfg, int num_voices) {
 
     for (auto it = cfg["rules"].begin(); it != cfg["rules"].end(); ++it) {
         normalize_rule_targeting(it.value(), num_voices);
+    }
+}
+
+void normalize_dynamic_rule_syntax(nlohmann::json& cfg) {
+    if (!cfg.contains("dynamic_rules") || !cfg["dynamic_rules"].is_array()) {
+        return;
+    }
+
+    for (auto& rule : cfg["dynamic_rules"]) {
+        if (!rule.is_object()) continue;
+
+        // Shorthand alias:
+        // "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] + 2"
+        // -> "expression": "..."
+        if (!rule.contains("expression") && rule.contains("constraint")) {
+            rule["expression"] = rule["constraint"];
+        }
     }
 }
 
@@ -1723,6 +1760,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         }
 
         normalize_rules_to_engine_targets(cfg, sc.num_voices);
+        normalize_dynamic_rule_syntax(cfg);
 
         if (cfg.contains("meter") || cfg.contains("metric")) {
             const auto metric_from_meter = parse_metric_domain_from_meter(cfg);

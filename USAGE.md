@@ -1,8 +1,17 @@
 # Usage Guide
 
-This guide describes the current, supported configuration contract for the solver and wrapper.
+This is the full, current guide for authoring configs for the solver.
 
-## 1. Run Commands
+The short version:
+
+- Use voice-first configs (`voices`, optional `meter`).
+- Use simple expression strings for dynamic rules.
+- Use simple built-in shorthand: `"constraint": "all_different"`.
+- Keep `search_options` for search behavior.
+
+The advanced JSON-AST expression form is still supported, but no longer the recommended default authoring style.
+
+## 1. Quick Start
 
 CLI:
 
@@ -10,13 +19,13 @@ CLI:
 bin/dynamic-solver configs/metric_domain_example.json
 ```
 
-Wrapper harness (same path used by Max normalization):
+Wrapper path (same normalization used by Max):
 
 ```bash
 ./bin/test-max-wrapper configs/metric_domain_example.json
 ```
 
-## 2. Current Top-Level Shape
+## 2. Top-Level Structure
 
 ```json
 {
@@ -34,17 +43,13 @@ Wrapper harness (same path used by Max normalization):
 }
 ```
 
-Required for modern configs:
+Required in modern configs:
 
 - `solution_length`
 - `num_voices`
 - `voices`
 
-## 3. Voices and Meter
-
-### 3.1 Voices
-
-`voices` is a contiguous voice list (array preferred):
+## 3. Voices
 
 ```json
 "voices": [
@@ -53,19 +58,19 @@ Required for modern configs:
     "pitch": { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
   },
   {
-    "rhythm": { "duration_values": ["1/4"] },
+    "rhythm": { "duration_values": ["1/4", "-1/4"] },
     "pitch": { "midi_values": [55, 57, 59, 60, 62, 64, 65, 67] }
   }
 ]
 ```
 
-Rules:
+Notes:
 
-- Voice indices are contiguous `0..N-1`.
-- Each voice should define both pitch and rhythm domains.
-- Rhythm rests are supported with negative durations, for example `"-1/4"`.
+- Voices are contiguous `0..N-1`.
+- Each voice should define pitch and rhythm.
+- Negative rhythm values are rests (`"-1/4"`).
 
-### 3.2 Meter
+## 4. Meter
 
 ```json
 "meter": {
@@ -75,18 +80,25 @@ Rules:
 }
 ```
 
-`r-metric-signature` targeting is implicit; do not set voice/engine targets for metric signature rules.
+Metric signature rules are implicitly metric-targeted.
 
-## 4. Rules
+## 5. Built-in Rules (`rules`)
 
-### 4.1 Built-in Rules (`rules`)
+You can now write built-ins in two equivalent ways.
 
-Modern built-in rule targets are voice-based:
+### 5.1 Preferred shorthand
 
-- `target_voice` or `target_voices`
-- `target_component`: `pitch` or `rhythm`
+```json
+{
+  "rule_type": "r-pitches-one-engine",
+  "constraint": "all_different",
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+  "target_voice": 0,
+  "target_component": "pitch"
+}
+```
 
-Pitch example:
+### 5.2 Verbose form (still supported)
 
 ```json
 {
@@ -102,47 +114,91 @@ Pitch example:
 }
 ```
 
-Rhythm example:
+### 5.3 More built-in examples
+
+Rhythm uniformity:
 
 ```json
 {
   "rule_type": "r-rhythmic-uniformity",
-  "constraint_function": {
-    "type": "builtin",
-    "function": "equal_values",
-    "parameters": ["1/4"]
-  },
+  "constraint": "equal_values",
+  "parameters": ["1/4"],
   "indices": [0, 1, 2, 3, 4, 5, 6, 7],
   "target_voice": 1,
   "target_component": "rhythm"
 }
 ```
 
-Metric example:
+Cross-voice no unisons:
+
+```json
+{
+  "rule_type": "r-cross-voice-no-unisons",
+  "constraint": "no_unisons_between_engines",
+  "target_voices": [0, 1],
+  "target_component": "pitch",
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7]
+}
+```
+
+Metric signature with timepoints:
 
 ```json
 {
   "rule_type": "r-metric-signature",
-  "constraint_function": {
-    "type": "builtin",
-    "function": "equal_values",
-    "parameters": ["4/4", "3/4", "6/8"]
-  },
+  "constraint": "equal_values",
+  "parameters": ["4/4", "3/4", "6/8"],
   "timepoints": ["0q", "4q", "7q"]
 }
 ```
 
-### 4.2 Dynamic Rules (`dynamic_rules`)
+## 6. Dynamic Rules (`dynamic_rules`)
 
-Dynamic rules support hard constraints and heuristics.
+Dynamic rules are expression-based and support hard constraints plus heuristics.
 
-Common categories:
+### 6.1 Recommended style: expression as real string
 
-- `basic_constraint` + `mode: "true_false"`
-- `heuristic_preference` + `mode: "heur_switch"`
-- `heuristic_energy` + `mode: "real_heuristic"`
+Hard constraint:
 
-Example:
+```json
+{
+  "id": "step_by_two",
+  "type": "basic_constraint",
+  "mode": "true_false",
+  "expression": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2"
+}
+```
+
+Heuristic preference:
+
+```json
+{
+  "id": "prefer_center",
+  "type": "heuristic_energy",
+  "mode": "real_heuristic",
+  "weight": 2,
+  "expression": "24 - abs(?current - 66)"
+}
+```
+
+### 6.2 Alias: `constraint` instead of `expression`
+
+This is also accepted:
+
+```json
+{
+  "id": "simple_plus3",
+  "type": "basic_constraint",
+  "mode": "true_false",
+  "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3"
+}
+```
+
+The wrapper normalizes `constraint` to `expression` for dynamic rules.
+
+### 6.3 Advanced AST object form (optional)
+
+Still supported, but not required:
 
 ```json
 {
@@ -167,9 +223,39 @@ Example:
 }
 ```
 
-## 5. Search Options
+## 7. Expression Examples (String Form)
 
-Search behavior is configured via `search_options`.
+Single voice melodic limits:
+
+```text
+abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2
+```
+
+Parallel motion between voices:
+
+```text
+voice[1].pitch[i] == voice[0].pitch[i] + 7
+```
+
+Wildcard voice placeholder:
+
+```text
+voice[v].pitch[i+1] != voice[v].pitch[i]
+```
+
+Cross-voice pair placeholder style:
+
+```text
+abs(voice[v1].pitch[i] - voice[v2].pitch[i]) >= 3
+```
+
+Rhythm coupling:
+
+```text
+voice[1].rhythm[i] == voice[0].rhythm[i]
+```
+
+## 8. Search Options
 
 ```json
 "search_options": {
@@ -191,12 +277,7 @@ Allowed values:
 - `value_order`: `min`, `random`, `heuristic`
 - `restart_policy`: `none`, `luby`
 
-Important:
-
-- `backtrack_method` is deprecated.
-- Legacy `branching: "sequential"` is normalized to `input_order` in wrapper compatibility mode.
-
-## 6. Output Options
+## 9. Output Options
 
 ```json
 "output_options": {
@@ -214,26 +295,27 @@ Important:
 
 If export flags are enabled, provide `output_options.export_path`.
 
-## 7. Legacy Compatibility Notes
+## 10. Legacy Compatibility
 
-The wrapper currently normalizes several legacy patterns to the current contract, including:
+The wrapper still normalizes legacy patterns:
 
-- old domain containers (`engine_domains`, `domains.voice_domains`, `note_domain`)
-- old wrappers (`configuration` blocks)
-- legacy rule targeting (`voice`, wildcard scopes, and inferred voice references)
+- `engine_domains`, `domains.voice_domains`, `note_domain`
+- `configuration` blocks
+- legacy rule targeting (`voice`, wildcard scopes, inferred voice refs)
+- built-in shorthand `constraint` and dynamic rule `constraint` alias
 
-For new configs, use the voice-first contract directly.
+Use the modern voice-first contract for all new configs.
 
-## 8. Common Errors
+## 11. Common Errors
 
 - `missing target_voice/target_voices`
-  - Add `target_voice` or `target_voices` plus `target_component` for built-in non-metric rules.
+  - Add `target_voice` or `target_voices` and `target_component` for non-metric built-ins.
 - `Missing required object: engine_domains`
-  - Indicates legacy shape that was not normalized for that input path; migrate to `voices`.
+  - Legacy shape not normalized in that path; migrate to `voices`.
 - metric timepoint errors
   - Ensure `timepoints` are strictly increasing and within `score_length`.
 
-## 9. References
+## 12. References
 
 - [README.md](README.md)
 - [max-usage.md](max-usage.md)

@@ -7,7 +7,6 @@ Polyphonic musical constraint solving in C++17 on top of Gecode, with dynamic ex
 - User-facing configs are voice-first: `voices` + optional `meter`.
 - Built-in rule targeting is voice-based: `target_voice` or `target_voices` with `target_component`.
 - Search strategy is configured via `search_options`.
-- `backtrack_method` is deprecated and removed from current examples.
 - Wrapper compatibility layer still accepts several legacy config shapes and normalizes them.
 
 ## Front Ends
@@ -59,33 +58,23 @@ bin/dynamic-solver configs/metric_domain_example.json
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "all_different",
-        "parameters": []
-      },
+      "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "target_voice": 0,
       "target_component": "pitch"
     },
     {
       "rule_type": "r-rhythmic-uniformity",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": ["1/4"]
-      },
+      "constraint": "equal_values",
+      "parameters": ["1/4"],
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
       "target_voice": 1,
       "target_component": "rhythm"
     },
     {
       "rule_type": "r-metric-signature",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": ["4/4", "3/4"]
-      },
+      "constraint": "equal_values",
+      "parameters": ["4/4", "3/4"],
       "timepoints": ["0q", "4q"]
     }
   ],
@@ -119,7 +108,6 @@ Use `search_options`:
 
 Notes:
 
-- `backtrack_method` is deprecated.
 - Legacy `branching: "sequential"` is normalized to `input_order` by the wrapper compatibility path.
 
 ## Metric Timepoints

@@ -11,20 +11,7 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
@@ -37,43 +24,21 @@
       "constraint_function": {
         "type": "custom",
         "function": "palindrome_of_engine",
-        "parameters": [
-          3,
-          1
-        ]
+        "parameters": [3, 1]
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 8,
       "description": "Engine 3 is exact palindrome of Engine 1",
-      "target_voices": [
-        0,
-        1
-      ],
+      "target_voices": [0, 1],
       "target_component": "pitch"
     },
     {
       "id": "r-voice1-ascending-3",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [
-        0,
-        1
-      ],
+      "pattern_offsets": [0, 1],
       "constraint": "voice[1].pitch[i+1] == voice[1].pitch[i] + 4",
       "enabled": true,
       "priority": 7,
@@ -84,24 +49,9 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [
-          "1/4"
-        ]
+        "parameters": ["1/4"]
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "rhythm",
       "enabled": true,
       "priority": 7,
@@ -114,24 +64,9 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [
-          "1/4"
-        ]
+        "parameters": ["1/4"]
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "rhythm",
       "enabled": true,
       "priority": 7,
@@ -144,13 +79,9 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [
-          4
-        ]
+        "parameters": [4]
       },
-      "indices": [
-        0
-      ],
+      "indices": [0],
       "engine_type": "metric",
       "enabled": true,
       "priority": 6,
@@ -181,162 +112,38 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": [
-          "1/4"
-        ],
+        "duration_values": ["1/4"],
         "description": "Voice 0 rhythm: quarter notes only"
       },
       "pitch": {
         "midi_values": [
-          60,
-          61,
-          62,
-          63,
-          64,
-          65,
-          66,
-          67,
-          68,
-          69,
-          70,
-          71,
-          72,
-          73,
-          74,
-          75,
-          76,
-          77,
-          78,
-          79,
-          80,
-          81,
-          82,
-          83,
-          84,
-          85,
-          86,
-          87,
-          88,
-          89,
-          90,
-          91,
-          92,
-          93,
-          94,
-          95,
-          96,
-          97,
-          98,
-          99,
-          100,
-          101,
-          102,
-          103,
-          104,
-          105,
-          106,
-          107,
-          108,
-          109,
-          110,
-          111,
-          112,
-          113,
-          114,
-          115,
-          116,
-          117,
-          118,
-          119,
-          120
+          60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+          77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+          94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
+          109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120
         ],
         "description": "Voice 0 pitch: 12-tone row using perfect fifth intervals (circle of fifths)"
       }
     },
     {
       "rhythm": {
-        "duration_values": [
-          "1/4"
-        ],
+        "duration_values": ["1/4"],
         "description": "Voice 1 rhythm: quarter notes only"
       },
       "pitch": {
         "midi_values": [
-          60,
-          61,
-          62,
-          63,
-          64,
-          65,
-          66,
-          67,
-          68,
-          69,
-          70,
-          71,
-          72,
-          73,
-          74,
-          75,
-          76,
-          77,
-          78,
-          79,
-          80,
-          81,
-          82,
-          83,
-          84,
-          85,
-          86,
-          87,
-          88,
-          89,
-          90,
-          91,
-          92,
-          93,
-          94,
-          95,
-          96,
-          97,
-          98,
-          99,
-          100,
-          101,
-          102,
-          103,
-          104,
-          105,
-          106,
-          107,
-          108,
-          109,
-          110,
-          111,
-          112,
-          113,
-          114,
-          115,
-          116,
-          117,
-          118,
-          119,
-          120
+          60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+          77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+          94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
+          109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120
         ],
         "description": "Voice 1 pitch: exact palindrome of Voice 0"
       }
     }
   ],
   "meter": {
-    "time_signatures": [
-      "4/4"
-    ],
-    "beat_divisions": [
-      1,
-      2,
-      4
-    ],
+    "time_signatures": ["4/4"],
+    "beat_divisions": [1, 2, 4],
     "description": "Global metric engine: 4/4 time with beat hierarchy"
   }
 }
