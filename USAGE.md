@@ -1,15 +1,30 @@
-# Usage Guide
+# Usage Guide — Complete Configuration Reference
 
-This is the full, current guide for authoring configs for the solver.
+Complete reference for authoring configs for the Gecode Musical Constraint Solver.
 
-The short version:
+**Quick Summary:**
 
-- Use voice-first configs (`voices`, optional `meter`).
-- Use simple expression strings for dynamic rules.
-- Use simple built-in shorthand: `"constraint": "all_different"`.
-- Keep `search_options` for search behavior.
+- Use voice-first configs (`voices`, optional `meter`)
+- Use simple expression strings for dynamic rules
+- Use simple built-in shorthand: `"constraint": "all_different"`
+- Configure search behavior with `search_options`
 
-The advanced JSON-AST expression form is still supported, but no longer the recommended default authoring style.
+The advanced JSON-AST expression form is still supported but not required.
+
+## Table of Contents
+
+1. [Quick Start](#1-quick-start)
+2. [Top-Level Structure](#2-top-level-structure)
+3. [Voices & Domains](#3-voices--domains)
+4. [Meter Configuration](#4-meter-configuration)
+5. [Built-in Rules](#5-built-in-rules)
+6. [Dynamic Rules & Heuristics](#6-dynamic-rules--heuristics)
+7. [Wildcard Constraints](#7-wildcard-constraints)
+8. [Search Options (DETAILED)](#8-search-options-detailed)
+9. [Output Options](#9-output-options)
+10. [Complete Parameter Reference](#10-complete-parameter-reference)
+11. [CRITICAL: How Heuristics Interact with Rules](#11-critical-how-heuristics-interact-with-rules)
+12. [Common Patterns](#12-common-patterns)
 
 ## 1. Quick Start
 
@@ -19,7 +34,7 @@ CLI:
 bin/dynamic-solver configs/metric_domain_example.json
 ```
 
-Wrapper path (same normalization used by Max):
+Wrapper path (same as used by Max):
 
 ```bash
 ./bin/test-max-wrapper configs/metric_domain_example.json
@@ -30,10 +45,12 @@ Wrapper path (same normalization used by Max):
 ```json
 {
   "name": "My Config",
-  "description": "...",
+  "description": "Configuration description",
   "solution_length": 8,
   "num_voices": 2,
   "score_length": "12q",
+  "min_note": 48,
+  "max_note": 96,
   "voices": [ ... ],
   "meter": { ... },
   "rules": [ ... ],
@@ -43,50 +60,87 @@ Wrapper path (same normalization used by Max):
 }
 ```
 
-Required in modern configs:
+**Required fields:**
 
-- `solution_length`
-- `num_voices`
-- `voices`
+- `solution_length`: Number of notes per voice (integer)
+- `num_voices`: Number of voices (integer)
+- `voices`: Array of voice configurations
 
-## 3. Voices
+**Optional fields:**
+
+- `name`, `description`: Metadata strings
+- `score_length`: Total musical score length (e.g., `"8q"` = 8 quarter notes)
+- `min_note`, `max_note`: Global MIDI note limits (default 48–96)
+- `meter`: Metric signature configuration
+- `rules`: Built-in constraints
+- `dynamic_rules`: Expression-based constraints and heuristics
+- `search_options`: Search behavior configuration
+- `output_options`: Export and display options
+
+## 3. Voices & Domains
+
+Voices define the pitch and rhythm domains for each voice.
 
 ```json
 "voices": [
   {
-    "rhythm": { "duration_values": ["1/8", "1/4"] },
-    "pitch": { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
+    "rhythm": {
+      "duration_values": ["1/8", "1/4", "1/2"],
+      "description": "Eighth notes, quarters, or halves"
+    },
+    "pitch": {
+      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72],
+      "description": "C major scale"
+    }
   },
   {
-    "rhythm": { "duration_values": ["1/4", "-1/4"] },
-    "pitch": { "midi_values": [55, 57, 59, 60, 62, 64, 65, 67] }
+    "rhythm": {
+      "duration_values": ["1/4", "-1/4"],
+      "description": "Quarters or quarter rests"
+    },
+    "pitch": {
+      "midi_values": [48, 50, 52, 53, 55, 57, 59, 60],
+      "description": "Low register"
+    }
   }
 ]
 ```
 
-Notes:
+**Rhythm values:**
 
-- Voices are contiguous `0..N-1`.
-- Each voice should define pitch and rhythm.
-- Negative rhythm values are rests (`"-1/4"`).
+- Positive fractions: `"1/16"`, `"1/8"`, `"1/4"`, `"1/2"`, `"1/1"`, `"2/1"`, etc.
+- Negative fractions are rests: `"-1/4"` = quarter rest
+- Triplet support: `"1/12"` (triplet eighth)
 
-## 4. Meter
+**Pitch values:**
+
+- MIDI note numbers (0–127)
+- Each voice can have any subset of the MIDI range
+- Used to constrain variable domains during search
+
+## 4. Meter Configuration
 
 ```json
 "meter": {
   "time_signatures": ["4/4", "3/4", "6/8"],
-  "tuplets": [3],
-  "beat_divisions": [2, 3]
+  "tuplets": [3, 8],
+  "beat_divisions": [2, 3, 4]
 }
 ```
 
-Metric signature rules are implicitly metric-targeted.
+**Meter fields:**
 
-## 5. Built-in Rules (`rules`)
+- `time_signatures`: Array of allowed time signatures
+- `tuplets`: Tuplet divisors (3 for triplets, 8 for octuplets, etc.)
+- `beat_divisions`: Division factors for beat structures
 
-You can now write built-ins in two equivalent ways.
+Metric rules are automatically targeted to the metric engine (last engine).
 
-### 5.1 Preferred shorthand
+## 5. Built-in Rules
+
+### 5.1 Single-Voice Pitch Rules
+
+**All Different:**
 
 ```json
 {
@@ -94,11 +148,120 @@ You can now write built-ins in two equivalent ways.
   "constraint": "all_different",
   "indices": [0, 1, 2, 3, 4, 5, 6, 7],
   "target_voice": 0,
+  "target_component": "pitch",
+  "enabled": true,
+  "priority": 10
+}
+```
+
+**Twelve-tone explicit (same as all_different but named for clarity):**
+
+```json
+{
+  "rule_type": "r-twelve-tone-voice1",
+  "constraint": "all_different",
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  "target_voice": 0,
   "target_component": "pitch"
 }
 ```
 
-### 5.2 Verbose form (still supported)
+### 5.2 Cross-Voice Pitch Rules
+
+**Perfect Fifth Intervals:**
+
+```json
+{
+  "rule_type": "r-perfect-fifth-intervals",
+  "constraint": "consecutive_perfect_fifths",
+  "target_voices": [0, 1],
+  "target_component": "pitch"
+}
+```
+
+**Palindrome (voice N is exact retrograde of voice M):**
+
+```json
+{
+  "rule_type": "r-palindrome-voice2",
+  "constraint": "palindrome_of_engine",
+  "parameters": [1, 3],
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+  "target_voices": [0, 1],
+  "target_component": "pitch"
+}
+```
+
+`parameters`: `[source_engine, target_engine]`
+
+**Retrograde Inversion:**
+
+```json
+{
+  "rule_type": "r-cross-voice-retrograde-inversion",
+  "constraint": "retrograde_inversion_relationship",
+  "target_voices": [0, 1],
+  "target_component": "pitch"
+}
+```
+
+**No Unisons:**
+
+```json
+{
+  "rule_type": "r-cross-voice-no-unisons",
+  "constraint": "no_unisons_between_engines",
+  "target_voices": [0, 1],
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+  "target_component": "pitch"
+}
+```
+
+### 5.3 Rhythm Rules
+
+**Uniform Duration (all same value):**
+
+```json
+{
+  "rule_type": "r-rhythmic-uniformity",
+  "constraint": "equal_values",
+  "parameters": ["1/4"],
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+  "target_voice": 0,
+  "target_component": "rhythm"
+}
+```
+
+### 5.4 Metric Rules
+
+**Fixed time signature:**
+
+```json
+{
+  "rule_type": "r-metric-signature",
+  "constraint": "equal_values",
+  "parameters": ["4/4"],
+  "indices": [0],
+  "target_component": "metric"
+}
+```
+
+**Time signature with timepoints (changes at specific positions):**
+
+```json
+{
+  "rule_type": "r-metric-signature",
+  "constraint": "equal_values",
+  "parameters": ["4/4", "3/4", "6/8"],
+  "timepoints": ["0q", "4q", "7q"]
+}
+```
+
+Timepoints are positions in quarter-note units where time signatures can change.
+
+### 5.5 Verbose Form (still supported)
+
+The shorthand `"constraint": "..."` expands to:
 
 ```json
 {
@@ -114,188 +277,492 @@ You can now write built-ins in two equivalent ways.
 }
 ```
 
-### 5.3 More built-in examples
+### 5.6 Common Rule Parameters
 
-Rhythm uniformity:
+| Parameter          | Type   | Description                                                                            |
+| ------------------ | ------ | -------------------------------------------------------------------------------------- |
+| `rule_type`        | string | Category: `r-pitches-one-engine`, `r-rhythmic-uniformity`, `r-palindrome-voice2`, etc. |
+| `constraint`       | string | Built-in function: `all_different`, `equal_values`, `palindrome_of_engine`, etc.       |
+| `parameters`       | array  | Constraint parameters (rhythm values, time signatures, engine indices)                 |
+| `target_voice`     | int    | Single voice index (0, 1, 2, ...)                                                      |
+| `target_voices`    | array  | Multiple voices: `[0, 1]`                                                              |
+| `target_component` | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                   |
+| `indices`          | array  | Positions in sequence — omit to apply to all                                           |
+| `timepoints`       | array  | Quarter-note positions for metric rules: `["0q", "4q"]`                                |
+| `enabled`          | bool   | Enable/disable rule (default: `true`)                                                  |
+| `priority`         | int    | Rule priority (higher = tried first)                                                   |
+| `description`      | string | Human-readable label                                                                   |
 
-```json
-{
-  "rule_type": "r-rhythmic-uniformity",
-  "constraint": "equal_values",
-  "parameters": ["1/4"],
-  "indices": [0, 1, 2, 3, 4, 5, 6, 7],
-  "target_voice": 1,
-  "target_component": "rhythm"
-}
-```
+## 6. Dynamic Rules & Heuristics
 
-Cross-voice no unisons:
+Dynamic rules use string expressions and come in two types: hard constraints and heuristics.
 
-```json
-{
-  "rule_type": "r-cross-voice-no-unisons",
-  "constraint": "no_unisons_between_engines",
-  "target_voices": [0, 1],
-  "target_component": "pitch",
-  "indices": [0, 1, 2, 3, 4, 5, 6, 7]
-}
-```
+### 6.1 Hard Constraints (`basic_constraint`)
 
-Metric signature with timepoints:
+Hard constraints are Boolean: a candidate either passes or fails.
 
 ```json
 {
-  "rule_type": "r-metric-signature",
-  "constraint": "equal_values",
-  "parameters": ["4/4", "3/4", "6/8"],
-  "timepoints": ["0q", "4q", "7q"]
-}
-```
-
-## 6. Dynamic Rules (`dynamic_rules`)
-
-Dynamic rules are expression-based and support hard constraints plus heuristics.
-
-### 6.1 Recommended style: expression as real string
-
-Hard constraint:
-
-```json
-{
-  "id": "step_by_two",
+  "id": "step_motion",
   "type": "basic_constraint",
   "mode": "true_false",
-  "expression": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2"
+  "expression": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2",
+  "enabled": true,
+  "priority": 9,
+  "description": "Stepwise melodic motion (max 2 semitones)"
 }
 ```
 
-Heuristic preference:
+**Expression features:**
+
+- Math: `+ - * / abs() max() min()`
+- Comparison: `== != < > <= >=`
+- Logic: `&& || !`
+- Variables: `voice[N].pitch[i]`, `voice[N].rhythm[i]`, `?current`
+
+**Modes:**
+
+- `"true_false"`: Boolean constraint (default)
+- `"real_heuristic"`: Treat as heuristic energy
+
+### 6.2 Heuristic Energy (`heuristic_energy`)
+
+Heuristics score candidates numerically. **Higher score = tried first.** They do not make any value valid or invalid — they only affect search order.
 
 ```json
 {
-  "id": "prefer_center",
+  "id": "prefer_fifths",
   "type": "heuristic_energy",
   "mode": "real_heuristic",
-  "weight": 2,
-  "expression": "24 - abs(?current - 66)"
+  "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)",
+  "weight": 10,
+  "priority": 1,
+  "direction": "maximize",
+  "enabled": true,
+  "description": "Prefer voice 1 to be exactly a perfect fifth above voice 0"
 }
 ```
 
-### 6.2 Alias: `constraint` instead of `expression`
+**Heuristic-specific parameters:**
 
-This is also accepted:
+| Parameter         | Default      | Description                                                                 |
+| ----------------- | ------------ | --------------------------------------------------------------------------- |
+| `weight`          | 1            | Relative importance among heuristics                                        |
+| `priority`        | 0            | Scoring bucket (higher priority evaluated first in tie-breaking)            |
+| `direction`       | `"maximize"` | `"maximize"` = higher score preferred; `"minimize"` = lower score preferred |
+| `candidate_voice` | —            | Restrict heuristic to a specific voice                                      |
+| `wildcard_type`   | —            | See Section 7                                                               |
+
+### 6.3 Expression Variables
+
+| Syntax                | Meaning                                            |
+| --------------------- | -------------------------------------------------- |
+| `voice[0].pitch[i]`   | Pitch of voice 0 at position i                     |
+| `voice[1].rhythm[i]`  | Rhythm of voice 1 at position i                    |
+| `voice[v].pitch[i+1]` | Wildcard voice v, next position                    |
+| `?current`            | The candidate value being scored (heuristics only) |
+| `i`                   | Current position index                             |
+| `v`                   | Wildcard voice index                               |
+
+### 6.4 `constraint` as alias for `expression`
+
+For dynamic rules, `constraint` normalizes to `expression`:
 
 ```json
 {
-  "id": "simple_plus3",
+  "id": "no_repeat",
   "type": "basic_constraint",
   "mode": "true_false",
-  "constraint": "voice[v].pitch[i+1] == voice[v].pitch[i] + 3"
+  "constraint": "voice[0].pitch[i] != voice[0].pitch[i+1]"
 }
 ```
 
-The wrapper normalizes `constraint` to `expression` for dynamic rules.
+## 7. Wildcard Constraints
 
-### 6.3 Advanced AST object form (optional)
+Wildcards expand a single constraint template across all positions or voices automatically.
 
-Still supported, but not required:
+### 7.1 `for_all_positions`
+
+Expands constraint at every position `i=0,1,...,length-1`.
 
 ```json
 {
-  "id": "stepwise_motion",
-  "type": "heuristic_preference",
-  "mode": "heur_switch",
-  "weight": 5,
-  "expression": {
-    "operator": "<=",
-    "left": {
-      "function": "abs",
-      "args": [
-        {
-          "operator": "-",
-          "left": "?current",
-          "right": "voice[0].pitch[i-1]"
-        }
-      ]
-    },
-    "right": 2
-  }
+  "id": "stepwise_all",
+  "rule_type": "wildcard_constraint",
+  "wildcard_type": "for_all_positions",
+  "pattern_offsets": [0, 1],
+  "constraint": "abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2",
+  "target_voices": [0],
+  "target_component": "pitch"
 }
 ```
 
-## 7. Expression Examples (String Form)
+### 7.2 `for_all_voices`
 
-Single voice melodic limits:
+Expands `voice[v]` to every voice in `target_voices`.
 
-```text
-abs(voice[0].pitch[i+1] - voice[0].pitch[i]) <= 2
+```json
+{
+  "id": "stepwise_all_voices",
+  "rule_type": "wildcard_constraint",
+  "wildcard_type": "for_all_voices",
+  "pattern_offsets": [0, 1],
+  "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
+  "target_voices": [0, 1],
+  "target_component": "pitch"
+}
 ```
 
-Parallel motion between voices:
+### 7.3 `sliding_window`
 
-```text
-voice[1].pitch[i] == voice[0].pitch[i] + 7
+Applies constraint to every consecutive pair `(i, i+1)`.
+
+```json
+{
+  "id": "ascending",
+  "rule_type": "wildcard_constraint",
+  "wildcard_type": "sliding_window",
+  "pattern_offsets": [0, 1],
+  "constraint": "voice[0].pitch[i+1] == voice[0].pitch[i] + 4",
+  "target_voices": [0],
+  "target_component": "pitch"
+}
 ```
 
-Wildcard voice placeholder:
+### 7.4 Wildcard used in `dynamic_rules`
 
-```text
-voice[v].pitch[i+1] != voice[v].pitch[i]
+Wildcards work in `dynamic_rules` too, for both constraints and heuristics:
+
+```json
+{
+  "id": "prefer_fifths_all_positions",
+  "type": "heuristic_energy",
+  "wildcard_type": "for_all_positions",
+  "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)",
+  "candidate_voice": 1,
+  "weight": 10,
+  "direction": "maximize"
+}
 ```
 
-Cross-voice pair placeholder style:
+### 7.5 Wildcard Parameters
 
-```text
-abs(voice[v1].pitch[i] - voice[v2].pitch[i]) >= 3
-```
+| Parameter          | Purpose                                                 |
+| ------------------ | ------------------------------------------------------- |
+| `wildcard_type`    | `for_all_positions`, `for_all_voices`, `sliding_window` |
+| `pattern_offsets`  | Offset tuple for the window, e.g. `[0, 1]`              |
+| `constraint`       | Expression using `i`, `v`, `v1`, `v2`                   |
+| `target_voices`    | Voices to which the wildcard applies                    |
+| `target_component` | `"pitch"` or `"rhythm"`                                 |
 
-Rhythm coupling:
+## 8. Search Options (DETAILED)
 
-```text
-voice[1].rhythm[i] == voice[0].rhythm[i]
-```
-
-## 8. Search Options
+Controls how the solver searches for solutions. None of these affect whether constraints are applied — all rules run regardless.
 
 ```json
 "search_options": {
-  "engine": "dfs",
   "branching": "first_fail",
   "value_order": "heuristic",
   "restart_policy": "none",
   "timeout_ms": 30000,
   "max_solutions": 1,
-  "random_seed": 42,
+  "random_seed": 0,
   "heuristic_top_k": 0,
   "heuristic_trace": false
 }
 ```
 
-Allowed values:
+### 8.1 `branching` — Which variable to branch on
 
-- `branching`: `first_fail`, `input_order`
-- `value_order`: `min`, `random`, `heuristic`
-- `restart_policy`: `none`, `luby`
+- **`first_fail`** (recommended): Pick the variable with the smallest remaining domain. Prunes the search tree most aggressively.
+- **`input_order`**: Pick variables in declaration order. Simpler but less efficient.
+
+### 8.2 `value_order` — Which value to try first
+
+- **`min`** (default): Try the smallest value first. Fully deterministic.
+- **`random`**: Try values in random order. Requires `random_seed > 0` for reproducibility.
+- **`heuristic`**: Score candidates using `heuristic_energy` rules from `dynamic_rules`, try higher-scoring candidates first. When candidates are tied, selection depends on `random_seed` (see below).
+
+### 8.3 `random_seed` — Randomness control
+
+| Value                | Behavior                                                  |
+| -------------------- | --------------------------------------------------------- |
+| omitted / `max_uint` | Deterministic, no randomness                              |
+| `0`                  | Fresh random seed per solve → different solution each run |
+| `N > 0`              | Fixed seed → same solution every run (reproducible)       |
+
+### 8.4 Heuristic + random_seed interaction
+
+This is the most important combination to understand.
+
+When `value_order: "heuristic"` and `random_seed: 0`:
+
+- Candidates are scored by heuristic expressions
+- **Tied candidates** (same score) are randomly selected
+- Enables diverse solutions while preserving heuristic preference
+- All hard constraints (palindrome, 12-tone, etc.) still apply — heuristics never bypass them
+
+When `value_order: "heuristic"` and `random_seed > 0`:
+
+- Tied candidates are resolved by deterministic hash → same solution every run
+
+### 8.5 Other parameters
+
+| Parameter         | Default  | Description                                                       |
+| ----------------- | -------- | ----------------------------------------------------------------- |
+| `restart_policy`  | `"none"` | `"none"` or `"luby"` — Luby restarts can help escape local minima |
+| `timeout_ms`      | 30000    | Time limit in milliseconds                                        |
+| `max_solutions`   | 1        | Number of solutions to collect (0 = unlimited)                    |
+| `heuristic_top_k` | 0        | Only evaluate top K candidates for heuristic scoring (0 = all)    |
+| `heuristic_trace` | false    | Print heuristic scores during search (for debugging)              |
 
 ## 9. Output Options
 
 ```json
 "output_options": {
-  "export_path": "output",
-  "export_filename": "my_run",
+  "export_path": "/path/to/output",
+  "export_filename": "my_solution",
   "export_json": true,
   "export_txt": true,
-  "export_xml": false,
+  "export_xml": true,
   "export_png": false,
-  "export_midi": false,
+  "export_midi": true,
   "show_statistics": true,
-  "include_analysis": true
+  "include_analysis": true,
+  "analysis_options": {
+    "harmonic_analysis": true,
+    "interval_analysis": true,
+    "palindrome_verification": true
+  }
 }
 ```
 
-If export flags are enabled, provide `output_options.export_path`.
+| Parameter          | Description                                            |
+| ------------------ | ------------------------------------------------------ |
+| `export_path`      | Output directory (required if any export flag is true) |
+| `export_filename`  | Base filename for all exported files                   |
+| `export_json`      | Save raw solution data as JSON                         |
+| `export_txt`       | Save human-readable text summary                       |
+| `export_xml`       | Save as MusicXML (viewable in notation software)       |
+| `export_png`       | Render notation as PNG                                 |
+| `export_midi`      | Save as MIDI audio file                                |
+| `show_statistics`  | Print solve time, rules checked, etc.                  |
+| `include_analysis` | Compute harmonic and melodic analysis                  |
+| `analysis_options` | Fine-grained analysis settings                         |
 
-## 10. Legacy Compatibility
+## 10. Complete Parameter Reference
+
+### Top-Level
+
+| Field             | Type   | Required | Description                                 |
+| ----------------- | ------ | -------- | ------------------------------------------- |
+| `solution_length` | int    | ✅       | Notes per voice                             |
+| `num_voices`      | int    | ✅       | Number of voices                            |
+| `voices`          | array  | ✅       | Voice domain definitions                    |
+| `name`            | string |          | Config label                                |
+| `description`     | string |          | Human-readable description                  |
+| `score_length`    | string |          | e.g. `"8q"` = 8 quarter notes               |
+| `min_note`        | int    |          | Global pitch lower bound (default 48)       |
+| `max_note`        | int    |          | Global pitch upper bound (default 96)       |
+| `meter`           | object |          | Metric engine configuration                 |
+| `rules`           | array  |          | Built-in constraints                        |
+| `dynamic_rules`   | array  |          | Expression-based constraints and heuristics |
+| `search_options`  | object |          | Search strategy                             |
+| `output_options`  | object |          | Export configuration                        |
+
+### Rule Object
+
+| Field              | Type   | Description                                                                                                                                                                                                         |
+| ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rule_type`        | string | `r-pitches-one-engine`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-rhythmic-uniformity`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `r-metric-signature` |
+| `constraint`       | string | Shorthand: `all_different`, `equal_values`, `palindrome_of_engine`, `no_unisons_between_engines`, `consecutive_perfect_fifths`, `retrograde_inversion_relationship`                                                 |
+| `parameters`       | array  | Constraint-specific params                                                                                                                                                                                          |
+| `target_voice`     | int    | Single voice (0, 1, ...)                                                                                                                                                                                            |
+| `target_voices`    | array  | Multiple voices `[0, 1]`                                                                                                                                                                                            |
+| `target_component` | string | `"pitch"`, `"rhythm"`, `"metric"`                                                                                                                                                                                   |
+| `indices`          | array  | Positions — omit to apply to all                                                                                                                                                                                    |
+| `timepoints`       | array  | Quarter-note positions for metric changes                                                                                                                                                                           |
+| `enabled`          | bool   | On/off (default `true`)                                                                                                                                                                                             |
+| `priority`         | int    | Higher = tried first                                                                                                                                                                                                |
+| `id`               | string | Optional label                                                                                                                                                                                                      |
+| `description`      | string | Optional documentation                                                                                                                                                                                              |
+
+### Dynamic Rule Object
+
+| Field             | Type   | Description                                                   |
+| ----------------- | ------ | ------------------------------------------------------------- |
+| `id`              | string | Rule label                                                    |
+| `type`            | string | `"basic_constraint"` or `"heuristic_energy"`                  |
+| `mode`            | string | `"true_false"` (hard) or `"real_heuristic"` (soft)            |
+| `expression`      | string | Constraint or scoring expression                              |
+| `constraint`      | string | Alias for `expression`                                        |
+| `weight`          | number | Heuristic importance (default 1)                              |
+| `priority`        | int    | Heuristic scoring bucket                                      |
+| `direction`       | string | `"maximize"` or `"minimize"`                                  |
+| `wildcard_type`   | string | `"for_all_positions"`, `"for_all_voices"`, `"sliding_window"` |
+| `pattern_offsets` | array  | Window offsets e.g. `[0, 1]`                                  |
+| `candidate_voice` | int    | Target voice for heuristic                                    |
+| `enabled`         | bool   | On/off (default `true`)                                       |
+| `description`     | string | Optional documentation                                        |
+
+## 11. CRITICAL: How Heuristics Interact with Rules
+
+**Heuristics affect search order. They never affect constraint validity.**
+
+The search process:
+
+```
+1. Select a variable          → branching (first_fail / input_order)
+2. Propose a value            → value_order (min / random / heuristic)
+3. Check ALL constraints      → rules + dynamic_rules (always applied)
+   ✓ Hard constraints: value PASSES or FAILS
+   ✓ Heuristic scores: only determined ORDERING of step 2
+4. If pass → go deeper
+   If fail → backtrack
+```
+
+**What this means in practice:**
+
+- Setting `value_order: "heuristic"` does not weaken or bypass any rule
+- Palindrome constraints, 12-tone rows, stepwise limits — all enforced exactly the same
+- Heuristics only change _which value is proposed first_ at each variable
+- If the best heuristic candidate violates a constraint, it is rejected and the next candidate is tried
+
+**Stochastic tie-breaking explained:**
+
+When `value_order: "heuristic"` and `random_seed: 0`:
+
+- Many candidates may score identically (especially when cross-voice context isn't yet assigned)
+- The solver randomly selects from the tied group
+- This gives **different valid solutions on each run**, all satisfying all constraints
+- Use this to get solution diversity without giving up musical structure
+
+**Example — Heuristic + Palindrome:**
+
+```
+Heuristic: prefer perfect fifths between voices
+Constraint: voice 1 is palindrome of voice 0
+
+Run 1 → [D E F# G A B C# D] + palindrome + fifths ✓
+Run 2 → [A G F# E D C# B A] + palindrome + fifths ✓
+Run 3 → [C D E F G A B C]   + palindrome + fifths ✓
+
+All different sequences. All palindromes. All prefer fifths.
+```
+
+The heuristic guides _which solutions are found first_, not _which solutions are valid_.
+
+## 12. Common Patterns
+
+### Twelve-Tone Row with Palindrome
+
+```json
+{
+  "solution_length": 12,
+  "num_voices": 2,
+  "rules": [
+    {
+      "rule_type": "r-twelve-tone-voice1",
+      "constraint": "all_different",
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_voice": 0,
+      "target_component": "pitch"
+    },
+    {
+      "rule_type": "r-palindrome-voice2",
+      "constraint": "palindrome_of_engine",
+      "parameters": [1, 3],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "target_voices": [0, 1],
+      "target_component": "pitch"
+    }
+  ]
+}
+```
+
+### Stepwise Motion with Solution Diversity
+
+```json
+{
+  "dynamic_rules": [
+    {
+      "id": "prefer_stepwise",
+      "type": "heuristic_energy",
+      "wildcard_type": "for_all_positions",
+      "expression": "max(0, 3 - abs(voice[0].pitch[i+1] - voice[0].pitch[i]))",
+      "weight": 10,
+      "direction": "maximize"
+    }
+  ],
+  "search_options": {
+    "value_order": "heuristic",
+    "random_seed": 0
+  }
+}
+```
+
+### Hard Constraint + Heuristic Preference
+
+```json
+{
+  "rules": [
+    {
+      "rule_type": "r-pitches-one-engine",
+      "constraint": "all_different",
+      "target_voice": 0,
+      "target_component": "pitch"
+    }
+  ],
+  "dynamic_rules": [
+    {
+      "id": "prefer_center",
+      "type": "heuristic_energy",
+      "wildcard_type": "for_all_positions",
+      "expression": "24 - abs(?current - 66)",
+      "weight": 5
+    }
+  ]
+}
+```
+
+Result: All-different notes, biased toward middle C (MIDI 66).
+
+### Parallel Motion (Strict)
+
+```json
+{
+  "dynamic_rules": [
+    {
+      "id": "parallel_fifths",
+      "type": "basic_constraint",
+      "mode": "true_false",
+      "wildcard_type": "for_all_positions",
+      "expression": "(voice[1].pitch[i] - voice[0].pitch[i]) == 7",
+      "target_voices": [0, 1],
+      "target_component": "pitch"
+    }
+  ]
+}
+```
+
+### Mixed Time Signature
+
+```json
+{
+  "rules": [
+    {
+      "rule_type": "r-metric-signature",
+      "constraint": "equal_values",
+      "parameters": ["4/4", "3/4"],
+      "timepoints": ["0q", "4q"]
+    }
+  ]
+}
+```
+
+---
+
+## Legacy Compatibility
 
 The wrapper still normalizes legacy patterns:
 
@@ -306,17 +773,14 @@ The wrapper still normalizes legacy patterns:
 
 Use the modern voice-first contract for all new configs.
 
-## 11. Common Errors
+## Common Errors
 
-- `missing target_voice/target_voices`
-  - Add `target_voice` or `target_voices` and `target_component` for non-metric built-ins.
-- `Missing required object: engine_domains`
-  - Legacy shape not normalized in that path; migrate to `voices`.
-- metric timepoint errors
-  - Ensure `timepoints` are strictly increasing and within `score_length`.
+- **`missing target_voice/target_voices`**: Add `target_voice` or `target_voices` + `target_component` for non-metric built-ins.
+- **`Missing required object: engine_domains`**: Legacy shape — migrate to `voices`.
+- **Metric timepoint errors**: Ensure `timepoints` are strictly increasing and within `score_length`.
+- **No solutions found with heuristic**: Heuristics never relax constraints — check that constraints aren't contradictory independent of heuristics.
 
-## 12. References
+## References
 
 - [README.md](README.md)
-- [max-usage.md](max-usage.md)
 - [configs/cluster_config_schema.json](configs/cluster_config_schema.json)

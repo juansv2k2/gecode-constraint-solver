@@ -21,6 +21,7 @@ bool g_pitch_heuristic_enabled = false;
 unsigned int g_pitch_tie_break_seed = 0;
 int g_pitch_top_k = 0;
 bool g_pitch_trace = false;
+Gecode::Rnd* g_heuristic_rng = nullptr;
 
 int select_value_by_heuristic(const Space& home, IntVar x, int i);
 
@@ -156,28 +157,18 @@ int select_value_by_heuristic(const Space& home, IntVar x, int i) {
         return x.min();
     }
 
-    int best_value = values.val();
-    HeuristicValueScoreBuckets best_buckets =
-        g_pitch_heuristic_scorer(space, voice, position, best_value);
-
-    if (g_pitch_trace) {
-        std::cout << "🎯 candidate voice=" << voice
-                  << " pos=" << position
-                  << " value=" << best_value
-                  << " buckets=" << buckets_to_string(best_buckets) << std::endl;
-    }
-
-    int evaluated = 1;
+    // Collect all candidates with their heuristic scores
+    std::vector<std::pair<int, HeuristicValueScoreBuckets>> candidates;
     const bool top_k_enabled = g_pitch_top_k > 0;
-
-    for (++values; values(); ++values) {
-        if (top_k_enabled && evaluated >= g_pitch_top_k) {
+    
+    for (; values(); ++values) {
+        if (top_k_enabled && (int)candidates.size() >= g_pitch_top_k) {
             break;
         }
         int candidate = values.val();
         HeuristicValueScoreBuckets candidate_buckets =
             g_pitch_heuristic_scorer(space, voice, position, candidate);
-        ++evaluated;
+        candidates.push_back({candidate, candidate_buckets});
 
         if (g_pitch_trace) {
             std::cout << "🎯 candidate voice=" << voice
@@ -185,24 +176,72 @@ int select_value_by_heuristic(const Space& home, IntVar x, int i) {
                       << " value=" << candidate
                       << " buckets=" << buckets_to_string(candidate_buckets) << std::endl;
         }
+    }
 
+    if (candidates.empty()) {
+        return x.min();
+    }
+
+    // Find the best candidate(s) using heuristic comparison
+    int best_idx = 0;
+    HeuristicValueScoreBuckets best_buckets = candidates[0].second;
+    
+    for (size_t i = 1; i < candidates.size(); ++i) {
         if (candidate_is_better(
-                candidate_buckets,
+                candidates[i].second,
                 best_buckets,
                 var_index,
-                candidate,
-                best_value,
-                g_pitch_tie_break_seed)) {
-            best_value = candidate;
-            best_buckets = std::move(candidate_buckets);
+                candidates[i].first,
+                candidates[best_idx].first,
+                0)) {  // Use 0 for deterministic comparison (no random tie-break yet)
+            best_idx = i;
+            best_buckets = candidates[i].second;
         }
+    }
+
+    // Collect all candidates tied with the best score
+    std::vector<int> tied_candidates;
+    tied_candidates.push_back(candidates[best_idx].first);
+    
+    for (size_t i = 0; i < candidates.size(); ++i) {
+        if (i != best_idx) {
+            // Check if this candidate is tied with the best
+            std::vector<int> priorities;
+            priorities.reserve(candidates[i].second.size() + best_buckets.size());
+            for (const auto& kv : candidates[i].second) priorities.push_back(kv.first);
+            for (const auto& kv : best_buckets) priorities.push_back(kv.first);
+            std::sort(priorities.begin(), priorities.end(), std::greater<int>());
+            priorities.erase(std::unique(priorities.begin(), priorities.end()), priorities.end());
+
+            bool is_tied = true;
+            for (int prio : priorities) {
+                double c = bucket_value(candidates[i].second, prio);
+                double b = bucket_value(best_buckets, prio);
+                if (c != b) {
+                    is_tied = false;
+                    break;
+                }
+            }
+            
+            if (is_tied) {
+                tied_candidates.push_back(candidates[i].first);
+            }
+        }
+    }
+
+    // Randomly select from tied candidates if RNG is available and multiple candidates are tied
+    int selected_value = candidates[best_idx].first;
+    if (!tied_candidates.empty() && g_heuristic_rng != nullptr) {
+        int random_idx = g_heuristic_rng->operator()(tied_candidates.size());
+        selected_value = tied_candidates[random_idx];
     }
 
     if (g_pitch_trace) {
         std::cout << "🎯 selector voice=" << voice
                   << " pos=" << position
-                  << " evaluated=" << evaluated
-                  << " chose=" << best_value;
+                  << " evaluated=" << candidates.size()
+                  << " tied=" << tied_candidates.size()
+                  << " chose=" << selected_value;
         if (top_k_enabled) {
             std::cout << " (top_k=" << g_pitch_top_k << ")";
         }
@@ -210,7 +249,7 @@ int select_value_by_heuristic(const Space& home, IntVar x, int i) {
         std::cout << std::endl;
     }
 
-    return best_value;
+    return selected_value;
 }
 
 } // namespace
@@ -225,6 +264,16 @@ void configure_pitch_heuristic_value_ordering(
     g_pitch_tie_break_seed = tie_break_seed;
     g_pitch_top_k = std::max(0, top_k);
     g_pitch_trace = trace;
+    
+    // Initialize RNG for stochastic tie-breaking when tie_break_seed is non-zero
+    if (g_heuristic_rng != nullptr) {
+        delete g_heuristic_rng;
+    }
+    if (tie_break_seed != 0) {
+        g_heuristic_rng = new Gecode::Rnd(tie_break_seed);
+    } else {
+        g_heuristic_rng = nullptr;
+    }
 }
 
 void clear_pitch_heuristic_value_ordering() {
@@ -233,6 +282,10 @@ void clear_pitch_heuristic_value_ordering() {
     g_pitch_tie_break_seed = 0;
     g_pitch_top_k = 0;
     g_pitch_trace = false;
+    if (g_heuristic_rng != nullptr) {
+        delete g_heuristic_rng;
+        g_heuristic_rng = nullptr;
+    }
 }
 
 // ===============================

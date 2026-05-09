@@ -9,7 +9,7 @@
       "id": "prefer_parallel_fifths",
       "type": "heuristic_energy",
       "wildcard_type": "for_all_positions",
-      "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 7)",
+      "expression": "24 - abs((voice[1].pitch[i] - voice[0].pitch[i]) - 3)",
       "mode": "real_heuristic",
       "candidate_voice": 1,
       "weight": 10,
@@ -22,30 +22,59 @@
     {
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "enabled": true,
       "priority": 10,
       "description": "Voice 1 and 2: all notes different",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "target_component": "pitch"
     },
     {
       "id": "stepwise_motion",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_voices",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "enabled": true,
       "priority": 9,
       "description": "Voice 0: consecutive notes are a step apart",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "target_component": "pitch"
     },
     {
       "rule_type": "r-rhythmic-uniformity",
       "constraint": "equal_values",
-      "parameters": ["1/8"],
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "parameters": [
+        "1/8"
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "enabled": true,
       "priority": 7,
       "description": "Voice 0: all eighth notes",
@@ -55,8 +84,19 @@
     {
       "rule_type": "r-rhythmic-uniformity",
       "constraint": "equal_values",
-      "parameters": ["1/4"],
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "parameters": [
+        "1/4"
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "enabled": true,
       "priority": 7,
       "description": "Voice 1: all quarter notes",
@@ -66,8 +106,14 @@
     {
       "rule_type": "r-metric-signature",
       "constraint": "equal_values",
-      "parameters": ["4/4", "3/4"],
-      "timepoints": ["0q", "5q"],
+      "parameters": [
+        "4/4",
+        "3/4"
+      ],
+      "timepoints": [
+        "0q",
+        "5q"
+      ],
       "enabled": true,
       "priority": 6,
       "description": "alternating time signatures"
@@ -78,8 +124,7 @@
     "timeout_ms": 30000,
     "max_solutions": 1,
     "branching": "first_fail",
-    "value_order": "heuristic",
-    "heuristic_trace": false
+    "value_order": "heuristic"
   },
   "output_options": {
     "export_xml": true,
@@ -87,37 +132,73 @@
     "export_midi": false,
     "show_statistics": true,
     "include_analysis": true,
-    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-    "export_filename": "heuristic_all_positions_example"
+    "export_path": "/Users/juanvassallo/GitHub/gecode-constraint-solver/output/heuristic_debug",
+    "export_filename": "value_order_heuristic",
+    "export_json": true
   },
   "voices": [
     {
       "rhythm": {
-        "duration_values": ["1/8"],
+        "duration_values": [
+          "1/8"
+        ],
         "description": "Voice 0: quarter notes only"
       },
       "pitch": {
         "midi_values": [
-          60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72,
+          74,
+          76,
+          77,
+          79,
+          81,
+          83,
+          84
         ],
         "description": "Voice 0: C major, two octaves"
       }
     },
     {
       "rhythm": {
-        "duration_values": ["1/4"],
+        "duration_values": [
+          "1/4"
+        ],
         "description": "Voice 1: quarter notes only"
       },
       "pitch": {
         "midi_values": [
-          67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86, 88, 90, 91
+          67,
+          69,
+          71,
+          72,
+          74,
+          76,
+          77,
+          79,
+          81,
+          83,
+          84,
+          86,
+          88,
+          90,
+          91
         ],
         "description": "Voice 1: C major starting from G4, two octaves"
       }
     }
   ],
   "meter": {
-    "time_signatures": ["4/4", "3/4"],
+    "time_signatures": [
+      "4/4",
+      "3/4"
+    ],
     "description": "possible time signatures are 4/4, 3/4"
   }
 }
