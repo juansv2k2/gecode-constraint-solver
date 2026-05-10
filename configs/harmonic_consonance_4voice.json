@@ -1,0 +1,138 @@
+{
+  "description": "4-voice harmonic consonance study. Quarter-note grid, MIDI 48-72. Perfect consonances (unison/4th/5th/octave) on beats 1 and 3; imperfect consonances (3rds/6ths) on beats 2 and 4.",
+
+  "num_voices": 4,
+  "solution_length": 24,
+
+  "meter": {
+    "time_signatures": ["4/4"],
+    "beat_divisions": [2, 4]
+  },
+
+  "voices": [
+    {
+      "id": 0,
+      "rhythm": { "duration_values": ["1/4"] },
+      "pitch": {
+        "midi_values": [
+          48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
+          65, 66, 67, 68, 69, 70, 71, 72
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "rhythm": { "duration_values": ["1/4"] },
+      "pitch": {
+        "midi_values": [
+          48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
+          65, 66, 67, 68, 69, 70, 71, 72
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "rhythm": { "duration_values": ["1/4"] },
+      "pitch": {
+        "midi_values": [
+          48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
+          65, 66, 67, 68, 69, 70, 71, 72
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "rhythm": { "duration_values": ["1/4"] },
+      "pitch": {
+        "midi_values": [
+          48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
+          65, 66, 67, 68, 69, 70, 71, 72
+        ]
+      }
+    }
+  ],
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": true,
+    "require_exact_score_length": true,
+    "random_seed": 0,
+    "timeout_ms": 30000,
+    "max_solutions": 1,
+    "branching": "first_fail",
+    "value_order": "random",
+    "restart_policy": "none"
+  },
+  "output_options": {
+    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+    "export_filename": "harmonic_consonance_4voice",
+    "export_xml": true,
+    "export_png": false,
+    "export_midi": false,
+    "show_statistics": true
+  },
+  "rules": [
+    {
+      "description": "--- Beat 1 & 3: Perfect consonances (unison=0, P4=5, P5=7, octave=12) ---"
+    },
+
+    {
+      "rule_type": "wildcard_constraint",
+      "constraint": "abs(voice[1].pitch[i] - voice[0].pitch[i]) in [0, 5, 7, 12]",
+      "indices": [0, 4, 8, 12, 16, 20, 2, 6, 10, 14, 18, 22],
+      "target_voices": [0, 1],
+      "target_component": "pitch",
+      "enabled": true,
+      "description": "V1-V0 perfect consonance on beats 1 and 3"
+    },
+    {
+      "rule_type": "wildcard_constraint",
+      "constraint": "abs(voice[2].pitch[i] - voice[1].pitch[i]) in [0, 5, 7, 12]",
+      "indices": [0, 4, 8, 12, 16, 20, 2, 6, 10, 14, 18, 22],
+      "target_voices": [1, 2],
+      "target_component": "pitch",
+      "enabled": true,
+      "description": "V2-V1 perfect consonance on beats 1 and 3"
+    },
+    {
+      "rule_type": "wildcard_constraint",
+      "constraint": "abs(voice[3].pitch[i] - voice[2].pitch[i]) in [0, 5, 7, 12]",
+      "indices": [0, 4, 8, 12, 16, 20, 2, 6, 10, 14, 18, 22],
+      "target_voices": [2, 3],
+      "target_component": "pitch",
+      "enabled": true,
+      "description": "V3-V2 perfect consonance on beats 1 and 3"
+    },
+
+    {
+      "description": "--- Beat 2 & 4: Imperfect consonances (m3=3, M3=4, m6=8, M6=9) ---"
+    },
+
+    {
+      "rule_type": "wildcard_constraint",
+      "constraint": "abs(voice[1].pitch[i] - voice[0].pitch[i]) in [3, 4, 8, 9]",
+      "indices": [1, 5, 9, 13, 17, 21, 3, 7, 11, 15, 19, 23],
+      "target_voices": [0, 1],
+      "target_component": "pitch",
+      "enabled": true,
+      "description": "V1-V0 imperfect consonance on beats 2 and 4"
+    },
+    {
+      "rule_type": "wildcard_constraint",
+      "constraint": "abs(voice[2].pitch[i] - voice[1].pitch[i]) in [3, 4, 8, 9]",
+      "indices": [1, 5, 9, 13, 17, 21, 3, 7, 11, 15, 19, 23],
+      "target_voices": [1, 2],
+      "target_component": "pitch",
+      "enabled": true,
+      "description": "V2-V1 imperfect consonance on beats 2 and 4"
+    },
+    {
+      "rule_type": "wildcard_constraint",
+      "constraint": "abs(voice[3].pitch[i] - voice[2].pitch[i]) in [3, 4, 8, 9]",
+      "indices": [1, 5, 9, 13, 17, 21, 3, 7, 11, 15, 19, 23],
+      "target_voices": [2, 3],
+      "target_component": "pitch",
+      "enabled": true,
+      "description": "V3-V2 imperfect consonance on beats 2 and 4"
+    }
+  ]
+}

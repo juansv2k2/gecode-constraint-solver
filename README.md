@@ -7,6 +7,8 @@ Polyphonic musical constraint solving in C++17 on top of Gecode, with dynamic ex
 - User-facing configs are voice-first: `voices` + optional `meter`.
 - Built-in rule targeting is voice-based: `target_voice` or `target_voices` with `target_component`.
 - Search strategy is configured via `search_options`.
+- Dynamic expression parsing supports logical operators (`&&`, `||`, `!`, `not`), membership (`in`, `not_in`), and integer array literals (`[0, 5, 7, 12]`).
+- `wildcard_constraint` rules now honor `indices` directly in wildcard expansion.
 - Wrapper compatibility layer still accepts several legacy config shapes and normalizes them.
 
 ## Front Ends
@@ -98,6 +100,27 @@ bin/dynamic-solver configs/metric_domain_example.json
 }
 ```
 
+## Wildcard Membership Example
+
+You can now write compact interval-class constraints with membership sets:
+
+```json
+{
+  "rule_type": "wildcard_constraint",
+  "wildcard_type": "for_all_positions",
+  "constraint": "abs(voice[1].pitch[i] - voice[0].pitch[i]) in [0, 5, 7, 12]",
+  "indices": [0, 4, 8, 12],
+  "target_voices": [0, 1],
+  "target_component": "pitch"
+}
+```
+
+Notes:
+
+- `indices` restricts the wildcard to only those positions.
+- Use `not_in` for exclusion sets.
+- `in` / `not_in` require an integer array literal on the right-hand side.
+
 ## Search Strategy
 
 Use `search_options`:
@@ -129,6 +152,7 @@ Use `config_file` or `config_dict` with the `gecode.solver` object. For details,
 - [Usage Guide](USAGE.md)
 - [Max Usage](max-usage.md)
 - [JSON Schema](configs/cluster_config_schema.json)
+- [Harmonic Consonance Example](configs/harmonic_consonance_4voice.json)
 - [Twelve-Tone Usage](docs/TWELVE_TONE_USAGE.md)
 - [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
 

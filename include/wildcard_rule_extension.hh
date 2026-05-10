@@ -41,6 +41,7 @@ enum class WildcardType {
 struct WildcardSpec {
     WildcardType type;
     std::vector<int> pattern_offsets;   // Pattern shape: [0, 1, 3] means check positions [i, i+1, i+3]
+    std::vector<int> target_indices;    // If non-empty, restrict application to these positions
     int window_size = 1;                // For sliding window rules
     int step_size = 1;                  // Step between applications
     bool cross_voices = false;          // Whether rule can apply across voices

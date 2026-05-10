@@ -410,8 +410,8 @@ std::map<std::string, ASTValue> RuleExpressionParser::extract_parameters(const n
 
 // NEW methods for string expression parsing
 bool RuleExpressionParser::contains_operators(const std::string& expr) {
-    // Check for comparison operators
-    std::vector<std::string> operators = {">=", "<=", "!=", "==", ">", "<", "+", "-", "*", "/", "and", "or", "not"};
+    // Check for comparison and logical operators
+    std::vector<std::string> operators = {">=", "<=", "!=", "==", ">", "<", "+", "-", "*", "/", "and", "or", "not", "&&", "||", " in ", "not_in"};
     
     for (const auto& op : operators) {
         if (expr.find(op) != std::string::npos) {
@@ -494,6 +494,23 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
         return parse_single_token(tokens[0]);
     }
 
+    // Array literal: tokens starting with "[" are integer arrays like "[0", ",", "5", ",", "12]"
+    if (!tokens.empty() && !tokens.front().empty() && tokens.front().front() == '[') {
+        std::vector<int> values;
+        for (const auto& tok : tokens) {
+            if (tok == ",") continue;
+            std::string t = tok;
+            t.erase(std::remove(t.begin(), t.end(), '['), t.end());
+            t.erase(std::remove(t.begin(), t.end(), ']'), t.end());
+            if (!t.empty()) {
+                try { values.push_back(std::stoi(t)); } catch (...) {}
+            }
+        }
+        if (!values.empty()) {
+            return std::make_unique<ConstantNode>(values);
+        }
+    }
+
     // Handle function calls: funcname ( args... )
     if (tokens.size() >= 3 && tokens[1] == "(") {
         // Find matching closing paren
@@ -542,6 +559,14 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
         }
     }
 
+    // Handle unary not / !
+    if (!tokens.empty() && (tokens[0] == "not" || tokens[0] == "!")) {
+        std::vector<std::string> operand_tokens(tokens.begin() + 1, tokens.end());
+        auto unary_node = std::make_unique<UnaryOpNode>(ASTNodeType::NOT);
+        unary_node->add_child(parse_tokens(operand_tokens));
+        return std::move(unary_node);
+    }
+
     // Strip outer parens: ( expr )
     if (tokens.front() == "(" && tokens.back() == ")") {
         std::vector<std::string> inner(tokens.begin() + 1, tokens.end() - 1);
@@ -549,7 +574,84 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
     }
 
     // Parse with operator precedence (lower precedence first)
-    // 1. Comparison operators (lowest precedence)
+    // 1. Logical OR: || or "or" (lowest precedence)
+    {
+        std::vector<std::string> or_ops = {"||" , "or"};
+        int depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;
+        for (size_t i = 1; i < tokens.size() - 1; ++i) {
+            const std::string& token = tokens[i];
+            if (token == "(") { depth++; continue; }
+            if (token == ")") { depth--; continue; }
+            if (depth != 0) continue;
+            if (std::find(or_ops.begin(), or_ops.end(), token) != or_ops.end()) {
+                std::vector<std::string> left_tokens(tokens.begin(), tokens.begin() + i);
+                std::vector<std::string> right_tokens(tokens.begin() + i + 1, tokens.end());
+                auto binary_node = std::make_unique<BinaryOpNode>(ASTNodeType::OR);
+                binary_node->add_child(parse_tokens(left_tokens));
+                binary_node->add_child(parse_tokens(right_tokens));
+                return std::move(binary_node);
+            }
+        }
+    }
+
+    // 2. Logical AND: && or "and"
+    {
+        std::vector<std::string> and_ops = {"&&", "and"};
+        int depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;
+        for (size_t i = 1; i < tokens.size() - 1; ++i) {
+            const std::string& token = tokens[i];
+            if (token == "(") { depth++; continue; }
+            if (token == ")") { depth--; continue; }
+            if (depth != 0) continue;
+            if (std::find(and_ops.begin(), and_ops.end(), token) != and_ops.end()) {
+                std::vector<std::string> left_tokens(tokens.begin(), tokens.begin() + i);
+                std::vector<std::string> right_tokens(tokens.begin() + i + 1, tokens.end());
+                auto binary_node = std::make_unique<BinaryOpNode>(ASTNodeType::AND);
+                binary_node->add_child(parse_tokens(left_tokens));
+                binary_node->add_child(parse_tokens(right_tokens));
+                return std::move(binary_node);
+            }
+        }
+    }
+
+    // 3. Membership operators: in, not_in
+    {
+        int depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;
+        for (size_t i = 1; i < tokens.size() - 1; ++i) {
+            const std::string& token = tokens[i];
+            if (token == "(") { depth++; continue; }
+            if (token == ")") { depth--; continue; }
+            if (depth != 0) continue;
+            if (token == "in" || token == "not_in") {
+                ASTNodeType op_type = (token == "in") ? ASTNodeType::IN : ASTNodeType::NOT_IN;
+                std::vector<std::string> left_tokens(tokens.begin(), tokens.begin() + i);
+                std::vector<std::string> right_tokens(tokens.begin() + i + 1, tokens.end());
+                auto binary_node = std::make_unique<BinaryOpNode>(op_type);
+                binary_node->add_child(parse_tokens(left_tokens));
+                // Right side: array literal [a, b, c, ...] or normal expression
+                if (!right_tokens.empty() && !right_tokens.front().empty() &&
+                        right_tokens.front().front() == '[') {
+                    // Array literal: tokenized as "[a", ",", "b", ..., "z]"
+                    std::vector<int> values;
+                    for (const auto& tok : right_tokens) {
+                        if (tok == ",") continue;
+                        std::string t = tok;
+                        t.erase(std::remove(t.begin(), t.end(), '['), t.end());
+                        t.erase(std::remove(t.begin(), t.end(), ']'), t.end());
+                        if (!t.empty()) {
+                            try { values.push_back(std::stoi(t)); } catch (...) {}
+                        }
+                    }
+                    binary_node->add_child(std::make_unique<ConstantNode>(values));
+                } else {
+                    binary_node->add_child(parse_tokens(right_tokens));
+                }
+                return std::move(binary_node);
+            }
+        }
+    }
+
+    // 4. Comparison operators
     std::vector<std::string> comparison_ops = {">=", "<=", "!=", "==", ">", "<"};
     
     // Initialize depth accounting for tokens[0] being a paren (loop starts at i=1, skipping it).
@@ -577,7 +679,7 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
         }
     }
     
-    // 2. Addition and subtraction operators (higher precedence than comparison)
+    // 5. Addition and subtraction operators (higher precedence than comparison)
     std::vector<std::string> additive_ops = {"+", "-"};
     
     depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;
@@ -604,7 +706,7 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
         }
     }
     
-    // 3. Multiplication and division operators (highest precedence)
+    // 6. Multiplication and division operators (highest precedence)
     std::vector<std::string> multiplicative_ops = {"*", "/"};
     
     depth = (!tokens.empty() && tokens[0] == "(") ? 1 : 0;

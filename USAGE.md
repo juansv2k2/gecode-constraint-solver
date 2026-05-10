@@ -6,6 +6,7 @@ Complete reference for authoring configs for the Gecode Musical Constraint Solve
 
 - Use voice-first configs (`voices`, optional `meter`)
 - Use simple expression strings for dynamic rules
+- Expression parser supports `&&`, `||`, `!`, `not`, `in`, and `not_in`
 - Use simple built-in shorthand: `"constraint": "all_different"`
 - Configure search behavior with `search_options`
 
@@ -314,8 +315,15 @@ Hard constraints are Boolean: a candidate either passes or fails.
 
 - Math: `+ - * / abs() max() min()`
 - Comparison: `== != < > <= >=`
-- Logic: `&& || !`
+- Logic: `&& || ! not`
+- Membership: `in`, `not_in` with integer array literals
 - Variables: `voice[N].pitch[i]`, `voice[N].rhythm[i]`, `?current`
+
+Examples:
+
+- `abs(voice[1].pitch[i] - voice[0].pitch[i]) in [0, 5, 7, 12]`
+- `abs(voice[2].pitch[i] - voice[1].pitch[i]) not_in [1, 2, 6, 10, 11]`
+- `not (voice[0].pitch[i] == voice[1].pitch[i])`
 
 **Modes:**
 
@@ -394,6 +402,20 @@ Expands constraint at every position `i=0,1,...,length-1`.
 }
 ```
 
+If you include `indices`, expansion is restricted to those positions only.
+
+```json
+{
+  "id": "strong_beats_only",
+  "rule_type": "wildcard_constraint",
+  "wildcard_type": "for_all_positions",
+  "constraint": "abs(voice[1].pitch[i] - voice[0].pitch[i]) in [0, 5, 7, 12]",
+  "indices": [0, 4, 8, 12, 16, 20],
+  "target_voices": [0, 1],
+  "target_component": "pitch"
+}
+```
+
 ### 7.2 `for_all_voices`
 
 Expands `voice[v]` to every voice in `target_voices`.
@@ -451,6 +473,28 @@ Wildcards work in `dynamic_rules` too, for both constraints and heuristics:
 | `constraint`       | Expression using `i`, `v`, `v1`, `v2`                   |
 | `target_voices`    | Voices to which the wildcard applies                    |
 | `target_component` | `"pitch"` or `"rhythm"`                                 |
+
+`indices` behavior is the same across CLI and Max-wrapper paths because both use the same wildcard compiler.
+
+### 7.6 Harmonic Consonance Pattern (4 Voices, 4/4)
+
+See `configs/harmonic_consonance_4voice.json` for a complete working setup.
+
+Pattern summary:
+
+- 4 voices
+- Fixed metric domain: `4/4`
+- Rhythmic domain: quarter notes only (`"1/4"`)
+- Pitch domain: MIDI `48..72` (explicit `midi_values`)
+- `solution_length`: `24`
+- Adjacent voice-pair pitch rules `(0,1)`, `(1,2)`, `(2,3)`
+- Strong beats (1 and 3): perfect consonances `[0, 5, 7, 12]`
+- Weak beats (2 and 4): imperfect consonances `[3, 4, 8, 9]`
+
+For a 24-note quarter-note sequence in `4/4`, beat index groups are:
+
+- Beats 1 and 3: `[0, 4, 8, 12, 16, 20, 2, 6, 10, 14, 18, 22]`
+- Beats 2 and 4: `[1, 5, 9, 13, 17, 21, 3, 7, 11, 15, 19, 23]`
 
 ## 8. Search Options (DETAILED)
 

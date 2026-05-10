@@ -8,6 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <unordered_set>
 
 using namespace Gecode;
 
@@ -89,11 +90,18 @@ std::function<void(ConstraintContext&)> WildcardRuleCompiler::create_for_all_pos
             throw std::runtime_error("Invalid constraint AST for wildcard rule");
         }
         
+        // Build set of allowed positions (empty = all)
+        std::unordered_set<int> allowed_pos(spec.target_indices.begin(), spec.target_indices.end());
         int total_constraints = 0;
         
         // Apply constraint to all positions in all voices
         for (int voice = 0; voice < ctx.num_voices; ++voice) {
             for (int pos = 0; pos < ctx.sequence_length; ++pos) {
+                // Skip positions not in the index filter
+                if (!allowed_pos.empty() && allowed_pos.find(pos) == allowed_pos.end()) {
+                    continue;
+                }
+
                 // Check if we have enough positions for the pattern
                 bool can_apply = true;
                 for (int offset : spec.pattern_offsets) {
@@ -305,6 +313,13 @@ WildcardSpec WildcardRuleCompiler::parse_wildcard_spec(const nlohmann::json& rul
     spec.window_size = rule_json.value("window_size", 1);
     spec.step_size = rule_json.value("step_size", 1);
     spec.cross_voices = rule_json.value("cross_voices", false);
+
+    // Parse optional index filter
+    if (rule_json.contains("indices") && rule_json.at("indices").is_array()) {
+        for (const auto& v : rule_json.at("indices")) {
+            if (v.is_number_integer()) spec.target_indices.push_back(v.get<int>());
+        }
+    }
     
     return spec;
 }

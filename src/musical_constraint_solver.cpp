@@ -122,6 +122,78 @@ std::pair<int, int> parse_metric_signature(const std::string& s) {
     return {n, d};
 }
 
+int parse_metric_hierarchy_grid_step_ticks(const SolverConfig& config, bool ignore_tuplets) {
+    if (config.rhythm_base <= 0) {
+        throw std::runtime_error("r-metric-hierarchy requires a positive rhythm_base");
+    }
+    if (config.metric_domain.empty()) {
+        throw std::runtime_error("r-metric-hierarchy requires non-empty metric_domain");
+    }
+
+    int best_step = std::numeric_limits<int>::max();
+
+    for (const auto& entry : config.metric_domain) {
+        if (entry.denominator <= 0) {
+            continue;
+        }
+
+        std::vector<int> subdivisions;
+        subdivisions.push_back(1);
+        if (!ignore_tuplets) {
+            for (int t : entry.tuplets) {
+                if (t > 0) subdivisions.push_back(t);
+            }
+        }
+        for (int b : entry.beat_divisions) {
+            if (b > 0) subdivisions.push_back(b);
+        }
+
+        std::sort(subdivisions.begin(), subdivisions.end());
+        subdivisions.erase(std::unique(subdivisions.begin(), subdivisions.end()), subdivisions.end());
+
+        for (int subdiv : subdivisions) {
+            const int grid_den = entry.denominator * subdiv;
+            if (grid_den <= 0) {
+                continue;
+            }
+            if ((config.rhythm_base % grid_den) != 0) {
+                continue;
+            }
+            const int step_ticks = config.rhythm_base / grid_den;
+            if (step_ticks > 0 && step_ticks < best_step) {
+                best_step = step_ticks;
+            }
+        }
+    }
+
+    if (best_step == std::numeric_limits<int>::max()) {
+        throw std::runtime_error(
+            "r-metric-hierarchy could not derive a valid metric grid from metric_domain and rhythm_base");
+    }
+
+    return best_step;
+}
+
+bool metric_hierarchy_include_rests_mode(const std::vector<std::string>& parameter_strings) {
+    for (const auto& s : parameter_strings) {
+        if (s == "include-rests" || s == "include_rests" || s == ":include-rests" ||
+            s == "include-rest" || s == ":include-rest") {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool metric_hierarchy_ignore_tuplets_mode(const std::vector<std::string>& parameter_strings) {
+    for (const auto& s : parameter_strings) {
+        if (s == "no-tuplets" || s == "no_tuplets" || s == ":no-tuplets" ||
+            s == "ignore-tuplets" || s == "ignore_tuplets" || s == ":ignore-tuplets") {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::map<int, int> build_metric_denominator_map(const SolverConfig& config) {
     std::map<int, int> by_numerator;
     for (const auto& entry : config.metric_domain) {
@@ -613,17 +685,158 @@ int musicxml_alter_for_pitch_class(int pitch_class) {
     return alters[pitch_class % 12];
 }
 
-std::string musicxml_type_for_duration(int duration_ticks, int rhythm_base) {
-    if (duration_ticks <= 0) return "quarter";
-    if (rhythm_base <= 0) return "quarter";
+int gcd_int_local(int a, int b) {
+    a = std::abs(a);
+    b = std::abs(b);
+    while (b != 0) {
+        const int t = a % b;
+        a = b;
+        b = t;
+    }
+    return (a == 0) ? 1 : a;
+}
 
+struct RationalValue {
+    int num = 1;
+    int den = 1;
+};
+
+RationalValue make_reduced_rational(int num, int den) {
+    if (den == 0) return {1, 1};
+    if (den < 0) {
+        num = -num;
+        den = -den;
+    }
+    const int g = gcd_int_local(num, den);
+    return {num / g, den / g};
+}
+
+RationalValue multiply_rational(const RationalValue& a, const RationalValue& b) {
+    return make_reduced_rational(a.num * b.num, a.den * b.den);
+}
+
+bool rational_equal(const RationalValue& a, const RationalValue& b) {
+    return a.num == b.num && a.den == b.den;
+}
+
+struct MusicXmlDurationNotation {
+    std::string type = "quarter";
+    int dots = 0;
+    bool has_time_modification = false;
+    int actual_notes = 0;
+    int normal_notes = 0;
+};
+
+MusicXmlDurationNotation musicxml_notation_for_duration(int duration_ticks, int rhythm_base) {
+    if (duration_ticks <= 0 || rhythm_base <= 0) return {};
+
+    struct BaseType {
+        const char* name;
+        int den;
+    };
+    static const BaseType base_types[] = {
+        {"whole", 1}, {"half", 2}, {"quarter", 4}, {"eighth", 8},
+        {"16th", 16}, {"32nd", 32}, {"64th", 64}, {"128th", 128}
+    };
+
+    const RationalValue target = make_reduced_rational(duration_ticks, rhythm_base);
+
+    // Prefer exact simple/dotted notation first.
+    for (const auto& base : base_types) {
+        const RationalValue base_fraction = make_reduced_rational(1, base.den);
+        for (int dots = 0; dots <= 3; ++dots) {
+            const RationalValue dot_factor = make_reduced_rational((1 << (dots + 1)) - 1, (1 << dots));
+            const RationalValue candidate = multiply_rational(base_fraction, dot_factor);
+            if (rational_equal(candidate, target)) {
+                MusicXmlDurationNotation out;
+                out.type = base.name;
+                out.dots = dots;
+                return out;
+            }
+        }
+    }
+
+    // Fallback to exact tuplet notation (optionally dotted base) when needed.
+    struct TupletChoice {
+        bool found = false;
+        MusicXmlDurationNotation notation;
+        int actual = std::numeric_limits<int>::max();
+        int spread = std::numeric_limits<int>::max();
+        int dots = std::numeric_limits<int>::max();
+        int base_distance_from_quarter = std::numeric_limits<int>::max();
+    } best;
+
+    for (size_t base_idx = 0; base_idx < (sizeof(base_types) / sizeof(base_types[0])); ++base_idx) {
+        const auto& base = base_types[base_idx];
+        const RationalValue base_fraction = make_reduced_rational(1, base.den);
+        for (int dots = 0; dots <= 3; ++dots) {
+            const RationalValue dot_factor = make_reduced_rational((1 << (dots + 1)) - 1, (1 << dots));
+            const RationalValue dotted = multiply_rational(base_fraction, dot_factor);
+            for (int actual = 2; actual <= 16; ++actual) {
+                for (int normal = 1; normal < actual; ++normal) {
+                    const RationalValue time_factor = make_reduced_rational(normal, actual);
+                    const RationalValue candidate = multiply_rational(dotted, time_factor);
+                    if (rational_equal(candidate, target)) {
+                        const int spread = actual - normal;
+                        const int quarter_idx = 2;
+                        const int base_distance = std::abs(static_cast<int>(base_idx) - quarter_idx);
+
+                        const bool is_better = !best.found ||
+                            (actual < best.actual) ||
+                            (actual == best.actual && spread < best.spread) ||
+                            (actual == best.actual && spread == best.spread && dots < best.dots) ||
+                            (actual == best.actual && spread == best.spread && dots == best.dots &&
+                             base_distance < best.base_distance_from_quarter);
+
+                        if (is_better) {
+                            best.found = true;
+                            best.actual = actual;
+                            best.spread = spread;
+                            best.dots = dots;
+                            best.base_distance_from_quarter = base_distance;
+                            best.notation.type = base.name;
+                            best.notation.dots = dots;
+                            best.notation.has_time_modification = true;
+                            best.notation.actual_notes = actual;
+                            best.notation.normal_notes = normal;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (best.found) {
+        return best.notation;
+    }
+
+    // Last-resort fallback: keep a sensible type even if exact symbolic mapping is unavailable.
+    MusicXmlDurationNotation fallback;
     const int whole = rhythm_base;
-    if (duration_ticks >= whole) return "whole";
-    if (duration_ticks * 2 >= whole) return "half";
-    if (duration_ticks * 4 >= whole) return "quarter";
-    if (duration_ticks * 8 >= whole) return "eighth";
-    if (duration_ticks * 16 >= whole) return "16th";
-    return "32nd";
+    if (duration_ticks >= whole) fallback.type = "whole";
+    else if (duration_ticks * 2 >= whole) fallback.type = "half";
+    else if (duration_ticks * 4 >= whole) fallback.type = "quarter";
+    else if (duration_ticks * 8 >= whole) fallback.type = "eighth";
+    else if (duration_ticks * 16 >= whole) fallback.type = "16th";
+    else if (duration_ticks * 32 >= whole) fallback.type = "32nd";
+    else if (duration_ticks * 64 >= whole) fallback.type = "64th";
+    else fallback.type = "128th";
+    return fallback;
+}
+
+void emit_musicxml_note_duration(std::stringstream& xml, int duration_ticks, int whole_ticks) {
+    const auto notation = musicxml_notation_for_duration(duration_ticks, whole_ticks);
+    xml << "        <duration>" << std::max(1, duration_ticks) << "</duration>\n";
+    xml << "        <type>" << notation.type << "</type>\n";
+    for (int d = 0; d < notation.dots; ++d) {
+        xml << "        <dot/>\n";
+    }
+    if (notation.has_time_modification) {
+        xml << "        <time-modification>\n";
+        xml << "          <actual-notes>" << notation.actual_notes << "</actual-notes>\n";
+        xml << "          <normal-notes>" << notation.normal_notes << "</normal-notes>\n";
+        xml << "        </time-modification>\n";
+    }
 }
 
 std::string substitute_wildcard_string(const std::string& input, int voice_a, int voice_b, int i) {
@@ -1368,8 +1581,10 @@ std::string MusicalSolution::to_musicxml() const {
                 if (events.empty()) {
                     xml << "      <note>\n";
                     xml << "        <rest/>\n";
-                    xml << "        <duration>" << std::max(1, measure.end_ticks - measure.start_ticks) << "</duration>\n";
-                    xml << "        <type>whole</type>\n";
+                    emit_musicxml_note_duration(
+                        xml,
+                        std::max(1, measure.end_ticks - measure.start_ticks),
+                        whole_ticks);
                     xml << "      </note>\n";
                 } else {
                     for (const auto& ev : events) {
@@ -1388,8 +1603,7 @@ std::string MusicalSolution::to_musicxml() const {
                             xml << "          <octave>" << octave << "</octave>\n";
                             xml << "        </pitch>\n";
                         }
-                        xml << "        <duration>" << std::max(1, ev.duration_ticks) << "</duration>\n";
-                        xml << "        <type>" << musicxml_type_for_duration(ev.duration_ticks, whole_ticks) << "</type>\n";
+                        emit_musicxml_note_duration(xml, std::max(1, ev.duration_ticks), whole_ticks);
                         xml << "      </note>\n";
                     }
                 }
@@ -2171,8 +2385,10 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         const bool is_metric_signature_rule =
             (cfg.rule_type == "r-metric-signature" &&
              (cfg.function == "equal_values" || cfg.function == "equal" || cfg.function.empty()));
+        const bool is_metric_hierarchy_rule =
+            (cfg.rule_type == "r-metric-hierarchy");
 
-        if (!is_all_different_rule && !is_rhythmic_uniformity_rule && !is_metric_signature_rule) {
+        if (!is_all_different_rule && !is_rhythmic_uniformity_rule && !is_metric_signature_rule && !is_metric_hierarchy_rule) {
             continue;
         }
 
@@ -2410,6 +2626,64 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     if (vars.size() > 1) {
                         Gecode::rel(*gecode_space, vars, Gecode::IRT_EQ);
                     }
+                }
+            } else if (is_metric_hierarchy_rule) {
+                if (!is_rhythm_engine) {
+                    throw std::runtime_error("r-metric-hierarchy rule '" + cfg.description + "' must target rhythm engines only");
+                }
+                if (!gecode_space->has_rhythm_vars()) {
+                    throw std::runtime_error("r-metric-hierarchy rule '" + cfg.description + "' targets rhythm engine but rhythm vars are unavailable");
+                }
+
+                const int voice = engine / 2;
+                if (voice < 0 || voice >= config_.num_voices) {
+                    throw std::runtime_error("r-metric-hierarchy rule '" + cfg.description + "' has out-of-range rhythm engine " + std::to_string(engine));
+                }
+                if (voice < 0 || voice >= static_cast<int>(config_.voice_rhythm_domains.size())) {
+                    throw std::runtime_error("r-metric-hierarchy rule '" + cfg.description + "' has no rhythm domain for voice " + std::to_string(voice));
+                }
+
+                const bool include_rests = metric_hierarchy_include_rests_mode(cfg.parameter_strings);
+                const bool ignore_tuplets = metric_hierarchy_ignore_tuplets_mode(cfg.parameter_strings);
+                const int grid_step_ticks = parse_metric_hierarchy_grid_step_ticks(config_, ignore_tuplets);
+
+                std::vector<int> allowed_ticks;
+                for (int tick : config_.voice_rhythm_domains[voice]) {
+                    if (tick == 0) {
+                        continue;
+                    }
+                    if (include_rests) {
+                        if ((std::abs(tick) % grid_step_ticks) == 0) {
+                            allowed_ticks.push_back(tick);
+                        }
+                    } else {
+                        // Match the Lisp mode where only durations are constrained and rests are ignored.
+                        if (tick < 0 || (tick % grid_step_ticks) == 0) {
+                            allowed_ticks.push_back(tick);
+                        }
+                    }
+                }
+
+                std::sort(allowed_ticks.begin(), allowed_ticks.end());
+                allowed_ticks.erase(std::unique(allowed_ticks.begin(), allowed_ticks.end()), allowed_ticks.end());
+
+                if (allowed_ticks.empty()) {
+                    throw std::runtime_error(
+                        "r-metric-hierarchy rule '" + cfg.description +
+                        "' leaves no allowed rhythm values for voice " + std::to_string(voice));
+                }
+
+                Gecode::IntSet allowed_set(allowed_ticks.data(), static_cast<int>(allowed_ticks.size()));
+                Gecode::IntVarArgs vars;
+                for (int idx : selected_indices) {
+                    if (idx < 0 || idx >= config_.sequence_length) {
+                        throw std::runtime_error("r-metric-hierarchy rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                    }
+                    vars << gecode_space->get_rhythm_vars()[voice * config_.sequence_length + idx];
+                }
+
+                if (vars.size() > 0) {
+                    Gecode::dom(*gecode_space, vars, allowed_set);
                 }
             }
         }

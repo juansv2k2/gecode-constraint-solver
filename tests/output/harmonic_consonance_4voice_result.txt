@@ -1,0 +1,29 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: configs/harmonic_consonance_4voice.json
+Problem: 
+Description: 4-voice harmonic consonance study. Quarter-note grid, MIDI 48-72. Perfect consonances (unison/4th/5th/octave) on beats 1 and 3; imperfect consonances (3rds/6ths) on beats 2 and 4.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 2:
+  Pitches: C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3 → C3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 3:
+  Pitches: C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3 → C3 → D#3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 5 ms
+  Rules applied: 6
