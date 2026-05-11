@@ -623,7 +623,7 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
     if (!rule.is_object()) return;
 
     const std::string rule_id = rule.value("id", rule.value("rule_type", std::string("rule")));
-    const std::string rule_type = rule.value("rule_type", std::string(""));
+    std::string rule_type = rule.value("rule_type", std::string(""));
     const std::string type_field = rule.value("type", std::string(""));
 
     // Shorthand alias for built-in rules:
@@ -856,6 +856,9 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
         if (engine_type == "pitch" || engine_type == "rhythm") {
             target_component = engine_type;
         }
+    }
+    if (target_component.empty() && rule_type == "r-metric-hierarchy") {
+        target_component = "rhythm";
     }
     if (target_component.empty()) {
         target_component = "pitch";

@@ -431,8 +431,10 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
+    // Rhythm variables drive onset-based constraints, so branch them before pitches
+    // to let hierarchy rules prune the search tree earlier.
     branch_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed, false);
+    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
 }
 
 // Per-voice pitch/rhythm domains + metric domain constructor
@@ -506,9 +508,11 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     }
 
     post_musical_constraints();
-    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
-    branch_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed, false);
+    // Metric and rhythm variables constrain onset structure; branch them before pitches
+    // so metric hierarchy rules prune earlier.
     branch_with_search_strategy(*this, metric_vars_, variable_branching_, value_selection_, random_seed, false);
+    branch_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed, false);
+    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
 }
 
 IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)

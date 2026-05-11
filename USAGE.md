@@ -305,7 +305,7 @@ The allowed set is derived from `meter.beat_divisions` entries that are **not** 
 }
 ```
 
-**Voice-onset hierarchy (every onset of the coarse voice also appears in the fine voice):**
+**Voice hierarchy (cantus firmus anchors + optional fioritura):**
 
 ```json
 {
@@ -317,6 +317,57 @@ The allowed set is derived from `meter.beat_divisions` entries that are **not** 
 ```
 
 The `"0<-1"` parameter means voice 0 is the fine voice and voice 1 is the coarse voice.
+
+Default behavior (when `indices` are omitted): only **beat-aligned onsets** of the coarse voice must also appear in the fine voice. This is the cantus-firmus / fioritura mode: the fine voice may use smaller values between those anchors and is **not** forced to copy the full rhythm of the coarse voice.
+
+Example: beat-anchor fioritura
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "hierarchical_voices",
+  "parameters": ["0<-1"],
+  "target_voices": [0, 1]
+}
+```
+
+In this example, voice 1 provides the cantus-firmus anchor points and voice 0 may ornament between them.
+
+Strict behavior: add one of these tokens in `parameters` to require every coarse onset to appear in the fine voice:
+
+- `"all_onsets"`
+- `"strict_all_onsets"`
+- `"all-onsets"`
+- `"strict-all-onsets"`
+
+Example: exact onset inheritance (strict)
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "hierarchical_voices",
+  "parameters": ["0<-1", "strict_all_onsets"],
+  "target_voices": [0, 1]
+}
+```
+
+Partial behavior: add explicit `indices` to require onset inheritance only for selected coarse-note positions.
+
+Example: partial cantus anchors
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "hierarchical_voices",
+  "indices": [0, 1, 2, 3],
+  "parameters": ["0<-1"],
+  "target_voices": [0, 1],
+  "enabled": 1,
+  "description": "Only the first four coarse onsets must be inherited"
+}
+```
+
+`enabled` accepts `true`/`false` and also truthy values like `1`, `yes`, and `on` in the CLI config parser.
 
 `r-uniformity` works on whichever component you target. For pitch, provide MIDI values or integers in the pitch domain; for rhythm, provide duration strings or tick values.
 

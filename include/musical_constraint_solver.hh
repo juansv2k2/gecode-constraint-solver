@@ -557,11 +557,17 @@ private:
         GecodeClusterIntegration::IntegratedMusicalSpace* solved_space);
 
     /**
-     * @brief Validate solved candidates for onset-based r-metric-hierarchy modes.
+     * @brief Post hierarchical_voices constraint to Gecode space
+     * This creates hard constraints during search instead of post-solve validation
      */
-    bool validate_metric_hierarchy_solution_(const MusicalSolution& solution,
-                                             std::string& failure_reason) const;
-    
+    void post_hierarchical_voices_constraint_(
+        GecodeClusterIntegration::IntegratedMusicalSpace* gecode_space,
+        int fine_voice, int coarse_voice,
+        const std::vector<int>& selected_indices,
+        bool strict_all_onsets,
+        bool use_beat_anchor_filter,
+        int beat_ticks) const;
+
     /**
      * @brief Update performance statistics
      */

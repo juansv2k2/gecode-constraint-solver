@@ -758,7 +758,10 @@ public:
                         size_t pos = line.find(":");
                         if (pos != std::string::npos) {
                             std::string value = removeQuotesAndComma(line.substr(pos + 1));
-                            current_rule.enabled = (value == "true");
+                            std::transform(value.begin(), value.end(), value.begin(),
+                                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                            current_rule.enabled =
+                                (value == "true" || value == "1" || value == "yes" || value == "on");
                         }
                     }
                     else if (line.find("\"constraint\"") != std::string::npos &&

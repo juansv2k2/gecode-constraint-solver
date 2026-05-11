@@ -1,7 +1,7 @@
 {
   "name": "Metric Domain Complex - Hierarchy Examples",
   "description": "Example pack for r-metric-hierarchy modes. Includes active defaults and optional examples (enabled=false) for quick A/B testing.",
-  "solution_length": 12,
+  "solution_length": 20,
   "score_length": "24q",
   "num_voices": 2,
   "metric_engine_enabled": true,
@@ -9,7 +9,17 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": ["1/8", "1/12", "1/6", "2/6", "2/12", "1/4"]
+        "duration_values": [
+          "1/16",
+          "1/8",
+          "-1/16",
+          "-1/8",
+          "1/12",
+          "1/6",
+          "2/6",
+          "2/12",
+          "1/4"
+        ]
       },
       "pitch": {
         "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]
@@ -17,7 +27,7 @@
     },
     {
       "rhythm": {
-        "duration_values": ["1/8", "1/12", "1/6", "2/6", "2/12", "1/4"]
+        "duration_values": ["1/16", "1/8", "1/12", "1/6", "2/6", "2/12", "1/4"]
       },
       "pitch": {
         "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
@@ -79,8 +89,8 @@
       "constraint": "hierarchical_voices",
       "parameters": ["0<-1"],
       "target_voices": [0, 1],
-      "enabled": false,
-      "description": "Example C: voice-onset hierarchy (voice 1 anchors voice 0)"
+      "enabled": true,
+      "description": "Example C: beat-anchor hierarchy (voice 1 anchors voice 0; voice 0 may subdivide between anchors)"
     },
     {
       "rule_type": "r-metric-hierarchy",
@@ -88,7 +98,7 @@
       "indices": [0, 1, 2, 3, 4, 5],
       "parameters": ["0<-1"],
       "target_voices": [0, 1],
-      "enabled": false,
+      "enabled": true,
       "description": "Example D: partial-index hierarchy (first half of sequence only)"
     },
     {
