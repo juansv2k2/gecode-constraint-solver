@@ -5,7 +5,7 @@ Polyphonic musical constraint solving in C++17 on top of Gecode, with dynamic ex
 ## What Is Current
 
 - User-facing configs are voice-first: `voices` + optional `meter`.
-- Built-in rule targeting is voice-based: `target_voice` or `target_voices` with `target_component`.
+- Built-in rule targeting is voice-based: `target_voices` with `target_component`.
 - Search strategy is configured via `search_options`.
 - Dynamic expression parsing supports logical operators (`&&`, `||`, `!`, `not`), membership (`in`, `not_in`), and integer array literals (`[0, 5, 7, 12]`).
 - `wildcard_constraint` rules now honor `indices` directly in wildcard expansion.
@@ -66,15 +66,15 @@ bin/dynamic-solver configs/metric_domain_example.json
       "target_component": "pitch"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
+      "rule_type": "r-uniformity",
       "constraint": "equal_values",
       "parameters": ["1/4"],
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "rhythm"
     },
     {
-      "rule_type": "r-metric-signature",
+      "rule_type": "r-time-signature",
       "constraint": "equal_values",
       "parameters": ["4/4", "3/4"],
       "timepoints": ["0q", "4q"]
@@ -135,7 +135,7 @@ Notes:
 
 ## Metric Timepoints
 
-`r-metric-signature` uses score-time boundaries (`timepoints`) in `q` units (quarter-note units).
+`r-time-signature` uses score-time boundaries (`timepoints`) in `q` units (quarter-note units).
 
 - Example: `timepoints: ["0q", "4q", "7q"]`.
 - Optional `score_length` defines total score span.

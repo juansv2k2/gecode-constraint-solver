@@ -2563,11 +2563,11 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
         // Add rule to prevent unisons between voices (handled by engine separation)
         add_rule(std::make_shared<MelodicIntervalRule>(12)); // Allow wide intervals between voices
         
-    } else if (rule_type == "r-rhythmic-uniformity") {
+    } else if (rule_type == "r-rhythmic-uniformity" || rule_type == "r-uniformity") {
         // Rhythm uniformity is handled by the engine extraction (all quarter notes)
         // No specific rule needed as this is built into the rhythm generation
         
-    } else if (rule_type == "r-metric-signature") {
+    } else if (rule_type == "r-metric-signature" || rule_type == "r-time-signature") {
         // Metric signature is handled by the metric engine extraction
         // No specific rule needed as this is built into the metric generation
         
@@ -2824,7 +2824,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         targets.insert(targets.end(), cfg.target_engines.begin(), cfg.target_engines.end());
         for (int t : targets) {
             if (t == metric_engine_index) {
-                if (cfg.rule_type == "r-metric-signature" && !cfg.timepoints.empty()) {
+                if ((cfg.rule_type == "r-metric-signature" || cfg.rule_type == "r-time-signature") && !cfg.timepoints.empty()) {
                     has_explicit_metric_timepoint_rule = true;
                 } else {
                     has_metric_targeted_rule = true;
@@ -2890,9 +2890,9 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
             (cfg.function == "all_different" || cfg.rule_type == "r-one-voice" ||
              cfg.rule_type == "r-pitches-all-different" || cfg.rule_type == "r-twelve-tone-voice1");
         const bool is_rhythmic_uniformity_rule =
-            (cfg.rule_type == "r-rhythmic-uniformity");
+            (cfg.rule_type == "r-rhythmic-uniformity" || cfg.rule_type == "r-uniformity");
         const bool is_metric_signature_rule =
-            (cfg.rule_type == "r-metric-signature" &&
+            ((cfg.rule_type == "r-metric-signature" || cfg.rule_type == "r-time-signature") &&
              (cfg.function == "equal_values" || cfg.function == "equal" || cfg.function.empty()));
         const bool is_metric_hierarchy_rule =
             (cfg.rule_type == "r-metric-hierarchy");
@@ -2939,14 +2939,14 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
             if (is_metric_signature_rule) {
                 if (!is_metric_engine) {
-                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' must target metric engine " + std::to_string(metric_engine_index));
+                    throw std::runtime_error("r-time-signature rule '" + cfg.description + "' must target metric engine " + std::to_string(metric_engine_index));
                 }
                 std::vector<std::pair<int, int>> desired_signatures = parse_metric_signature_parameters(
                     cfg.parameter_strings, cfg.parameters,
-                    "r-metric-signature rule '" + cfg.description + "'");
+                    "r-time-signature rule '" + cfg.description + "'");
 
                 if (desired_signatures.empty()) {
-                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' requires signature parameters");
+                    throw std::runtime_error("r-time-signature rule '" + cfg.description + "' requires signature parameters");
                 }
 
                 std::map<int, int> metric_domain_map;
@@ -2954,7 +2954,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     auto it = metric_domain_map.find(entry.numerator);
                     if (it != metric_domain_map.end() && it->second != entry.denominator) {
                         throw std::runtime_error(
-                            "r-metric-signature rule '" + cfg.description +
+                            "r-time-signature rule '" + cfg.description +
                             "' cannot be applied because metric_domain has duplicate numerators with different denominators");
                     }
                     metric_domain_map[entry.numerator] = entry.denominator;
@@ -2964,7 +2964,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     auto it = metric_domain_map.find(sig.first);
                     if (it == metric_domain_map.end() || it->second != sig.second) {
                         throw std::runtime_error(
-                            "r-metric-signature rule '" + cfg.description +
+                            "r-time-signature rule '" + cfg.description +
                             "' signature " + std::to_string(sig.first) + "/" + std::to_string(sig.second) +
                             " is not present in metric_domain");
                     }
@@ -2972,14 +2972,14 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
                 if (!cfg.timepoints.empty()) {
                     if (!cfg.indices.empty()) {
-                        throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' cannot specify both indices and timepoints");
+                        throw std::runtime_error("r-time-signature rule '" + cfg.description + "' cannot specify both indices and timepoints");
                     }
                     if (config_.score_length_ticks < 0) {
-                        throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' with timepoints requires score_length");
+                        throw std::runtime_error("r-time-signature rule '" + cfg.description + "' with timepoints requires score_length");
                     }
                     if (desired_signatures.size() != cfg.timepoints.size()) {
                         throw std::runtime_error(
-                            "r-metric-signature rule '" + cfg.description +
+                            "r-time-signature rule '" + cfg.description +
                             "' requires the same number of parameters and timepoints");
                     }
 
@@ -2987,15 +2987,15 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     for (size_t i = 0; i < cfg.timepoints.size(); ++i) {
                         const int tick = parse_score_time_token_to_ticks(
                             cfg.timepoints[i], config_.rhythm_base,
-                            "r-metric-signature rule '" + cfg.description + "' timepoints[" + std::to_string(i) + "]");
+                            "r-time-signature rule '" + cfg.description + "' timepoints[" + std::to_string(i) + "]");
                         if (i == 0 && tick != 0) {
-                            throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' requires first timepoint to be 0");
+                            throw std::runtime_error("r-time-signature rule '" + cfg.description + "' requires first timepoint to be 0");
                         }
                         if (tick <= previous_tick) {
-                            throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' timepoints must be strictly increasing");
+                            throw std::runtime_error("r-time-signature rule '" + cfg.description + "' timepoints must be strictly increasing");
                         }
                         if (tick >= config_.score_length_ticks) {
-                            throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' has timepoint outside score_length");
+                            throw std::runtime_error("r-time-signature rule '" + cfg.description + "' has timepoint outside score_length");
                         }
                         previous_tick = tick;
                     }
@@ -3003,7 +3003,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 }
 
                 if (!gecode_space->has_metric_vars()) {
-                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' targets metric engine but metric vars are unavailable");
+                    throw std::runtime_error("r-time-signature rule '" + cfg.description + "' targets metric engine but metric vars are unavailable");
                 }
 
                 std::vector<int> segment_starts = cfg.indices;
@@ -3011,20 +3011,20 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     segment_starts.push_back(0);
                 }
                 if (segment_starts.front() != 0) {
-                    throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' requires first index to be 0");
+                    throw std::runtime_error("r-time-signature rule '" + cfg.description + "' requires first index to be 0");
                 }
                 for (size_t i = 0; i < segment_starts.size(); ++i) {
                     if (segment_starts[i] < 0 || segment_starts[i] >= config_.sequence_length) {
-                        throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' has out-of-range index " + std::to_string(segment_starts[i]));
+                        throw std::runtime_error("r-time-signature rule '" + cfg.description + "' has out-of-range index " + std::to_string(segment_starts[i]));
                     }
                     if (i > 0 && segment_starts[i] <= segment_starts[i - 1]) {
-                        throw std::runtime_error("r-metric-signature rule '" + cfg.description + "' indices must be strictly increasing");
+                        throw std::runtime_error("r-time-signature rule '" + cfg.description + "' indices must be strictly increasing");
                     }
                 }
 
                 if (desired_signatures.size() != segment_starts.size()) {
                     throw std::runtime_error(
-                        "r-metric-signature rule '" + cfg.description +
+                        "r-time-signature rule '" + cfg.description +
                         "' requires the same number of parameters and indices (segment starts)");
                 }
 
@@ -3077,61 +3077,90 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     Gecode::distinct(*gecode_space, vars);
                 }
             } else if (is_rhythmic_uniformity_rule) {
-                if (!is_rhythm_engine) {
-                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' must target rhythm engines only");
-                }
-                if (!gecode_space->has_rhythm_vars()) {
-                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' targets rhythm engine but rhythm vars are unavailable");
-                }
-
                 const int voice = engine / 2;
                 if (voice < 0 || voice >= config_.num_voices) {
-                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' has out-of-range rhythm engine " + std::to_string(engine));
+                    throw std::runtime_error("r-uniformity rule '" + cfg.description + "' has out-of-range engine " + std::to_string(engine));
                 }
-
-                if (voice < 0 || voice >= static_cast<int>(config_.voice_rhythm_domains.size())) {
-                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' has no rhythm domain for voice " + std::to_string(voice));
-                }
-
-                std::vector<int> allowed_ticks;
-                for (const auto& s : cfg.parameter_strings) {
-                    allowed_ticks.push_back(parse_duration_to_ticks(s, config_.rhythm_base));
-                }
-                for (double p : cfg.parameters) {
-                    allowed_ticks.push_back(static_cast<int>(std::lround(p)));
-                }
-
-                if (allowed_ticks.empty()) {
-                    throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' requires at least one parameter value");
-                }
-
-                std::sort(allowed_ticks.begin(), allowed_ticks.end());
-                allowed_ticks.erase(std::unique(allowed_ticks.begin(), allowed_ticks.end()), allowed_ticks.end());
-
-                const auto& domain_ticks = config_.voice_rhythm_domains[voice];
-                for (int tick : allowed_ticks) {
-                    if (std::find(domain_ticks.begin(), domain_ticks.end(), tick) == domain_ticks.end()) {
-                        throw std::runtime_error(
-                            "r-rhythmic-uniformity rule '" + cfg.description +
-                            "' parameter value " + std::to_string(tick) +
-                            " is not present in rhythm domain for voice " + std::to_string(voice));
-                    }
-                }
-
-                Gecode::IntSet allowed_set(allowed_ticks.data(), static_cast<int>(allowed_ticks.size()));
 
                 Gecode::IntVarArgs vars;
-                for (int idx : selected_indices) {
-                    if (idx < 0 || idx >= config_.sequence_length) {
-                        throw std::runtime_error("r-rhythmic-uniformity rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                std::vector<int> allowed_values;
+
+                if (is_rhythm_engine) {
+                    if (!gecode_space->has_rhythm_vars()) {
+                        throw std::runtime_error("r-uniformity rule '" + cfg.description + "' targets rhythm engine but rhythm vars are unavailable");
                     }
-                    vars << gecode_space->get_rhythm_vars()[voice * config_.sequence_length + idx];
+                    if (voice >= static_cast<int>(config_.voice_rhythm_domains.size())) {
+                        throw std::runtime_error("r-uniformity rule '" + cfg.description + "' has no rhythm domain for voice " + std::to_string(voice));
+                    }
+
+                    for (const auto& s : cfg.parameter_strings) {
+                        allowed_values.push_back(parse_duration_to_ticks(s, config_.rhythm_base));
+                    }
+                    for (double p : cfg.parameters) {
+                        allowed_values.push_back(static_cast<int>(std::lround(p)));
+                    }
+
+                    if (allowed_values.empty()) {
+                        throw std::runtime_error("r-uniformity rule '" + cfg.description + "' requires at least one parameter value");
+                    }
+
+                    std::sort(allowed_values.begin(), allowed_values.end());
+                    allowed_values.erase(std::unique(allowed_values.begin(), allowed_values.end()), allowed_values.end());
+
+                    const auto& domain_values = config_.voice_rhythm_domains[voice];
+                    for (int value : allowed_values) {
+                        if (std::find(domain_values.begin(), domain_values.end(), value) == domain_values.end()) {
+                            throw std::runtime_error(
+                                "r-uniformity rule '" + cfg.description +
+                                "' parameter value " + std::to_string(value) +
+                                " is not present in rhythm domain for voice " + std::to_string(voice));
+                        }
+                    }
+
+                    for (int idx : selected_indices) {
+                        if (idx < 0 || idx >= config_.sequence_length) {
+                            throw std::runtime_error("r-uniformity rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                        }
+                        vars << gecode_space->get_rhythm_vars()[voice * config_.sequence_length + idx];
+                    }
+                } else if (is_pitch_engine) {
+                    for (const auto& s : cfg.parameter_strings) {
+                        allowed_values.push_back(std::stoi(s));
+                    }
+                    for (double p : cfg.parameters) {
+                        allowed_values.push_back(static_cast<int>(std::lround(p)));
+                    }
+
+                    if (allowed_values.empty()) {
+                        throw std::runtime_error("r-uniformity rule '" + cfg.description + "' requires at least one parameter value");
+                    }
+
+                    std::sort(allowed_values.begin(), allowed_values.end());
+                    allowed_values.erase(std::unique(allowed_values.begin(), allowed_values.end()), allowed_values.end());
+
+                    const auto& domain_values = config_.voice_domains[voice];
+                    for (int value : allowed_values) {
+                        if (std::find(domain_values.begin(), domain_values.end(), value) == domain_values.end()) {
+                            throw std::runtime_error(
+                                "r-uniformity rule '" + cfg.description +
+                                "' parameter value " + std::to_string(value) +
+                                " is not present in pitch domain for voice " + std::to_string(voice));
+                        }
+                    }
+
+                    for (int idx : selected_indices) {
+                        if (idx < 0 || idx >= config_.sequence_length) {
+                            throw std::runtime_error("r-uniformity rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                        }
+                        vars << gecode_space->get_absolute_vars()[voice * config_.sequence_length + idx];
+                    }
+                } else {
+                    throw std::runtime_error("r-uniformity rule '" + cfg.description + "' cannot target metric engine");
                 }
 
+                Gecode::IntSet allowed_set(allowed_values.data(), static_cast<int>(allowed_values.size()));
                 if (vars.size() > 0) {
-                    // Every selected rhythm must be one of the allowed values.
                     Gecode::dom(*gecode_space, vars, allowed_set);
-                    // Uniformity: all selected positions use the same value (chosen from allowed_set).
                     if (vars.size() > 1) {
                         Gecode::rel(*gecode_space, vars, Gecode::IRT_EQ);
                     }
@@ -3357,7 +3386,7 @@ MusicalSolution Solver::extract_solution_from_space_(
 
             const EngineRuleConfig* explicit_metric_rule = nullptr;
             for (const auto& cfg : engine_rule_configs_) {
-                if (cfg.rule_type == "r-metric-signature" && !cfg.timepoints.empty()) {
+                if ((cfg.rule_type == "r-metric-signature" || cfg.rule_type == "r-time-signature") && !cfg.timepoints.empty()) {
                     explicit_metric_rule = &cfg;
                     break;
                 }
@@ -3369,7 +3398,7 @@ MusicalSolution Solver::extract_solution_from_space_(
                 for (size_t i = 0; i < explicit_metric_rule->timepoints.size(); ++i) {
                     segment_starts_ticks.push_back(parse_score_time_token_to_ticks(
                         explicit_metric_rule->timepoints[i], config_.rhythm_base,
-                        "r-metric-signature rule '" + explicit_metric_rule->description + "' timepoints[" + std::to_string(i) + "]"));
+                        "r-time-signature rule '" + explicit_metric_rule->description + "' timepoints[" + std::to_string(i) + "]"));
                 }
 
                 solution.canonical_score = build_canonical_score_from_timepoints(
@@ -3378,7 +3407,7 @@ MusicalSolution Solver::extract_solution_from_space_(
                     parse_metric_signature_parameters(
                         explicit_metric_rule->parameter_strings,
                         explicit_metric_rule->parameters,
-                        "r-metric-signature rule '" + explicit_metric_rule->description + "'"));
+                        "r-time-signature rule '" + explicit_metric_rule->description + "'"));
             } else {
                 std::vector<int> raw_metric_signature = solved_space->get_metric_sequence();
                 if ((int)raw_metric_signature.size() < config_.sequence_length) {

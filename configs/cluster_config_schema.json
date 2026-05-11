@@ -287,9 +287,9 @@
           "type": "string",
           "enum": [
             "r-pitches-one-engine",
-            "r-rhythmic-uniformity",
+            "r-uniformity",
             "r-cross-voice-no-unisons",
-            "r-metric-signature",
+            "r-time-signature",
             "r-pitches-all-different",
             "r-twelve-tone-voice1",
             "r-palindrome-voice",
@@ -383,7 +383,7 @@
           "if": {
             "properties": {
               "rule_type": {
-                "const": "r-metric-signature"
+                "const": "r-time-signature"
               }
             },
             "required": ["rule_type"]

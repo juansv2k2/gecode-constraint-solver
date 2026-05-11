@@ -45,7 +45,7 @@
       "description": "Voice 1: each note ascends by 5 semitones"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
+      "rule_type": "r-uniformity",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
@@ -60,7 +60,7 @@
       "target_component": "rhythm"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
+      "rule_type": "r-uniformity",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
@@ -75,7 +75,7 @@
       "target_component": "rhythm"
     },
     {
-      "rule_type": "r-metric-signature",
+      "rule_type": "r-time-signature",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",

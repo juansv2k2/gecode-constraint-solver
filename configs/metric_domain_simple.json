@@ -61,7 +61,7 @@
       "target_component": "pitch"
     },
     {
-      "rule_type": "r-metric-signature",
+      "rule_type": "r-time-signature",
       "constraint": "equal_values",
       "parameters": ["4/4", "2/4", "3/4"],
       "timepoints": ["0q", "4q", "6q"]

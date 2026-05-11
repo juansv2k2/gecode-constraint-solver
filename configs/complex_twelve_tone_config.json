@@ -11,20 +11,7 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
@@ -39,20 +26,7 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
@@ -65,24 +39,9 @@
       "constraint_function": {
         "type": "builtin",
         "function": "retrograde_inversion_relationship",
-        "parameters": [
-          65
-        ]
+        "parameters": [65]
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 15,
@@ -91,28 +50,13 @@
       "target_component": "pitch"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
+      "rule_type": "r-uniformity",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [
-          "1/4"
-        ]
+        "parameters": ["1/4"]
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "rhythm",
       "enabled": true,
       "priority": 5,
@@ -121,28 +65,13 @@
       "target_component": "rhythm"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
+      "rule_type": "r-uniformity",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [
-          "1/4"
-        ]
+        "parameters": ["1/4"]
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11
-      ],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "engine_type": "rhythm",
       "enabled": true,
       "priority": 5,
@@ -151,17 +80,13 @@
       "target_component": "rhythm"
     },
     {
-      "rule_type": "r-metric-signature",
+      "rule_type": "r-time-signature",
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": [
-          9
-        ]
+        "parameters": [9]
       },
-      "indices": [
-        0
-      ],
+      "indices": [0],
       "engine_type": "metric",
       "enabled": true,
       "priority": 1,
@@ -200,27 +125,8 @@
       },
       "pitch": {
         "midi_values": [
-          55,
-          56,
-          57,
-          58,
-          59,
-          60,
-          61,
-          62,
-          63,
-          64,
-          65,
-          66,
-          67,
-          68,
-          69,
-          70,
-          71,
-          72,
-          73,
-          74,
-          75
+          55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
+          72, 73, 74, 75
         ],
         "description": "Voice 1 pitch: Wider range (G3 to Eb5) to accommodate retrograde inversion"
       }
@@ -245,36 +151,15 @@
       },
       "pitch": {
         "midi_values": [
-          55,
-          56,
-          57,
-          58,
-          59,
-          60,
-          61,
-          62,
-          63,
-          64,
-          65,
-          66,
-          67,
-          68,
-          69,
-          70,
-          71,
-          72,
-          73,
-          74,
-          75
+          55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
+          72, 73, 74, 75
         ],
         "description": "Voice 2 pitch: Wider range (G3 to Eb5) - constrained by retrograde inversion"
       }
     }
   ],
   "meter": {
-    "time_signatures": [
-      "12/4"
-    ],
+    "time_signatures": ["12/4"],
     "description": "Metric: 12/4 time signature"
   },
   "search_options": {

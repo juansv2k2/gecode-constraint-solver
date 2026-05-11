@@ -42,7 +42,7 @@
       "target_component": "pitch"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
+      "rule_type": "r-uniformity",
       "constraint": "equal_values",
       "parameters": ["1/8"],
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
@@ -53,7 +53,7 @@
       "target_component": "rhythm"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
+      "rule_type": "r-uniformity",
       "constraint": "equal_values",
       "parameters": ["1/4"],
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],

@@ -697,7 +697,19 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
     }
     rule.erase("temporal_scope");
 
-    if (rule_type == "r-metric-signature") {
+    if (rule_type == "r-rhythmic-uniformity") {
+        rule_type = "r-uniformity";
+        rule["rule_type"] = rule_type;
+        if (!rule.contains("target_component") && !rule.contains("engine_type")) {
+            rule["target_component"] = "rhythm";
+            rule["engine_type"] = "rhythm";
+        }
+    } else if (rule_type == "r-metric-signature") {
+        rule_type = "r-time-signature";
+        rule["rule_type"] = rule_type;
+    }
+
+    if (rule_type == "r-time-signature") {
         if (rule.contains("target_voice") || rule.contains("target_voices") || rule.contains("target_component")) {
             throw std::runtime_error(
                 "rule '" + rule_id + "' is metric-targeted implicitly and must not specify voice/component targets");
@@ -849,7 +861,7 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
         target_component = "pitch";
     }
 
-    if (!rule.contains("engine_type") && rule_type != "r-metric-signature") {
+    if (!rule.contains("engine_type") && rule_type != "r-time-signature") {
         rule["engine_type"] = target_component;
     }
 

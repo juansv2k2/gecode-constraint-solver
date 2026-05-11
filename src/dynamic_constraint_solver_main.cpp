@@ -81,12 +81,24 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
     if (!rule.is_object()) return;
 
     const std::string rule_id = rule.value("id", rule.value("rule_type", std::string("rule")));
-    const std::string rule_type = rule.value("rule_type", std::string(""));
+    std::string rule_type = rule.value("rule_type", std::string(""));
     const std::string type_field = rule.value("type", std::string(""));
 
     if (type_field == "index") return;
 
-    if (rule_type == "r-metric-signature") {
+    if (rule_type == "r-rhythmic-uniformity") {
+        rule_type = "r-uniformity";
+        rule["rule_type"] = rule_type;
+        if (!rule.contains("target_component") && !rule.contains("engine_type")) {
+            rule["target_component"] = "rhythm";
+            rule["engine_type"] = "rhythm";
+        }
+    } else if (rule_type == "r-metric-signature") {
+        rule_type = "r-time-signature";
+        rule["rule_type"] = rule_type;
+    }
+
+    if (rule_type == "r-time-signature") {
         if (rule.contains("target_voice") || rule.contains("target_voices") ||
             rule.contains("target_component") || rule.contains("target_engine") ||
             rule.contains("target_engines")) {
@@ -560,7 +572,17 @@ public:
                     in_rule_object = false;
                     in_constraint_function = false;
                     if (!current_rule.rule_type.empty()) {
-                        if (current_rule.rule_type == "r-metric-signature" &&
+                        if (current_rule.rule_type == "r-rhythmic-uniformity") {
+                            current_rule.rule_type = "r-uniformity";
+                            if (current_rule.target_component.empty() && current_rule.engine_type == "pitch") {
+                                current_rule.target_component = "rhythm";
+                                current_rule.engine_type = "rhythm";
+                            }
+                        } else if (current_rule.rule_type == "r-metric-signature") {
+                            current_rule.rule_type = "r-time-signature";
+                        }
+
+                        if (current_rule.rule_type == "r-time-signature" &&
                             current_rule.target_engine < 0 && current_rule.target_engines.empty()) {
                             current_rule.target_engine = num_voices_ * 2;
                             current_rule.engine_type = "metric";
