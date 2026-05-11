@@ -135,12 +135,12 @@ Voices define the pitch and rhythm domains for each voice.
 - `beat_divisions`: All subdivision factors that exist for each beat, including both native and tuplet ones.
 
 **Tuplet vs. non-tuplet subdivisions:**  
-A `beat_divisions` entry is treated as a *native* (non-tuplet) subdivision unless the same value also appears in `tuplets`. This means the classification is meter-aware:
+A `beat_divisions` entry is treated as a _native_ (non-tuplet) subdivision unless the same value also appears in `tuplets`. This means the classification is meter-aware:
 
-| Meter | `tuplets` | `beat_divisions` | 3 is… |
-|-------|-----------|-----------------|--------|
-| 4/4   | `[3]`     | `[2, 3, 4]`     | tuplet |
-| 6/8   | `[2]`     | `[3]`           | native |
+| Meter | `tuplets` | `beat_divisions` | 3 is…  |
+| ----- | --------- | ---------------- | ------ |
+| 4/4   | `[3]`     | `[2, 3, 4]`      | tuplet |
+| 6/8   | `[2]`     | `[3]`            | native |
 
 Metric rules (`r-metric-hierarchy`) use this distinction to filter allowed rhythm values when `"no-tuplets"` is specified.
 
@@ -369,14 +369,14 @@ The shorthand `"constraint": "..."` expands to:
 | ------------------ | ------ | -------------------------------------------------------------------------------------------- |
 | `rule_type`        | string | `r-one-voice`, `r-metric-hierarchy`, `r-rhythmic-uniformity`, `r-palindrome-voice2`, etc.    |
 | `constraint`       | string | Built-in function: `all_different`, `equal_values`, `palindrome_of_engine`, `min_grid`, etc. |
-| `parameters`       | array  | Constraint parameters (rhythm values, time signatures, engine indices)                 |
-| `target_voices`    | array  | Multiple voices: `[0, 1]`                                                              |
-| `target_component` | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                   |
-| `indices`          | array  | Positions in sequence — omit to apply to all                                           |
-| `timepoints`       | array  | Quarter-note positions for metric rules: `["0q", "4q"]`                                |
-| `enabled`          | bool   | Enable/disable rule (default: `true`)                                                  |
-| `priority`         | int    | Rule priority (higher = tried first)                                                   |
-| `description`      | string | Human-readable label                                                                   |
+| `parameters`       | array  | Constraint parameters (rhythm values, time signatures, engine indices)                       |
+| `target_voices`    | array  | Multiple voices: `[0, 1]`                                                                    |
+| `target_component` | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                         |
+| `indices`          | array  | Positions in sequence — omit to apply to all                                                 |
+| `timepoints`       | array  | Quarter-note positions for metric rules: `["0q", "4q"]`                                      |
+| `enabled`          | bool   | Enable/disable rule (default: `true`)                                                        |
+| `priority`         | int    | Rule priority (higher = tried first)                                                         |
+| `description`      | string | Human-readable label                                                                         |
 
 > **Compatibility:** Legacy aliases `target_voice` and `voice` are auto-normalized. Always use `target_voices` in new configs.
 
@@ -700,19 +700,19 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 
 ### Rule Object
 
-| Field              | Type   | Description                                                                                                                                                                                                         |
-| ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field              | Type   | Description                                                                                                                                                                                                                      |
+| ------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `rule_type`        | string | `r-one-voice`, `r-metric-hierarchy`, `r-rhythmic-uniformity`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `r-metric-signature` |
-| `constraint`       | string | Shorthand: `all_different`, `equal_values`, `palindrome_of_engine`, `no_unisons_between_engines`, `consecutive_perfect_fifths`, `retrograde_inversion_relationship`                                                 |
-| `parameters`       | array  | Constraint-specific params                                                                                                                                                                                          |
-| `target_voices`    | array  | Multiple voices `[0, 1]`                                                                                                                                                                                            |
-| `target_component` | string | `"pitch"`, `"rhythm"`, `"metric"`                                                                                                                                                                                   |
-| `indices`          | array  | Positions — omit to apply to all                                                                                                                                                                                    |
-| `timepoints`       | array  | Quarter-note positions for metric changes                                                                                                                                                                           |
-| `enabled`          | bool   | On/off (default `true`)                                                                                                                                                                                             |
-| `priority`         | int    | Higher = tried first                                                                                                                                                                                                |
-| `id`               | string | Optional label                                                                                                                                                                                                      |
-| `description`      | string | Optional documentation                                                                                                                                                                                              |
+| `constraint`       | string | Shorthand: `all_different`, `equal_values`, `palindrome_of_engine`, `no_unisons_between_engines`, `consecutive_perfect_fifths`, `retrograde_inversion_relationship`                                                              |
+| `parameters`       | array  | Constraint-specific params                                                                                                                                                                                                       |
+| `target_voices`    | array  | Multiple voices `[0, 1]`                                                                                                                                                                                                         |
+| `target_component` | string | `"pitch"`, `"rhythm"`, `"metric"`                                                                                                                                                                                                |
+| `indices`          | array  | Positions — omit to apply to all                                                                                                                                                                                                 |
+| `timepoints`       | array  | Quarter-note positions for metric changes                                                                                                                                                                                        |
+| `enabled`          | bool   | On/off (default `true`)                                                                                                                                                                                                          |
+| `priority`         | int    | Higher = tried first                                                                                                                                                                                                             |
+| `id`               | string | Optional label                                                                                                                                                                                                                   |
+| `description`      | string | Optional documentation                                                                                                                                                                                                           |
 
 ### Dynamic Rule Object
 
@@ -900,10 +900,10 @@ The wrapper still normalizes legacy patterns:
 
 **Deprecated rule types (still accepted, prefer `r-one-voice`):**
 
-| Legacy type             | Replacement                                          |
-| ----------------------- | ---------------------------------------------------- |
-| `r-pitches-one-engine`  | `r-one-voice` + `target_component: "pitch"`          |
-| `r-pitches-all-different` | `r-one-voice` + `target_component: "pitch"`        |
+| Legacy type               | Replacement                                 |
+| ------------------------- | ------------------------------------------- |
+| `r-pitches-one-engine`    | `r-one-voice` + `target_component: "pitch"` |
+| `r-pitches-all-different` | `r-one-voice` + `target_component: "pitch"` |
 
 **Deprecated fields on `r-metric-hierarchy` rules (now inferred automatically):**
 
