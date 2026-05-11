@@ -23,6 +23,10 @@
 #include <fstream>
 #include <random>
 #include <regex>
+#include <optional>
+#include <cctype>
+#include <set>
+#include <numeric>
 
 namespace MusicalConstraintSolver {
 
@@ -137,6 +141,9 @@ int parse_metric_hierarchy_grid_step_ticks(const SolverConfig& config, bool igno
             continue;
         }
 
+        // Subdivisions that require tuplet notation for this time signature.
+        const std::set<int> tuplet_set(entry.tuplets.begin(), entry.tuplets.end());
+
         std::vector<int> subdivisions;
         subdivisions.push_back(1);
         if (!ignore_tuplets) {
@@ -145,7 +152,12 @@ int parse_metric_hierarchy_grid_step_ticks(const SolverConfig& config, bool igno
             }
         }
         for (int b : entry.beat_divisions) {
-            if (b > 0) subdivisions.push_back(b);
+            if (b <= 0) continue;
+            // In no-tuplets mode, skip any beat_division that is also marked as a
+            // tuplet — this correctly handles both binary and ternary meters without
+            // relying on a power-of-two heuristic.
+            if (ignore_tuplets && tuplet_set.count(b) > 0) continue;
+            subdivisions.push_back(b);
         }
 
         std::sort(subdivisions.begin(), subdivisions.end());
@@ -192,6 +204,428 @@ bool metric_hierarchy_ignore_tuplets_mode(const std::vector<std::string>& parame
         }
     }
     return false;
+}
+
+std::string to_lower_ascii(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return s;
+}
+
+bool metric_hierarchy_has_token(const std::vector<std::string>& parameter_strings,
+                                const std::string& token) {
+    const std::string wanted = to_lower_ascii(token);
+    for (const auto& s : parameter_strings) {
+        if (to_lower_ascii(s) == wanted) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool metric_hierarchy_try_parse_labeled_duration_ticks(const std::vector<std::string>& parameter_strings,
+                                                       const std::vector<std::string>& labels,
+                                                       int rhythm_base,
+                                                       int& out_ticks) {
+    for (const auto& raw : parameter_strings) {
+        const std::string s = to_lower_ascii(raw);
+        for (const auto& label_raw : labels) {
+            const std::string label = to_lower_ascii(label_raw);
+            const std::string with_colon = label + ":";
+            const std::string with_equals = label + "=";
+            if (s.rfind(with_colon, 0) == 0 && s.size() > with_colon.size()) {
+                out_ticks = std::abs(parse_duration_to_ticks(raw.substr(with_colon.size()), rhythm_base));
+                return true;
+            }
+            if (s.rfind(with_equals, 0) == 0 && s.size() > with_equals.size()) {
+                out_ticks = std::abs(parse_duration_to_ticks(raw.substr(with_equals.size()), rhythm_base));
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+enum class MetricHierarchyMode {
+    DURATIONS_GRID,
+    TUPLET_ON_BEAT_START,
+    MIN_GRID,
+    HIERARCHICAL_VOICES
+};
+
+MetricHierarchyMode parse_metric_hierarchy_mode(const std::string& function,
+                                                const std::vector<std::string>& parameter_strings) {
+    const std::string f = to_lower_ascii(function);
+    if (f == "tuplet_on_beat_start" || f == "tuplet-on-beat-start") {
+        return MetricHierarchyMode::TUPLET_ON_BEAT_START;
+    }
+    if (f == "min_grid" || f == "min-grid" || f == "no_subdivision_below_grid" ||
+        f == "no-subdivision-below-grid") {
+        return MetricHierarchyMode::MIN_GRID;
+    }
+    if (f == "hierarchical_voices" || f == "hierarchical-voices" ||
+        f == "voice_hierarchy" || f == "voice-hierarchy") {
+        return MetricHierarchyMode::HIERARCHICAL_VOICES;
+    }
+
+    if (metric_hierarchy_has_token(parameter_strings, "tuplet_on_beat_start") ||
+        metric_hierarchy_has_token(parameter_strings, "tuplet-on-beat-start")) {
+        return MetricHierarchyMode::TUPLET_ON_BEAT_START;
+    }
+    if (metric_hierarchy_has_token(parameter_strings, "min_grid") ||
+        metric_hierarchy_has_token(parameter_strings, "min-grid") ||
+        metric_hierarchy_has_token(parameter_strings, "no_subdivision_below_grid") ||
+        metric_hierarchy_has_token(parameter_strings, "no-subdivision-below-grid")) {
+        return MetricHierarchyMode::MIN_GRID;
+    }
+    if (metric_hierarchy_has_token(parameter_strings, "hierarchical_voices") ||
+        metric_hierarchy_has_token(parameter_strings, "hierarchical-voices") ||
+        metric_hierarchy_has_token(parameter_strings, "voice_hierarchy") ||
+        metric_hierarchy_has_token(parameter_strings, "voice-hierarchy")) {
+        return MetricHierarchyMode::HIERARCHICAL_VOICES;
+    }
+
+    return MetricHierarchyMode::DURATIONS_GRID;
+}
+
+std::vector<int> metric_hierarchy_target_voices_from_rule(const std::vector<int>& target_engines,
+                                                          int target_engine,
+                                                          int num_voices) {
+    std::vector<int> targets;
+    if (target_engine >= 0) {
+        targets.push_back(target_engine);
+    }
+    targets.insert(targets.end(), target_engines.begin(), target_engines.end());
+
+    std::vector<int> voices;
+    for (int engine : targets) {
+        if (engine < 0) continue;
+        if (engine == num_voices * 2) continue; // metric engine
+        if ((engine % 2) != 0) continue; // only rhythm engines
+        const int voice = engine / 2;
+        if (voice >= 0 && voice < num_voices) {
+            voices.push_back(voice);
+        }
+    }
+
+    std::sort(voices.begin(), voices.end());
+    voices.erase(std::unique(voices.begin(), voices.end()), voices.end());
+    return voices;
+}
+
+std::vector<int> compute_onsets_from_rhythm(const std::vector<int>& rhythm_values, int sequence_length) {
+    std::vector<int> onsets(sequence_length, 0);
+    int running = 0;
+    const int n = std::min(sequence_length, static_cast<int>(rhythm_values.size()));
+    for (int i = 0; i < n; ++i) {
+        onsets[i] = running;
+        running += std::abs(rhythm_values[i]);
+    }
+    for (int i = n; i < sequence_length; ++i) {
+        onsets[i] = running;
+    }
+    return onsets;
+}
+
+std::vector<int> metric_hierarchy_non_tuplet_units_for_entry(const SolverConfig::MetricDomainEntry& entry,
+                                                             int rhythm_base) {
+    std::vector<int> units;
+    if (entry.denominator <= 0 || rhythm_base <= 0) {
+        return units;
+    }
+
+    const int beat_ticks = rhythm_base / entry.denominator;
+    if (beat_ticks <= 0) {
+        return units;
+    }
+
+    // Base beat unit.
+    units.push_back(beat_ticks);
+
+    // A beat_division is a native (non-tuplet) subdivision unless the meter
+    // config also lists it in 'tuplets'. This covers both binary meters
+    // (where /3 is a tuplet) and ternary meters (where /3 is native).
+    const std::set<int> tuplet_set(entry.tuplets.begin(), entry.tuplets.end());
+    for (int div : entry.beat_divisions) {
+        if (div <= 0 || tuplet_set.count(div) > 0) continue;
+        if ((beat_ticks % div) == 0) {
+            units.push_back(beat_ticks / div);
+        }
+    }
+
+    std::sort(units.begin(), units.end());
+    units.erase(std::unique(units.begin(), units.end()), units.end());
+    return units;
+}
+
+std::vector<int> metric_hierarchy_tuplet_units_for_entry(const SolverConfig::MetricDomainEntry& entry,
+                                                         int rhythm_base) {
+    std::vector<int> units;
+    if (entry.denominator <= 0 || rhythm_base <= 0) {
+        return units;
+    }
+
+    const int beat_ticks = rhythm_base / entry.denominator;
+    if (beat_ticks <= 0) {
+        return units;
+    }
+
+    for (int t : entry.tuplets) {
+        if (t <= 1) {
+            continue;
+        }
+        if ((beat_ticks % t) == 0) {
+            units.push_back(beat_ticks / t);
+        }
+    }
+
+    std::sort(units.begin(), units.end());
+    units.erase(std::unique(units.begin(), units.end()), units.end());
+    return units;
+}
+
+const SolverConfig::MetricDomainEntry* metric_hierarchy_find_metric_entry(
+        const SolverConfig& config,
+        int numerator,
+        int denominator) {
+    for (const auto& entry : config.metric_domain) {
+        if (entry.numerator == numerator && entry.denominator == denominator) {
+            return &entry;
+        }
+    }
+    for (const auto& entry : config.metric_domain) {
+        if (entry.denominator == denominator) {
+            return &entry;
+        }
+    }
+    if (!config.metric_domain.empty()) {
+        return &config.metric_domain.front();
+    }
+    return nullptr;
+}
+
+bool metric_hierarchy_duration_is_tuplet_like(int duration_ticks,
+                                              const std::vector<int>& tuplet_units,
+                                              const std::vector<int>& non_tuplet_units) {
+    const int abs_ticks = std::abs(duration_ticks);
+    if (abs_ticks <= 0 || tuplet_units.empty()) {
+        return false;
+    }
+
+    bool hits_tuplet_unit = false;
+    for (int u : tuplet_units) {
+        if (u > 0 && (abs_ticks % u) == 0) {
+            hits_tuplet_unit = true;
+            break;
+        }
+    }
+    if (!hits_tuplet_unit) {
+        return false;
+    }
+
+    // Exclude values that are cleanly on non-tuplet binary grid.
+    for (int u : non_tuplet_units) {
+        if (u > 0 && (abs_ticks % u) == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool metric_hierarchy_tick_aligned_to_any_unit(int tick,
+                                               const std::vector<int>& units) {
+    for (int u : units) {
+        if (u > 0 && (tick % u) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool validate_metric_hierarchy_tuplet_group_closure_for_voice(
+        const SolverConfig& config,
+        const MusicalSolution& solution,
+        int voice,
+        const std::map<int, int>& denominator_map,
+        int fallback_denominator,
+        std::string& failure_reason) {
+    if (voice < 0 || voice >= static_cast<int>(solution.voice_rhythms.size())) {
+        failure_reason = "r-metric-hierarchy default tuplet-group closure has out-of-range voice " +
+                         std::to_string(voice);
+        return false;
+    }
+
+    const auto& rhythm = solution.voice_rhythms[voice];
+    const std::vector<int> onsets = compute_onsets_from_rhythm(rhythm, config.sequence_length);
+    if (rhythm.empty() || onsets.empty()) {
+        return true;
+    }
+
+    const int last_end_tick = onsets.back() + std::abs(rhythm.back());
+    if (last_end_tick <= 0) {
+        return true;
+    }
+
+    for (int idx = 0; idx < static_cast<int>(rhythm.size()); ++idx) {
+        int numerator = 4;
+        if (idx < static_cast<int>(solution.metric_signature.size())) {
+            numerator = solution.metric_signature[idx];
+        }
+        const auto den_it = denominator_map.find(numerator);
+        const int denominator = (den_it != denominator_map.end()) ? den_it->second : fallback_denominator;
+        if (denominator <= 0) {
+            continue;
+        }
+        const int beat_ticks = config.rhythm_base / denominator;
+        if (beat_ticks <= 0) {
+            continue;
+        }
+
+        const SolverConfig::MetricDomainEntry* metric_entry =
+            metric_hierarchy_find_metric_entry(config, numerator, denominator);
+        if (metric_entry == nullptr) {
+            continue;
+        }
+        const std::vector<int> tuplet_units = metric_hierarchy_tuplet_units_for_entry(*metric_entry, config.rhythm_base);
+        const std::vector<int> non_tuplet_units = metric_hierarchy_non_tuplet_units_for_entry(*metric_entry, config.rhythm_base);
+
+        if (!metric_hierarchy_duration_is_tuplet_like(rhythm[idx], tuplet_units, non_tuplet_units)) {
+            continue;
+        }
+
+        const int onset = onsets[idx];
+
+        // Once a tuplet starts, all events in the group must align to the tuplet unit and
+        // remain contiguous until we return to the non-tuplet denominator grid anchor.
+        if (tuplet_units.empty()) {
+            failure_reason = "r-metric-hierarchy default tuplet-group closure failed: no compatible tuplet unit "
+                             "for voice " + std::to_string(voice) + ", index " + std::to_string(idx);
+            return false;
+        }
+        const int min_tuplet_unit = tuplet_units.front();
+        if (min_tuplet_unit <= 0) {
+            failure_reason = "r-metric-hierarchy default tuplet-group closure failed: invalid tuplet unit";
+            return false;
+        }
+
+        int group_anchor_unit = beat_ticks;
+        if (!non_tuplet_units.empty()) {
+            int anchor_gcd = non_tuplet_units.front();
+            for (size_t u = 1; u < non_tuplet_units.size(); ++u) {
+                anchor_gcd = std::gcd(anchor_gcd, non_tuplet_units[u]);
+            }
+            if (anchor_gcd > 0) {
+                group_anchor_unit = anchor_gcd;
+            }
+        }
+
+        int probe_tick = onset;
+        int probe_idx = idx;
+        while (true) {
+            if (probe_idx >= static_cast<int>(rhythm.size()) || probe_idx >= static_cast<int>(onsets.size())) {
+                failure_reason = "r-metric-hierarchy default tuplet-group closure failed: incomplete tuplet fill "
+                                 "at voice " + std::to_string(voice) + ", index " + std::to_string(idx);
+                return false;
+            }
+
+            const int this_onset = onsets[probe_idx];
+            if (this_onset != probe_tick) {
+                failure_reason = "r-metric-hierarchy default tuplet-group closure failed: loose tuplet unit/gap "
+                                 "at voice " + std::to_string(voice) + ", index " + std::to_string(probe_idx);
+                return false;
+            }
+
+            const int dur = std::abs(rhythm[probe_idx]);
+            const int this_end = this_onset + dur;
+            if ((this_onset % min_tuplet_unit) != 0 || (this_end % min_tuplet_unit) != 0) {
+                failure_reason = "r-metric-hierarchy default tuplet-group closure failed: event not aligned to "
+                                 "tuplet unit at voice " + std::to_string(voice) +
+                                 ", index " + std::to_string(probe_idx);
+                return false;
+            }
+            if (this_end > last_end_tick) {
+                failure_reason = "r-metric-hierarchy default tuplet-group closure failed: tuplet overflows score "
+                                 "at voice " + std::to_string(voice) +
+                                 ", index " + std::to_string(probe_idx);
+                return false;
+            }
+
+            probe_tick = this_end;
+            ++probe_idx;
+
+            // Group closes only when we return to the denominator/non-tuplet anchor grid.
+            if (probe_tick > onset && (probe_tick % group_anchor_unit) == 0) {
+                break;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool metric_hierarchy_try_parse_hierarchy_pair(const std::vector<std::string>& parameter_strings,
+                                               const std::vector<int>& fallback_voices,
+                                               int& out_fine_voice,
+                                               int& out_coarse_voice) {
+    std::optional<int> fine;
+    std::optional<int> coarse;
+
+    static const std::regex arrow_re(R"(^\s*(\d+)\s*<-\s*(\d+)\s*$)");
+    static const std::regex arrow_word_re(R"(^\s*voice\s*(\d+)\s*<-\s*voice\s*(\d+)\s*$)", std::regex::icase);
+
+    for (const auto& raw : parameter_strings) {
+        const std::string s = to_lower_ascii(raw);
+        std::smatch m;
+        if (std::regex_match(s, m, arrow_re) || std::regex_match(s, m, arrow_word_re)) {
+            fine = std::stoi(m[1].str());
+            coarse = std::stoi(m[2].str());
+            break;
+        }
+
+        auto parse_label = [&](const std::string& label, std::optional<int>& dst) {
+            const std::string colon = label + ":";
+            const std::string equals = label + "=";
+            if (s.rfind(colon, 0) == 0 && s.size() > colon.size()) {
+                dst = std::stoi(s.substr(colon.size()));
+            } else if (s.rfind(equals, 0) == 0 && s.size() > equals.size()) {
+                dst = std::stoi(s.substr(equals.size()));
+            }
+        };
+
+        parse_label("fine", fine);
+        parse_label("sub", fine);
+        parse_label("follower", fine);
+        parse_label("coarse", coarse);
+        parse_label("parent", coarse);
+        parse_label("leader", coarse);
+    }
+
+    if (!fine.has_value() || !coarse.has_value()) {
+        if (fallback_voices.size() >= 2) {
+            // Convention: first target voice is finer, second is coarser.
+            fine = fallback_voices[0];
+            coarse = fallback_voices[1];
+        }
+    }
+
+    if (!fine.has_value() || !coarse.has_value()) {
+        return false;
+    }
+    out_fine_voice = *fine;
+    out_coarse_voice = *coarse;
+    return true;
+}
+
+std::vector<int> metric_hierarchy_selected_indices(const std::vector<int>& indices, int sequence_length) {
+    if (!indices.empty()) {
+        return indices;
+    }
+    std::vector<int> all;
+    all.reserve(sequence_length);
+    for (int i = 0; i < sequence_length; ++i) {
+        all.push_back(i);
+    }
+    return all;
 }
 
 std::map<int, int> build_metric_denominator_map(const SolverConfig& config) {
@@ -1413,8 +1847,8 @@ std::string MusicalSolution::to_musicxml() const {
     
     // Generate proper MusicXML format for notation software
     xml << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
-    xml << "<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 4.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">\n";
-    xml << "<score-partwise version=\"4.0\">\n";
+    xml << "<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 3.1 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">\n";
+    xml << "<score-partwise version=\"3.1\">\n";
     
     // Work identification
     xml << "  <work>\n";
@@ -1587,7 +2021,47 @@ std::string MusicalSolution::to_musicxml() const {
                         whole_ticks);
                     xml << "      </note>\n";
                 } else {
+                    // Pre-compute notation per event and identify tuplet group boundaries.
+                    struct EvNotation {
+                        MusicXmlDurationNotation n;
+                        bool tuplet_start  = false;
+                        bool tuplet_continue = false;
+                        bool tuplet_stop   = false;
+                        int  tuplet_number = 0;
+                    };
+                    std::vector<EvNotation> ev_notations;
+                    ev_notations.reserve(events.size());
                     for (const auto& ev : events) {
+                        EvNotation en;
+                        en.n = musicxml_notation_for_duration(std::max(1, ev.duration_ticks), whole_ticks);
+                        ev_notations.push_back(en);
+                    }
+                    // Walk through events and group consecutive tuplet notes with the same ratio.
+                    int tuplet_num = 0;
+                    for (size_t ti = 0; ti < ev_notations.size(); ) {
+                        if (!ev_notations[ti].n.has_time_modification) { ++ti; continue; }
+                        const int actual = ev_notations[ti].n.actual_notes;
+                        const int normal = ev_notations[ti].n.normal_notes;
+                        size_t tj = ti + 1;
+                        while (tj < ev_notations.size() &&
+                               ev_notations[tj].n.has_time_modification &&
+                               ev_notations[tj].n.actual_notes == actual &&
+                               ev_notations[tj].n.normal_notes == normal) { ++tj; }
+                        ++tuplet_num;
+                        ev_notations[ti].tuplet_start    = true;
+                        ev_notations[ti].tuplet_number   = tuplet_num;
+                        for (size_t tk = ti + 1; tk + 1 < tj; ++tk) {
+                            ev_notations[tk].tuplet_continue = true;
+                            ev_notations[tk].tuplet_number = tuplet_num;
+                        }
+                        ev_notations[tj - 1].tuplet_stop   = true;
+                        ev_notations[tj - 1].tuplet_number = tuplet_num;
+                        ti = tj;
+                    }
+
+                    for (size_t ei = 0; ei < events.size(); ++ei) {
+                        const auto& ev = events[ei];
+                        const auto& en = ev_notations[ei];
                         xml << "      <note>\n";
                         if (ev.is_rest || ev.pitch < 0) {
                             xml << "        <rest/>\n";
@@ -1604,6 +2078,22 @@ std::string MusicalSolution::to_musicxml() const {
                             xml << "        </pitch>\n";
                         }
                         emit_musicxml_note_duration(xml, std::max(1, ev.duration_ticks), whole_ticks);
+                        if (en.tuplet_start || en.tuplet_continue || en.tuplet_stop) {
+                            xml << "        <notations>\n";
+                            if (en.tuplet_start) {
+                                xml << "          <tuplet type=\"start\" number=\"" << en.tuplet_number
+                                    << "\" bracket=\"yes\" placement=\"above\"/>\n";
+                            }
+                            if (en.tuplet_continue) {
+                                xml << "          <tuplet type=\"continue\" number=\"" << en.tuplet_number
+                                    << "\" bracket=\"yes\" placement=\"above\"/>\n";
+                            }
+                            if (en.tuplet_stop) {
+                                xml << "          <tuplet type=\"stop\" number=\"" << en.tuplet_number
+                                    << "\" bracket=\"yes\" placement=\"above\"/>\n";
+                            }
+                            xml << "        </notations>\n";
+                        }
                         xml << "      </note>\n";
                     }
                 }
@@ -2039,7 +2529,8 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
                     target_engines, engine_type, description, parameters, parameter_strings});
     
     // Convert JSON rule configuration to actual MusicalRule objects based on rule_type or function
-    if ((rule_type == "r-pitches-one-engine" || rule_type == "r-pitches-all-different" || 
+    if ((rule_type == "r-one-voice" ||
+         rule_type == "r-pitches-one-engine" || rule_type == "r-pitches-all-different" ||
          rule_type == "r-twelve-tone-voice1") && function == "all_different") {
         // Engine-targeted all_different is posted later in build_configured_space_.
         // Keep this branch as a recognized rule type with no legacy global fallback.
@@ -2236,7 +2727,10 @@ std::vector<MusicalSolution> Solver::solve_multiple(
         int limit = (max_solutions < 0) ? std::numeric_limits<int>::max() : max_solutions;
         auto wall_start = std::chrono::high_resolution_clock::now();
 
-        for (int i = 0; i < limit; ++i) {
+        // Count only accepted solutions against the limit, not candidates rejected by
+        // post-solve hierarchy validation (tuplet_on_beat_start, hierarchical_voices, etc.).
+        int accepted = 0;
+        while (accepted < limit) {
             // Check wall-clock timeout before each next()
             if (timeout_ms > 0) {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -2252,9 +2746,15 @@ std::vector<MusicalSolution> Solver::solve_multiple(
             if (!solved_space) break;  // search space exhausted
 
             MusicalSolution sol = extract_solution_from_space_(solved_space);
+            std::string hierarchy_failure;
+            if (sol.found_solution && !validate_metric_hierarchy_solution_(sol, hierarchy_failure)) {
+                // Hierarchy check failed — retry without consuming a slot from the limit.
+                continue;
+            }
             if (sol.found_solution) {
                 solutions.push_back(sol);
-                if (on_solution) on_solution(sol, static_cast<int>(solutions.size()) - 1);
+                if (on_solution) on_solution(sol, accepted);
+                ++accepted;
             }
         }
     } catch (const std::exception& e) {
@@ -2387,7 +2887,8 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     // POST ENGINE-TARGETED RULES
     for (const auto& cfg : engine_rule_configs_) {
         const bool is_all_different_rule =
-            (cfg.function == "all_different" || cfg.rule_type == "r-pitches-all-different" || cfg.rule_type == "r-twelve-tone-voice1");
+            (cfg.function == "all_different" || cfg.rule_type == "r-one-voice" ||
+             cfg.rule_type == "r-pitches-all-different" || cfg.rule_type == "r-twelve-tone-voice1");
         const bool is_rhythmic_uniformity_rule =
             (cfg.rule_type == "r-rhythmic-uniformity");
         const bool is_metric_signature_rule =
@@ -2651,6 +3152,69 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     throw std::runtime_error("r-metric-hierarchy rule '" + cfg.description + "' has no rhythm domain for voice " + std::to_string(voice));
                 }
 
+                const MetricHierarchyMode mh_mode = parse_metric_hierarchy_mode(cfg.function, cfg.parameter_strings);
+
+                // These two modes enforce onset relationships and are validated on solved candidates.
+                // They still benefit from normal domain propagation from other rules.
+                if (mh_mode == MetricHierarchyMode::TUPLET_ON_BEAT_START ||
+                    mh_mode == MetricHierarchyMode::HIERARCHICAL_VOICES) {
+                    continue;
+                }
+
+                if (mh_mode == MetricHierarchyMode::MIN_GRID) {
+                    int min_grid_ticks = 0;
+                    if (!metric_hierarchy_try_parse_labeled_duration_ticks(
+                            cfg.parameter_strings,
+                            {"min-grid", "min_grid", "grid", "allowed-grid", "allowed_grid"},
+                            config_.rhythm_base,
+                            min_grid_ticks)) {
+                        for (const auto& s : cfg.parameter_strings) {
+                            if (s.find('/') != std::string::npos) {
+                                min_grid_ticks = std::abs(parse_duration_to_ticks(s, config_.rhythm_base));
+                                break;
+                            }
+                        }
+                    }
+                    if (min_grid_ticks <= 0) {
+                        throw std::runtime_error(
+                            "r-metric-hierarchy min_grid rule '" + cfg.description +
+                            "' requires a grid duration parameter (e.g. 'min-grid:1/12')");
+                    }
+
+                    std::vector<int> allowed_ticks;
+                    for (int tick : config_.voice_rhythm_domains[voice]) {
+                        if (tick == 0) {
+                            continue;
+                        }
+                        if (std::abs(tick) >= min_grid_ticks) {
+                            allowed_ticks.push_back(tick);
+                        }
+                    }
+
+                    std::sort(allowed_ticks.begin(), allowed_ticks.end());
+                    allowed_ticks.erase(std::unique(allowed_ticks.begin(), allowed_ticks.end()), allowed_ticks.end());
+
+                    if (allowed_ticks.empty()) {
+                        throw std::runtime_error(
+                            "r-metric-hierarchy min_grid rule '" + cfg.description +
+                            "' leaves no allowed rhythm values for voice " + std::to_string(voice));
+                    }
+
+                    Gecode::IntSet allowed_set(allowed_ticks.data(), static_cast<int>(allowed_ticks.size()));
+                    Gecode::IntVarArgs vars;
+                    for (int idx : selected_indices) {
+                        if (idx < 0 || idx >= config_.sequence_length) {
+                            throw std::runtime_error("r-metric-hierarchy rule '" + cfg.description + "' has out-of-range index " + std::to_string(idx));
+                        }
+                        vars << gecode_space->get_rhythm_vars()[voice * config_.sequence_length + idx];
+                    }
+
+                    if (vars.size() > 0) {
+                        Gecode::dom(*gecode_space, vars, allowed_set);
+                    }
+                    continue;
+                }
+
                 const bool include_rests = metric_hierarchy_include_rests_mode(cfg.parameter_strings);
                 const bool ignore_tuplets = metric_hierarchy_ignore_tuplets_mode(cfg.parameter_strings);
                 const int grid_step_ticks = parse_metric_hierarchy_grid_step_ticks(config_, ignore_tuplets);
@@ -2882,6 +3446,198 @@ MusicalSolution Solver::extract_solution_from_space_(
     return solution;
 }
 
+bool Solver::validate_metric_hierarchy_solution_(const MusicalSolution& solution,
+                                                 std::string& failure_reason) const {
+    if (!solution.found_solution) {
+        return true;
+    }
+
+    const std::map<int, int> denominator_map = build_metric_denominator_map(config_);
+    const int fallback_denominator =
+        config_.metric_domain.empty() ? 4 : std::max(1, config_.metric_domain.front().denominator);
+
+    std::set<int> tuplet_closure_checked_voices;
+
+    for (const auto& cfg : engine_rule_configs_) {
+        if (cfg.rule_type != "r-metric-hierarchy") {
+            continue;
+        }
+
+        const MetricHierarchyMode mh_mode = parse_metric_hierarchy_mode(cfg.function, cfg.parameter_strings);
+        if (mh_mode != MetricHierarchyMode::TUPLET_ON_BEAT_START &&
+            mh_mode != MetricHierarchyMode::HIERARCHICAL_VOICES &&
+            mh_mode != MetricHierarchyMode::MIN_GRID) {
+            continue;
+        }
+
+        const std::vector<int> selected_indices =
+            metric_hierarchy_selected_indices(cfg.indices, config_.sequence_length);
+        const std::vector<int> target_voices =
+            metric_hierarchy_target_voices_from_rule(cfg.target_engines, cfg.target_engine, config_.num_voices);
+
+        const bool enforce_tuplet_closure =
+            metric_hierarchy_has_token(cfg.parameter_strings, "enforce_tuplet_closure") ||
+            metric_hierarchy_has_token(cfg.parameter_strings, "strict_tuplet_closure");
+
+        // Optional strict mode: contiguous tuplet group closure.
+        // This is opt-in only to keep default metric-hierarchy behavior lightweight,
+        // consistent with Cluster Engine onset-grid checks.
+        if (enforce_tuplet_closure) {
+            for (int voice : target_voices) {
+                if (!tuplet_closure_checked_voices.insert(voice).second) {
+                    continue;
+                }
+                if (!validate_metric_hierarchy_tuplet_group_closure_for_voice(
+                        config_, solution, voice, denominator_map, fallback_denominator, failure_reason)) {
+                    return false;
+                }
+            }
+        }
+
+        if (mh_mode == MetricHierarchyMode::MIN_GRID) {
+            int min_grid_ticks = 0;
+            if (!metric_hierarchy_try_parse_labeled_duration_ticks(
+                    cfg.parameter_strings,
+                    {"min-grid", "min_grid", "grid", "allowed-grid", "allowed_grid"},
+                    config_.rhythm_base,
+                    min_grid_ticks)) {
+                for (const auto& s : cfg.parameter_strings) {
+                    if (s.find('/') != std::string::npos) {
+                        min_grid_ticks = std::abs(parse_duration_to_ticks(s, config_.rhythm_base));
+                        break;
+                    }
+                }
+            }
+
+            if (min_grid_ticks <= 0) {
+                failure_reason = "r-metric-hierarchy min_grid rule '" + cfg.description +
+                                 "' missing min-grid duration parameter";
+                return false;
+            }
+
+            for (int voice : target_voices) {
+                if (voice < 0 || voice >= static_cast<int>(solution.voice_rhythms.size())) {
+                    failure_reason = "r-metric-hierarchy min_grid rule '" + cfg.description +
+                                     "' targets out-of-range voice " + std::to_string(voice);
+                    return false;
+                }
+                const auto& rhythm = solution.voice_rhythms[voice];
+                for (int idx : selected_indices) {
+                    if (idx < 0 || idx >= static_cast<int>(rhythm.size())) {
+                        failure_reason = "r-metric-hierarchy min_grid rule '" + cfg.description +
+                                         "' has out-of-range index " + std::to_string(idx);
+                        return false;
+                    }
+                    if (std::abs(rhythm[idx]) < min_grid_ticks) {
+                        failure_reason = "r-metric-hierarchy min_grid rule '" + cfg.description +
+                                         "' rejected duration below min-grid at voice " + std::to_string(voice) +
+                                         ", index " + std::to_string(idx);
+                        return false;
+                    }
+                }
+            }
+            continue;
+        }
+
+        if (mh_mode == MetricHierarchyMode::TUPLET_ON_BEAT_START) {
+            for (int voice : target_voices) {
+                if (voice < 0 || voice >= static_cast<int>(solution.voice_rhythms.size())) {
+                    failure_reason = "r-metric-hierarchy tuplet_on_beat_start rule '" + cfg.description +
+                                     "' targets out-of-range voice " + std::to_string(voice);
+                    return false;
+                }
+
+                const auto& rhythm = solution.voice_rhythms[voice];
+                const std::vector<int> onsets = compute_onsets_from_rhythm(rhythm, config_.sequence_length);
+                for (int idx : selected_indices) {
+                    if (idx < 0 || idx >= static_cast<int>(rhythm.size()) || idx >= static_cast<int>(onsets.size())) {
+                        failure_reason = "r-metric-hierarchy tuplet_on_beat_start rule '" + cfg.description +
+                                         "' has out-of-range index " + std::to_string(idx);
+                        return false;
+                    }
+
+                    const int dur = rhythm[idx];
+                    int numerator = 4;
+                    if (idx < static_cast<int>(solution.metric_signature.size())) {
+                        numerator = solution.metric_signature[idx];
+                    }
+                    const auto den_it = denominator_map.find(numerator);
+                    const int denominator = (den_it != denominator_map.end()) ? den_it->second : fallback_denominator;
+                    if (denominator <= 0) {
+                        continue;
+                    }
+
+                    const SolverConfig::MetricDomainEntry* metric_entry =
+                        metric_hierarchy_find_metric_entry(config_, numerator, denominator);
+                    if (metric_entry == nullptr) {
+                        continue;
+                    }
+
+                    const std::vector<int> tuplet_units =
+                        metric_hierarchy_tuplet_units_for_entry(*metric_entry, config_.rhythm_base);
+                    const std::vector<int> non_tuplet_units =
+                        metric_hierarchy_non_tuplet_units_for_entry(*metric_entry, config_.rhythm_base);
+
+                    if (!metric_hierarchy_duration_is_tuplet_like(dur, tuplet_units, non_tuplet_units)) {
+                        continue;
+                    }
+
+                    const int onset = onsets[idx];
+                    const int end = onset + std::abs(dur);
+                    if (!metric_hierarchy_tick_aligned_to_any_unit(onset, tuplet_units) ||
+                        !metric_hierarchy_tick_aligned_to_any_unit(end, tuplet_units)) {
+                        failure_reason =
+                            "r-metric-hierarchy tuplet_on_beat_start rule '" + cfg.description +
+                            "' failed tuplet grid alignment at voice " + std::to_string(voice) +
+                            ", index " + std::to_string(idx);
+                        return false;
+                    }
+                }
+            }
+            continue;
+        }
+
+        if (mh_mode == MetricHierarchyMode::HIERARCHICAL_VOICES) {
+            int fine_voice = -1;
+            int coarse_voice = -1;
+            if (!metric_hierarchy_try_parse_hierarchy_pair(
+                    cfg.parameter_strings, target_voices, fine_voice, coarse_voice)) {
+                failure_reason = "r-metric-hierarchy hierarchical_voices rule '" + cfg.description +
+                                 "' requires voice pair (e.g. '1<-2' or target_voices [1,2])";
+                return false;
+            }
+
+            if (fine_voice < 0 || fine_voice >= static_cast<int>(solution.voice_rhythms.size()) ||
+                coarse_voice < 0 || coarse_voice >= static_cast<int>(solution.voice_rhythms.size())) {
+                failure_reason = "r-metric-hierarchy hierarchical_voices rule '" + cfg.description +
+                                 "' has out-of-range voice pair";
+                return false;
+            }
+
+            const std::vector<int> fine_onsets =
+                compute_onsets_from_rhythm(solution.voice_rhythms[fine_voice], config_.sequence_length);
+            const std::vector<int> coarse_onsets =
+                compute_onsets_from_rhythm(solution.voice_rhythms[coarse_voice], config_.sequence_length);
+            for (int idx : selected_indices) {
+                if (idx < 0 || idx >= static_cast<int>(coarse_onsets.size())) {
+                    failure_reason = "r-metric-hierarchy hierarchical_voices rule '" + cfg.description +
+                                     "' has out-of-range index " + std::to_string(idx);
+                    return false;
+                }
+                const int coarse_onset = coarse_onsets[idx];
+                if (std::find(fine_onsets.begin(), fine_onsets.end(), coarse_onset) == fine_onsets.end()) {
+                    failure_reason = "r-metric-hierarchy hierarchical_voices rule '" + cfg.description +
+                                     "' failed onset inheritance at coarse voice " + std::to_string(coarse_voice) +
+                                     ", index " + std::to_string(idx);
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 MusicalSolution Solver::solve_internal() {
     total_solve_attempts_++;
     try {
@@ -2900,7 +3656,29 @@ MusicalSolution Solver::solve_internal() {
         }
 
         Gecode::DFS<GecodeClusterIntegration::IntegratedMusicalSpace> search_engine(raw_space, search_opts);
-        return extract_solution_from_space_(search_engine.next());
+        std::string last_hierarchy_failure;
+        while (true) {
+            auto* candidate = search_engine.next();
+            if (!candidate) {
+                MusicalSolution failed;
+                failed.found_solution = false;
+                if (!last_hierarchy_failure.empty()) {
+                    failed.failure_reason = last_hierarchy_failure;
+                } else {
+                    failed.failure_reason = "Gecode constraint solver found no solution";
+                }
+                return failed;
+            }
+
+            MusicalSolution solution = extract_solution_from_space_(candidate);
+            std::string hierarchy_failure;
+            if (solution.found_solution &&
+                !validate_metric_hierarchy_solution_(solution, hierarchy_failure)) {
+                last_hierarchy_failure = hierarchy_failure;
+                continue;
+            }
+            return solution;
+        }
     } catch (const std::exception& e) {
         MusicalSolution failed;
         failed.found_solution = false;

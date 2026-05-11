@@ -59,10 +59,10 @@ bin/dynamic-solver configs/metric_domain_example.json
   },
   "rules": [
     {
-      "rule_type": "r-pitches-one-engine",
+      "rule_type": "r-one-voice",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7],
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     },
     {

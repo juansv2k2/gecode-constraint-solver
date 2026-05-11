@@ -9,18 +9,9 @@
       "constraint_function": {
         "type": "builtin",
         "function": "retrograde_inversion_relationship",
-        "parameters": [
-          72
-        ]
+        "parameters": [72]
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
-      ],
+      "indices": [0, 1, 2, 3, 4, 5],
       "engine_type": "cross-voice",
       "enabled": true,
       "priority": 10,

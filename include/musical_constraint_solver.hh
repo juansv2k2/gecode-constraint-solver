@@ -555,6 +555,12 @@ private:
      */
     MusicalSolution extract_solution_from_space_(
         GecodeClusterIntegration::IntegratedMusicalSpace* solved_space);
+
+    /**
+     * @brief Validate solved candidates for onset-based r-metric-hierarchy modes.
+     */
+    bool validate_metric_hierarchy_solution_(const MusicalSolution& solution,
+                                             std::string& failure_reason) const;
     
     /**
      * @brief Update performance statistics

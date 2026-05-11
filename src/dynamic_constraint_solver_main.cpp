@@ -191,6 +191,9 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
             target_component = engine_type;
         }
     }
+    if (target_component.empty() && rule_type == "r-metric-hierarchy") {
+        target_component = "rhythm";
+    }
     if (target_component.empty()) {
         target_component = "pitch";
     }
@@ -575,6 +578,9 @@ public:
 
                         if (current_rule.target_engine < 0 && current_rule.target_engines.empty()) {
                             std::string target_component = current_rule.target_component;
+                            if (target_component.empty() && current_rule.rule_type == "r-metric-hierarchy") {
+                                target_component = "rhythm";
+                            }
                             if (target_component.empty() &&
                                 (current_rule.engine_type == "pitch" || current_rule.engine_type == "rhythm")) {
                                 target_component = current_rule.engine_type;
@@ -591,6 +597,10 @@ public:
                                 }
                                 if (current_rule.engine_type.empty()) {
                                     current_rule.engine_type = target_component;
+                                }
+                                if (current_rule.rule_type == "r-metric-hierarchy") {
+                                    current_rule.target_component = "rhythm";
+                                    current_rule.engine_type = "rhythm";
                                 }
                             }
                         }
@@ -727,6 +737,16 @@ public:
                         if (pos != std::string::npos) {
                             std::string value = removeQuotesAndComma(line.substr(pos + 1));
                             current_rule.enabled = (value == "true");
+                        }
+                    }
+                    else if (line.find("\"constraint\"") != std::string::npos &&
+                             line.find("\"constraint_function\"") == std::string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != std::string::npos) {
+                            // Keep wildcard constraints in the dynamic-rule path; map others to function.
+                            if (current_rule.rule_type != "wildcard_constraint") {
+                                current_rule.function = removeQuotesAndComma(line.substr(pos + 1));
+                            }
                         }
                     }
                     else if (line.find("\"priority\"") != std::string::npos) {

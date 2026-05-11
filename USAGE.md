@@ -130,31 +130,64 @@ Voices define the pitch and rhythm domains for each voice.
 
 **Meter fields:**
 
-- `time_signatures`: Array of allowed time signatures
-- `tuplets`: Tuplet divisors (3 for triplets, 8 for octuplets, etc.)
-- `beat_divisions`: Division factors for beat structures
+- `time_signatures`: Array of allowed time signatures.
+- `tuplets`: Subdivision factors that **require tuplet notation** (e.g. `[3, 6, 12]` for triplets and sextuplets in a binary meter).
+- `beat_divisions`: All subdivision factors that exist for each beat, including both native and tuplet ones.
 
-Metric rules are automatically targeted to the metric engine (last engine).
+**Tuplet vs. non-tuplet subdivisions:**  
+A `beat_divisions` entry is treated as a *native* (non-tuplet) subdivision unless the same value also appears in `tuplets`. This means the classification is meter-aware:
+
+| Meter | `tuplets` | `beat_divisions` | 3 is… |
+|-------|-----------|-----------------|--------|
+| 4/4   | `[3]`     | `[2, 3, 4]`     | tuplet |
+| 6/8   | `[2]`     | `[3]`           | native |
+
+Metric rules (`r-metric-hierarchy`) use this distinction to filter allowed rhythm values when `"no-tuplets"` is specified.
+
+Metric signature rules are automatically targeted to the metric engine (last engine).
 
 ## 5. Built-in Rules
 
-### 5.1 Single-Voice Pitch Rules
+### 5.1 Single-Voice Rules (`r-one-voice`)
 
-**All Different:**
+`r-one-voice` is the canonical rule type for constraints that target **one component of one or more voices**. Use `target_component` to select `"pitch"` or `"rhythm"`.
+
+**Pitch — all different (twelve-tone row or unique-pitch sequence):**
 
 ```json
 {
-  "rule_type": "r-pitches-one-engine",
+  "rule_type": "r-one-voice",
   "constraint": "all_different",
-  "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   "target_voices": [0],
   "target_component": "pitch",
-  "enabled": true,
-  "priority": 10
+  "enabled": true
 }
 ```
 
-**Twelve-tone explicit (same as all_different but named for clarity):**
+Apply the same rule to multiple voices at once:
+
+```json
+{
+  "rule_type": "r-one-voice",
+  "constraint": "all_different",
+  "target_voices": [0, 1, 2, 3],
+  "target_component": "pitch"
+}
+```
+
+**Rhythm — all different (every note has a unique duration):**
+
+```json
+{
+  "rule_type": "r-one-voice",
+  "constraint": "all_different",
+  "target_voices": [0],
+  "target_component": "rhythm"
+}
+```
+
+**Twelve-tone explicit (legacy alias, same behaviour):**
 
 ```json
 {
@@ -165,6 +198,8 @@ Metric rules are automatically targeted to the metric engine (last engine).
   "target_component": "pitch"
 }
 ```
+
+> **Migration note:** `r-pitches-one-engine` is a legacy alias for `r-one-voice` with `target_component: "pitch"`. It continues to work but new configs should use `r-one-voice`.
 
 ### 5.2 Cross-Voice Pitch Rules
 
@@ -219,7 +254,7 @@ Metric rules are automatically targeted to the metric engine (last engine).
 
 ### 5.3 Rhythm Rules
 
-**Uniform Duration (all same value):**
+**Uniform Duration (all notes share the same value):**
 
 ```json
 {
@@ -232,7 +267,58 @@ Metric rules are automatically targeted to the metric engine (last engine).
 }
 ```
 
-### 5.4 Metric Rules
+### 5.4 Metric Hierarchy Rules (`r-metric-hierarchy`)
+
+`r-metric-hierarchy` constrains rhythm values relative to the beat grid defined in `meter`. It is **automatically targeted to rhythm engines** — do not add `target_component` or `engine_type`.
+
+**Legacy no-tuplets (only native beat subdivisions; no triplets or other tuplet durations):**
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "equal",
+  "parameters": ["durations", "no-tuplets"],
+  "target_voices": [0, 1]
+}
+```
+
+The allowed set is derived from `meter.beat_divisions` entries that are **not** listed in `meter.tuplets`. For example with `beat_divisions: [2, 3, 4]` and `tuplets: [3]`, only divisions by 2 and 4 (eighth and sixteenth) are admitted.
+
+**Strict grid floor (no duration shorter than a given value):**
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "min_grid",
+  "parameters": ["min-grid", "1/8"],
+  "target_voices": [0, 1]
+}
+```
+
+**Tuplet alignment (tuplet durations must be onset/end-aligned to the tuplet grid):**
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "tuplet_on_beat_start",
+  "target_voices": [0, 1]
+}
+```
+
+**Voice-onset hierarchy (every onset of the coarse voice also appears in the fine voice):**
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "hierarchical_voices",
+  "parameters": ["0<-1"],
+  "target_voices": [0, 1]
+}
+```
+
+The `"0<-1"` parameter means voice 0 is the fine voice and voice 1 is the coarse voice.
+
+### 5.5 Metric Signature Rules
 
 **Fixed time signature:**
 
@@ -259,13 +345,13 @@ Metric rules are automatically targeted to the metric engine (last engine).
 
 Timepoints are positions in quarter-note units where time signatures can change.
 
-### 5.5 Verbose Form (still supported)
+### 5.6 Verbose Form (still supported)
 
 The shorthand `"constraint": "..."` expands to:
 
 ```json
 {
-  "rule_type": "r-pitches-one-engine",
+  "rule_type": "r-one-voice",
   "constraint_function": {
     "type": "builtin",
     "function": "all_different",
@@ -277,12 +363,12 @@ The shorthand `"constraint": "..."` expands to:
 }
 ```
 
-### 5.6 Common Rule Parameters
+### 5.7 Common Rule Parameters
 
-| Parameter          | Type   | Description                                                                            |
-| ------------------ | ------ | -------------------------------------------------------------------------------------- |
-| `rule_type`        | string | Category: `r-pitches-one-engine`, `r-rhythmic-uniformity`, `r-palindrome-voice2`, etc. |
-| `constraint`       | string | Built-in function: `all_different`, `equal_values`, `palindrome_of_engine`, etc.       |
+| Parameter          | Type   | Description                                                                                  |
+| ------------------ | ------ | -------------------------------------------------------------------------------------------- |
+| `rule_type`        | string | `r-one-voice`, `r-metric-hierarchy`, `r-rhythmic-uniformity`, `r-palindrome-voice2`, etc.    |
+| `constraint`       | string | Built-in function: `all_different`, `equal_values`, `palindrome_of_engine`, `min_grid`, etc. |
 | `parameters`       | array  | Constraint parameters (rhythm values, time signatures, engine indices)                 |
 | `target_voices`    | array  | Multiple voices: `[0, 1]`                                                              |
 | `target_component` | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                   |
@@ -292,10 +378,7 @@ The shorthand `"constraint": "..."` expands to:
 | `priority`         | int    | Rule priority (higher = tried first)                                                   |
 | `description`      | string | Human-readable label                                                                   |
 
-Compatibility note:
-
-- Legacy aliases like `target_voice` and `voice` are auto-normalized internally.
-- New configs should always use canonical `target_voices`.
+> **Compatibility:** Legacy aliases `target_voice` and `voice` are auto-normalized. Always use `target_voices` in new configs.
 
 ## 6. Dynamic Rules & Heuristics
 
@@ -619,7 +702,7 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 
 | Field              | Type   | Description                                                                                                                                                                                                         |
 | ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rule_type`        | string | `r-pitches-one-engine`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-rhythmic-uniformity`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `r-metric-signature` |
+| `rule_type`        | string | `r-one-voice`, `r-metric-hierarchy`, `r-rhythmic-uniformity`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `r-metric-signature` |
 | `constraint`       | string | Shorthand: `all_different`, `equal_values`, `palindrome_of_engine`, `no_unisons_between_engines`, `consecutive_perfect_fifths`, `retrograde_inversion_relationship`                                                 |
 | `parameters`       | array  | Constraint-specific params                                                                                                                                                                                          |
 | `target_voices`    | array  | Multiple voices `[0, 1]`                                                                                                                                                                                            |
@@ -751,7 +834,7 @@ The heuristic guides _which solutions are found first_, not _which solutions are
 {
   "rules": [
     {
-      "rule_type": "r-pitches-one-engine",
+      "rule_type": "r-one-voice",
       "constraint": "all_different",
       "target_voices": [0],
       "target_component": "pitch"
@@ -814,6 +897,18 @@ The wrapper still normalizes legacy patterns:
 - `configuration` blocks
 - legacy rule targeting (`voice`, wildcard scopes, inferred voice refs)
 - built-in shorthand `constraint` and dynamic rule `constraint` alias
+
+**Deprecated rule types (still accepted, prefer `r-one-voice`):**
+
+| Legacy type             | Replacement                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `r-pitches-one-engine`  | `r-one-voice` + `target_component: "pitch"`          |
+| `r-pitches-all-different` | `r-one-voice` + `target_component: "pitch"`        |
+
+**Deprecated fields on `r-metric-hierarchy` rules (now inferred automatically):**
+
+- `target_component: "rhythm"` — metric hierarchy rules always target rhythm engines; omit this field.
+- `engine_type: "rhythm"` — same as above; omit.
 
 Use the modern voice-first contract for all new configs.
 

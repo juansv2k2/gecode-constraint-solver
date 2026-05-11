@@ -1,15 +1,15 @@
 {
-  "name": "Advanced Pitch Relations with Tuplet Meter",
-  "description": "Four-voice complex with cross-voice pitch constraints at fixed indexes, advanced tuplet-based metric, and flexible rhythms.",
+  "name": "Metric Domain Complex - Hierarchy Examples",
+  "description": "Example pack for r-metric-hierarchy modes. Includes active defaults and optional examples (enabled=false) for quick A/B testing.",
   "solution_length": 12,
-  "score_length": "36q",
-  "num_voices": 4,
+  "score_length": "24q",
+  "num_voices": 2,
   "metric_engine_enabled": true,
 
   "voices": [
     {
       "rhythm": {
-        "duration_values": ["1/16", "1/12", "1/4", "3/16"]
+        "duration_values": ["1/8", "1/12", "1/6", "2/6", "2/12", "1/4"]
       },
       "pitch": {
         "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]
@@ -17,23 +17,7 @@
     },
     {
       "rhythm": {
-        "duration_values": ["1/16", "1/6", "3/4", "3/8"]
-      },
-      "pitch": {
-        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
-      }
-    },
-    {
-      "rhythm": {
-        "duration_values": ["9/8", "1/24", "3/16", "1/6"]
-      },
-      "pitch": {
-        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
-      }
-    },
-    {
-      "rhythm": {
-        "duration_values": ["1/2", "1/4"]
+        "duration_values": ["1/8", "1/12", "1/6", "2/6", "2/12", "1/4"]
       },
       "pitch": {
         "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
@@ -44,12 +28,12 @@
   "meter": {
     "time_signatures": ["4/4"],
     "tuplets": [3, 6, 12],
-    "beat_divisions": [2, 3, 4]
+    "beat_divisions": [2, 4]
   },
 
   "rules": [
     {
-      "rule_type": "r-pitches-one-engine",
+      "rule_type": "r-one-voice",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "target_voices": [0],
@@ -58,7 +42,7 @@
       "description": "Voice 0 unique pitches"
     },
     {
-      "rule_type": "r-pitches-one-engine",
+      "rule_type": "r-one-voice",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       "target_voices": [1],
@@ -66,105 +50,73 @@
       "enabled": true,
       "description": "Voice 1 unique pitches"
     },
+
     {
-      "rule_type": "r-pitches-one-engine",
-      "constraint": "all_different",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voices": [2],
-      "target_component": "pitch",
-      "enabled": true,
-      "description": "Voice 2 unique pitches"
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "equal",
+      "parameters": ["durations"],
+      "target_voices": [0, 1],
+      "enabled": false,
+      "description": "Active default metric hierarchy domain filtering (default tuplet-group closure also applies)"
     },
     {
-      "rule_type": "r-pitches-one-engine",
-      "constraint": "all_different",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voices": [3],
-      "target_component": "pitch",
-      "enabled": true,
-      "description": "Voice 3 unique pitches"
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "tuplet_on_beat_start",
+      "target_voices": [0, 1],
+      "enabled": false,
+      "description": "Example A: explicit tuplet mode (relaxed: tuplets may start on subdivision; onset/end aligned to tuplet grid)"
+    },
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "min_grid",
+      "parameters": ["min-grid", "1/8"],
+      "target_voices": [0, 1],
+      "enabled": false,
+      "description": "Example B: stricter grid variant (1/8)"
+    },
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "hierarchical_voices",
+      "parameters": ["0<-1"],
+      "target_voices": [0, 1],
+      "enabled": false,
+      "description": "Example C: voice-onset hierarchy (voice 1 anchors voice 0)"
+    },
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "hierarchical_voices",
+      "indices": [0, 1, 2, 3, 4, 5],
+      "parameters": ["0<-1"],
+      "target_voices": [0, 1],
+      "enabled": false,
+      "description": "Example D: partial-index hierarchy (first half of sequence only)"
     },
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "equal",
       "parameters": ["durations", "no-tuplets"],
-      "target_voices": [0, 1, 2, 3],
-      "target_component": "rhythm",
-      "engine_type": "rhythm",
-      "enabled": true,
-      "description": "Metric hierarchy style rhythm-grid alignment"
-    },
-    {
-      "rule_type": "wildcard_constraint",
-      "constraint": "((voice[1].pitch[i] - voice[0].pitch[i]) >= 10) && ((voice[1].pitch[i] - voice[0].pitch[i]) <= 12)",
-      "indices": [4],
       "target_voices": [0, 1],
-      "target_component": "pitch",
       "enabled": true,
-      "description": "V1 above V0 by tenth"
+      "description": "Example E: legacy no-tuplets filtering"
     },
-    {
-      "rule_type": "wildcard_constraint",
-      "constraint": "((voice[2].pitch[i] - voice[1].pitch[i]) >= 5) && ((voice[2].pitch[i] - voice[1].pitch[i]) <= 7)",
-      "indices": [8],
-      "target_voices": [1, 2],
-      "target_component": "pitch",
-      "enabled": true,
-      "description": "V2 above V1 by fifth"
-    },
-    {
-      "rule_type": "wildcard_constraint",
-      "constraint": "(voice[0].pitch[i] < voice[1].pitch[i]) && (voice[1].pitch[i] < voice[2].pitch[i]) && (voice[2].pitch[i] < voice[3].pitch[i])",
-      "indices": [2],
-      "target_voices": [0, 1, 2, 3],
-      "target_component": "pitch",
-      "enabled": true,
-      "description": "Strict vertical pitch order"
-    },
-    {
-      "rule_type": "wildcard_constraint",
-      "constraint": "((voice[3].pitch[i] - voice[2].pitch[i]) >= 10) && ((voice[3].pitch[i] - voice[2].pitch[i]) <= 14)",
-      "indices": [12],
-      "target_voices": [2, 3],
-      "target_component": "pitch",
-      "enabled": true,
-      "description": "V3 above V2 wide spacing"
-    },
-    {
-      "rule_type": "wildcard_constraint",
-      "constraint": "voice[1].pitch[i] > voice[0].pitch[i]",
-      "wildcard_type": "sliding_window",
-      "target_voices": [0, 1],
-      "target_component": "pitch",
-      "enabled": false,
-      "description": "Sliding V1 above V0"
-    },
-    {
-      "rule_type": "wildcard_constraint",
-      "constraint": "abs((voice[3].pitch[i] - voice[1].pitch[i]) - 6) > 0",
-      "wildcard_type": "sliding_window",
-      "target_voices": [1, 3],
-      "target_component": "pitch",
-      "enabled": false,
-      "description": "Avoid fixed tritone spacing"
-    },
+
     {
       "rule_type": "r-cross-voice-no-unisons",
       "constraint": "no_unisons_between_engines",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voices": [0, 1, 2, 3],
+      "target_voices": [0, 1],
       "target_component": "pitch",
       "enabled": false,
-      "description": "No cross-voice unisons"
+      "description": "Optional pitch-spacing constraint"
     }
   ],
 
   "search_options": {
     "engine": "dfs",
     "enable_metric_engine": true,
-    "require_exact_score_length": true,
+    "require_exact_score_length": false,
     "random_seed": 0,
-    "timeout_ms": 30000,
+    "timeout_ms": 10000,
     "max_solutions": 1,
     "branching": "first_fail",
     "value_order": "random",
@@ -172,8 +124,8 @@
   },
 
   "output_options": {
-    "export_path": "output",
-    "export_filename": "metric_domain_example_complex",
+    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+    "export_filename": "metric_domain_complex",
     "export_xml": true,
     "export_png": false,
     "export_midi": false,
