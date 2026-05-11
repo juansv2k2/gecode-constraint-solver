@@ -220,6 +220,8 @@ class CompiledRuleSet {
 private:
     std::vector<std::unique_ptr<CompiledConstraint>> constraints_;
     std::vector<std::unique_ptr<CompiledConstraint>> heuristics_;
+    int last_posted_success_count_ = 0;
+    int last_posted_failed_count_ = 0;
     
 public:
     void add_constraint(std::unique_ptr<CompiledConstraint> constraint) {
@@ -232,12 +234,16 @@ public:
     
     void post_all_constraints(ConstraintContext& ctx) {
         std::cout << "🔧 Posting " << constraints_.size() << " dynamic constraints..." << std::endl;
+        last_posted_success_count_ = 0;
+        last_posted_failed_count_ = 0;
         
         for (auto& constraint : constraints_) {
             try {
                 constraint->execute(ctx);
+                ++last_posted_success_count_;
                 std::cout << "  ✅ Posted: " << constraint->rule_id << std::endl;
             } catch (const std::exception& e) {
+                ++last_posted_failed_count_;
                 std::cout << "  ❌ Failed: " << constraint->rule_id << " - " << e.what() << std::endl;
             }
         }
@@ -290,6 +296,8 @@ public:
     size_t constraint_count() const { return constraints_.size(); }
     size_t heuristic_count() const { return heuristics_.size(); }
     size_t total_count() const { return constraints_.size() + heuristics_.size(); }
+    int last_posted_success_count() const { return last_posted_success_count_; }
+    int last_posted_failed_count() const { return last_posted_failed_count_; }
 };
 
 } // namespace DynamicRules

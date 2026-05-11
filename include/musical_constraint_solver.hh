@@ -420,6 +420,16 @@ public:
      * @brief Get count of compiled dynamic rules
      */
     size_t get_dynamic_rules_count() const;
+
+    /**
+     * @brief Get count of dynamic constraints posted successfully in latest space build
+     */
+    int get_dynamic_rule_post_success_count() const;
+
+    /**
+     * @brief Get count of dynamic constraints that failed posting in latest space build
+     */
+    int get_dynamic_rule_post_failed_count() const;
     
     // ===============================
     // Solving Interface

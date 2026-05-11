@@ -21,7 +21,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Perfect fifth intervals between consecutive notes",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     }
   ],

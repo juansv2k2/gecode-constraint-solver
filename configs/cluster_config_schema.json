@@ -340,11 +340,6 @@
             "type": "string"
           }
         },
-        "target_voice": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Single voice target for pitch or rhythm rules."
-        },
         "target_voices": {
           "type": "array",
           "minItems": 1,
@@ -398,14 +393,7 @@
           },
           "else": {
             "required": ["indices", "target_component"],
-            "oneOf": [
-              {
-                "required": ["target_voice"]
-              },
-              {
-                "required": ["target_voices"]
-              }
-            ],
+            "required": ["target_voices"],
             "not": {
               "anyOf": [
                 {

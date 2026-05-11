@@ -52,7 +52,7 @@
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch",
       "enabled": true,
       "description": "Voice 0 unique pitches"
@@ -61,7 +61,7 @@
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "pitch",
       "enabled": true,
       "description": "Voice 1 unique pitches"
@@ -70,7 +70,7 @@
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 2,
+      "target_voices": [2],
       "target_component": "pitch",
       "enabled": true,
       "description": "Voice 2 unique pitches"
@@ -79,7 +79,7 @@
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 3,
+      "target_voices": [3],
       "target_component": "pitch",
       "enabled": true,
       "description": "Voice 3 unique pitches"

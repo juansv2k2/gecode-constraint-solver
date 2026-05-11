@@ -57,6 +57,10 @@ int main(int argc, char* argv[]) {
 
         std::cout << "config=" << config_path << std::endl;
         std::cout << "status=" << wrapper.get_status_string() << std::endl;
+        std::cout << "rules_compile_status="
+              << ((result.dynamic_rules_post_failed == 0) ? "ok" : "failed")
+              << " (posted=" << result.dynamic_rules_posted_ok
+              << ", failed=" << result.dynamic_rules_post_failed << ")" << std::endl;
         std::cout << "found_solution=" << (result.found_solution ? "true" : "false") << std::endl;
         std::cout << "message=" << result.message << std::endl;
         std::cout << "elapsed_ms=" << elapsed_ms << std::endl;

@@ -38,7 +38,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 1 all-different",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     },
     {
@@ -73,7 +73,7 @@
       "enabled": true,
       "priority": 9,
       "description": "Voice 2 palindrome of voice 1",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "pitch"
     },
     {
@@ -107,7 +107,7 @@
       "enabled": true,
       "priority": 8,
       "description": "Voice 2 retrograde inversion of voice 1 around center 72",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "pitch"
     }
   ],

@@ -21,7 +21,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 0: All 4 pitches different",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     }
   ],

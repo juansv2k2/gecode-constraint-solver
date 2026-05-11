@@ -16,7 +16,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Engine 1 (Voice 0 pitch): All 12 pitch classes different (12-tone row)",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     },
     {
@@ -56,7 +56,7 @@
       "enabled": true,
       "priority": 7,
       "description": "Engine 0 (Voice 0 rhythm): All quarter notes (duration = 4)",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "rhythm"
     },
     {
@@ -71,7 +71,7 @@
       "enabled": true,
       "priority": 7,
       "description": "Engine 2 (Voice 1 rhythm): All quarter notes (duration = 4)",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "rhythm"
     },
     {

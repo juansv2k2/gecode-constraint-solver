@@ -29,7 +29,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 1 pitch engine: All 12 chromatic pitches different (12-tone row)",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     },
     {
@@ -57,7 +57,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 2 pitch engine: All 12 chromatic pitches different (12-tone row)",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "pitch"
     },
     {
@@ -87,7 +87,7 @@
       "enabled": true,
       "priority": 15,
       "description": "Voice 2 must be retrograde inversion of Voice 1 around F4 (MIDI 65)",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "pitch"
     },
     {
@@ -117,7 +117,7 @@
       "enabled": true,
       "priority": 5,
       "description": "Voice 1 rhythm engine: All quarter notes",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "rhythm"
     },
     {
@@ -147,7 +147,7 @@
       "enabled": true,
       "priority": 5,
       "description": "Voice 2 rhythm engine: All quarter notes",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "rhythm"
     },
     {

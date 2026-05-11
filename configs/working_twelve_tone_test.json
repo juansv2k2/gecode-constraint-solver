@@ -25,7 +25,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 2 is retrograde inversion of Voice 1 around C5 (72)",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "pitch"
     }
   ],

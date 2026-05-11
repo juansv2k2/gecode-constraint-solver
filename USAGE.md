@@ -2,6 +2,8 @@
 
 Complete reference for authoring configs for the Gecode Musical Constraint Solver.
 
+Canonical key policy: use `target_voices` for rule targeting (always an array, even for one voice).
+
 **Quick Summary:**
 
 - Use voice-first configs (`voices`, optional `meter`)
@@ -145,7 +147,7 @@ Metric rules are automatically targeted to the metric engine (last engine).
   "rule_type": "r-pitches-one-engine",
   "constraint": "all_different",
   "indices": [0, 1, 2, 3, 4, 5, 6, 7],
-  "target_voice": 0,
+  "target_voices": [0],
   "target_component": "pitch",
   "enabled": true,
   "priority": 10
@@ -159,7 +161,7 @@ Metric rules are automatically targeted to the metric engine (last engine).
   "rule_type": "r-twelve-tone-voice1",
   "constraint": "all_different",
   "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-  "target_voice": 0,
+  "target_voices": [0],
   "target_component": "pitch"
 }
 ```
@@ -190,7 +192,7 @@ Metric rules are automatically targeted to the metric engine (last engine).
 }
 ```
 
-`parameters`: optional rule-specific values only. For voice relationships, use `target_voice` or `target_voices` plus `target_component`.
+`parameters`: optional rule-specific values only. For voice relationships, use `target_voices` plus `target_component`.
 
 **Retrograde Inversion:**
 
@@ -225,7 +227,7 @@ Metric rules are automatically targeted to the metric engine (last engine).
   "constraint": "equal_values",
   "parameters": ["1/4"],
   "indices": [0, 1, 2, 3, 4, 5, 6, 7],
-  "target_voice": 0,
+  "target_voices": [0],
   "target_component": "rhythm"
 }
 ```
@@ -270,7 +272,7 @@ The shorthand `"constraint": "..."` expands to:
     "parameters": []
   },
   "indices": [0, 1, 2, 3, 4, 5, 6, 7],
-  "target_voice": 0,
+  "target_voices": [0],
   "target_component": "pitch"
 }
 ```
@@ -282,7 +284,6 @@ The shorthand `"constraint": "..."` expands to:
 | `rule_type`        | string | Category: `r-pitches-one-engine`, `r-rhythmic-uniformity`, `r-palindrome-voice2`, etc. |
 | `constraint`       | string | Built-in function: `all_different`, `equal_values`, `palindrome_of_engine`, etc.       |
 | `parameters`       | array  | Constraint parameters (rhythm values, time signatures, engine indices)                 |
-| `target_voice`     | int    | Single voice index (0, 1, 2, ...)                                                      |
 | `target_voices`    | array  | Multiple voices: `[0, 1]`                                                              |
 | `target_component` | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                   |
 | `indices`          | array  | Positions in sequence — omit to apply to all                                           |
@@ -290,6 +291,11 @@ The shorthand `"constraint": "..."` expands to:
 | `enabled`          | bool   | Enable/disable rule (default: `true`)                                                  |
 | `priority`         | int    | Rule priority (higher = tried first)                                                   |
 | `description`      | string | Human-readable label                                                                   |
+
+Compatibility note:
+
+- Legacy aliases like `target_voice` and `voice` are auto-normalized internally.
+- New configs should always use canonical `target_voices`.
 
 ## 6. Dynamic Rules & Heuristics
 
@@ -616,7 +622,6 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 | `rule_type`        | string | `r-pitches-one-engine`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-rhythmic-uniformity`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `r-metric-signature` |
 | `constraint`       | string | Shorthand: `all_different`, `equal_values`, `palindrome_of_engine`, `no_unisons_between_engines`, `consecutive_perfect_fifths`, `retrograde_inversion_relationship`                                                 |
 | `parameters`       | array  | Constraint-specific params                                                                                                                                                                                          |
-| `target_voice`     | int    | Single voice (0, 1, ...)                                                                                                                                                                                            |
 | `target_voices`    | array  | Multiple voices `[0, 1]`                                                                                                                                                                                            |
 | `target_component` | string | `"pitch"`, `"rhythm"`, `"metric"`                                                                                                                                                                                   |
 | `indices`          | array  | Positions — omit to apply to all                                                                                                                                                                                    |
@@ -704,7 +709,7 @@ The heuristic guides _which solutions are found first_, not _which solutions are
       "rule_type": "r-twelve-tone-voice1",
       "constraint": "all_different",
       "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     },
     {
@@ -748,7 +753,7 @@ The heuristic guides _which solutions are found first_, not _which solutions are
     {
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     }
   ],

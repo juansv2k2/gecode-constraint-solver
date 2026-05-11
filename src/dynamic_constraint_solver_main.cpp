@@ -27,6 +27,24 @@
 
 using namespace DynamicRules;
 
+// Utility function for variable-rhythm onset mapping
+static std::vector<std::vector<int>> compute_voice_onsets(const std::vector<std::vector<int>>& voice_rhythms, int sequence_length) {
+    std::vector<std::vector<int>> onsets(voice_rhythms.size(), std::vector<int>(sequence_length, 0));
+    for (size_t v = 0; v < voice_rhythms.size(); ++v) {
+        int running = 0;
+        const auto& vr = voice_rhythms[v];
+        const int n = std::min(sequence_length, static_cast<int>(vr.size()));
+        for (int i = 0; i < n; ++i) {
+            onsets[v][i] = running;
+            running += std::abs(vr[i]);
+        }
+        for (int i = n; i < sequence_length; ++i) {
+            onsets[v][i] = running;
+        }
+    }
+    return onsets;
+}
+
 // Data structure for parsed rule configuration
 struct RuleConfig {
     std::string rule_type;
@@ -82,18 +100,39 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
 
     if (rule.contains("target_engine") || rule.contains("target_engines")) {
         throw std::runtime_error(
-            "rule '" + rule_id + "' uses deprecated engine targeting; use target_voice/target_voices instead");
+            "rule '" + rule_id + "' uses deprecated engine targeting; use target_voices instead");
     }
 
-    bool has_target_voice = rule.contains("target_voice") && rule["target_voice"].is_number_integer();
+    // Canonicalize legacy aliases to target_voices.
+    if (rule.contains("target_voice")) {
+        if (rule["target_voice"].is_number_integer()) {
+            if (!rule.contains("target_voices") || !rule["target_voices"].is_array()) {
+                rule["target_voices"] = nlohmann::json::array();
+            }
+            rule["target_voices"].push_back(rule["target_voice"].get<int>());
+        } else if (rule["target_voice"].is_array()) {
+            rule["target_voices"] = rule["target_voice"];
+        }
+        rule.erase("target_voice");
+    }
+
+    if (rule.contains("voice") && rule["voice"].is_number_integer()) {
+        if (!rule.contains("target_voices") || !rule["target_voices"].is_array()) {
+            rule["target_voices"] = nlohmann::json::array();
+        }
+        rule["target_voices"].push_back(rule["voice"].get<int>());
+        rule.erase("voice");
+    }
+
+    // Normalize temporal scope alias for timepoint rules.
+    if (rule.contains("temporal_scope") && !rule.contains("time_scope")) {
+        rule["time_scope"] = rule["temporal_scope"];
+    }
+    rule.erase("temporal_scope");
+
     bool has_target_voices = rule.contains("target_voices") && rule["target_voices"].is_array() && !rule["target_voices"].empty();
 
-    if (!has_target_voice && !has_target_voices && rule.contains("voice") && rule["voice"].is_number_integer()) {
-        rule["target_voice"] = rule["voice"].get<int>();
-        has_target_voice = true;
-    }
-
-    if (!has_target_voice && !has_target_voices && rule.contains("constraint") && rule["constraint"].is_string()) {
+    if (!has_target_voices && rule.contains("constraint") && rule["constraint"].is_string()) {
         std::set<int> voices_from_constraint;
         static const std::regex kVoiceRef(R"(voice\[(\d+)\])");
         const std::string expr = rule["constraint"].get<std::string>();
@@ -102,10 +141,7 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
             voices_from_constraint.insert(std::stoi((*it)[1].str()));
         }
 
-        if (voices_from_constraint.size() == 1) {
-            rule["target_voice"] = *voices_from_constraint.begin();
-            has_target_voice = true;
-        } else if (!voices_from_constraint.empty()) {
+        if (!voices_from_constraint.empty()) {
             nlohmann::json many = nlohmann::json::array();
             for (int voice : voices_from_constraint) {
                 if (voice >= 0 && voice < num_voices) many.push_back(voice);
@@ -124,14 +160,29 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
         }
     }
 
-    if (has_target_voice && has_target_voices) {
+    if (!has_target_voices) {
         throw std::runtime_error(
-            "rule '" + rule_id + "' must specify either target_voice or target_voices, not both");
+            "rule '" + rule_id + "' is missing target_voices");
     }
-    if (!has_target_voice && !has_target_voices) {
-        throw std::runtime_error(
-            "rule '" + rule_id + "' is missing target_voice/target_voices");
+
+    // Deduplicate and validate target_voices.
+    std::set<int> unique_voices;
+    nlohmann::json normalized_target_voices = nlohmann::json::array();
+    for (const auto& voice_json : rule["target_voices"]) {
+        if (!voice_json.is_number_integer()) {
+            throw std::runtime_error(
+                "rule '" + rule_id + "' target_voices must contain integers only");
+        }
+        const int voice = voice_json.get<int>();
+        if (voice < 0 || voice >= num_voices) {
+            throw std::runtime_error(
+                "rule '" + rule_id + "' has out-of-range voice " + std::to_string(voice));
+        }
+        if (unique_voices.insert(voice).second) {
+            normalized_target_voices.push_back(voice);
+        }
     }
+    rule["target_voices"] = std::move(normalized_target_voices);
 
     std::string target_component = rule.value("target_component", std::string(""));
     if (target_component.empty()) {
@@ -147,24 +198,12 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
         rule["engine_type"] = target_component;
     }
 
-    if (has_target_voice) {
-        const int voice = rule["target_voice"].get<int>();
-        rule["target_engine"] = engine_index_for_voice_component(voice, target_component, num_voices);
-    } else {
-        nlohmann::json target_engines = nlohmann::json::array();
-        nlohmann::json normalized_target_voices = nlohmann::json::array();
-        for (const auto& voice_json : rule["target_voices"]) {
-            if (!voice_json.is_number_integer()) {
-                throw std::runtime_error(
-                    "rule '" + rule_id + "' target_voices must contain integers only");
-            }
-            const int voice = voice_json.get<int>();
-            normalized_target_voices.push_back(voice);
-            target_engines.push_back(engine_index_for_voice_component(voice, target_component, num_voices));
-        }
-        rule["target_voices"] = std::move(normalized_target_voices);
-        rule["target_engines"] = std::move(target_engines);
+    nlohmann::json target_engines = nlohmann::json::array();
+    for (const auto& voice_json : rule["target_voices"]) {
+        const int voice = voice_json.get<int>();
+        target_engines.push_back(engine_index_for_voice_component(voice, target_component, num_voices));
     }
+    rule["target_engines"] = std::move(target_engines);
 }
 
 // Robust JSON parser for constraint solver configuration
@@ -524,6 +563,16 @@ public:
                             current_rule.engine_type = "metric";
                         }
 
+                        // Canonicalize to target_voices for legacy line-parser paths.
+                        if (current_rule.target_voice >= 0) {
+                            current_rule.target_voices.push_back(current_rule.target_voice);
+                            current_rule.target_voice = -1;
+                        }
+                        std::sort(current_rule.target_voices.begin(), current_rule.target_voices.end());
+                        current_rule.target_voices.erase(
+                            std::unique(current_rule.target_voices.begin(), current_rule.target_voices.end()),
+                            current_rule.target_voices.end());
+
                         if (current_rule.target_engine < 0 && current_rule.target_engines.empty()) {
                             std::string target_component = current_rule.target_component;
                             if (target_component.empty() &&
@@ -534,13 +583,7 @@ public:
                                 target_component = "pitch";
                             }
 
-                            if (current_rule.target_voice >= 0) {
-                                current_rule.target_engine = engine_index_for_voice_component(
-                                    current_rule.target_voice, target_component, num_voices_);
-                                if (current_rule.engine_type.empty()) {
-                                    current_rule.engine_type = target_component;
-                                }
-                            } else if (!current_rule.target_voices.empty()) {
+                            if (!current_rule.target_voices.empty()) {
                                 current_rule.target_engines.clear();
                                 for (int voice_idx : current_rule.target_voices) {
                                     current_rule.target_engines.push_back(
@@ -557,7 +600,7 @@ public:
                         if (!has_target_engine && !has_target_engines) {
                             std::cout << "❌ Rule validation error: rule '"
                                       << (current_rule.description.empty() ? current_rule.rule_type : current_rule.description)
-                                      << "' is missing target_voice/target_voices" << std::endl;
+                                      << "' is missing target_voices" << std::endl;
                             return false;
                         }
                         rules_.push_back(current_rule);
@@ -637,12 +680,12 @@ public:
                     }
                     else if (line.find("\"target_engine\"") != std::string::npos) {
                         std::cout << "❌ Rule validation error: deprecated field 'target_engine' is not allowed. "
-                                  << "Use target_voice/target_voices with target_component." << std::endl;
+                                  << "Use target_voices with target_component." << std::endl;
                         return false;
                     }
                     else if (line.find("\"target_engines\"") != std::string::npos) {
                         std::cout << "❌ Rule validation error: deprecated field 'target_engines' is not allowed. "
-                                  << "Use target_voice/target_voices with target_component." << std::endl;
+                                  << "Use target_voices with target_component." << std::endl;
                         return false;
                     }
                     else if (line.find("\"target_voice\"") != std::string::npos) {
@@ -650,7 +693,8 @@ public:
                         if (pos != std::string::npos) {
                             std::string value = removeQuotesAndComma(line.substr(pos + 1));
                             try {
-                                current_rule.target_voice = std::stoi(value);
+                                current_rule.target_voices.push_back(std::stoi(value));
+                                current_rule.target_voice = -1;
                             } catch (...) {}
                         }
                     }
@@ -1919,10 +1963,275 @@ int main(int argc, char* argv[]) {
                             const bool has_target_engine = rule_json.contains("target_engine") && rule_json["target_engine"].is_number_integer() && rule_json["target_engine"].get<int>() >= 0;
                             const bool has_target_engines = rule_json.contains("target_engines") && rule_json["target_engines"].is_array() && !rule_json["target_engines"].empty();
                             if (!rule_type.empty() && !has_target_engine && !has_target_engines && type_field != "index") {
-                                throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing target_voice/target_voices after normalization");
+                                throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing target_voices after normalization");
                             }
-                            
-                            if (rule_type == "wildcard_constraint") {
+
+                            if (rule_type == "r-timepoint-relationship") {
+                                std::vector<int> target_voices;
+                                if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array()) {
+                                    for (const auto& v : rule_json["target_voices"]) {
+                                        if (v.is_number_integer()) target_voices.push_back(v.get<int>());
+                                    }
+                                }
+                                std::sort(target_voices.begin(), target_voices.end());
+                                target_voices.erase(std::unique(target_voices.begin(), target_voices.end()), target_voices.end());
+                                if (target_voices.size() < 2) {
+                                    throw std::runtime_error("r-timepoint-relationship requires at least two target voices");
+                                }
+
+                                std::vector<std::pair<int, int>> voice_pairs;
+                                const std::string pair_mode = rule_json.value("pair_mode", "adjacent");
+                                if (pair_mode == "all_pairs") {
+                                    for (size_t i = 0; i < target_voices.size(); ++i) {
+                                        for (size_t j = i + 1; j < target_voices.size(); ++j) {
+                                            voice_pairs.push_back({target_voices[i], target_voices[j]});
+                                        }
+                                    }
+                                } else {
+                                    for (size_t i = 0; i + 1 < target_voices.size(); ++i) {
+                                        voice_pairs.push_back({target_voices[i], target_voices[i + 1]});
+                                    }
+                                }
+
+                                std::vector<int> selected_indices;
+                                if (rule_json.contains("indices") && rule_json["indices"].is_array()) {
+                                    for (const auto& idx : rule_json["indices"]) {
+                                        if (idx.is_number_integer()) selected_indices.push_back(idx.get<int>());
+                                    }
+                                }
+
+                                // Check if we have fixed or variable rhythm
+                                int fixed_step_ticks = -1;
+                                bool fixed_rhythm = !solver_config.voice_rhythm_domains.empty();
+                                for (const auto& rd : solver_config.voice_rhythm_domains) {
+                                    if (rd.size() != 1 || rd[0] <= 0) {
+                                        fixed_rhythm = false;
+                                        break;
+                                    }
+                                    if (fixed_step_ticks < 0) {
+                                        fixed_step_ticks = rd[0];
+                                    } else if (fixed_step_ticks != rd[0]) {
+                                        fixed_rhythm = false;
+                                        break;
+                                    }
+                                }
+
+                                if (selected_indices.empty()) {
+                                    const std::string time_scope = rule_json.value(
+                                        "time_scope", rule_json.value("temporal_scope", std::string("all_timepoints")));
+
+                                    if (time_scope == "all_timepoints") {
+                                        for (int i = 0; i < solver_config.sequence_length; ++i) {
+                                            selected_indices.push_back(i);
+                                        }
+                                    } else if (time_scope == "at_timepoints") {
+                                        if (!rule_json.contains("timepoints") || !rule_json["timepoints"].is_array()) {
+                                            throw std::runtime_error(
+                                                "r-timepoint-relationship with at_timepoints requires a timepoints array");
+                                        }
+
+                                        if (fixed_rhythm && fixed_step_ticks > 0) {
+                                            // Fixed-rhythm case: direct tick-to-index conversion
+                                            for (const auto& tp : rule_json["timepoints"]) {
+                                                int tick = -1;
+                                                if (tp.is_string()) {
+                                                    tick = ConstraintSolverJSONParser::parse_score_time_to_ticks(
+                                                        tp.get<std::string>(), solver_config.rhythm_base,
+                                                        "r-timepoint-relationship timepoint");
+                                                } else if (tp.is_number_integer()) {
+                                                    tick = tp.get<int>();
+                                                }
+                                                if (tick < 0 || (tick % fixed_step_ticks) != 0) {
+                                                    throw std::runtime_error(
+                                                        "r-timepoint-relationship fixed-rhythm: timepoint not aligned with rhythmic step");
+                                                }
+                                                const int idx = tick / fixed_step_ticks;
+                                                if (idx < 0 || idx >= solver_config.sequence_length) {
+                                                    throw std::runtime_error("r-timepoint-relationship timepoint maps to out-of-range index");
+                                                }
+                                                selected_indices.push_back(idx);
+                                            }
+                                        } else {
+                                            // Variable-rhythm case: use onset-aware mapping
+                                            auto voice_onsets = compute_voice_onsets(solver_config.voice_rhythm_domains, solver_config.sequence_length);
+                                            for (const auto& tp : rule_json["timepoints"]) {
+                                                int tick = -1;
+                                                if (tp.is_string()) {
+                                                    tick = ConstraintSolverJSONParser::parse_score_time_to_ticks(
+                                                        tp.get<std::string>(), solver_config.rhythm_base,
+                                                        "r-timepoint-relationship timepoint");
+                                                } else if (tp.is_number_integer()) {
+                                                    tick = tp.get<int>();
+                                                }
+                                                if (tick < 0) {
+                                                    throw std::runtime_error("r-timepoint-relationship timepoint is negative");
+                                                }
+                                                // Find first index at or after this tick for each voice
+                                                for (int v = 0; v < static_cast<int>(voice_onsets.size()); ++v) {
+                                                    for (int i = 0; i < solver_config.sequence_length; ++i) {
+                                                        if (voice_onsets[v][i] >= tick) {
+                                                            selected_indices.push_back(i);
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else if (time_scope == "on_beats") {
+                                        if (solver_config.metric_domain.empty()) {
+                                            throw std::runtime_error("r-timepoint-relationship on_beats requires metric_domain");
+                                        }
+                                        const auto& ts = solver_config.metric_domain.front();
+                                        const int numerator = ts.numerator;
+                                        const int denominator = ts.denominator;
+                                        if (numerator <= 0 || denominator <= 0 ||
+                                            (solver_config.rhythm_base % denominator) != 0) {
+                                            throw std::runtime_error(
+                                                "r-timepoint-relationship on_beats has incompatible metric_domain/rhythm_base");
+                                        }
+                                        const int beat_tick = solver_config.rhythm_base / denominator;
+
+                                        std::set<int> beat_filter;
+                                        if (rule_json.contains("beat_numbers") && rule_json["beat_numbers"].is_array()) {
+                                            for (const auto& b : rule_json["beat_numbers"]) {
+                                                if (b.is_number_integer()) beat_filter.insert(b.get<int>());
+                                            }
+                                        }
+
+                                        if (fixed_rhythm && fixed_step_ticks > 0) {
+                                            // Fixed-rhythm: compute beat position from tick = i * fixed_step_ticks
+                                            for (int i = 0; i < solver_config.sequence_length; ++i) {
+                                                const int tick = i * fixed_step_ticks;
+                                                if ((tick % beat_tick) != 0) continue;
+                                                const int beat = ((tick / beat_tick) % numerator) + 1;
+                                                const bool selected = beat_filter.empty() || beat_filter.count(beat) > 0;
+                                                if (selected) {
+                                                    selected_indices.push_back(i);
+                                                }
+                                            }
+                                        } else {
+                                            // Variable-rhythm: find indices where voice onsets fall on beat boundaries
+                                            auto voice_onsets = compute_voice_onsets(solver_config.voice_rhythm_domains, solver_config.sequence_length);
+                                            for (int i = 0; i < solver_config.sequence_length; ++i) {
+                                                for (int v = 0; v < static_cast<int>(voice_onsets.size()); ++v) {
+                                                    if (i >= static_cast<int>(voice_onsets[v].size())) continue;
+                                                    const int onset = voice_onsets[v][i];
+                                                    if ((onset % beat_tick) == 0) {
+                                                        const int beat = ((onset / beat_tick) % numerator) + 1;
+                                                        if (beat_filter.empty() || beat_filter.count(beat) > 0) {
+                                                            selected_indices.push_back(i);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        throw std::runtime_error(
+                                            "r-timepoint-relationship time_scope must be all_timepoints, at_timepoints, or on_beats");
+                                    }
+                                }
+
+                                std::sort(selected_indices.begin(), selected_indices.end());
+                                selected_indices.erase(std::unique(selected_indices.begin(), selected_indices.end()), selected_indices.end());
+                                selected_indices.erase(
+                                    std::remove_if(selected_indices.begin(), selected_indices.end(), [&](int idx) {
+                                        return idx < 0 || idx >= solver_config.sequence_length;
+                                    }),
+                                    selected_indices.end());
+
+                                if (selected_indices.empty()) {
+                                    throw std::runtime_error("r-timepoint-relationship produced no valid indices");
+                                }
+
+                                std::vector<int> interval_set;
+                                if (rule_json.contains("parameters") && rule_json["parameters"].is_array()) {
+                                    for (const auto& p : rule_json["parameters"]) {
+                                        if (p.is_number_integer()) interval_set.push_back(p.get<int>());
+                                    }
+                                }
+                                if (rule_json.contains("constraint_function") &&
+                                    rule_json["constraint_function"].is_object() &&
+                                    rule_json["constraint_function"].contains("parameters") &&
+                                    rule_json["constraint_function"]["parameters"].is_array()) {
+                                    for (const auto& p : rule_json["constraint_function"]["parameters"]) {
+                                        if (p.is_number_integer()) interval_set.push_back(p.get<int>());
+                                    }
+                                }
+                                std::sort(interval_set.begin(), interval_set.end());
+                                interval_set.erase(std::unique(interval_set.begin(), interval_set.end()), interval_set.end());
+
+                                std::string base_expr;
+                                if (rule_json.contains("constraint") && rule_json["constraint"].is_string()) {
+                                    base_expr = rule_json["constraint"].get<std::string>();
+                                } else {
+                                    const std::string function = rule_json.value("constraint", rule_json.value("function", std::string("interval_in_set")));
+                                    std::ostringstream arr;
+                                    arr << "[";
+                                    for (size_t i = 0; i < interval_set.size(); ++i) {
+                                        if (i > 0) arr << ", ";
+                                        arr << interval_set[i];
+                                    }
+                                    arr << "]";
+
+                                    if (function == "interval_not_in_set") {
+                                        base_expr = "abs(voice[v2].pitch[i] - voice[v1].pitch[i]) not_in " + arr.str();
+                                    } else {
+                                        base_expr = "abs(voice[v2].pitch[i] - voice[v1].pitch[i]) in " + arr.str();
+                                    }
+                                }
+
+                                static const std::regex bracket_i_expr(R"(\[\s*(i(?:\s*[+-]\s*\d+)?)\s*\])");
+                                static const std::regex voice_v1_re(R"(voice\[(v1|a)\])");
+                                static const std::regex voice_v2_re(R"(voice\[(v2|b)\])");
+
+                                int generated = 0;
+                                const std::string base_id = rule_json.value("id", std::string("timepoint_relationship"));
+                                for (const auto& pr : voice_pairs) {
+                                    for (int idx : selected_indices) {
+                                        std::string expr = std::regex_replace(base_expr, voice_v1_re, "voice[" + std::to_string(pr.first) + "]");
+                                        expr = std::regex_replace(expr, voice_v2_re, "voice[" + std::to_string(pr.second) + "]");
+
+                                        std::string rebuilt;
+                                        std::size_t cursor = 0;
+                                        for (std::sregex_iterator it(expr.begin(), expr.end(), bracket_i_expr), end; it != end; ++it) {
+                                            const auto& m = *it;
+                                            rebuilt.append(expr, cursor, static_cast<std::size_t>(m.position()) - cursor);
+                                            std::string inside = m[1].str();
+                                            int concrete_idx = idx;
+                                            inside.erase(std::remove_if(inside.begin(), inside.end(),
+                                                                        [](unsigned char c) { return std::isspace(c); }),
+                                                         inside.end());
+                                            if (inside == "i") {
+                                                concrete_idx = idx;
+                                            } else if (inside.rfind("i+", 0) == 0) {
+                                                concrete_idx = idx + std::stoi(inside.substr(2));
+                                            } else if (inside.rfind("i-", 0) == 0) {
+                                                concrete_idx = idx - std::stoi(inside.substr(2));
+                                            }
+                                            rebuilt += "[" + std::to_string(concrete_idx) + "]";
+                                            cursor = static_cast<std::size_t>(m.position() + m.length());
+                                        }
+                                        rebuilt.append(expr, cursor, std::string::npos);
+
+                                        nlohmann::json generated_rule = {
+                                            {"id", base_id + "_v" + std::to_string(pr.first) + "_" + std::to_string(pr.second) + "_i" + std::to_string(idx)},
+                                            {"type", "basic_constraint"},
+                                            {"mode", "true_false"},
+                                            {"expression", rebuilt}
+                                        };
+
+                                        auto compiled = DynamicRules::DynamicRuleCompiler::compile_from_json(generated_rule);
+                                        if (compiled) {
+                                            solver.apply_compiled_constraint(std::move(compiled));
+                                            generated++;
+                                        }
+                                    }
+                                }
+
+                                regular_count += generated;
+                                std::cout << "     ✅ Compiled timepoint relationship rule: " << base_id
+                                          << " (" << generated << " concrete constraints)" << std::endl;
+                            } else if (rule_type == "wildcard_constraint") {
                                 // Process wildcard rule - apply directly using new integration method
                                 auto compiled = DynamicRules::WildcardRuleCompiler::compile_wildcard_from_json(rule_json);
                                 if (compiled) {

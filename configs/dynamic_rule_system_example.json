@@ -67,7 +67,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 0: all 8 pitches must be different",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     }
   ],

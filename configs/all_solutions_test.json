@@ -21,7 +21,7 @@
       "enabled": true,
       "priority": 10,
       "description": "All 4 notes must be different \u2014 gives 4! = 24 solutions",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     }
   ],

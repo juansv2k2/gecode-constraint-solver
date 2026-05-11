@@ -1,8 +1,8 @@
 {
   "name": "Metric Domain Simple",
   "description": "Voice-first metric example with timepoint segmentation.",
-  "solution_length": 20,
-  "score_length": "20q",
+  "solution_length": 13,
+  "score_length": "13q",
   "num_voices": 4,
   "voices": [
     {
@@ -52,38 +52,7 @@
       "target_component": "pitch",
       "description": "Voice 0 first 12 pitches are all different"
     },
-    {
-      "rule_type": "r-rhythmic-uniformity",
-      "constraint": "equal_values",
-      "parameters": ["1/4"],
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 0,
-      "target_component": "rhythm"
-    },
-    {
-      "rule_type": "r-rhythmic-uniformity",
-      "constraint": "equal_values",
-      "parameters": ["1/8"],
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 1,
-      "target_component": "rhythm"
-    },
-    {
-      "rule_type": "r-rhythmic-uniformity",
-      "constraint": "equal_values",
-      "parameters": ["1/8"],
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 2,
-      "target_component": "rhythm"
-    },
-    {
-      "rule_type": "r-rhythmic-uniformity",
-      "constraint": "equal_values",
-      "parameters": ["1/8"],
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voice": 3,
-      "target_component": "rhythm"
-    },
+
     {
       "rule_type": "r-cross-voice-no-unisons",
       "constraint": "no_unisons_between_engines",
@@ -94,8 +63,8 @@
     {
       "rule_type": "r-metric-signature",
       "constraint": "equal_values",
-      "parameters": ["4/4", "3/4"],
-      "timepoints": ["0q", "4q"]
+      "parameters": ["4/4", "2/4", "3/4"],
+      "timepoints": ["0q", "4q", "6q"]
     }
   ],
   "search_options": {

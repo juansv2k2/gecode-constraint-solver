@@ -28,7 +28,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Engine 1: All 12 pitch classes different",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     }
   ],

@@ -2199,6 +2199,14 @@ size_t Solver::get_dynamic_rules_count() const {
     return compiled_rules_ ? compiled_rules_->total_count() : 0;
 }
 
+int Solver::get_dynamic_rule_post_success_count() const {
+    return compiled_rules_ ? compiled_rules_->last_posted_success_count() : 0;
+}
+
+int Solver::get_dynamic_rule_post_failed_count() const {
+    return compiled_rules_ ? compiled_rules_->last_posted_failed_count() : 0;
+}
+
 MusicalSolution Solver::solve() {
     total_solve_attempts_++;
     return solve_internal();

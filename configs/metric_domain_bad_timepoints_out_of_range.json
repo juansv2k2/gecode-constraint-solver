@@ -62,7 +62,7 @@
         6,
         7
       ],
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "rhythm",
       "enabled": true,
       "priority": 9,

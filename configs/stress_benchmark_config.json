@@ -38,7 +38,7 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 1: All pitches must be different across the full 16-note sequence",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch"
     },
     {
@@ -73,7 +73,7 @@
       "enabled": true,
       "priority": 9,
       "description": "Voice 2: Exact palindrome of Voice 1",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "pitch"
     }
   ],

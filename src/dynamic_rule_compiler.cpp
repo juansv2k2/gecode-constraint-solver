@@ -8,6 +8,9 @@
 #include <iostream>
 #include <stdexcept>
 #include <cmath>
+#include <algorithm>
+#include <cctype>
+#include <sstream>
 
 using namespace Gecode;
 using namespace GecodeClusterIntegration;
@@ -770,10 +773,43 @@ void DynamicRuleCompiler::post_membership_constraint_from_binary(const BinaryOpN
     
     const ConstantNode& const_node = static_cast<const ConstantNode&>(right_node);
     std::vector<int> values;
-    
+
     try {
         values = const_node.get_value<std::vector<int>>();
     } catch (...) {
+        // Be tolerant of parser output variants for array literals.
+        try {
+            const auto dvals = const_node.get_value<std::vector<double>>();
+            values.reserve(dvals.size());
+            for (double d : dvals) {
+                const int iv = static_cast<int>(d);
+                if (std::abs(d - static_cast<double>(iv)) > 1e-9) {
+                    throw RuleCompileException("Membership array contains non-integer value: " + std::to_string(d));
+                }
+                values.push_back(iv);
+            }
+        } catch (const RuleCompileException&) {
+            throw;
+        } catch (...) {
+            try {
+                const auto sval = const_node.get_value<std::string>();
+                if (!sval.empty() && sval.front() == '[' && sval.back() == ']') {
+                    std::string inner = sval.substr(1, sval.size() - 2);
+                    std::stringstream ss(inner);
+                    std::string tok;
+                    while (std::getline(ss, tok, ',')) {
+                        tok.erase(std::remove_if(tok.begin(), tok.end(), [](unsigned char c) { return std::isspace(c); }), tok.end());
+                        if (tok.empty()) continue;
+                        values.push_back(std::stoi(tok));
+                    }
+                }
+            } catch (...) {
+                // fallthrough to final validation below
+            }
+        }
+    }
+
+    if (values.empty()) {
         throw RuleCompileException("Right side of membership constraint must be integer array");
     }
     

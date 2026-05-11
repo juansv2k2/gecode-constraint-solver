@@ -60,7 +60,7 @@
         6,
         7
       ],
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "pitch",
       "enabled": true,
       "priority": 10,
@@ -85,7 +85,7 @@
         6,
         7
       ],
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "rhythm",
       "enabled": true,
       "priority": 9,

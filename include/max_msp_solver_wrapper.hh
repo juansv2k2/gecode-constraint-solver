@@ -41,6 +41,8 @@ struct SolveResult {
     int backjumps_performed = 0;
     int total_rules_checked = 0;
     int rhythm_base = 1;
+    int dynamic_rules_posted_ok = 0;
+    int dynamic_rules_post_failed = 0;
 };
 
 class AsyncSolverWrapper {

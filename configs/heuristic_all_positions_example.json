@@ -49,7 +49,7 @@
       "enabled": true,
       "priority": 7,
       "description": "Voice 0: all eighth notes",
-      "target_voice": 0,
+      "target_voices": [0],
       "target_component": "rhythm"
     },
     {
@@ -60,7 +60,7 @@
       "enabled": true,
       "priority": 7,
       "description": "Voice 1: all quarter notes",
-      "target_voice": 1,
+      "target_voices": [1],
       "target_component": "rhythm"
     }
   ],
