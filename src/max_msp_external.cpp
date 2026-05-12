@@ -253,6 +253,7 @@ void normalize_array_schema_fields(nlohmann::json& value) {
     static const std::set<std::string> array_keys = {
         "dynamic_rules",
         "rules",
+        "voices",
         "duration_values",
         "midi_values",
         "time_signatures",
@@ -261,13 +262,44 @@ void normalize_array_schema_fields(nlohmann::json& value) {
         "indices",
         "timepoints",
         "parameters",
+        "bar_pattern",
         "voice_solutions",
         "voice_rhythms"
+    };
+
+    // Keys that Max may serialize from JSON arrays as objects with numeric string keys.
+    // These must be converted back from {"0":{...},"1":{...}} to [{...},{...}].
+    static const std::set<std::string> numeric_keyed_object_to_array_keys = {
+        "voices",
+        "rules",
+        "dynamic_rules"
     };
 
     if (value.is_object()) {
         for (auto it = value.begin(); it != value.end(); ++it) {
             const std::string key = it.key();
+
+            // If Max serialized a JSON array as an object with numeric string keys, restore it.
+            if (numeric_keyed_object_to_array_keys.count(key) > 0 && it.value().is_object()) {
+                bool all_numeric = true;
+                for (auto eit = it.value().begin(); eit != it.value().end(); ++eit) {
+                    try { std::stoi(eit.key()); }
+                    catch (...) { all_numeric = false; break; }
+                }
+                if (all_numeric && !it.value().empty()) {
+                    // Sort by numeric key and build array
+                    std::vector<std::pair<int, nlohmann::json>> entries;
+                    for (auto eit = it.value().begin(); eit != it.value().end(); ++eit) {
+                        entries.emplace_back(std::stoi(eit.key()), eit.value());
+                    }
+                    std::sort(entries.begin(), entries.end(),
+                              [](const auto& a, const auto& b) { return a.first < b.first; });
+                    nlohmann::json arr = nlohmann::json::array();
+                    for (auto& e : entries) arr.push_back(std::move(e.second));
+                    it.value() = std::move(arr);
+                }
+            }
+
             if (array_keys.count(key) > 0 && !it.value().is_array() && !it.value().is_null()) {
                 nlohmann::json wrapped = nlohmann::json::array();
                 wrapped.push_back(it.value());

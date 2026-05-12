@@ -1,0 +1,66 @@
+{
+  "name": "Test Bar Pattern",
+  "description": "Test configuration for bar-pattern time signature system",
+  "score_length": "24q",
+  "solution_length": 12,
+  "num_voices": 1,
+  "metric_engine_enabled": true,
+
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": ["1/8", "1/4", "1/2", "-1/4", "-1/8"]
+      },
+      "pitch": {
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]
+      }
+    }
+  ],
+
+  "meter": {
+    "time_signatures": ["4/4", "3/4"],
+    "beat_divisions": [2, 4]
+  },
+
+  "rules": [
+    {
+      "rule_type": "r-one-voice",
+      "constraint": "all_different",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "description": "Voice 0 unique pitches",
+      "enabled": true
+    },
+
+    {
+      "rule_type": "r-time-signature",
+      "target_voices": [],
+      "target_component": "metric",
+      "description": "Bar-pattern time signature (fixed)",
+      "bar_pattern_type": "fixed",
+      "bar_pattern": ["4/4", "3/4", "3/4"],
+      "allow_cross_barline": true,
+      "enabled": true
+    }
+  ],
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": true,
+    "require_exact_score_length": false,
+    "random_seed": 0,
+    "timeout_ms": 10000,
+    "max_solutions": 1,
+    "branching": "first_fail",
+    "value_order": "random",
+    "restart_policy": "none"
+  },
+  "output_options": {
+    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+    "export_filename": "test_bar_pattern",
+    "export_xml": true,
+    "export_png": false,
+    "export_midi": false,
+    "show_statistics": true
+  }
+}

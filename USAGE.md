@@ -398,6 +398,31 @@ Example: partial cantus anchors
 
 Timepoints are positions in quarter-note units where time signatures can change.
 
+**Bar pattern (bar-oriented metric timeline):**
+
+```json
+{
+  "rule_type": "r-time-signature",
+  "bar_pattern_type": "fixed",
+  "bar_pattern": ["4/4", "4/4", "3/4"],
+  "allow_cross_barline": false
+}
+```
+
+`bar_pattern_type` values:
+
+- `fixed`: use the pattern as written
+- `repeating`: repeat pattern (optionally with `bar_pattern_repetitions`; if omitted/0, fills score)
+- `random`: random draw from `bar_pattern` using `bar_pattern_count`
+- `weighted`: weighted random draw using `bar_pattern_distribution` + `bar_pattern_count`
+
+`allow_cross_barline` controls duration carry:
+
+- `false` (default): strict bar fill
+- `true`: durations may span barlines
+
+When durations span barlines, MusicXML export writes explicit ties.
+
 ### 5.6 Verbose Form (still supported)
 
 The shorthand `"constraint": "..."` expands to:
@@ -427,6 +452,12 @@ The shorthand `"constraint": "..."` expands to:
 | `target_component` | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                                 |
 | `indices`          | array  | Positions in sequence — omit to apply to all                                                         |
 | `timepoints`       | array  | Quarter-note positions for metric rules: `["0q", "4q"]`                                              |
+| `bar_pattern_type` | string | Metric pattern mode: `fixed`, `repeating`, `random`, `weighted`                                          |
+| `bar_pattern`      | array  | Time-signature list for bar-oriented metric rules                                                         |
+| `bar_pattern_count`| int    | Number of generated bars for `random`/`weighted`                                                          |
+| `bar_pattern_repetitions` | int | Explicit repetition count for `repeating`                                                            |
+| `bar_pattern_distribution` | object | Weights for `weighted` mode (signature -> probability)                                            |
+| `allow_cross_barline` | bool | For `r-time-signature` bar patterns: allow duration carry over barlines                                |
 | `enabled`          | bool   | Enable/disable rule (default: `true`)                                                                |
 | `priority`         | int    | Rule priority (higher = tried first)                                                                 |
 | `description`      | string | Human-readable label                                                                                 |
@@ -762,6 +793,12 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 | `target_component` | string | `"pitch"`, `"rhythm"`, `"metric"`                                                                                                                                                                                     |
 | `indices`          | array  | Positions — omit to apply to all                                                                                                                                                                                      |
 | `timepoints`       | array  | Quarter-note positions for metric changes                                                                                                                                                                             |
+| `bar_pattern_type` | string | `fixed`, `repeating`, `random`, or `weighted`                                                                                                                                                                         |
+| `bar_pattern`      | array  | Time-signature list, e.g. `["4/4", "3/4"]`                                                                                                                                                                          |
+| `bar_pattern_count` | int   | Number of bars generated in `random`/`weighted` modes                                                                                                                                                                 |
+| `bar_pattern_repetitions` | int | Repetition count in `repeating` mode                                                                                                                                                                              |
+| `bar_pattern_distribution` | object | Weighted probabilities per signature in `weighted` mode                                                                                                                                                     |
+| `allow_cross_barline` | bool | Allow duration carry across barlines for bar-pattern metric rules                                                                                                                                                    |
 | `enabled`          | bool   | On/off (default `true`)                                                                                                                                                                                               |
 | `priority`         | int    | Higher = tried first                                                                                                                                                                                                  |
 | `id`               | string | Optional label                                                                                                                                                                                                        |

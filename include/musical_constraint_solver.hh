@@ -154,6 +154,8 @@ struct MusicalSolution {
         int onset_ticks = 0;
         int duration_ticks = 0;
         bool is_rest = false;
+        bool tie_start = false;
+        bool tie_stop = false;
     };
 
     struct ScoreMeasure {
@@ -271,6 +273,14 @@ private:
         std::string function;
         std::vector<int> indices;
         std::vector<std::string> timepoints;
+        // Bar-oriented time signature pattern (new)
+        std::string bar_pattern_type;  // "fixed", "repeating", "random", "weighted"
+        std::vector<std::string> bar_pattern;  // List of time signatures like ["4/4", "3/4", "6/8"]
+        int bar_pattern_count;  // For random/weighted patterns
+        int bar_pattern_repetitions;  // For repeating patterns
+        std::map<std::string, double> bar_pattern_distribution;  // For weighted patterns
+        bool allow_cross_barline = false;  // If true, durations may carry over bar boundaries
+        // End bar-oriented fields
         int target_engine;
         std::vector<int> target_engines;  // For cross-engine rules
         std::string engine_type;
@@ -364,7 +374,13 @@ public:
                         const std::string& engine_type, const std::string& description,
                         const std::vector<double>& parameters = {},
                         const std::vector<std::string>& parameter_strings = {},
-                        const std::vector<std::string>& timepoints = {});
+                        const std::vector<std::string>& timepoints = {},
+                        const std::string& bar_pattern_type = "",
+                        const std::vector<std::string>& bar_pattern = {},
+                        int bar_pattern_count = 0,
+                        int bar_pattern_repetitions = 0,
+                        const std::map<std::string, double>& bar_pattern_distribution = {},
+                        bool allow_cross_barline = false);
     
     /**
      * @brief Add multiple rules
@@ -567,6 +583,32 @@ private:
         bool strict_all_onsets,
         bool use_beat_anchor_filter,
         int beat_ticks) const;
+
+    /**
+     * @brief Convert bar_pattern to list of bar descriptors with tick boundaries
+     */
+    struct BarDescriptor {
+        int start_tick;
+        int end_tick;
+        int numerator;
+        int denominator;
+    };
+    std::vector<BarDescriptor> expand_bar_pattern_(
+        const std::string& pattern_type,
+        const std::vector<std::string>& bar_sigs,
+        int pattern_count,
+        int repetitions,
+        const std::map<std::string, double>& distribution,
+        int random_seed) const;
+
+    /**
+     * @brief Post measure-fill constraint: sum of rhythm abs values in each bar equals bar duration
+     */
+    void post_measure_fill_constraint_(
+        GecodeClusterIntegration::IntegratedMusicalSpace* gecode_space,
+        int voice,
+        const std::vector<BarDescriptor>& bars,
+        bool allow_cross_barline) const;
 
     /**
      * @brief Update performance statistics

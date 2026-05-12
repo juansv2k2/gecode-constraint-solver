@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/test_bar_pattern_nocross.json
+Problem: Test Bar Pattern Strict
+Description: strict bars
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: F4 → D5 → C5 → D4 → A4 → E4 → C4 → B4 → F5 → G4 → E5 → G5
+  Rhythm:  1/2 + 1/8 + 1/8 + 1/8 + 1/8 + 1/4 + 1/8 + 1/4 + 1/8 + 1/4 + 1/4 + 1/2
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 2

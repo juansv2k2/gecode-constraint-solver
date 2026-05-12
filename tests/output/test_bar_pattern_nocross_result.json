@@ -1,0 +1,28 @@
+{
+  "config_file": "/tmp/test_bar_pattern_nocross.json",
+  "problem_name": "Test Bar Pattern Strict",
+  "solutions_found": 1,
+  "solve_time_ms": 0,
+  "rules_applied": 2,
+  "solutions": [
+    {
+      "solution_index": 0,
+      "voices": [
+        {
+          "voice": 0,
+          "pitch_solution": [65, 74, 72, 62, 69, 64, 60, 71, 77, 67, 76, 79],
+          "rhythm_solution": [4, 1, 1, 1, 1, 2, 1, 2, 1, 2, 2, 4],
+          "pitch_names": ["F4", "D5", "C5", "D4", "A4", "E4", "C4", "B4", "F5", "G4", "E5", "G5"],
+          "rhythm_names": ["1/2", "1/8", "1/8", "1/8", "1/8", "1/4", "1/8", "1/4", "1/8", "1/4", "1/4", "1/2"]
+        }
+      ],
+      "metric_signature_numerators": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3],
+      "metric_signature": ["4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "3/4", "3/4"],
+      "score": {
+        "rhythm_base": 8,
+        "metric_timeline": [{"start_index":0,"end_index":4,"start_tick":0,"end_tick":8,"numerator":4,"denominator":4}, {"start_index":5,"end_index":9,"start_tick":8,"end_tick":16,"numerator":4,"denominator":4}, {"start_index":10,"end_index":11,"start_tick":16,"end_tick":48,"numerator":3,"denominator":4}],
+        "measures": [{"measure_index":0,"start_ticks":0,"end_ticks":8,"numerator":4,"denominator":4,"events":[{"voice":0,"index":0,"pitch":65,"rhythm_ticks":4,"onset_ticks":0,"duration_ticks":4,"is_rest":false}, {"voice":0,"index":1,"pitch":74,"rhythm_ticks":1,"onset_ticks":4,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":2,"pitch":72,"rhythm_ticks":1,"onset_ticks":5,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":3,"pitch":62,"rhythm_ticks":1,"onset_ticks":6,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":4,"pitch":69,"rhythm_ticks":1,"onset_ticks":7,"duration_ticks":1,"is_rest":false}]}, {"measure_index":1,"start_ticks":8,"end_ticks":16,"numerator":4,"denominator":4,"events":[{"voice":0,"index":5,"pitch":64,"rhythm_ticks":2,"onset_ticks":8,"duration_ticks":2,"is_rest":false}, {"voice":0,"index":6,"pitch":60,"rhythm_ticks":1,"onset_ticks":10,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":7,"pitch":71,"rhythm_ticks":2,"onset_ticks":11,"duration_ticks":2,"is_rest":false}, {"voice":0,"index":8,"pitch":77,"rhythm_ticks":1,"onset_ticks":13,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":9,"pitch":67,"rhythm_ticks":2,"onset_ticks":14,"duration_ticks":2,"is_rest":false}]}, {"measure_index":2,"start_ticks":16,"end_ticks":48,"numerator":3,"denominator":4,"events":[{"voice":0,"index":10,"pitch":76,"rhythm_ticks":2,"onset_ticks":16,"duration_ticks":2,"is_rest":false}, {"voice":0,"index":11,"pitch":79,"rhythm_ticks":4,"onset_ticks":18,"duration_ticks":4,"is_rest":false}, {"voice":0,"index":-1,"pitch":-1,"rhythm_ticks":-26,"onset_ticks":22,"duration_ticks":26,"is_rest":true}]}]
+      }
+    }
+  ]
+}

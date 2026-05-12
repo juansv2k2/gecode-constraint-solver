@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: configs/test_bar_pattern.json
+Problem: Test Bar Pattern
+Description: Test configuration for bar-pattern time signature system
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → D4 → E4 → F4 → G4 → A4 → B4 → C5 → D5 → E5 → F5 → G5
+  Rhythm:  1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 2

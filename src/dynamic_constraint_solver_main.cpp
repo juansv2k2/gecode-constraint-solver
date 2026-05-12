@@ -51,6 +51,14 @@ struct RuleConfig {
     std::string function;
     std::vector<int> indices;
     std::vector<std::string> timepoints;
+    // Bar-oriented time signature pattern (NEW)
+    std::string bar_pattern_type;  // "fixed", "repeating", "random", "weighted"
+    std::vector<std::string> bar_pattern;  // Time signatures
+    int bar_pattern_count;
+    int bar_pattern_repetitions;
+    std::map<std::string, double> bar_pattern_distribution;
+    bool allow_cross_barline = false;
+    // End bar-oriented fields
     int voice;
     int target_voice = -1;
     std::vector<int> target_voices;
@@ -99,9 +107,17 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
     }
 
     if (rule_type == "r-time-signature") {
-        if (rule.contains("target_voice") || rule.contains("target_voices") ||
-            rule.contains("target_component") || rule.contains("target_engine") ||
-            rule.contains("target_engines")) {
+        // Allow empty target_voices array and target_component == "metric" — both are harmless defaults.
+        const bool has_voice = rule.contains("target_voice");
+        const bool has_voices = rule.contains("target_voices") &&
+                                rule["target_voices"].is_array() &&
+                                !rule["target_voices"].empty();
+        const bool has_component = rule.contains("target_component") &&
+                                   rule["target_component"].is_string() &&
+                                   rule["target_component"].get<std::string>() != "metric";
+        const bool has_target_engine = rule.contains("target_engine");
+        const bool has_target_engines = rule.contains("target_engines");
+        if (has_voice || has_voices || has_component || has_target_engine || has_target_engines) {
             throw std::runtime_error(
                 "rule '" + rule_id + "' is metric-targeted implicitly and must not specify voice/component/engine targets");
         }
@@ -699,6 +715,42 @@ public:
                     }
                     else if (line.find("\"timepoints\"") != std::string::npos) {
                         current_rule.timepoints = parseStringArray(line);
+                    }
+                    else if (line.find("\"bar_pattern_type\"") != std::string::npos) {
+                        size_t pos = line.find(':');
+                        if (pos != std::string::npos) {
+                            current_rule.bar_pattern_type = removeQuotesAndComma(line.substr(pos + 1));
+                        }
+                    }
+                    else if (line.find("\"bar_pattern\"") != std::string::npos) {
+                        current_rule.bar_pattern = parseStringArray(line);
+                    }
+                    else if (line.find("\"bar_pattern_count\"") != std::string::npos) {
+                        size_t pos = line.find(':');
+                        if (pos != std::string::npos) {
+                            std::string num_str = removeQuotesAndComma(line.substr(pos + 1));
+                            try {
+                                current_rule.bar_pattern_count = std::stoi(num_str);
+                            } catch (...) {}
+                        }
+                    }
+                    else if (line.find("\"bar_pattern_repetitions\"") != std::string::npos) {
+                        size_t pos = line.find(':');
+                        if (pos != std::string::npos) {
+                            std::string num_str = removeQuotesAndComma(line.substr(pos + 1));
+                            try {
+                                current_rule.bar_pattern_repetitions = std::stoi(num_str);
+                            } catch (...) {}
+                        }
+                    }
+                    else if (line.find("\"allow_cross_barline\"") != std::string::npos) {
+                        std::string lowered = line;
+                        std::transform(lowered.begin(), lowered.end(), lowered.begin(),
+                                       [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+                        current_rule.allow_cross_barline =
+                            (lowered.find("true") != std::string::npos ||
+                             lowered.find(": 1") != std::string::npos ||
+                             lowered.find(":1") != std::string::npos);
                     }
                     else if (line.find("\"parameters\"") != std::string::npos) {
                         // Support shorthand top-level parameters in rules.
@@ -1934,7 +1986,10 @@ int main(int argc, char* argv[]) {
                 // Pass normalized rule targeting to the solver's internal engine mapping.
                 solver.add_rule_config(ruleConfig.rule_type, ruleConfig.function, ruleConfig.indices, 
                                      ruleConfig.target_engine, ruleConfig.target_engines, ruleConfig.engine_type, ruleConfig.description, 
-                                     ruleConfig.parameters, ruleConfig.parameter_strings, ruleConfig.timepoints);
+                                     ruleConfig.parameters, ruleConfig.parameter_strings, ruleConfig.timepoints,
+                                     ruleConfig.bar_pattern_type, ruleConfig.bar_pattern, ruleConfig.bar_pattern_count,
+                                     ruleConfig.bar_pattern_repetitions, ruleConfig.bar_pattern_distribution,
+                                     ruleConfig.allow_cross_barline);
                 std::cout << "✅ Added rule: " << ruleConfig.description << std::endl;
             }
         }

@@ -351,8 +351,44 @@
         },
         "target_component": {
           "type": "string",
-          "enum": ["pitch", "rhythm"],
+          "enum": ["pitch", "rhythm", "metric"],
           "description": "Required for non-metric built-in rules."
+        },
+        "bar_pattern_type": {
+          "type": "string",
+          "enum": ["fixed", "repeating", "random", "weighted"],
+          "description": "For r-time-signature rules: pattern expansion type. 'fixed' uses exact pattern; 'repeating' loops pattern to fill score; 'random' picks randomly; 'weighted' samples by probability."
+        },
+        "bar_pattern": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+/[0-9]+$"
+          },
+          "description": "For r-time-signature rules: list of time signatures (e.g., ['4/4', '3/4'])."
+        },
+        "bar_pattern_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "For 'random' or 'weighted' patterns: how many bars to generate."
+        },
+        "bar_pattern_repetitions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "For 'repeating' pattern: explicit repetition count. If 0, calculated automatically to fill score."
+        },
+        "allow_cross_barline": {
+          "type": "boolean",
+          "description": "For r-time-signature bar patterns: if true, durations may carry across bar boundaries; if false, each bar is filled strictly."
+        },
+        "bar_pattern_distribution": {
+          "type": "object",
+          "description": "For 'weighted' pattern: probability distribution. Keys are time signatures, values are probabilities (sum should be ~1.0).",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
         },
         "enabled": {
           "type": "boolean"

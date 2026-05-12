@@ -710,7 +710,15 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
     }
 
     if (rule_type == "r-time-signature") {
-        if (rule.contains("target_voice") || rule.contains("target_voices") || rule.contains("target_component")) {
+        // Allow empty target_voices array and target_component == "metric" — both are harmless defaults.
+        const bool has_voice = rule.contains("target_voice");
+        const bool has_voices = rule.contains("target_voices") &&
+                                rule["target_voices"].is_array() &&
+                                !rule["target_voices"].empty();
+        const bool has_component = rule.contains("target_component") &&
+                                   rule["target_component"].is_string() &&
+                                   rule["target_component"].get<std::string>() != "metric";
+        if (has_voice || has_voices || has_component) {
             throw std::runtime_error(
                 "rule '" + rule_id + "' is metric-targeted implicitly and must not specify voice/component targets");
         }
@@ -1307,7 +1315,7 @@ void reconstruct_flattened_max_dict_paths(nlohmann::json& cfg) {
 
 void coerce_scalar_array_schema_fields(nlohmann::json& value) {
     static const std::set<std::string> array_keys = {
-        "dynamic_rules", "rules", "duration_values", "midi_values", "time_signatures",
+        "dynamic_rules", "rules", "voices", "duration_values", "midi_values", "time_signatures",
         "tuplets", "beat_divisions", "indices", "target_voices", "timepoints", "parameters"
     };
 
@@ -2045,9 +2053,34 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                     }
                 }
 
+                // bar_pattern fields (r-time-signature)
+                std::string bar_pattern_type = r.value("bar_pattern_type", std::string(""));
+                std::vector<std::string> bar_pattern;
+                if (r.contains("bar_pattern") && r["bar_pattern"].is_array()) {
+                    for (const auto& bp : r["bar_pattern"]) {
+                        if (bp.is_string()) bar_pattern.push_back(bp.get<std::string>());
+                    }
+                }
+                int bar_pattern_count = r.value("bar_pattern_count", 0);
+                int bar_pattern_repetitions = r.value("bar_pattern_repetitions", 0);
+                bool allow_cross_barline = false;
+                if (r.contains("allow_cross_barline")) {
+                    allow_cross_barline = json_value_to_bool(r["allow_cross_barline"], false);
+                }
+                std::map<std::string, double> bar_pattern_distribution;
+                if (r.contains("bar_pattern_distribution") && r["bar_pattern_distribution"].is_object()) {
+                    for (auto dit = r["bar_pattern_distribution"].begin(); dit != r["bar_pattern_distribution"].end(); ++dit) {
+                        if (dit.value().is_number()) bar_pattern_distribution[dit.key()] = dit.value().get<double>();
+                    }
+                }
+
                 solver_.add_rule_config(rule_type, function, indices, target_engine,
                                         target_engines, engine_type, description,
-                                        parameters, parameter_strings, timepoints);
+                                        parameters, parameter_strings, timepoints,
+                                        bar_pattern_type, bar_pattern,
+                                        bar_pattern_count, bar_pattern_repetitions,
+                                        bar_pattern_distribution,
+                                        allow_cross_barline);
             }
         }
 

@@ -133,12 +133,29 @@ Notes:
 
 - Legacy `branching: "sequential"` is normalized to `input_order` by the wrapper compatibility path.
 
-## Metric Timepoints
+## Metric Rules
 
-`r-time-signature` uses score-time boundaries (`timepoints`) in `q` units (quarter-note units).
+`r-time-signature` supports two equivalent ways to define the metric timeline:
 
-- Example: `timepoints: ["0q", "4q", "7q"]`.
-- Optional `score_length` defines total score span.
+- `timepoints` + `parameters` in `q` units (quarter-note units)
+- `bar_pattern` for bar-oriented writing (`fixed`, `repeating`, `random`, `weighted`)
+
+Bar-pattern example:
+
+```json
+{
+  "rule_type": "r-time-signature",
+  "bar_pattern_type": "fixed",
+  "bar_pattern": ["4/4", "4/4", "3/4"],
+  "allow_cross_barline": true
+}
+```
+
+Notes:
+
+- `allow_cross_barline: false` enforces strict per-bar fill.
+- `allow_cross_barline: true` allows carried duration across barlines.
+- MusicXML export now writes ties (`<tie>` and `<notations><tied>`) when notes are split at barlines.
 
 ## Max Integration
 

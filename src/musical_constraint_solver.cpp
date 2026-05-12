@@ -1661,6 +1661,7 @@ std::string MusicalSolution::to_musicxml() const {
             for (const auto& ev : seg_measure.events) {
                 int remaining = std::max(1, ev.duration_ticks);
                 int cursor = ev.onset_ticks;
+                bool first_chunk = true;
 
                 while (remaining > 0) {
                     int target_idx = -1;
@@ -1687,10 +1688,14 @@ std::string MusicalSolution::to_musicxml() const {
                     part.onset_ticks = cursor;
                     part.duration_ticks = chunk;
                     part.rhythm = part.is_rest ? -chunk : chunk;
+                    const bool has_more_chunks = (remaining > chunk);
+                    part.tie_stop = (!part.is_rest && !first_chunk);
+                    part.tie_start = (!part.is_rest && has_more_chunks);
                     render_measures[target_idx].events.push_back(std::move(part));
 
                     remaining -= chunk;
                     cursor += chunk;
+                    first_chunk = false;
                 }
             }
         }
@@ -1814,10 +1819,25 @@ std::string MusicalSolution::to_musicxml() const {
                             }
                             xml << "          <octave>" << octave << "</octave>\n";
                             xml << "        </pitch>\n";
+                            if (ev.tie_stop) {
+                                xml << "        <tie type=\"stop\"/>\n";
+                            }
+                            if (ev.tie_start) {
+                                xml << "        <tie type=\"start\"/>\n";
+                            }
                         }
                         emit_musicxml_note_duration(xml, std::max(1, ev.duration_ticks), whole_ticks);
-                        if (en.tuplet_start || en.tuplet_continue || en.tuplet_stop) {
+                        const bool has_tied_notation = (!ev.is_rest && (ev.tie_start || ev.tie_stop));
+                        if (en.tuplet_start || en.tuplet_continue || en.tuplet_stop || has_tied_notation) {
                             xml << "        <notations>\n";
+                            if (has_tied_notation) {
+                                if (ev.tie_stop) {
+                                    xml << "          <tied type=\"stop\"/>\n";
+                                }
+                                if (ev.tie_start) {
+                                    xml << "          <tied type=\"start\"/>\n";
+                                }
+                            }
                             if (en.tuplet_start) {
                                 xml << "          <tuplet type=\"start\" number=\"" << en.tuplet_number
                                     << "\" bracket=\"yes\" placement=\"above\"/>\n";
@@ -2261,10 +2281,32 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
                 const std::string& engine_type, const std::string& description,
                 const std::vector<double>& parameters,
                 const std::vector<std::string>& parameter_strings,
-                const std::vector<std::string>& timepoints) {
+                const std::vector<std::string>& timepoints,
+                const std::string& bar_pattern_type,
+                const std::vector<std::string>& bar_pattern,
+                int bar_pattern_count,
+                int bar_pattern_repetitions,
+                const std::map<std::string, double>& bar_pattern_distribution,
+                bool allow_cross_barline) {
     // Preserve full rule metadata for engine-targeted posting in build_configured_space_.
-    engine_rule_configs_.push_back({rule_type, function, indices, timepoints, target_engine,
-                    target_engines, engine_type, description, parameters, parameter_strings});
+    EngineRuleConfig cfg;
+    cfg.rule_type = rule_type;
+    cfg.function = function;
+    cfg.indices = indices;
+    cfg.timepoints = timepoints;
+    cfg.bar_pattern_type = bar_pattern_type;
+    cfg.bar_pattern = bar_pattern;
+    cfg.bar_pattern_count = bar_pattern_count;
+    cfg.bar_pattern_repetitions = bar_pattern_repetitions;
+    cfg.bar_pattern_distribution = bar_pattern_distribution;
+    cfg.allow_cross_barline = allow_cross_barline;
+    cfg.target_engine = target_engine;
+    cfg.target_engines = target_engines;
+    cfg.engine_type = engine_type;
+    cfg.description = description;
+    cfg.parameters = parameters;
+    cfg.parameter_strings = parameter_strings;
+    engine_rule_configs_.push_back(cfg);
     
     // Convert JSON rule configuration to actual MusicalRule objects based on rule_type or function
     if ((rule_type == "r-one-voice" ||
@@ -2679,12 +2721,44 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 if (!is_metric_engine) {
                     throw std::runtime_error("r-time-signature rule '" + cfg.description + "' must target metric engine " + std::to_string(metric_engine_index));
                 }
-                std::vector<std::pair<int, int>> desired_signatures = parse_metric_signature_parameters(
-                    cfg.parameter_strings, cfg.parameters,
-                    "r-time-signature rule '" + cfg.description + "'");
+
+                // Check if using bar_pattern (NEW)
+                std::vector<std::pair<int, int>> desired_signatures;
+                if (!cfg.bar_pattern_type.empty() && !cfg.bar_pattern.empty()) {
+                    // Using bar-pattern approach: expand to bar descriptors
+                    std::cout << "   📊 Expanding bar_pattern '" << cfg.bar_pattern_type << "' with " 
+                              << cfg.bar_pattern.size() << " signatures" << std::endl;
+                    
+                    auto bars = expand_bar_pattern_(
+                        cfg.bar_pattern_type, 
+                        cfg.bar_pattern, 
+                        cfg.bar_pattern_count,
+                        cfg.bar_pattern_repetitions,
+                        cfg.bar_pattern_distribution,
+                        12345  // random seed
+                    );
+                    
+                    // Extract signatures from bars
+                    for (const auto& bar : bars) {
+                        desired_signatures.push_back({bar.numerator, bar.denominator});
+                    }
+                    
+                    std::cout << "   ✅ Expanded to " << bars.size() << " bars" << std::endl;
+                    
+                    // Post measure-fill constraints for each voice
+                    for (int voice = 0; voice < config_.num_voices; ++voice) {
+                        post_measure_fill_constraint_(
+                            gecode_space.get(), voice, bars, cfg.allow_cross_barline);
+                    }
+                } else {
+                    // Traditional parameter-based approach
+                    desired_signatures = parse_metric_signature_parameters(
+                        cfg.parameter_strings, cfg.parameters,
+                        "r-time-signature rule '" + cfg.description + "'");
+                }
 
                 if (desired_signatures.empty()) {
-                    throw std::runtime_error("r-time-signature rule '" + cfg.description + "' requires signature parameters");
+                    throw std::runtime_error("r-time-signature rule '" + cfg.description + "' requires signature parameters or bar_pattern");
                 }
 
                 std::map<int, int> metric_domain_map;
@@ -2706,6 +2780,31 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                             "' signature " + std::to_string(sig.first) + "/" + std::to_string(sig.second) +
                             " is not present in metric_domain");
                     }
+                }
+
+                // If using bar_pattern, post the time signature constraints immediately
+                if (!cfg.bar_pattern_type.empty() && !cfg.bar_pattern.empty()) {
+                    if (!gecode_space->has_metric_vars()) {
+                        throw std::runtime_error("r-time-signature rule '" + cfg.description + "' targets metric engine but metric vars are unavailable");
+                    }
+
+                    // Partition sequence indices among bars and post numerator constraints
+                    int notes_per_bar = (config_.sequence_length + desired_signatures.size() - 1) / desired_signatures.size();
+                    
+                    for (size_t bar_idx = 0; bar_idx < desired_signatures.size(); ++bar_idx) {
+                        const int start_idx = bar_idx * notes_per_bar;
+                        const int end_idx = std::min(
+                            static_cast<int>((bar_idx + 1) * notes_per_bar),
+                            config_.sequence_length
+                        ) - 1;
+                        const int target_numerator = desired_signatures[bar_idx].first;
+                        
+                        for (int idx = start_idx; idx <= end_idx; ++idx) {
+                            Gecode::rel(*gecode_space, gecode_space->get_metric_vars()[idx], Gecode::IRT_EQ, target_numerator);
+                        }
+                    }
+                    
+                    continue;
                 }
 
                 if (!cfg.timepoints.empty()) {
@@ -2742,6 +2841,11 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
                 if (!gecode_space->has_metric_vars()) {
                     throw std::runtime_error("r-time-signature rule '" + cfg.description + "' targets metric engine but metric vars are unavailable");
+                }
+
+                // Skip segment_starts processing if using bar_pattern (ALREADY HANDLED ABOVE)
+                if (!cfg.bar_pattern_type.empty() && !cfg.bar_pattern.empty()) {
+                    continue;
                 }
 
                 std::vector<int> segment_starts = cfg.indices;
@@ -3185,22 +3289,37 @@ void Solver::post_hierarchical_voices_constraint_(
             throw std::runtime_error("hierarchical_voices selected index is out of range");
         }
 
-        Gecode::BoolVar onset_match = Gecode::expr(*gecode_space, coarse_onsets[idx] == fine_onsets[0]);
+        // onset_match is true iff some fine-voice position j has:
+        //   (a) the same onset time as the coarse position, AND
+        //   (b) a positive rhythm value (i.e. a note, not a rest).
+        // Without check (b) the constraint is vacuously satisfied by rests, because
+        // abs(rhythm) advances the onset regardless of note/rest status.
+        const int r0_idx = fine_voice * rhythm_stride + 0;
+        Gecode::BoolVar is_note0 =
+            Gecode::expr(*gecode_space, gecode_space->get_rhythm_vars()[r0_idx] > 0);
+        Gecode::BoolVar onset_match =
+            Gecode::expr(*gecode_space, (coarse_onsets[idx] == fine_onsets[0]) && is_note0);
         for (std::size_t fine_idx = 1; fine_idx < fine_onsets.size(); ++fine_idx) {
+            const int rj_idx = fine_voice * rhythm_stride + static_cast<int>(fine_idx);
+            Gecode::BoolVar is_note_j =
+                Gecode::expr(*gecode_space, gecode_space->get_rhythm_vars()[rj_idx] > 0);
             onset_match = Gecode::expr(*gecode_space,
-                                       onset_match || (coarse_onsets[idx] == fine_onsets[fine_idx]));
+                onset_match ||
+                ((coarse_onsets[idx] == fine_onsets[fine_idx]) && is_note_j));
         }
 
-        if (use_beat_anchor_filter && beat_ticks > 0) {
-            Gecode::IntVar beat_const(*gecode_space, beat_ticks, beat_ticks);
-            Gecode::IntVar rem(*gecode_space, 0, beat_ticks - 1);
-            Gecode::mod(*gecode_space, coarse_onsets[idx], beat_const, rem);
-            Gecode::BoolVar is_anchor = Gecode::expr(*gecode_space, rem == 0);
-            Gecode::rel(*gecode_space, onset_match, Gecode::IRT_EQ, 1,
-                        Gecode::Reify(is_anchor, Gecode::RM_IMP));
-        } else {
-            Gecode::rel(*gecode_space, onset_match, Gecode::IRT_EQ, 1);
-        }
+        // Guard: only enforce when the coarse voice actually plays a note at
+        // position idx. If voice 1 has a rest there, no obligation is placed on
+        // voice 0 (onset_match need not hold). The beat-anchor time-modulo
+        // approach was wrong: it fired even when voice 1 was resting on a beat,
+        // and silently skipped voice 1 notes that fell off the beat.
+        const int rc_idx = coarse_voice * rhythm_stride + idx;
+        Gecode::BoolVar is_coarse_note =
+            Gecode::expr(*gecode_space, gecode_space->get_rhythm_vars()[rc_idx] > 0);
+        Gecode::rel(*gecode_space, onset_match, Gecode::IRT_EQ, 1,
+                    Gecode::Reify(is_coarse_note, Gecode::RM_IMP));
+        (void)use_beat_anchor_filter;
+        (void)beat_ticks;
     }
 }
 
@@ -3252,7 +3371,8 @@ MusicalSolution Solver::extract_solution_from_space_(
 
             const EngineRuleConfig* explicit_metric_rule = nullptr;
             for (const auto& cfg : engine_rule_configs_) {
-                if ((cfg.rule_type == "r-metric-signature" || cfg.rule_type == "r-time-signature") && !cfg.timepoints.empty()) {
+                if ((cfg.rule_type == "r-metric-signature" || cfg.rule_type == "r-time-signature") &&
+                    (!cfg.timepoints.empty() || (!cfg.bar_pattern_type.empty() && !cfg.bar_pattern.empty()))) {
                     explicit_metric_rule = &cfg;
                     break;
                 }
@@ -3260,20 +3380,50 @@ MusicalSolution Solver::extract_solution_from_space_(
 
             if (explicit_metric_rule != nullptr) {
                 std::vector<int> segment_starts_ticks;
-                segment_starts_ticks.reserve(explicit_metric_rule->timepoints.size());
-                for (size_t i = 0; i < explicit_metric_rule->timepoints.size(); ++i) {
-                    segment_starts_ticks.push_back(parse_score_time_token_to_ticks(
-                        explicit_metric_rule->timepoints[i], config_.rhythm_base,
-                        "r-time-signature rule '" + explicit_metric_rule->description + "' timepoints[" + std::to_string(i) + "]"));
+                std::vector<std::pair<int, int>> desired_signatures;
+
+                if (!explicit_metric_rule->timepoints.empty()) {
+                    segment_starts_ticks.reserve(explicit_metric_rule->timepoints.size());
+                    for (size_t i = 0; i < explicit_metric_rule->timepoints.size(); ++i) {
+                        segment_starts_ticks.push_back(parse_score_time_token_to_ticks(
+                            explicit_metric_rule->timepoints[i], config_.rhythm_base,
+                            "r-time-signature rule '" + explicit_metric_rule->description + "' timepoints[" + std::to_string(i) + "]"));
+                    }
+
+                    desired_signatures = parse_metric_signature_parameters(
+                        explicit_metric_rule->parameter_strings,
+                        explicit_metric_rule->parameters,
+                        "r-time-signature rule '" + explicit_metric_rule->description + "'");
+                } else {
+                    const int export_seed = static_cast<int>(
+                        resolve_effective_random_seed(config_.random_seed));
+                    auto bars = expand_bar_pattern_(
+                        explicit_metric_rule->bar_pattern_type,
+                        explicit_metric_rule->bar_pattern,
+                        explicit_metric_rule->bar_pattern_count,
+                        explicit_metric_rule->bar_pattern_repetitions,
+                        explicit_metric_rule->bar_pattern_distribution,
+                        export_seed);
+
+                    for (const auto& bar : bars) {
+                        if (config_.score_length_ticks >= 0 && bar.start_tick >= config_.score_length_ticks) {
+                            break;
+                        }
+                        segment_starts_ticks.push_back(bar.start_tick);
+                        desired_signatures.push_back({bar.numerator, bar.denominator});
+                    }
+
+                    if (segment_starts_ticks.empty()) {
+                        throw std::runtime_error(
+                            "r-time-signature rule '" + explicit_metric_rule->description +
+                            "' produced no bar boundaries within score_length");
+                    }
                 }
 
                 solution.canonical_score = build_canonical_score_from_timepoints(
                     config_, solution.voice_solutions, solution.voice_rhythms,
                     segment_starts_ticks,
-                    parse_metric_signature_parameters(
-                        explicit_metric_rule->parameter_strings,
-                        explicit_metric_rule->parameters,
-                        "r-time-signature rule '" + explicit_metric_rule->description + "'"));
+                    desired_signatures);
             } else {
                 std::vector<int> raw_metric_signature = solved_space->get_metric_sequence();
                 if ((int)raw_metric_signature.size() < config_.sequence_length) {
@@ -3473,6 +3623,176 @@ bool Solver::validate_configuration(std::string& error_message) const {
         return false;
     }
     return true;
+}
+
+// Bar-oriented time signature support (NEW)
+std::vector<Solver::BarDescriptor> Solver::expand_bar_pattern_(
+        const std::string& pattern_type,
+        const std::vector<std::string>& bar_sigs,
+        int pattern_count,
+        int repetitions,
+        const std::map<std::string, double>& distribution,
+        int random_seed) const {
+    std::vector<BarDescriptor> bars;
+    if (bar_sigs.empty()) return bars;
+    
+    const int whole_ticks = config_.rhythm_base;
+    std::vector<std::pair<int, int>> sigs;  // (numerator, denominator) pairs
+    
+    // Parse time signatures
+    for (const auto& sig_str : bar_sigs) {
+        size_t slash_pos = sig_str.find('/');
+        if (slash_pos == std::string::npos) continue;
+        try {
+            int num = std::stoi(sig_str.substr(0, slash_pos));
+            int den = std::stoi(sig_str.substr(slash_pos + 1));
+            sigs.push_back({num, den});
+        } catch (...) { continue; }
+    }
+    
+    std::vector<std::pair<int, int>> bar_sequence;
+    
+    if (pattern_type == "fixed") {
+        // Fixed pattern: use bar_sigs directly (no automatic extension)
+        bar_sequence = sigs;
+    } else if (pattern_type == "repeat" || pattern_type == "repeating") {
+        // Repeating pattern: automatically repeat to fill the score
+        // If repetitions is 0, calculate how many reps are needed to cover the score length
+        int total_bar_ticks = 0;
+        for (const auto& sig : sigs) {
+            int bar_duration = (sig.first * whole_ticks) / sig.second;
+            total_bar_ticks += bar_duration;
+        }
+        
+        int reps_needed = repetitions;
+        if (reps_needed <= 0 && config_.score_length_ticks > 0) {
+            reps_needed = (config_.score_length_ticks + total_bar_ticks - 1) / total_bar_ticks;
+        }
+        if (reps_needed <= 0) reps_needed = 1;
+        
+        for (int r = 0; r < reps_needed; ++r) {
+            for (const auto& sig : sigs) {
+                bar_sequence.push_back(sig);
+            }
+        }
+    } else if (pattern_type == "random" || pattern_type == "weighted") {
+        // Random: pick randomly from sigs, pattern_count times
+        std::mt19937 gen(random_seed);
+        for (int i = 0; i < pattern_count; ++i) {
+            int idx = gen() % sigs.size();
+            bar_sequence.push_back(sigs[idx]);
+        }
+    }
+    
+    // Convert to BarDescriptor list with tick boundaries
+    int current_tick = 0;
+    for (const auto& sig : bar_sequence) {
+        int numerator = sig.first;
+        int denominator = sig.second;
+        int bar_duration = (numerator * whole_ticks) / denominator;
+        
+        BarDescriptor desc;
+        desc.start_tick = current_tick;
+        desc.end_tick = current_tick + bar_duration;
+        desc.numerator = numerator;
+        desc.denominator = denominator;
+        bars.push_back(desc);
+        
+        current_tick += bar_duration;
+    }
+    
+    return bars;
+}
+
+void Solver::post_measure_fill_constraint_(
+        GecodeClusterIntegration::IntegratedMusicalSpace* gecode_space,
+        int voice,
+    const std::vector<BarDescriptor>& bars,
+    bool allow_cross_barline) const {
+    if (!gecode_space || bars.empty()) return;
+    if (!gecode_space->has_rhythm_vars()) return;
+    
+    const auto& rhythm_vars = gecode_space->get_rhythm_vars();
+    
+    // Partition sequence indices among bars proportionally by bar duration
+    int total_ticks = 0;
+    for (const auto& bar : bars) {
+        total_ticks += (bar.end_tick - bar.start_tick);
+    }
+    
+    if (total_ticks <= 0) return;
+    
+    int max_abs_tick = 1;
+    if (voice >= 0 && voice < static_cast<int>(config_.voice_rhythm_domains.size())) {
+        for (int tick : config_.voice_rhythm_domains[voice]) {
+            max_abs_tick = std::max(max_abs_tick, std::abs(tick));
+        }
+    }
+
+    int current_idx = 0;
+    Gecode::IntVar carry_in(*gecode_space, 0, 0);
+    for (size_t bar_idx = 0; bar_idx < bars.size(); ++bar_idx) {
+        const auto& bar = bars[bar_idx];
+        int bar_duration = bar.end_tick - bar.start_tick;
+        
+        // Calculate how many indices this bar should contain (proportional to duration)
+        int indices_for_bar = (config_.sequence_length * bar_duration + total_ticks - 1) / total_ticks;
+        if (bar_idx + 1 == bars.size()) {
+            // Last bar gets remaining indices
+            indices_for_bar = config_.sequence_length - current_idx;
+        }
+        
+        if (indices_for_bar <= 0) continue;
+        
+        // Sum absolute rhythm durations for indices in this bar
+        Gecode::IntVarArgs bar_abs_rhythms;
+        for (int i = 0; i < indices_for_bar && current_idx < config_.sequence_length; ++i) {
+            int rhythm_idx = voice * config_.sequence_length + current_idx;
+            if (rhythm_idx < static_cast<int>(rhythm_vars.size())) {
+                Gecode::IntVar abs_duration(*gecode_space, 0, bar_duration);
+                Gecode::abs(*gecode_space, rhythm_vars[rhythm_idx], abs_duration);
+                bar_abs_rhythms << abs_duration;
+            }
+            current_idx++;
+        }
+        
+        // Post measure duration constraint.
+        // strict mode: sum(abs(rhythms in bar)) == bar_duration
+        // carry mode:  carry_in + sum(abs(...)) - carry_out == bar_duration
+        if (bar_abs_rhythms.size() > 0) {
+            if (!allow_cross_barline) {
+                std::vector<int> coeffs(bar_abs_rhythms.size(), 1);
+                Gecode::linear(*gecode_space, coeffs, bar_abs_rhythms, Gecode::IRT_EQ, bar_duration);
+            } else {
+                const int max_carry = std::max(1, max_abs_tick * 2);
+                const bool last_bar = (bar_idx + 1 == bars.size());
+                Gecode::IntVar carry_out(*gecode_space, 0, max_carry);
+                if (last_bar) {
+                    Gecode::rel(*gecode_space, carry_out, Gecode::IRT_EQ, 0);
+                }
+
+                Gecode::IntVarArgs eq_vars;
+                std::vector<int> coeffs;
+                for (int i = 0; i < bar_abs_rhythms.size(); ++i) {
+                    eq_vars << bar_abs_rhythms[i];
+                    coeffs.push_back(1);
+                }
+                eq_vars << carry_in;
+                coeffs.push_back(1);
+                eq_vars << carry_out;
+                coeffs.push_back(-1);
+
+                Gecode::linear(*gecode_space, coeffs, eq_vars, Gecode::IRT_EQ, bar_duration);
+                carry_in = carry_out;
+            }
+        }
+        
+        std::cout << "   [Bar constraint] Voice " << voice << ": bar " 
+                  << bar.numerator << "/" << bar.denominator 
+                  << " duration=" << bar_duration << " ticks (indices " 
+                  << (current_idx - indices_for_bar) << "-" << (current_idx - 1) << ")"
+                  << std::endl;
+    }
 }
 
 std::map<std::string, int> Solver::get_rule_statistics() const {
