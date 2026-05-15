@@ -59,6 +59,11 @@ int parse_duration_denominator(const std::string& s) {
     const std::string trimmed = s;
     const std::string core = (!trimmed.empty() && trimmed[0] == '-') ? trimmed.substr(1) : trimmed;
 
+    // Zero duration contributes no denominator pressure to rhythm base.
+    if (core == "0" || core == "0/0") {
+        return 1;
+    }
+
     const auto slash = core.find('/');
     if (slash == std::string::npos) {
         throw std::runtime_error("Invalid duration value (missing '/'): " + s);
@@ -66,6 +71,9 @@ int parse_duration_denominator(const std::string& s) {
 
     const int num = std::stoi(core.substr(0, slash));
     const int den = std::stoi(core.substr(slash + 1));
+    if (num == 0 && den == 0) {
+        return 1;
+    }
     if (num <= 0 || den <= 0) {
         throw std::runtime_error("Invalid duration fraction: " + s);
     }
@@ -76,6 +84,10 @@ int parse_duration_to_ticks(const std::string& s, int rhythm_base) {
     const bool is_rest = !s.empty() && s[0] == '-';
     const std::string core = is_rest ? s.substr(1) : s;
 
+    if (core == "0" || core == "0/0") {
+        return 0;
+    }
+
     const auto slash = core.find('/');
     if (slash == std::string::npos) {
         throw std::runtime_error("Invalid duration value (missing '/'): " + s);
@@ -83,6 +95,9 @@ int parse_duration_to_ticks(const std::string& s, int rhythm_base) {
 
     const int num = std::stoi(core.substr(0, slash));
     const int den = std::stoi(core.substr(slash + 1));
+    if (num == 0 && den == 0) {
+        return 0;
+    }
     if (num <= 0 || den <= 0) {
         throw std::runtime_error("Invalid duration fraction: " + s);
     }

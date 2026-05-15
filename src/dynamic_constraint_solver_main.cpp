@@ -1220,6 +1220,12 @@ public:
         // Strip optional leading '-' for rests; restore sign after parsing.
         bool is_rest = (!s.empty() && s[0] == '-');
         std::string abs_s = is_rest ? s.substr(1) : s;
+
+        // Accept explicit zero forms.
+        if (abs_s == "0" || abs_s == "0/0") {
+            return {0, 1};
+        }
+
         auto abs_slash = abs_s.find('/');
         if (abs_slash == std::string::npos)
             throw std::runtime_error(context + ": invalid duration value '" + s +
@@ -1230,6 +1236,9 @@ public:
             den = std::stoi(abs_s.substr(abs_slash + 1));
         } catch (...) {
             throw std::runtime_error(context + ": cannot parse duration fraction '" + s + "'");
+        }
+        if (num == 0 && den == 0) {
+            return {0, 1};
         }
         if (num <= 0 || den <= 0)
             throw std::runtime_error(context + ": numerator and denominator must be positive in '" + s + "'");
@@ -1282,7 +1291,8 @@ public:
     // Formats an internal tick value back to a fraction string "N/D"
     // given the LCM base (whole note = base ticks).
     static std::string format_duration(int ticks, int base) {
-        if (ticks == 0 || base <= 0) return "?";
+        if (ticks == 0) return "0";
+        if (base <= 0) return "?";
         bool is_rest = (ticks < 0);
         int abs_ticks = std::abs(ticks);
         int g = gcd_helper(abs_ticks, base);

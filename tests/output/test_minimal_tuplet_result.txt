@@ -1,0 +1,233 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/test_minimal_tuplet.json
+Problem: Minimal tuplet test
+Description: 
+Solutions found: 37
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: R → R → R
+  Rhythm:  R:1/8 + R:1/8 + R:1/8
+
+--- Solution 2 ---
+
+Voice 0:
+  Pitches: R → R → R
+  Rhythm:  R:1/8 + R:1/8 + R:1/12
+
+--- Solution 3 ---
+
+Voice 0:
+  Pitches: R → R → C4
+  Rhythm:  R:1/8 + R:1/8 + 1/12
+
+--- Solution 4 ---
+
+Voice 0:
+  Pitches: R → R → C4
+  Rhythm:  R:1/8 + R:1/8 + 1/8
+
+--- Solution 5 ---
+
+Voice 0:
+  Pitches: R → R → C4
+  Rhythm:  R:1/8 + R:1/8 + 1/4
+
+--- Solution 6 ---
+
+Voice 0:
+  Pitches: R → C4 → R
+  Rhythm:  R:1/8 + 1/8 + R:1/8
+
+--- Solution 7 ---
+
+Voice 0:
+  Pitches: R → C4 → R
+  Rhythm:  R:1/8 + 1/8 + R:1/12
+
+--- Solution 8 ---
+
+Voice 0:
+  Pitches: R → C4 → C4
+  Rhythm:  R:1/8 + 1/8 + 1/12
+
+--- Solution 9 ---
+
+Voice 0:
+  Pitches: R → C4 → C4
+  Rhythm:  R:1/8 + 1/8 + 1/8
+
+--- Solution 10 ---
+
+Voice 0:
+  Pitches: R → C4 → C4
+  Rhythm:  R:1/8 + 1/8 + 1/4
+
+--- Solution 11 ---
+
+Voice 0:
+  Pitches: R → C4 → R
+  Rhythm:  R:1/8 + 1/4 + R:1/8
+
+--- Solution 12 ---
+
+Voice 0:
+  Pitches: R → C4 → C4
+  Rhythm:  R:1/8 + 1/4 + 1/8
+
+--- Solution 13 ---
+
+Voice 0:
+  Pitches: R → C4 → C4
+  Rhythm:  R:1/8 + 1/4 + 1/4
+
+--- Solution 14 ---
+
+Voice 0:
+  Pitches: C4 → R → R
+  Rhythm:  1/8 + R:1/8 + R:1/8
+
+--- Solution 15 ---
+
+Voice 0:
+  Pitches: C4 → R → R
+  Rhythm:  1/8 + R:1/8 + R:1/12
+
+--- Solution 16 ---
+
+Voice 0:
+  Pitches: C4 → R → C4
+  Rhythm:  1/8 + R:1/8 + 1/12
+
+--- Solution 17 ---
+
+Voice 0:
+  Pitches: C4 → R → C4
+  Rhythm:  1/8 + R:1/8 + 1/8
+
+--- Solution 18 ---
+
+Voice 0:
+  Pitches: C4 → R → C4
+  Rhythm:  1/8 + R:1/8 + 1/4
+
+--- Solution 19 ---
+
+Voice 0:
+  Pitches: C4 → C4 → R
+  Rhythm:  1/8 + 1/8 + R:1/8
+
+--- Solution 20 ---
+
+Voice 0:
+  Pitches: C4 → C4 → R
+  Rhythm:  1/8 + 1/8 + R:1/12
+
+--- Solution 21 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/8 + 1/8 + 1/12
+
+--- Solution 22 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/8 + 1/8 + 1/8
+
+--- Solution 23 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/8 + 1/8 + 1/4
+
+--- Solution 24 ---
+
+Voice 0:
+  Pitches: C4 → C4 → R
+  Rhythm:  1/8 + 1/4 + R:1/8
+
+--- Solution 25 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/8 + 1/4 + 1/8
+
+--- Solution 26 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/8 + 1/4 + 1/4
+
+--- Solution 27 ---
+
+Voice 0:
+  Pitches: C4 → R → R
+  Rhythm:  1/4 + R:1/8 + R:1/8
+
+--- Solution 28 ---
+
+Voice 0:
+  Pitches: C4 → R → C4
+  Rhythm:  1/4 + R:1/8 + 1/8
+
+--- Solution 29 ---
+
+Voice 0:
+  Pitches: C4 → R → C4
+  Rhythm:  1/4 + R:1/8 + 1/4
+
+--- Solution 30 ---
+
+Voice 0:
+  Pitches: C4 → C4 → R
+  Rhythm:  1/4 + 1/8 + R:1/8
+
+--- Solution 31 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/4 + 1/8 + 1/8
+
+--- Solution 32 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/4 + 1/8 + 1/4
+
+--- Solution 33 ---
+
+Voice 0:
+  Pitches: C4 → C4 → R
+  Rhythm:  1/4 + 1/4 + R:1/8
+
+--- Solution 34 ---
+
+Voice 0:
+  Pitches: C4 → C4 → R
+  Rhythm:  1/4 + 1/4 + R:1/12
+
+--- Solution 35 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/12
+
+--- Solution 36 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/8
+
+--- Solution 37 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 1

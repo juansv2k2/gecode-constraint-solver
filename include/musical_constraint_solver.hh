@@ -585,6 +585,20 @@ private:
         int beat_ticks) const;
 
     /**
+     * @brief Post tuplet_on_beat_start constraint to Gecode space.
+     * Enforces that:
+     *   1. Any tuplet duration at position idx must start on a beat boundary
+     *      (onset[idx] % beat_ticks == 0).
+     *   2. Closure: if onset[idx] falls at a mid-tuplet-group position
+     *      (onset[idx] % tuplet_tick == 0 but onset[idx] % beat_ticks != 0),
+     *      the note at idx MUST use that same tuplet duration.
+     */
+    void post_tuplet_on_beat_start_constraint_(
+        GecodeClusterIntegration::IntegratedMusicalSpace* gecode_space,
+        int voice,
+        const std::vector<int>& selected_indices) const;
+
+    /**
      * @brief Convert bar_pattern to list of bar descriptors with tick boundaries
      */
     struct BarDescriptor {

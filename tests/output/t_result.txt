@@ -1,0 +1,21 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/t.json
+Problem: 
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: R → R → G5 → F5 → R → C5 → E5 → D5 → B4 → F5 → R → R
+  Rhythm:  R:1/16 + R:1/8 + 1/4 + 1/8 + R:1/4 + 1/16 + 1/8 + 1/12 + 1/16 + 1/4 + R:1/12 + R:1/8
+
+Voice 1:
+  Pitches: R → G4 → R → R → R → R → F4 → R → A4 → R → R → R
+  Rhythm:  R:1/16 + 1/16 + R:1/8 + R:1/8 + R:1/12 + R:1/8 + 1/16 + R:1/16 + 1/12 + R:1/4 + R:1/4 + R:1/8
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 0

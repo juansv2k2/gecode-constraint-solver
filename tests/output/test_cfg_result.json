@@ -1,0 +1,35 @@
+{
+  "config_file": "/tmp/test_cfg.json",
+  "problem_name": "",
+  "solutions_found": 1,
+  "solve_time_ms": 0,
+  "rules_applied": 0,
+  "solutions": [
+    {
+      "solution_index": 0,
+      "voices": [
+        {
+          "voice": 0,
+          "pitch_solution": [72, -1, -1, 76, 79, -1, -1, -1, 79, 74, 77, -1],
+          "rhythm_solution": [4, -6, -6, 6, 12, -6, -4, -3, 12, 3, 12, -12],
+          "pitch_names": ["C5", "R", "R", "E5", "G5", "R", "R", "R", "G5", "D5", "F5", "R"],
+          "rhythm_names": ["1/12", "R:1/8", "R:1/8", "1/8", "1/4", "R:1/8", "R:1/12", "R:1/16", "1/4", "1/16", "1/4", "R:1/4"]
+        },
+        {
+          "voice": 1,
+          "pitch_solution": [65, -1, -1, -1, -1, -1, 65, -1, -1, -1, 71, -1],
+          "rhythm_solution": [3, -4, -4, -12, -12, -6, 3, -4, -6, -6, 6, -12],
+          "pitch_names": ["F4", "R", "R", "R", "R", "R", "F4", "R", "R", "R", "B4", "R"],
+          "rhythm_names": ["1/16", "R:1/12", "R:1/12", "R:1/4", "R:1/4", "R:1/8", "1/16", "R:1/12", "R:1/8", "R:1/8", "1/8", "R:1/4"]
+        }
+      ],
+      "metric_signature_numerators": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "metric_signature": ["4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4"],
+      "score": {
+        "rhythm_base": 48,
+        "metric_timeline": [{"start_index":0,"end_index":11,"start_tick":0,"end_tick":86,"numerator":4,"denominator":4}],
+        "measures": [{"measure_index":0,"start_ticks":0,"end_ticks":86,"numerator":4,"denominator":4,"events":[{"voice":0,"index":0,"pitch":72,"rhythm_ticks":4,"onset_ticks":0,"duration_ticks":4,"is_rest":false}, {"voice":0,"index":1,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":4,"duration_ticks":6,"is_rest":true}, {"voice":0,"index":2,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":10,"duration_ticks":6,"is_rest":true}, {"voice":0,"index":3,"pitch":76,"rhythm_ticks":6,"onset_ticks":16,"duration_ticks":6,"is_rest":false}, {"voice":0,"index":4,"pitch":79,"rhythm_ticks":12,"onset_ticks":22,"duration_ticks":12,"is_rest":false}, {"voice":0,"index":5,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":34,"duration_ticks":6,"is_rest":true}, {"voice":0,"index":6,"pitch":-1,"rhythm_ticks":-4,"onset_ticks":40,"duration_ticks":4,"is_rest":true}, {"voice":0,"index":7,"pitch":-1,"rhythm_ticks":-3,"onset_ticks":44,"duration_ticks":3,"is_rest":true}, {"voice":0,"index":8,"pitch":79,"rhythm_ticks":12,"onset_ticks":47,"duration_ticks":12,"is_rest":false}, {"voice":0,"index":9,"pitch":74,"rhythm_ticks":3,"onset_ticks":59,"duration_ticks":3,"is_rest":false}, {"voice":0,"index":10,"pitch":77,"rhythm_ticks":12,"onset_ticks":62,"duration_ticks":12,"is_rest":false}, {"voice":0,"index":11,"pitch":-1,"rhythm_ticks":-12,"onset_ticks":74,"duration_ticks":12,"is_rest":true}, {"voice":1,"index":0,"pitch":65,"rhythm_ticks":3,"onset_ticks":0,"duration_ticks":3,"is_rest":false}, {"voice":1,"index":1,"pitch":-1,"rhythm_ticks":-4,"onset_ticks":3,"duration_ticks":4,"is_rest":true}, {"voice":1,"index":2,"pitch":-1,"rhythm_ticks":-4,"onset_ticks":7,"duration_ticks":4,"is_rest":true}, {"voice":1,"index":3,"pitch":-1,"rhythm_ticks":-12,"onset_ticks":11,"duration_ticks":12,"is_rest":true}, {"voice":1,"index":4,"pitch":-1,"rhythm_ticks":-12,"onset_ticks":23,"duration_ticks":12,"is_rest":true}, {"voice":1,"index":5,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":35,"duration_ticks":6,"is_rest":true}, {"voice":1,"index":6,"pitch":65,"rhythm_ticks":3,"onset_ticks":41,"duration_ticks":3,"is_rest":false}, {"voice":1,"index":7,"pitch":-1,"rhythm_ticks":-4,"onset_ticks":44,"duration_ticks":4,"is_rest":true}, {"voice":1,"index":8,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":48,"duration_ticks":6,"is_rest":true}, {"voice":1,"index":9,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":54,"duration_ticks":6,"is_rest":true}, {"voice":1,"index":10,"pitch":71,"rhythm_ticks":6,"onset_ticks":60,"duration_ticks":6,"is_rest":false}, {"voice":1,"index":11,"pitch":-1,"rhythm_ticks":-12,"onset_ticks":66,"duration_ticks":12,"is_rest":true}]}]
+      }
+    }
+  ]
+}

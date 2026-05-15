@@ -1,25 +1,13 @@
 {
   "name": "Metric Domain Complex - Hierarchy Examples",
   "description": "Example pack for r-metric-hierarchy modes. Includes active defaults and optional examples (enabled=false) for quick A/B testing.",
-  "solution_length": 20,
-  "score_length": "24q",
+  "solution_length": 35,
   "num_voices": 2,
-  "metric_engine_enabled": true,
-
+  "metric_engine_enabled": 1,
   "voices": [
     {
       "rhythm": {
-        "duration_values": [
-          "1/16",
-          "1/8",
-          "-1/16",
-          "-1/8",
-          "1/12",
-          "1/6",
-          "2/6",
-          "2/12",
-          "1/4"
-        ]
+        "duration_values": ["1/4", "1/12", "-1/12", "1/16", "1/8", "-1/8"]
       },
       "pitch": {
         "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]
@@ -27,79 +15,40 @@
     },
     {
       "rhythm": {
-        "duration_values": ["-1/8", "-1/4", "1/8", "1/4"]
+        "duration_values": ["1/4", "1/12", "-1/12", "1/16", "1/8", "-1/8"]
       },
       "pitch": {
         "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
       }
     }
   ],
-
   "meter": {
-    "time_signatures": ["2/4", "3/4", "4/4"],
+    "time_signatures": ["4/4", "3/4"],
     "tuplets": [3, 6],
     "beat_divisions": [2, 4]
   },
-
   "rules": [
-    {
-      "rule_type": "r-one-voice",
-      "constraint": "all_different",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voices": [0],
-      "target_component": "pitch",
-      "enabled": true,
-      "description": "Voice 0 unique pitches"
-    },
-    {
-      "rule_type": "r-one-voice",
-      "constraint": "all_different",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voices": [1],
-      "target_component": "pitch",
-      "enabled": true,
-      "description": "Voice 1 unique pitches"
-    },
-
-    {
-      "rule_type": "r-metric-hierarchy",
-      "constraint": "equal",
-      "parameters": ["durations"],
-      "target_voices": [0, 1],
-      "enabled": false,
-      "description": "Active default metric hierarchy domain filtering (default tuplet-group closure also applies)"
-    },
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "tuplet_on_beat_start",
       "target_voices": [0, 1],
-      "enabled": false,
-      "description": "Example A: explicit tuplet mode (relaxed: tuplets may start on subdivision; onset/end aligned to tuplet grid)"
+      "enabled": 1,
+      "description": "explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)"
     },
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "min_grid",
       "parameters": ["min-grid", "1/8"],
       "target_voices": [0, 1],
-      "enabled": false,
+      "enabled": 0,
       "description": "Example B: stricter grid variant (1/8)"
     },
-
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "hierarchical_voices",
       "parameters": ["0<-1"],
       "target_voices": [0, 1],
-      "enabled": true,
-      "description": "Example C: beat-anchor hierarchy (voice 1 anchors voice 0; voice 0 may subdivide between anchors)"
-    },
-    {
-      "rule_type": "r-metric-hierarchy",
-      "constraint": "hierarchical_voices",
-      "indices": [0, 1, 2, 3, 4, 5],
-      "parameters": ["0<-1"],
-      "target_voices": [0, 1],
-      "enabled": false,
+      "enabled": 0,
       "description": "Example D: partial-index hierarchy (first half of sequence only)"
     },
     {
@@ -107,73 +56,24 @@
       "constraint": "equal",
       "parameters": ["durations", "no-tuplets"],
       "target_voices": [0, 1],
-      "enabled": true,
+      "enabled": 0,
       "description": "Example E: legacy no-tuplets filtering"
     },
-
-    {
-      "rule_type": "r-cross-voice-no-unisons",
-      "constraint": "no_unisons_between_engines",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      "target_voices": [0, 1],
-      "target_component": "pitch",
-      "enabled": false,
-      "description": "Optional pitch-spacing constraint"
-    },
-
     {
       "rule_type": "r-time-signature",
-      "target_voices": [],
       "target_component": "metric",
-      "bar_pattern_type": "fixed",
-      "bar_pattern": ["4/4", "4/4", "3/4"],
-      "enabled": false,
-      "description": "Example 1: Fixed bar pattern - explicit sequence of time signatures"
-    },
-
-    {
-      "rule_type": "r-time-signature",
-      "target_voices": [],
-      "target_component": "metric",
+      "description": "Bar-pattern time signature (fixed)",
       "bar_pattern_type": "repeating",
       "bar_pattern": ["4/4", "3/4"],
       "bar_pattern_repetitions": 3,
-      "enabled": false,
-      "description": "Example 2: Repeating bar pattern - alternates 4/4 and 3/4 three times (6 bars total)"
-    },
-
-    {
-      "rule_type": "r-time-signature",
-      "target_voices": [],
-      "target_component": "metric",
-      "bar_pattern_type": "random",
-      "bar_pattern": ["2/4", "3/4", "4/4"],
-      "bar_pattern_count": 5,
-      "enabled": false,
-      "description": "Example 3: Random bar pattern - randomly selects 5 bars from available signatures"
-    },
-
-    {
-      "rule_type": "r-time-signature",
-      "target_voices": [],
-      "target_component": "metric",
-      "bar_pattern_type": "weighted",
-      "bar_pattern": ["4/4", "3/4", "2/4"],
-      "bar_pattern_count": 4,
-      "bar_pattern_distribution": {
-        "4/4": 0.5,
-        "3/4": 0.3,
-        "2/4": 0.2
-      },
-      "enabled": false,
-      "description": "Example 4: Weighted bar pattern - 4/4 appears 50% of the time, 3/4 30%, 2/4 20%"
+      "allow_cross_barline": 0,
+      "enabled": 1
     }
   ],
-
   "search_options": {
     "engine": "dfs",
-    "enable_metric_engine": true,
-    "require_exact_score_length": false,
+    "enable_metric_engine": 1,
+    "require_exact_score_length": 0,
     "random_seed": 0,
     "timeout_ms": 10000,
     "max_solutions": 1,
@@ -181,13 +81,12 @@
     "value_order": "random",
     "restart_policy": "none"
   },
-
   "output_options": {
     "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
     "export_filename": "metric_domain_complex",
-    "export_xml": true,
-    "export_png": false,
-    "export_midi": false,
-    "show_statistics": true
+    "export_xml": 1,
+    "export_png": 0,
+    "export_midi": 0,
+    "show_statistics": 1
   }
 }

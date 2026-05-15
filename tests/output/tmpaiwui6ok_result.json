@@ -1,0 +1,35 @@
+{
+  "config_file": "/var/folders/cv/c6ctbt612w9_hm1ltt9l68vc0000gn/T/tmpaiwui6ok.json",
+  "problem_name": "",
+  "solutions_found": 1,
+  "solve_time_ms": 0,
+  "rules_applied": 0,
+  "solutions": [
+    {
+      "solution_index": 0,
+      "voices": [
+        {
+          "voice": 0,
+          "pitch_solution": [-1, 71, 76, -1, -1, 74, 79, -1, -1, -1, 76, 79],
+          "rhythm_solution": [-3, 3, 6, -6, -12, 4, 12, -6, -4, -12, 6, 12],
+          "pitch_names": ["R", "B4", "E5", "R", "R", "D5", "G5", "R", "R", "R", "E5", "G5"],
+          "rhythm_names": ["R:1/16", "1/16", "1/8", "R:1/8", "R:1/4", "1/12", "1/4", "R:1/8", "R:1/12", "R:1/4", "1/8", "1/4"]
+        },
+        {
+          "voice": 1,
+          "pitch_solution": [-1, 72, 74, 72, -1, 67, 74, -1, -1, -1, -1, -1],
+          "rhythm_solution": [-12, 12, 12, 6, -3, 3, 12, -6, -6, -6, -6, -3],
+          "pitch_names": ["R", "C5", "D5", "C5", "R", "G4", "D5", "R", "R", "R", "R", "R"],
+          "rhythm_names": ["R:1/4", "1/4", "1/4", "1/8", "R:1/16", "1/16", "1/4", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/16"]
+        }
+      ],
+      "metric_signature_numerators": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "metric_signature": ["4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4"],
+      "score": {
+        "rhythm_base": 48,
+        "metric_timeline": [{"start_index":0,"end_index":11,"start_tick":0,"end_tick":87,"numerator":4,"denominator":4}],
+        "measures": [{"measure_index":0,"start_ticks":0,"end_ticks":87,"numerator":4,"denominator":4,"events":[{"voice":0,"index":0,"pitch":-1,"rhythm_ticks":-3,"onset_ticks":0,"duration_ticks":3,"is_rest":true}, {"voice":0,"index":1,"pitch":71,"rhythm_ticks":3,"onset_ticks":3,"duration_ticks":3,"is_rest":false}, {"voice":0,"index":2,"pitch":76,"rhythm_ticks":6,"onset_ticks":6,"duration_ticks":6,"is_rest":false}, {"voice":0,"index":3,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":12,"duration_ticks":6,"is_rest":true}, {"voice":0,"index":4,"pitch":-1,"rhythm_ticks":-12,"onset_ticks":18,"duration_ticks":12,"is_rest":true}, {"voice":0,"index":5,"pitch":74,"rhythm_ticks":4,"onset_ticks":30,"duration_ticks":4,"is_rest":false}, {"voice":0,"index":6,"pitch":79,"rhythm_ticks":12,"onset_ticks":34,"duration_ticks":12,"is_rest":false}, {"voice":0,"index":7,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":46,"duration_ticks":6,"is_rest":true}, {"voice":0,"index":8,"pitch":-1,"rhythm_ticks":-4,"onset_ticks":52,"duration_ticks":4,"is_rest":true}, {"voice":0,"index":9,"pitch":-1,"rhythm_ticks":-12,"onset_ticks":56,"duration_ticks":12,"is_rest":true}, {"voice":0,"index":10,"pitch":76,"rhythm_ticks":6,"onset_ticks":68,"duration_ticks":6,"is_rest":false}, {"voice":0,"index":11,"pitch":79,"rhythm_ticks":12,"onset_ticks":74,"duration_ticks":12,"is_rest":false}, {"voice":1,"index":0,"pitch":-1,"rhythm_ticks":-12,"onset_ticks":0,"duration_ticks":12,"is_rest":true}, {"voice":1,"index":1,"pitch":72,"rhythm_ticks":12,"onset_ticks":12,"duration_ticks":12,"is_rest":false}, {"voice":1,"index":2,"pitch":74,"rhythm_ticks":12,"onset_ticks":24,"duration_ticks":12,"is_rest":false}, {"voice":1,"index":3,"pitch":72,"rhythm_ticks":6,"onset_ticks":36,"duration_ticks":6,"is_rest":false}, {"voice":1,"index":4,"pitch":-1,"rhythm_ticks":-3,"onset_ticks":42,"duration_ticks":3,"is_rest":true}, {"voice":1,"index":5,"pitch":67,"rhythm_ticks":3,"onset_ticks":45,"duration_ticks":3,"is_rest":false}, {"voice":1,"index":6,"pitch":74,"rhythm_ticks":12,"onset_ticks":48,"duration_ticks":12,"is_rest":false}, {"voice":1,"index":7,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":60,"duration_ticks":6,"is_rest":true}, {"voice":1,"index":8,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":66,"duration_ticks":6,"is_rest":true}, {"voice":1,"index":9,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":72,"duration_ticks":6,"is_rest":true}, {"voice":1,"index":10,"pitch":-1,"rhythm_ticks":-6,"onset_ticks":78,"duration_ticks":6,"is_rest":true}, {"voice":1,"index":11,"pitch":-1,"rhythm_ticks":-3,"onset_ticks":84,"duration_ticks":3,"is_rest":true}]}]
+      }
+    }
+  ]
+}
