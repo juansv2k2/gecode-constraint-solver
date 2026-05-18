@@ -65,7 +65,7 @@
       "description": "Bar-pattern time signature (fixed)",
       "bar_pattern_type": "repeating",
       "bar_pattern": ["4/4", "3/4"],
-      "bar_pattern_repetitions": 3,
+      "bar_pattern_repetitions": 10,
       "allow_cross_barline": 0,
       "enabled": 1
     }

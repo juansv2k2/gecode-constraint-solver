@@ -2656,95 +2656,9 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     const bool metric_active = (config_.enable_metric_engine || has_metric_targeted_rule) && !has_explicit_metric_timepoint_rule;
     GecodeClusterIntegration::ValueSelectionStrategy effective_value_selection = config_.value_selection;
 
-    bool inject_zero_for_strict_bar_fill = false;
-    int strict_total_ticks_for_fill = -1;
-    for (const auto& cfg : engine_rule_configs_) {
-        const bool is_metric_signature_rule =
-            (cfg.rule_type == "r-metric-signature" || cfg.rule_type == "r-time-signature") &&
-            (cfg.function == "equal_values" || cfg.function == "equal" || cfg.function.empty());
-        if (is_metric_signature_rule && !cfg.allow_cross_barline) {
-            inject_zero_for_strict_bar_fill = true;
-            if (!cfg.bar_pattern.empty()) {
-                const auto expanded = expand_bar_pattern_(
-                    cfg.bar_pattern_type,
-                    cfg.bar_pattern,
-                    cfg.bar_pattern_count,
-                    cfg.bar_pattern_repetitions,
-                    cfg.bar_pattern_distribution,
-                    static_cast<int>(resolve_effective_random_seed(config_.random_seed)));
-                int sum_ticks = 0;
-                for (const auto& bar : expanded) {
-                    sum_ticks += (bar.end_tick - bar.start_tick);
-                }
-                if (sum_ticks > 0) {
-                    strict_total_ticks_for_fill = sum_ticks;
-                }
-            }
-            break;
-        }
-    }
-
+    // Rhythm domains are used exactly as configured — the bar-pattern constraint
+    // is onset-based and does not require injecting zeros or synthetic values.
     std::vector<std::vector<int>> effective_voice_rhythm_domains = config_.voice_rhythm_domains;
-    if (inject_zero_for_strict_bar_fill) {
-        for (size_t voice = 0; voice < effective_voice_rhythm_domains.size(); ++voice) {
-            auto& domain = effective_voice_rhythm_domains[voice];
-            if (std::find(domain.begin(), domain.end(), 0) == domain.end()) {
-                domain.push_back(0);
-            }
-
-            if (strict_total_ticks_for_fill > 0 && config_.sequence_length > 0 &&
-                (strict_total_ticks_for_fill % config_.sequence_length) == 0) {
-                const int target_avg = strict_total_ticks_for_fill / config_.sequence_length;
-                int max_abs = 0;
-                bool has_below = false;
-                bool has_above = false;
-                for (int v : domain) {
-                    const int a = std::abs(v);
-                    max_abs = std::max(max_abs, a);
-                    if (a > 0 && a < target_avg) has_below = true;
-                    if (a > target_avg) has_above = true;
-                }
-
-                // Guarded anti-pinning fix: if strict fill mathematically forces every slot
-                // to max duration, include one larger musically meaningful duration.
-                if (target_avg > 0 && max_abs == target_avg && has_below && !has_above) {
-                    int synthetic = 0;
-
-                    // Prefer common note values derived from rhythm_base.
-                    if (config_.rhythm_base > 0) {
-                        const std::vector<int> candidates = {
-                            config_.rhythm_base / 16,
-                            config_.rhythm_base / 8,
-                            config_.rhythm_base / 4,
-                            config_.rhythm_base / 2,
-                            config_.rhythm_base
-                        };
-                        for (int c : candidates) {
-                            if (c > target_avg) {
-                                synthetic = c;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Fallback: just step above target average.
-                    if (synthetic <= target_avg) {
-                        synthetic = target_avg + 1;
-                    }
-
-                    domain.push_back(synthetic);
-                    domain.push_back(-synthetic);
-                    std::cout << "INFO: strict time-signature mode; auto-including ±"
-                              << synthetic << " tick durations for voice " << voice
-                              << " to avoid max-duration pinning" << std::endl;
-                }
-            }
-
-            std::sort(domain.begin(), domain.end());
-            domain.erase(std::unique(domain.begin(), domain.end()), domain.end());
-        }
-        std::cout << "INFO: strict time-signature mode; auto-including 0-duration in rhythm domains" << std::endl;
-    }
 
     std::vector<int> metric_domain_numerators;
     if (metric_active) {
@@ -4012,18 +3926,11 @@ std::vector<Solver::BarDescriptor> Solver::expand_bar_pattern_(
         // Fixed pattern: use bar_sigs directly (no automatic extension)
         bar_sequence = sigs;
     } else if (pattern_type == "repeat" || pattern_type == "repeating") {
-        // Repeating pattern: automatically repeat to fill the score
-        // If repetitions is 0, calculate how many reps are needed to cover the score length
-        int total_bar_ticks = 0;
-        for (const auto& sig : sigs) {
-            int bar_duration = (sig.first * whole_ticks) / sig.second;
-            total_bar_ticks += bar_duration;
-        }
-        
         int reps_needed = repetitions;
-        if (reps_needed <= 0 && config_.score_length_ticks > 0) {
-            reps_needed = (config_.score_length_ticks + total_bar_ticks - 1) / total_bar_ticks;
-        }
+        // score_length_ticks must never influence how many bar repetitions are created:
+        // that would couple the engraving parameter to the constraint domain, causing
+        // the solver to bias toward longer note values in wider score_length configs.
+        // If repetitions are not set explicitly, default to 1.
         if (reps_needed <= 0) reps_needed = 1;
         
         for (int r = 0; r < reps_needed; ++r) {
@@ -4067,167 +3974,100 @@ void Solver::post_measure_fill_constraint_(
     bool allow_cross_barline) const {
     if (!gecode_space || bars.empty()) return;
     if (!gecode_space->has_rhythm_vars()) return;
-    
-    const auto& rhythm_vars = gecode_space->get_rhythm_vars();
-    
-    // Partition sequence indices among bars proportionally by bar duration
-    int total_ticks = 0;
-    for (const auto& bar : bars) {
-        total_ticks += (bar.end_tick - bar.start_tick);
-    }
-    
-    if (total_ticks <= 0) return;
 
+    if (allow_cross_barline) {
+        std::cout << "   [Bar constraint] Voice " << voice
+                  << ": cross-barline mode, no barline constraints posted" << std::endl;
+        return;
+    }
+
+    if (config_.sequence_length <= 0) return;
+
+    const auto& rhythm_vars = gecode_space->get_rhythm_vars();
+
+    // Compute the maximum absolute tick value present in this voice's rhythm domain.
     int max_abs_tick = 1;
     for (int idx = 0; idx < config_.sequence_length; ++idx) {
-        int rhythm_idx = voice * config_.sequence_length + idx;
-        if (rhythm_idx >= static_cast<int>(rhythm_vars.size())) {
-            break;
-        }
+        const int rhythm_idx = voice * config_.sequence_length + idx;
+        if (rhythm_idx >= static_cast<int>(rhythm_vars.size())) break;
         const int lo = rhythm_vars[rhythm_idx].min();
         const int hi = rhythm_vars[rhythm_idx].max();
         max_abs_tick = std::max(max_abs_tick, std::max(std::abs(lo), std::abs(hi)));
     }
 
-    // Cross-barline mode intentionally does not post bar-length fill constraints.
-    // Bar pattern still constrains metric structure; rhythm durations are allowed
-    // to float across barlines without per-bar duration accounting.
-    if (allow_cross_barline) {
-        std::cout << "   [Bar constraint] Voice " << voice
-                  << ": cross-barline mode, skipping bar-length fill constraints" << std::endl;
-        return;
-    }
-
-    if (config_.sequence_length <= 0) {
-        return;
-    }
-
-    // Build absolute durations and cumulative sums over the full voice sequence.
+    // Build absolute duration variables for each note in this voice.
     Gecode::IntVarArgs abs_rhythms;
     for (int idx = 0; idx < config_.sequence_length; ++idx) {
-        int rhythm_idx = voice * config_.sequence_length + idx;
-        if (rhythm_idx >= static_cast<int>(rhythm_vars.size())) {
-            break;
-        }
-
-        Gecode::IntVar abs_duration(*gecode_space, 0, max_abs_tick);
-        Gecode::abs(*gecode_space, rhythm_vars[rhythm_idx], abs_duration);
-        abs_rhythms << abs_duration;
+        const int rhythm_idx = voice * config_.sequence_length + idx;
+        if (rhythm_idx >= static_cast<int>(rhythm_vars.size())) break;
+        Gecode::IntVar abs_dur(*gecode_space, 0, max_abs_tick);
+        Gecode::abs(*gecode_space, rhythm_vars[rhythm_idx], abs_dur);
+        abs_rhythms << abs_dur;
     }
+    if (abs_rhythms.size() == 0) return;
 
-    if (abs_rhythms.size() == 0) {
-        return;
-    }
+    const int n_notes = static_cast<int>(abs_rhythms.size());
+    // Loose upper bound on any reachable cumulative tick — no forced total fill.
+    // solution_length and bar_pattern_repetitions are fully independent.
+    const int max_cum_tick = n_notes * max_abs_tick;
 
+    // prefix_sums[i] = onset of note i+1 = cumulative sum of abs_rhythms[0..i].
+    // Domain [0, max_cum_tick] with no forced total-fill constraint.
     Gecode::IntVarArgs prefix_sums;
-    for (int idx = 0; idx < abs_rhythms.size(); ++idx) {
-        Gecode::IntVar prefix(*gecode_space, 0, total_ticks);
+    for (int idx = 0; idx < n_notes; ++idx) {
+        Gecode::IntVar prefix(*gecode_space, 0, max_cum_tick);
         if (idx == 0) {
-            Gecode::rel(*gecode_space, prefix, Gecode::IRT_EQ, abs_rhythms[idx]);
+            Gecode::rel(*gecode_space, prefix, Gecode::IRT_EQ, abs_rhythms[0]);
         } else {
             Gecode::linear(*gecode_space,
                            Gecode::IntArgs({1, -1, -1}),
                            Gecode::IntVarArgs({prefix, prefix_sums[idx - 1], abs_rhythms[idx]}),
-                           Gecode::IRT_EQ,
-                           0);
+                           Gecode::IRT_EQ, 0);
         }
         prefix_sums << prefix;
     }
 
-    // Do not force the last sequence slot to land exactly on total_ticks.
-    // Bar boundaries below still enforce exact per-bar fill, and this allows
-    // trailing zero-duration placeholders in strict mode.
-
-    // Prevent zero-duration notes from appearing before the sequence total is reached.
-    // Without this, the bar fill constraint allows zeros inside bars to inflate the
-    // boundary_index (wasting note-budget slots), which forces later bars to use only
-    // maximum-duration (quarter) notes. With this, zeros are restricted to trailing
-    // positions after the final bar boundary — the prefix_sums domain [0, total_ticks]
-    // already enforces that once total_ticks is reached, subsequent abs values must be
-    // zero (any positive value would exceed the domain bound).
-    if (abs_rhythms.size() > 0) {
-        // Note index 0: the prefix BEFORE it is always 0 < total_ticks, so it must be non-zero.
-        Gecode::rel(*gecode_space, abs_rhythms[0], Gecode::IRT_GQ, 1);
-        for (int i = 1; i < static_cast<int>(abs_rhythms.size()); ++i) {
-            // not_done ↔ (prefix_sums[i-1] < total_ticks)
-            Gecode::BoolVar not_done(*gecode_space, 0, 1);
-            Gecode::rel(*gecode_space, prefix_sums[i - 1], Gecode::IRT_LQ,
-                        total_ticks - 1, not_done);
-            // is_zero ↔ (abs_rhythms[i] == 0)
-            Gecode::BoolVar is_zero(*gecode_space, 0, 1);
-            Gecode::rel(*gecode_space, abs_rhythms[i], Gecode::IRT_EQ, 0, is_zero);
-            // NOT (not_done AND is_zero): can't be inside bars AND zero-duration
-            Gecode::rel(*gecode_space, not_done, Gecode::BOT_AND, is_zero, 0);
-        }
+    // No-cross-barline constraint (purely onset-based):
+    //   For each barline tick B, no note may straddle it.
+    //   A note i straddles B iff onset[i] < B AND end[i] > B,
+    //   where onset[0]=0, onset[i]=prefix_sums[i-1], end[i]=prefix_sums[i].
+    //
+    // Note 0: onset is always 0 < B, so the constraint reduces to end[0] <= B.
+    // The tightest barline for note 0 is the first one; subsequent ones are
+    // automatically satisfied because prefix_sums is monotone non-decreasing.
+    if (!bars.empty()) {
+        Gecode::rel(*gecode_space, prefix_sums[0], Gecode::IRT_LQ, bars[0].end_tick);
     }
 
-    // For each bar boundary, choose an index whose prefix sum equals the boundary tick.
-    // This avoids O(bars*indices) reified booleans while keeping exact boundary semantics.
-    const int n_notes = static_cast<int>(prefix_sums.size());
-
-    // Precompute suffix sums of per-bar min-note counts (arithmetic minima) for all
-    // bars after each bar boundary. Used to ensure enough notes remain for subsequent
-    // bars (otherwise the last few bars get exactly ceil(ticks/max) notes, which forces
-    // all-maximum-duration notes = rhythmic homogeneity).
-    // We add 1 extra note per remaining bar beyond the arithmetic minimum so each bar
-    // has at least one more note slot than the bare minimum, enabling rhythmic variety.
-    std::vector<int> min_notes_remaining(bars.size() + 1, 0);
-    for (int b = static_cast<int>(bars.size()) - 1; b >= 0; --b) {
-        const int bar_ticks = bars[b].end_tick - bars[b].start_tick;
-        const int arith_min = (max_abs_tick > 0)
-            ? (bar_ticks + max_abs_tick - 1) / max_abs_tick
-            : 1;
-        min_notes_remaining[b] = min_notes_remaining[b + 1] + arith_min + 1;
-    }
-
-    int boundary_tick = 0;
-    Gecode::IntVar prev_boundary_index(*gecode_space, 0, 0);
-    bool have_prev_boundary_index = false;
+    // Notes 1..n-1: post NOT (onset_before_B AND end_after_B) for each barline.
     for (size_t bar_idx = 0; bar_idx < bars.size(); ++bar_idx) {
-        const auto& bar = bars[bar_idx];
-        boundary_tick += (bar.end_tick - bar.start_tick);
+        const int B = bars[bar_idx].end_tick;
 
-        // Proportional bounds: prevent any single bar from consuming a
-        // disproportionate share of note slots, which would leave later bars
-        // with too few slots and force all-maximum-duration (quarter) notes.
-        // Expected note index for this boundary is frac * (n-1).
-        // Slack = max(2, n/10): tight enough that later bars are always allotted
-        // enough non-zero notes to require rhythmic variety (8 non-zero notes for
-        // 84 ticks cannot all be quarters since 8*12=96 ≠ 84), yet loose enough
-        // to accommodate valid dense-note patterns in any single bar.
-        const double frac = static_cast<double>(boundary_tick) / total_ticks;
-        const int expected_idx = static_cast<int>(std::round(frac * (n_notes - 1)));
-        const int slack = std::max(2, n_notes / 10);
-        // Arithmetic lower: fewest notes to fill boundary_tick at max duration
-        const int arith_lo = (max_abs_tick > 0)
-            ? std::max(0, (boundary_tick + max_abs_tick - 1) / max_abs_tick - 1)
-            : 0;
-        // Arithmetic upper: leave enough notes for remaining bars (with 1 extra
-        // per remaining bar to guarantee that no later bar is forced all-quarters).
-        const int arith_hi = (bar_idx + 1 < bars.size())
-            ? n_notes - 1 - min_notes_remaining[bar_idx + 1]
-            : n_notes - 1;
-        const int prop_lo = std::max(arith_lo, expected_idx - slack);
-        const int prop_hi = std::min({n_notes - 1, expected_idx + slack, arith_hi});
-        const int domain_lo = std::max(0, prop_lo);
-        const int domain_hi = std::max(domain_lo, prop_hi);
+        // Barlines beyond the maximum reachable tick cannot be straddled.
+        if (B > max_cum_tick) break;
 
-        Gecode::IntVar boundary_index(*gecode_space, domain_lo, domain_hi);
-        if (have_prev_boundary_index) {
-            Gecode::linear(*gecode_space,
-                           Gecode::IntArgs({1, -1}),
-                           Gecode::IntVarArgs({boundary_index, prev_boundary_index}),
-                           Gecode::IRT_GQ,
-                           1);
+        for (int i = 1; i < n_notes; ++i) {
+            // Static pruning: constraint trivially satisfied when:
+            //   onset can never be < B  (min of prefix_sums[i-1] >= B)
+            //   end   can never be > B  (max of prefix_sums[i]   <= B)
+            if (prefix_sums[i - 1].min() >= B) continue;
+            if (prefix_sums[i].max()     <= B) continue;
+
+            // onset_before ↔ prefix_sums[i-1] <= B-1  (onset < B)
+            Gecode::BoolVar onset_before(*gecode_space, 0, 1);
+            Gecode::rel(*gecode_space, prefix_sums[i - 1], Gecode::IRT_LQ, B - 1, onset_before);
+
+            // end_after ↔ prefix_sums[i] >= B+1  (end > B)
+            Gecode::BoolVar end_after(*gecode_space, 0, 1);
+            Gecode::rel(*gecode_space, prefix_sums[i], Gecode::IRT_GQ, B + 1, end_after);
+
+            // NOT (onset_before AND end_after)
+            Gecode::rel(*gecode_space, onset_before, Gecode::BOT_AND, end_after, 0);
         }
-        Gecode::element(*gecode_space, prefix_sums, boundary_index, boundary_tick);
-        prev_boundary_index = boundary_index;
-        have_prev_boundary_index = true;
 
-        std::cout << "   [Bar constraint] Voice " << voice << ": bar "
-                  << bar.numerator << "/" << bar.denominator
-                  << " boundary at tick " << boundary_tick
-                  << " (indexed prefix-match enforced)" << std::endl;
+        std::cout << "   [Bar constraint] Voice " << voice
+                  << ": barline at tick " << B
+                  << " (no-cross posted for " << n_notes << " notes)" << std::endl;
     }
 }
 
