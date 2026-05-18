@@ -243,7 +243,6 @@ private:
     std::string name_;
     std::string description_;
     int solution_length_;
-    std::string score_length_;
     int num_voices_;
     std::string export_path_;
     std::vector<RuleConfig> rules_;
@@ -391,12 +390,6 @@ private:
                 } catch (...) {
                     solution_length_ = 12; // default
                 }
-            }
-        }
-        else if (line.find("\"score_length\"") != std::string::npos) {
-            size_t pos = line.find(":");
-            if (pos != std::string::npos) {
-                score_length_ = removeQuotesAndComma(line.substr(pos + 1));
             }
         }
         else if (line.find("\"num_voices\"") != std::string::npos) {
@@ -910,7 +903,6 @@ public:
     std::string getName() const { return name_; }
     std::string getDescription() const { return description_; }
     int getSolutionLength() const { return solution_length_; }
-    std::string getScoreLength() const { return score_length_; }
     int getNumVoices() const { return num_voices_; }
     MusicalConstraintSolver::SolverConfig::SearchEngine getSearchEngine(const std::string& config_file) const {
         std::ifstream f(config_file);
@@ -1577,22 +1569,6 @@ public:
         return false;
     }
 
-    bool getRequireExactScoreLength(const std::string& config_file) const {
-        std::ifstream f(config_file);
-        if (!f.is_open()) return false;
-        nlohmann::json cfg;
-        try { f >> cfg; } catch (...) { return false; }
-
-        if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
-            cfg["search_options"].contains("require_exact_score_length")) {
-            return json_to_bool(cfg["search_options"]["require_exact_score_length"], false);
-        }
-        if (cfg.contains("require_exact_score_length")) {
-            return json_to_bool(cfg["require_exact_score_length"], false);
-        }
-        return false;
-    }
-
     const std::vector<RuleConfig>& getRules() const { return rules_; }
     
     void printLoadedConfig() const {
@@ -1962,11 +1938,6 @@ int main(int argc, char* argv[]) {
         // Load per-voice rhythm domains from voices[*].rhythm.duration_values
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
         solver_config.rhythm_base = parser.getVoiceRhythmBase();
-        if (!parser.getScoreLength().empty()) {
-            solver_config.score_length_ticks = ConstraintSolverJSONParser::parse_score_time_to_ticks(
-                parser.getScoreLength(), solver_config.rhythm_base, "score_length");
-        }
-        solver_config.require_exact_score_length = parser.getRequireExactScoreLength(config_file);
         solver_config.metric_domain = parser.getMetricDomain(config_file);
         solver_config.enable_metric_engine = parser.getEnableMetricEngine(config_file);
         solver_config.random_seed = parser.getRandomSeed(config_file);

@@ -504,28 +504,22 @@ int first_index_at_or_after_tick(const std::vector<std::vector<int>>& voice_onse
 void add_trailing_rests_to_score(
     MusicalSolution::SolvedScore& score,
     const std::vector<int>& voice_totals,
-    int num_voices,
-    int score_length_ticks) {
-    if (score.measures.empty() || score_length_ticks < 0 || num_voices <= 0) {
+    int num_voices) {
+    if (score.measures.empty() || num_voices <= 0) {
         return;
     }
 
-    // Ensure the final measure reaches the configured score boundary.
-    if (score.measures.back().end_ticks < score_length_ticks) {
-        score.measures.back().end_ticks = score_length_ticks;
-        if (!score.metric_timeline.empty()) {
-            score.metric_timeline.back().end_tick = score_length_ticks;
-        }
-    }
+    const int score_length = score.measures.back().end_ticks;
+    if (score_length <= 0) return;
 
     for (int voice = 0; voice < num_voices; ++voice) {
         const int voice_end = (voice < static_cast<int>(voice_totals.size())) ? voice_totals[voice] : 0;
-        if (voice_end >= score_length_ticks) {
+        if (voice_end >= score_length) {
             continue;
         }
 
         int tick = voice_end;
-        while (tick < score_length_ticks) {
+        while (tick < score_length) {
             int measure_idx = static_cast<int>(score.measures.size()) - 1;
             for (size_t m = 0; m < score.measures.size(); ++m) {
                 const auto& meas = score.measures[m];
@@ -540,9 +534,9 @@ void add_trailing_rests_to_score(
                 break;
             }
 
-            int segment_end = std::min(score_length_ticks, score.measures[measure_idx].end_ticks);
+            int segment_end = std::min(score_length, score.measures[measure_idx].end_ticks);
             if (segment_end <= tick) {
-                segment_end = score_length_ticks;
+                segment_end = score_length;
             }
 
             MusicalSolution::ScoreEvent rest;
@@ -582,18 +576,16 @@ MusicalSolution::SolvedScore build_canonical_score_from_timepoints(
         ? 0
         : *std::max_element(voice_totals.begin(), voice_totals.end());
 
-    // When score_length is not configured (bar_pattern_repetitions path), fall back
-    // to the actual solved voice total. Timepoint-based paths should always have
-    // score_length set and will fail a later check if they somehow don't.
-    const int effective_score_length = (config.score_length_ticks >= 0)
-        ? config.score_length_ticks
-        : global_end_tick;
+    // Score length is derived from the bar pattern: last segment start + last bar duration.
+    const int last_bar_ticks = (desired_signatures.back().first * score.rhythm_base)
+                                / desired_signatures.back().second;
+    const int effective_score_length = segment_starts_ticks.back() + last_bar_ticks;
 
     if (effective_score_length <= 0) {
-        throw std::runtime_error("timepoint-based metric rules require score_length");
+        throw std::runtime_error("could not determine score length from bar boundaries");
     }
     if (global_end_tick > effective_score_length) {
-        throw std::runtime_error("Solved rhythm exceeds score_length");
+        throw std::runtime_error("Solved rhythm exceeds score boundaries");
     }
 
     for (size_t i = 0; i < segment_starts_ticks.size(); ++i) {
@@ -647,7 +639,7 @@ MusicalSolution::SolvedScore build_canonical_score_from_timepoints(
         }
     }
 
-    add_trailing_rests_to_score(score, voice_totals, config.num_voices, effective_score_length);
+    add_trailing_rests_to_score(score, voice_totals, config.num_voices);
 
     return score;
 }
@@ -672,8 +664,8 @@ MusicalSolution::SolvedScore build_canonical_score(
     const int global_end_tick = voice_totals.empty()
         ? 0
         : *std::max_element(voice_totals.begin(), voice_totals.end());
-    if (config.score_length_ticks >= 0 && global_end_tick > config.score_length_ticks) {
-        throw std::runtime_error("Solved rhythm exceeds score_length");
+    if (global_end_tick < 0) {
+        throw std::runtime_error("Solved rhythm has negative total");
     }
 
     // Build metric segments from piecewise-constant metric sequence.
@@ -754,9 +746,7 @@ MusicalSolution::SolvedScore build_canonical_score(
         }
     }
 
-    if (config.score_length_ticks >= 0) {
-        add_trailing_rests_to_score(score, voice_totals, config.num_voices, config.score_length_ticks);
-    }
+    add_trailing_rests_to_score(score, voice_totals, config.num_voices);
 
     return score;
 }
@@ -2882,9 +2872,6 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     if (!cfg.indices.empty()) {
                         throw std::runtime_error("r-time-signature rule '" + cfg.description + "' cannot specify both indices and timepoints");
                     }
-                    if (config_.score_length_ticks < 0) {
-                        throw std::runtime_error("r-time-signature rule '" + cfg.description + "' with timepoints requires score_length");
-                    }
                     if (desired_signatures.size() != cfg.timepoints.size()) {
                         throw std::runtime_error(
                             "r-time-signature rule '" + cfg.description +
@@ -2901,9 +2888,6 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                         }
                         if (tick <= previous_tick) {
                             throw std::runtime_error("r-time-signature rule '" + cfg.description + "' timepoints must be strictly increasing");
-                        }
-                        if (tick >= config_.score_length_ticks) {
-                            throw std::runtime_error("r-time-signature rule '" + cfg.description + "' has timepoint outside score_length");
                         }
                         previous_tick = tick;
                     }
@@ -3669,9 +3653,6 @@ MusicalSolution Solver::extract_solution_from_space_(
                         export_seed);
 
                     for (const auto& bar : bars) {
-                        if (config_.score_length_ticks >= 0 && bar.start_tick >= config_.score_length_ticks) {
-                            break;
-                        }
                         segment_starts_ticks.push_back(bar.start_tick);
                         desired_signatures.push_back({bar.numerator, bar.denominator});
                     }

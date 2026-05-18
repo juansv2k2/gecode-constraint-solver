@@ -1961,19 +1961,6 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             rd.erase(std::unique(rd.begin(), rd.end()), rd.end());
         }
 
-        if (cfg.contains("score_length") && cfg["score_length"].is_string()) {
-            sc.score_length_ticks = parse_score_time_to_ticks(
-                cfg["score_length"].get<std::string>(), rhythm_base, "score_length");
-        }
-        if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
-            cfg["search_options"].contains("require_exact_score_length")) {
-            sc.require_exact_score_length = json_value_to_bool_with_default(
-                cfg["search_options"]["require_exact_score_length"], false);
-        } else if (cfg.contains("require_exact_score_length")) {
-            sc.require_exact_score_length = json_value_to_bool_with_default(
-                cfg["require_exact_score_length"], false);
-        }
-
         sc.enable_metric_engine = false;
         if (cfg.contains("search_options") && cfg["search_options"].is_object() &&
             cfg["search_options"].contains("enable_metric_engine")) {

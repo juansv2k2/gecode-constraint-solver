@@ -86,14 +86,6 @@ struct SolverConfig {
     // Updated by getVoiceRhythmDomains(); used by display logic.
     int rhythm_base = 1;
 
-    // Optional total score span expressed in ticks using rhythm_base as the whole-note unit.
-    // -1 means unspecified and preserves current event-count-driven behavior.
-    int score_length_ticks = -1;
-
-    // If true, solved voice durations must exactly fill score_length_ticks.
-    // If false, they may end earlier but may never overflow the score span.
-    bool require_exact_score_length = false;
-
     // Metric domain candidates used by the metric engine.
     // Phase-0/1 scaffold: this data is intentionally passive until
     // metric-engine activation is enabled and posting logic is wired.
