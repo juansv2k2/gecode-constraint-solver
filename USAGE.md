@@ -111,6 +111,8 @@ Voices define the pitch and rhythm domains for each voice.
 - Positive fractions: `"1/16"`, `"1/8"`, `"1/4"`, `"1/2"`, `"1/1"`, `"2/1"`, etc.
 - Negative fractions are rests: `"-1/4"` = quarter rest
 - Triplet support: `"1/12"` (triplet eighth)
+- Tuplet support: `"1/10"` (quintuplet eighth in 4/4), `"1/20"` (quintuplet sixteenth), etc.  
+  The `rhythm_base` tick grid is automatically extended to cover all tuplet denominators declared in `meter.tuplets`, so these values work without manual configuration.
 
 **Pitch values:**
 
@@ -131,8 +133,12 @@ Voices define the pitch and rhythm domains for each voice.
 **Meter fields:**
 
 - `time_signatures`: Array of allowed time signatures.
-- `tuplets`: Subdivision factors that **require tuplet notation** (e.g. `[3, 6, 12]` for triplets and sextuplets in a binary meter).
+- `tuplets`: Subdivision factors that **require tuplet notation** (e.g. `[3, 6, 12]` for triplets and sextuplets in a binary meter). The solver automatically extends the internal tick grid (`rhythm_base`) to accommodate each value, so tuplet-aligned duration fractions in `voices.rhythm.duration_values` resolve to exact integers.
 - `beat_divisions`: All subdivision factors that exist for each beat, including both native and tuplet ones.
+
+> **Avoid overly-fine tuplet combinations.** When multiple `tuplets` values are specified and their combined grid covers every tick position (e.g. `[5, 10]` in 4/4 with `rhythm_base = 40`), the `r-metric-hierarchy` DURATIONS_GRID constraint becomes trivially true and the solver will warn:
+> `⚠️ r-metric-hierarchy (voice N): metric grid step is 1 tick — constraint is trivially true`.
+> In that case, remove the redundant larger tuplet value (e.g. keep only `[5]`).
 
 **Tuplet vs. non-tuplet subdivisions:**  
 A `beat_divisions` entry is treated as a _native_ (non-tuplet) subdivision unless the same value also appears in `tuplets`. This means the classification is meter-aware:
@@ -270,6 +276,20 @@ Apply the same rule to multiple voices at once:
 ### 5.4 Metric Hierarchy Rules (`r-metric-hierarchy`)
 
 `r-metric-hierarchy` constrains rhythm values relative to the beat grid defined in `meter`. It is **automatically targeted to rhythm engines** — do not add `target_component` or `engine_type`.
+
+**Default (durations) mode — constrain rhythm values to the metric grid:**
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "durations",
+  "target_voices": [0]
+}
+```
+
+This is the default mode (also activated when `constraint` is omitted). Both note durations and rest durations are filtered to multiples of the metric grid step derived from `meter.tuplets` and `meter.beat_divisions`. Use this to restrict a voice to only use quintuplet-aligned values, for example.
+
+> **Grid step warning.** If the combination of `meter.tuplets` produces a 1-tick grid step, the constraint has no effect (all durations pass) and a warning is printed. See the `meter` section above for how to avoid this.
 
 **Legacy no-tuplets (only native beat subdivisions; no triplets or other tuplet durations):**
 
@@ -693,9 +713,11 @@ Controls how the solver searches for solutions. None of these affect whether con
 
 ### 8.2 `value_order` — Which value to try first
 
-- **`min`** (default): Try the smallest value first. Fully deterministic.
+- **`min`** (default): Try the value with the smallest **absolute** tick count first. For rhythm variables, this means the shortest duration, with notes (positive) preferred over rests (negative) of the same length. For pitch variables, it means the lowest MIDI value. Fully deterministic.
 - **`random`**: Try values in random order. Requires `random_seed > 0` for reproducibility.
 - **`heuristic`**: Score candidates using `heuristic_energy` rules from `dynamic_rules`, try higher-scoring candidates first. When candidates are tied, selection depends on `random_seed` (see below).
+
+> **Note on `min` and rests.** Before this change the `min` strategy always selected the most negative rhythm tick (= longest rest), causing outputs of all rests when rests were present in the domain. It now picks the shortest absolute duration. If you need the old strict-min behavior, use `value_order: "random"` with a fixed seed, or remove rest values from `duration_values`.
 
 ### 8.3 `random_seed` — Randomness control
 

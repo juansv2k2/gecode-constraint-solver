@@ -10,6 +10,9 @@ Polyphonic musical constraint solving in C++17 on top of Gecode, with dynamic ex
 - Dynamic expression parsing supports logical operators (`&&`, `||`, `!`, `not`), membership (`in`, `not_in`), and integer array literals (`[0, 5, 7, 12]`).
 - `wildcard_constraint` rules now honor `indices` directly in wildcard expansion.
 - Wrapper compatibility layer still accepts several legacy config shapes and normalizes them.
+- `rhythm_base` is automatically extended to cover all tuplet denominators declared in `meter.tuplets`, so tuplet-aligned duration values (e.g. `"1/10"`, `"1/20"` for quintuplets in 4/4) work without manual configuration.
+- `r-metric-hierarchy` DURATIONS_GRID mode now applies the grid filter to rest durations as well as note durations; previously rests always bypassed the filter. A warning is emitted when the combination of tuplet values produces a 1-tick (trivially fine) grid step.
+- Rhythm variable branching uses absolute-value minimum by default: the solver picks the shortest duration first (notes preferred over same-length rests) rather than the most negative value (longest rest). `value_order: "random"` is unchanged.
 
 ## Front Ends
 
@@ -126,7 +129,8 @@ Notes:
 Use `search_options`:
 
 - `branching`: `first_fail` or `input_order`
-- `value_order`: `min`, `random`, or `heuristic`
+- `value_order`: `min`, `random`, or `heuristic`  
+  `min` for rhythm variables uses absolute-value minimum (shortest duration, notes before same-length rests).
 - `restart_policy`: `none` or `luby`
 
 Notes:
