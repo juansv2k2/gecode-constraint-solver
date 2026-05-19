@@ -129,7 +129,7 @@ When multiple voices share the same pitch or rhythm domain, repeating the full d
   "num_voices": 8,
   "global_domain": {
     "rhythm": { "duration_values": ["1/4", "1/8", "-1/4", "-1/8"] },
-    "pitch":  { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
+    "pitch": { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
   }
 }
 ```
@@ -159,11 +159,11 @@ Voices 1–6 are not listed and fall back to `global_domain`. The entries can ap
 
 **Resolution priority** (highest to lowest):
 
-| Level | Source |
-|---|---|
-| 1 | Voice entry with matching `"voice": N` key |
-| 2 | Voice entry at position N (no `"voice"` key) |
-| 3 | `global_domain` |
+| Level | Source                                       |
+| ----- | -------------------------------------------- |
+| 1     | Voice entry with matching `"voice": N` key   |
+| 2     | Voice entry at position N (no `"voice"` key) |
+| 3     | `global_domain`                              |
 
 Both `rhythm` and `pitch` are resolved independently — a voice entry that specifies only one component falls back to `global_domain` for the other.
 

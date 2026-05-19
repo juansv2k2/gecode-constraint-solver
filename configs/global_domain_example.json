@@ -13,7 +13,10 @@
   },
 
   "voices": [
-    { "voice": 0, "pitch": { "midi_values": [48, 50, 52, 53, 55, 57, 59, 60] } },
+    {
+      "voice": 0,
+      "pitch": { "midi_values": [48, 50, 52, 53, 55, 57, 59, 60] }
+    },
     { "voice": 3, "pitch": { "midi_values": [74, 76, 77, 79, 81, 83, 84] } }
   ],
 
