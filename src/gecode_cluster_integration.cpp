@@ -25,6 +25,25 @@ Gecode::Rnd* g_heuristic_rng = nullptr;
 
 int select_value_by_heuristic(const Space& home, IntVar x, int i);
 
+// Value selector for rhythm variables: picks the value with the smallest absolute value
+// (shortest duration/rest). On ties between a note and a rest of the same duration, the
+// note (positive value) is preferred. This avoids always picking rests when the domain
+// contains both positive (note) and negative (rest) tick values.
+int select_rhythm_abs_min_value(const Space& /*home*/, IntVar x, int /*i*/) {
+    int best = x.min();
+    int best_abs = std::abs(best);
+    for (IntVarValues v(x); v(); ++v) {
+        int val = v.val();
+        int a = std::abs(val);
+        // Prefer smaller absolute value; on ties, prefer notes (positive) over rests (negative).
+        if (a < best_abs || (a == best_abs && val > 0 && best < 0)) {
+            best_abs = a;
+            best = val;
+        }
+    }
+    return best;
+}
+
 template <typename Vars>
 void branch_with_search_strategy(
     IntegratedMusicalSpace& space,
@@ -65,6 +84,39 @@ void branch_with_search_strategy(
         branch(space, vars, INT_VAR_NONE(), INT_VAL_MIN());
     } else {
         branch(space, vars, INT_VAR_SIZE_MIN(), INT_VAL_MIN());
+    }
+}
+
+// Branching for rhythm variables: like branch_with_search_strategy but uses abs-min for
+// the MIN strategy so that notes are not always dominated by rests in mixed domains.
+template <typename Vars>
+void branch_rhythm_with_search_strategy(
+    IntegratedMusicalSpace& space,
+    Vars vars,
+    VariableBranchingStrategy variable_branching,
+    ValueSelectionStrategy value_selection,
+    unsigned int random_seed) {
+    const bool use_input_order =
+        (variable_branching == VariableBranchingStrategy::INPUT_ORDER);
+    const bool use_random_values =
+        (value_selection == ValueSelectionStrategy::RANDOM && random_seed != 0);
+
+    if (use_random_values) {
+        Gecode::Rnd rng(random_seed);
+        if (use_input_order) {
+            branch(space, vars, INT_VAR_NONE(), INT_VAL_RND(rng));
+        } else {
+            branch(space, vars, INT_VAR_SIZE_MIN(), INT_VAL_RND(rng));
+        }
+        return;
+    }
+
+    // Use abs-min for MIN strategy: prefers the shortest duration (positive or negative),
+    // with notes (positive) preferred over same-length rests (negative).
+    if (use_input_order) {
+        branch(space, vars, INT_VAR_NONE(), INT_VAL(select_rhythm_abs_min_value));
+    } else {
+        branch(space, vars, INT_VAR_SIZE_MIN(), INT_VAL(select_rhythm_abs_min_value));
     }
 }
 
@@ -433,7 +485,7 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     post_musical_constraints();
     // Rhythm variables drive onset-based constraints, so branch them before pitches
     // to let hierarchy rules prune the search tree earlier.
-    branch_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed, false);
+    branch_rhythm_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed);
     branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
 }
 
@@ -511,7 +563,7 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     // Metric and rhythm variables constrain onset structure; branch them before pitches
     // so metric hierarchy rules prune earlier.
     branch_with_search_strategy(*this, metric_vars_, variable_branching_, value_selection_, random_seed, false);
-    branch_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed, false);
+    branch_rhythm_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed);
     branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
 }
 

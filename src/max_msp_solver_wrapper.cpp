@@ -1949,6 +1949,19 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 rhythm_base = lcm_int(rhythm_base, parse_duration_denominator(s));
             }
         }
+        // Extend rhythm_base to cover metric tuplet denominators.
+        // For tuplet T in time signature N/D the metric grid step rhythm_base/(D*T) must be
+        // an integer, so extend the LCM with D*T for every (denominator D, tuplet T) pair.
+        {
+            const auto metric_entries = parse_metric_domain_from_meter(cfg);
+            for (const auto& entry : metric_entries) {
+                const int den = entry.denominator;
+                for (int t : entry.tuplets) {
+                    if (t > 1 && den > 0)
+                        rhythm_base = lcm_int(rhythm_base, den * t);
+                }
+            }
+        }
         sc.rhythm_base = rhythm_base;
         rhythm_base_ = rhythm_base;
         sc.voice_rhythm_domains.assign(sc.num_voices, {});

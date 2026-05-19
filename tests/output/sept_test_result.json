@@ -1,0 +1,28 @@
+{
+  "config_file": "/tmp/sept_test.json",
+  "problem_name": "Septuplet Test",
+  "solutions_found": 1,
+  "solve_time_ms": 1,
+  "rules_applied": 0,
+  "solutions": [
+    {
+      "solution_index": 0,
+      "voices": [
+        {
+          "voice": 0,
+          "pitch_solution": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+          "rhythm_solution": [-7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7],
+          "pitch_names": ["R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R"],
+          "rhythm_names": ["R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8", "R:1/8"]
+        }
+      ],
+      "metric_signature_numerators": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "metric_signature": ["4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4"],
+      "score": {
+        "rhythm_base": 56,
+        "metric_timeline": [{"start_index":0,"end_index":19,"start_tick":0,"end_tick":140,"numerator":4,"denominator":4}],
+        "measures": [{"measure_index":0,"start_ticks":0,"end_ticks":140,"numerator":4,"denominator":4,"events":[{"voice":0,"index":0,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":0,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":1,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":7,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":2,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":14,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":3,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":21,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":4,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":28,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":5,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":35,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":6,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":42,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":7,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":49,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":8,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":56,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":9,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":63,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":10,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":70,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":11,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":77,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":12,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":84,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":13,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":91,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":14,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":98,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":15,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":105,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":16,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":112,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":17,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":119,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":18,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":126,"duration_ticks":7,"is_rest":true}, {"voice":0,"index":19,"pitch":-1,"rhythm_ticks":-7,"onset_ticks":133,"duration_ticks":7,"is_rest":true}]}]
+      }
+    }
+  ]
+}

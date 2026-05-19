@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/quint5_test.json
+Problem: Quintuplet Test 5-only
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4
+  Rhythm:  1/20 + 1/20 + 1/20 + 1/20 + 1/20 + 1/20 + 1/20 + 1/20
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 0

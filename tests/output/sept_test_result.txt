@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/sept_test.json
+Problem: Septuplet Test
+Description: Tests tuplet N=7 in 4/4. rhythm_base = LCM(48, 4*7=28) = 336.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R
+  Rhythm:  R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8 + R:1/8
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 0

@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: configs/metric_quintuplet_test.json
+Problem: Quintuplet Test
+Description: Tests dynamic tuplet support with quintuplets (N=5) in 4/4 time. rhythm_base must be extended to LCM(48, 4*5=20) = 240 to support 1/20 grid steps.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R → R
+  Rhythm:  R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4 + R:1/4
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 1

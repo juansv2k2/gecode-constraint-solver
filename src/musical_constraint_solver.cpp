@@ -3151,18 +3151,27 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 const bool ignore_tuplets = metric_hierarchy_ignore_tuplets_mode(cfg.parameter_strings);
                 const int grid_step_ticks = parse_metric_hierarchy_grid_step_ticks(config_, ignore_tuplets);
 
+                if (grid_step_ticks == 1) {
+                    std::cout << "⚠️  r-metric-hierarchy (voice " << voice << "): metric grid step is 1 tick — "
+                              << "constraint is trivially true (all durations pass). "
+                              << "Consider using fewer or smaller tuplet values in 'meter.tuplets'.\n";
+                }
+
                 std::vector<int> allowed_ticks;
                 for (int tick : effective_voice_rhythm_domains[voice]) {
                     if (tick == 0) {
                         continue;
                     }
                     if (include_rests) {
+                        // include_rests=true: apply grid to rests and notes via absolute-value check.
                         if ((std::abs(tick) % grid_step_ticks) == 0) {
                             allowed_ticks.push_back(tick);
                         }
                     } else {
-                        // Match the Lisp mode where only durations are constrained and rests are ignored.
-                        if (tick < 0 || (tick % grid_step_ticks) == 0) {
+                        // Default (include_rests=false): apply the same abs-value grid filter to both
+                        // notes and rests so that rest durations are also grid-aligned. This prevents
+                        // degenerate outputs when MIN value selection would always choose a rest over a note.
+                        if ((std::abs(tick) % grid_step_ticks) == 0) {
                             allowed_ticks.push_back(tick);
                         }
                     }

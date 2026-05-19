@@ -1464,6 +1464,46 @@ public:
             for (auto& [n, d] : fracs)
                 base = lcm_helper(base, d);  // d is always positive
 
+        // Step 2.5: extend the LCM to cover any tuplet values declared in the meter section.
+        // For tuplet T in time signature N/D the metric grid step is rhythm_base/(D*T).
+        // For that to be an integer, rhythm_base must be divisible by D*T.
+        // Without this, tuplets whose denominator does not divide the duration-value LCM
+        // are silently ignored by parse_metric_hierarchy_grid_step_ticks.
+        if ((cfg.contains("meter") && cfg["meter"].is_object()) ||
+            (cfg.contains("metric") && cfg["metric"].is_object())) {
+            const auto& meter = cfg.contains("meter") ? cfg["meter"] : cfg["metric"];
+            if (meter.contains("tuplets") && meter["tuplets"].is_array()) {
+                // Collect time-signature denominators from the meter section.
+                std::vector<int> ts_denoms;
+                if (meter.contains("time_signatures") && meter["time_signatures"].is_array()) {
+                    for (const auto& ts_val : meter["time_signatures"]) {
+                        try { ts_denoms.push_back(parse_time_signature_value(ts_val, "meter").second); }
+                        catch (...) {}
+                    }
+                } else if (meter.contains("time_signature")) {
+                    const auto& ts = meter["time_signature"];
+                    try {
+                        if (ts.is_array()) {
+                            for (const auto& tsv : ts)
+                                ts_denoms.push_back(parse_time_signature_value(tsv, "meter").second);
+                        } else {
+                            ts_denoms.push_back(parse_time_signature_value(ts, "meter").second);
+                        }
+                    } catch (...) {}
+                } else if (meter.contains("denominator") && meter["denominator"].is_number_integer()) {
+                    ts_denoms.push_back(meter["denominator"].get<int>());
+                }
+                if (ts_denoms.empty()) ts_denoms.push_back(4);  // default 4/4
+                for (const auto& tv : meter["tuplets"]) {
+                    if (!tv.is_number_integer()) continue;
+                    const int t = tv.get<int>();
+                    if (t <= 1) continue;
+                    for (int den : ts_denoms)
+                        if (den > 0) base = lcm_helper(base, den * t);
+                }
+            }
+        }
+
         rhythm_base_ = base;  // stored for display
 
         // Step 3: convert each fraction to ticks = base * numerator / denominator.
