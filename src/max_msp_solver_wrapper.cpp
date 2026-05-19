@@ -1771,6 +1771,56 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             if (oo.contains("export_midi")) export_midi_ = json_value_to_bool_with_default(oo["export_midi"], false);
         }
 
+        // Expand and reorder voices array using global_domain before normalization.
+        // Entries with an explicit "voice": N key are placed at position N regardless of
+        // their position in the source array. Remaining entries fill slots in order.
+        // Missing rhythm/pitch keys fall back to global_domain for every voice.
+        if (cfg.contains("global_domain") && cfg["global_domain"].is_object()) {
+            const auto& gd = cfg["global_domain"];
+
+            // Build resolved[v] = canonical entry for each voice index.
+            std::vector<nlohmann::json> resolved(sc.num_voices, nlohmann::json::object());
+            std::vector<bool> claimed(sc.num_voices, false);
+
+            if (cfg.contains("voices") && cfg["voices"].is_array()) {
+                // First pass: place explicitly-keyed entries.
+                for (const auto& entry : cfg["voices"]) {
+                    if (!entry.is_object()) continue;
+                    if (entry.contains("voice") && entry["voice"].is_number_integer()) {
+                        int idx = entry["voice"].get<int>();
+                        if (idx >= 0 && idx < sc.num_voices) {
+                            resolved[idx] = entry;
+                            claimed[idx] = true;
+                        }
+                    }
+                }
+                // Second pass: positional entries fill remaining unclaimed slots.
+                int next_slot = 0;
+                for (const auto& entry : cfg["voices"]) {
+                    if (!entry.is_object()) continue;
+                    if (entry.contains("voice") && entry["voice"].is_number_integer()) continue;
+                    while (next_slot < sc.num_voices && claimed[next_slot]) ++next_slot;
+                    if (next_slot < sc.num_voices) {
+                        resolved[next_slot] = entry;
+                        claimed[next_slot] = true;
+                        ++next_slot;
+                    }
+                }
+            }
+
+            // Apply global_domain fallback and rebuild cfg["voices"] as a clean positional array.
+            cfg["voices"] = nlohmann::json::array();
+            for (int v = 0; v < sc.num_voices; ++v) {
+                auto voice = resolved[v];
+                if (!voice.contains("rhythm") && gd.contains("rhythm"))
+                    voice["rhythm"] = gd["rhythm"];
+                if (!voice.contains("pitch") && gd.contains("pitch"))
+                    voice["pitch"] = gd["pitch"];
+                voice.erase("voice");  // positional now — remove key to avoid normalization conflict
+                cfg["voices"].push_back(std::move(voice));
+            }
+        }
+
         if (cfg.contains("voices")) {
             nlohmann::json mapped;
             int normalized_voice_count = 0;

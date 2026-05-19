@@ -1126,72 +1126,67 @@ public:
             throw std::runtime_error(
                 "'engine_domains' is deprecated in CLI configs. Use top-level 'voices' with per-voice pitch/rhythm domains.");
         }
+        const bool has_global_pitch = cfg.contains("global_domain") &&
+                                      cfg["global_domain"].is_object() &&
+                                      cfg["global_domain"].contains("pitch");
         if (!cfg.contains("voices") || (!cfg["voices"].is_array() && !cfg["voices"].is_object())) {
-            throw std::runtime_error("Config is missing required 'voices' section");
+            if (!has_global_pitch)
+                throw std::runtime_error(
+                    "Config must have a 'voices' section or a 'global_domain.pitch' fallback");
         }
 
-        if (cfg["voices"].is_array()) {
-            const auto& voices = cfg["voices"];
-            if (static_cast<int>(voices.size()) != num_voices_) {
-                throw std::runtime_error("'num_voices' must match voices array length");
-            }
-            for (size_t v = 0; v < voices.size(); ++v) {
-                const auto& voice = voices[v];
-                if (!voice.is_object()) {
-                    throw std::runtime_error("voices[" + std::to_string(v) + "] must be an object");
+        // Returns a reference to the voice-node that contains "pitch" for voice v.
+        // Priority: explicit "voice": v key > positional arr[v] > global_domain.
+        auto resolve_pitch_node = [&](int v) -> const nlohmann::json& {
+            if (cfg.contains("voices") && cfg["voices"].is_array()) {
+                const auto& arr = cfg["voices"];
+                // Explicit "voice": v key — scan the whole array.
+                for (const auto& e : arr)
+                    if (e.is_object() && e.contains("voice") &&
+                        e["voice"].is_number_integer() && e["voice"].get<int>() == v &&
+                        e.contains("pitch"))
+                        return e;
+                // Positional fallback (only when no conflicting "voice" key).
+                if (v < (int)arr.size() && arr[v].is_object() && arr[v].contains("pitch")) {
+                    const auto& e = arr[v];
+                    if (!e.contains("voice") || e["voice"].get<int>() == v)
+                        return e;
                 }
-                if (!voice.contains("pitch")) {
-                    throw std::runtime_error("voices[" + std::to_string(v) + "] is missing 'pitch'");
-                }
-                const auto& pitch = voice["pitch"];
-                const auto* midi_values = static_cast<const nlohmann::json*>(nullptr);
-                if (pitch.is_object() && pitch.contains("midi_values") && pitch["midi_values"].is_array()) {
-                    midi_values = &pitch["midi_values"];
-                } else if (pitch.is_array()) {
-                    midi_values = &pitch;
-                }
-                if (!midi_values) {
-                    throw std::runtime_error("voices[" + std::to_string(v) + "].pitch must contain 'midi_values' array");
-                }
-                for (const auto& pv : *midi_values) {
-                    if (!pv.is_number_integer()) {
-                        throw std::runtime_error("voices[" + std::to_string(v) + "].pitch.midi_values entries must be integers");
-                    }
-                    result[v].push_back(pv.get<int>());
-                }
-                std::sort(result[v].begin(), result[v].end());
-                result[v].erase(std::unique(result[v].begin(), result[v].end()), result[v].end());
-            }
-        } else {
-            const auto& voices = cfg["voices"];
-            for (int v = 0; v < num_voices_; ++v) {
+            } else if (cfg.contains("voices") && cfg["voices"].is_object()) {
                 const std::string key = std::to_string(v);
-                if (!voices.contains(key) || !voices[key].is_object()) {
-                    throw std::runtime_error("voices object must contain contiguous numeric keys 0..num_voices-1");
-                }
-                const auto& voice = voices[key];
-                if (!voice.contains("pitch")) {
-                    throw std::runtime_error("voices['" + key + "'] is missing 'pitch'");
-                }
-                const auto& pitch = voice["pitch"];
-                const auto* midi_values = static_cast<const nlohmann::json*>(nullptr);
-                if (pitch.is_object() && pitch.contains("midi_values") && pitch["midi_values"].is_array()) {
-                    midi_values = &pitch["midi_values"];
-                } else if (pitch.is_array()) {
-                    midi_values = &pitch;
-                }
-                if (!midi_values) {
-                    throw std::runtime_error("voices['" + key + "'].pitch must contain 'midi_values' array");
-                }
-                for (const auto& pv : *midi_values) {
-                    if (!pv.is_number_integer()) {
-                        throw std::runtime_error("voices['" + key + "'].pitch.midi_values entries must be integers");
-                    }
-                    result[v].push_back(pv.get<int>());
-                }
-                std::sort(result[v].begin(), result[v].end());
-                result[v].erase(std::unique(result[v].begin(), result[v].end()), result[v].end());
+                if (cfg["voices"].contains(key) && cfg["voices"][key].is_object() &&
+                    cfg["voices"][key].contains("pitch"))
+                    return cfg["voices"][key];
             }
+            if (has_global_pitch)
+                return cfg["global_domain"];
+            throw std::runtime_error(
+                "voices[" + std::to_string(v) +
+                "] is missing 'pitch' and no 'global_domain.pitch' is defined");
+        };
+
+        for (int v = 0; v < num_voices_; ++v) {
+            const auto& voice = resolve_pitch_node(v);
+            const auto& pitch = voice["pitch"];
+            const auto* midi_values = static_cast<const nlohmann::json*>(nullptr);
+            if (pitch.is_object() && pitch.contains("midi_values") && pitch["midi_values"].is_array()) {
+                midi_values = &pitch["midi_values"];
+            } else if (pitch.is_array()) {
+                midi_values = &pitch;
+            }
+            if (!midi_values) {
+                throw std::runtime_error(
+                    "voices[" + std::to_string(v) + "].pitch must contain 'midi_values' array");
+            }
+            for (const auto& pv : *midi_values) {
+                if (!pv.is_number_integer()) {
+                    throw std::runtime_error(
+                        "voices[" + std::to_string(v) + "].pitch.midi_values entries must be integers");
+                }
+                result[v].push_back(pv.get<int>());
+            }
+            std::sort(result[v].begin(), result[v].end());
+            result[v].erase(std::unique(result[v].begin(), result[v].end()), result[v].end());
         }
 
         for (int v = 0; v < num_voices_; ++v) {
@@ -1389,8 +1384,13 @@ public:
             throw std::runtime_error(
                 "'engine_domains' is deprecated in CLI configs. Use top-level 'voices' with per-voice pitch/rhythm domains.");
         }
+        const bool has_global_rhythm = cfg.contains("global_domain") &&
+                                       cfg["global_domain"].is_object() &&
+                                       cfg["global_domain"].contains("rhythm");
         if (!cfg.contains("voices") || (!cfg["voices"].is_array() && !cfg["voices"].is_object())) {
-            throw std::runtime_error("Config is missing required 'voices' section");
+            if (!has_global_rhythm)
+                throw std::runtime_error(
+                    "Config must have a 'voices' section or a 'global_domain.rhythm' fallback");
         }
 
         auto read_voice_rhythm = [&](int voice, const nlohmann::json& voice_node, const std::string& ctx) {
@@ -1429,23 +1429,38 @@ public:
             raw_per_voice[voice] = std::move(raw_fractions);
         };
 
-        if (cfg["voices"].is_array()) {
-            const auto& voices = cfg["voices"];
-            if (static_cast<int>(voices.size()) != num_voices_) {
-                throw std::runtime_error("'num_voices' must match voices array length");
-            }
-            for (int v = 0; v < num_voices_; ++v) {
-                read_voice_rhythm(v, voices[v], "voices[" + std::to_string(v) + "]");
-            }
-        } else {
-            const auto& voices = cfg["voices"];
-            for (int v = 0; v < num_voices_; ++v) {
-                const std::string key = std::to_string(v);
-                if (!voices.contains(key)) {
-                    throw std::runtime_error("voices object must contain contiguous numeric keys 0..num_voices-1");
+        // Returns a reference to the voice-node that contains "rhythm" for voice v.
+        // Priority: explicit "voice": v key > positional arr[v] > global_domain.
+        auto resolve_rhythm_node = [&](int v) -> const nlohmann::json& {
+            if (cfg.contains("voices") && cfg["voices"].is_array()) {
+                const auto& arr = cfg["voices"];
+                // Explicit "voice": v key — scan the whole array.
+                for (const auto& e : arr)
+                    if (e.is_object() && e.contains("voice") &&
+                        e["voice"].is_number_integer() && e["voice"].get<int>() == v &&
+                        e.contains("rhythm"))
+                        return e;
+                // Positional fallback (only when no conflicting "voice" key).
+                if (v < (int)arr.size() && arr[v].is_object() && arr[v].contains("rhythm")) {
+                    const auto& e = arr[v];
+                    if (!e.contains("voice") || e["voice"].get<int>() == v)
+                        return e;
                 }
-                read_voice_rhythm(v, voices[key], "voices['" + key + "']");
+            } else if (cfg.contains("voices") && cfg["voices"].is_object()) {
+                const std::string key = std::to_string(v);
+                if (cfg["voices"].contains(key) && cfg["voices"][key].is_object() &&
+                    cfg["voices"][key].contains("rhythm"))
+                    return cfg["voices"][key];
             }
+            if (has_global_rhythm)
+                return cfg["global_domain"];
+            throw std::runtime_error(
+                "voices[" + std::to_string(v) +
+                "] is missing 'rhythm' and no 'global_domain.rhythm' is defined");
+        };
+
+        for (int v = 0; v < num_voices_; ++v) {
+            read_voice_rhythm(v, resolve_rhythm_node(v), "voices[" + std::to_string(v) + "]");
         }
 
         // Check every voice has a rhythm domain.

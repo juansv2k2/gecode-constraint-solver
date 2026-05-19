@@ -13,6 +13,7 @@ Polyphonic musical constraint solving in C++17 on top of Gecode, with dynamic ex
 - `rhythm_base` is automatically extended to cover all tuplet denominators declared in `meter.tuplets`, so tuplet-aligned duration values (e.g. `"1/10"`, `"1/20"` for quintuplets in 4/4) work without manual configuration.
 - `r-metric-hierarchy` DURATIONS_GRID mode now applies the grid filter to rest durations as well as note durations; previously rests always bypassed the filter. A warning is emitted when the combination of tuplet values produces a 1-tick (trivially fine) grid step.
 - Rhythm variable branching uses absolute-value minimum by default: the solver picks the shortest duration first (notes preferred over same-length rests) rather than the most negative value (longest rest). `value_order: "random"` is unchanged.
+- `global_domain` is an optional top-level key that defines shared pitch and/or rhythm domains used as a fallback for any voice that does not declare its own. The `voices` array can be shorter than `num_voices` (or omitted entirely) when `global_domain` fully covers the remaining voices. Per-voice entries can override only `pitch`, only `rhythm`, or both; the other component falls back to `global_domain`. Use the optional `"voice": N` key inside a voice entry to target a specific voice index non-positionally.
 
 ## Front Ends
 

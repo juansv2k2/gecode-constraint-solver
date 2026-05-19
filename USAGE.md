@@ -120,6 +120,53 @@ Voices define the pitch and rhythm domains for each voice.
 - Each voice can have any subset of the MIDI range
 - Used to constrain variable domains during search
 
+### 3.1 `global_domain` — shared fallback domain
+
+When multiple voices share the same pitch or rhythm domain, repeating the full definition for each voice is tedious. `global_domain` is an optional top-level key that defines a shared domain used as a fallback for any voice that does not declare its own.
+
+```json
+{
+  "num_voices": 8,
+  "global_domain": {
+    "rhythm": { "duration_values": ["1/4", "1/8", "-1/4", "-1/8"] },
+    "pitch":  { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
+  }
+}
+```
+
+All 8 voices inherit both rhythm and pitch from `global_domain`. The `voices` array can be omitted entirely when no per-voice overrides are needed.
+
+**Per-voice overrides** — the `voices` array can be shorter than `num_voices`. Any voice index not represented falls back to `global_domain`. A voice entry can override just one component; the other still comes from `global_domain`:
+
+```json
+"voices": [
+  { "pitch": { "midi_values": [48, 50, 52, 53, 55] } }
+]
+```
+
+Voice 0 uses its own pitch but inherits rhythm. Voices 1–7 use both components from `global_domain`.
+
+**Non-positional targeting with `"voice": N`** — by default, entries are assigned positionally (first entry = voice 0, second = voice 1, …). Use the `"voice"` key to target a specific voice index without padding:
+
+```json
+"voices": [
+  { "voice": 0, "pitch": { "midi_values": [48, 50, 52, 53, 55] } },
+  { "voice": 7, "pitch": { "midi_values": [84, 86, 88, 89, 91] } }
+]
+```
+
+Voices 1–6 are not listed and fall back to `global_domain`. The entries can appear in any order in the array.
+
+**Resolution priority** (highest to lowest):
+
+| Level | Source |
+|---|---|
+| 1 | Voice entry with matching `"voice": N` key |
+| 2 | Voice entry at position N (no `"voice"` key) |
+| 3 | `global_domain` |
+
+Both `rhythm` and `pitch` are resolved independently — a voice entry that specifies only one component falls back to `global_domain` for the other.
+
 ## 4. Meter Configuration
 
 ```json
