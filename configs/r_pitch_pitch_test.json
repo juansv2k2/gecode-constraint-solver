@@ -127,7 +127,17 @@
 
   "search_options": {
     "engine": "dfs",
-    "random_seed": 42,
-    "solutions": 3
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "value_order": "random",
+    "solutions": 1
+  },
+  "output_options": {
+    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+    "export_filename": "r_pitch_pitch_test_1",
+    "export_xml": 1,
+    "export_png": 0,
+    "export_midi": 0,
+    "show_statistics": 1
   }
 }
