@@ -1,0 +1,29 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: configs/r_rhythm_rhythm_test.json
+Problem: r-rhythm-rhythm constraint tests
+Description: Tests all six r-rhythm-rhythm constraint modes across four voice pairs
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: R → R → G4 → G4
+  Rhythm:  R:1/4 + R:1/8 + 1/4 + 1/8
+
+Voice 1:
+  Pitches: R → R → C5 → B4
+  Rhythm:  R:1/4 + R:1/8 + 1/4 + 1/8
+
+Voice 2:
+  Pitches: A3 → G3 → A3 → A3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 3:
+  Pitches: F3 → D3 → E3 → E3
+  Rhythm:  1/8 + 1/8 + 1/8 + 1/8
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 3

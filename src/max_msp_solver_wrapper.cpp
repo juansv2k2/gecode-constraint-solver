@@ -883,6 +883,9 @@ void normalize_rule_targeting(nlohmann::json& rule, int num_voices) {
     if (target_component.empty() && rule_type == "r-metric-hierarchy") {
         target_component = "rhythm";
     }
+    if (target_component.empty() && rule_type == "r-rhythm-rhythm") {
+        target_component = "rhythm";
+    }
     if (target_component.empty()) {
         target_component = "pitch";
     }
@@ -2520,6 +2523,130 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         };
 
                         solver_.apply_compiled_constraint(std::move(compiled));
+                    } else if (rule_type == "r-rhythm-rhythm") {
+                        // ── R-RHYTHM-RHYTHM ──────────────────────────────────────────
+                        // Position-aligned cross-voice rhythm constraint.
+                        // Modes: "isorhythm", "abs_isorhythm", "augmentation",
+                        //        "diminution", "no_simultaneous_rests", "rest_complement"
+                        std::vector<int> rr_voices;
+                        if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array())
+                            for (const auto& v : rule_json["target_voices"])
+                                if (v.is_number_integer()) rr_voices.push_back(v.get<int>());
+                        if (rr_voices.size() != 2)
+                            throw std::runtime_error(
+                                "r-rhythm-rhythm '" + rule_json.value("id", "") + "' requires exactly 2 target_voices");
+
+                        const int rr_v1   = rr_voices[0];
+                        const int rr_v2   = rr_voices[1];
+                        const std::string rr_mode = rule_json.value("constraint", "isorhythm");
+                        const std::string rr_id   = rule_json.value(
+                            "id", "rr_v" + std::to_string(rr_v1) + "_v" + std::to_string(rr_v2));
+
+                        // Parse ratio as rational num/den to support floats (e.g. 0.5 = 1/2, 1.5 = 3/2)
+                        int rr_ratio_num = 2;
+                        int rr_ratio_den = 1;
+                        if (rule_json.contains("parameters") && rule_json["parameters"].is_array() &&
+                                !rule_json["parameters"].empty()) {
+                            const auto& p0 = rule_json["parameters"][0];
+                            if (p0.is_number()) {
+                                double ratio_d = p0.get<double>();
+                                int best_den = 1;
+                                for (int d = 1; d <= 64; ++d) {
+                                    double scaled = ratio_d * d;
+                                    if (std::abs(scaled - std::round(scaled)) < 1e-9) { best_den = d; break; }
+                                }
+                                rr_ratio_num = std::max(1, static_cast<int>(std::round(ratio_d * best_den)));
+                                rr_ratio_den = best_den;
+                            }
+                        }
+
+                        std::vector<int> rr_indices;
+                        if (rule_json.contains("indices") && rule_json["indices"].is_array())
+                            for (const auto& idx : rule_json["indices"])
+                                if (idx.is_number_integer()) rr_indices.push_back(idx.get<int>());
+
+                        auto compiled_rr = std::make_unique<DynamicRules::CompiledConstraint>(
+                            rr_id, "r-rhythm-rhythm: " + rr_mode +
+                                   " (voices " + std::to_string(rr_v1) + "," + std::to_string(rr_v2) + ")");
+
+                        compiled_rr->post_constraint = [rr_v1, rr_v2, rr_mode, rr_ratio_num, rr_ratio_den, rr_indices, rr_id]
+                                (DynamicRules::ConstraintContext& ctx) {
+                            if (!ctx.rhythm_vars) return;
+                            if (rr_v1 < 0 || rr_v1 >= ctx.num_voices ||
+                                rr_v2 < 0 || rr_v2 >= ctx.num_voices)
+                                throw std::runtime_error(
+                                    "r-rhythm-rhythm '" + rr_id + "': voice out of range");
+
+                            std::vector<int> indices = rr_indices;
+                            if (indices.empty())
+                                for (int i = 0; i < ctx.sequence_length; ++i) indices.push_back(i);
+
+                            for (int i : indices) {
+                                if (i < 0 || i >= ctx.sequence_length) continue;
+                                const int idx1 = rr_v1 * ctx.sequence_length + i;
+                                const int idx2 = rr_v2 * ctx.sequence_length + i;
+                                if (idx1 >= (int)ctx.rhythm_vars->size() ||
+                                    idx2 >= (int)ctx.rhythm_vars->size()) continue;
+
+                                Gecode::IntVar r1 = (*ctx.rhythm_vars)[idx1];
+                                Gecode::IntVar r2 = (*ctx.rhythm_vars)[idx2];
+
+                                if (rr_mode == "isorhythm") {
+                                    Gecode::rel(*ctx.space, r1, Gecode::IRT_EQ, r2);
+                                } else if (rr_mode == "abs_isorhythm") {
+                                    Gecode::IntVar a1 = Gecode::expr(*ctx.space, Gecode::abs(r1));
+                                    Gecode::IntVar a2 = Gecode::expr(*ctx.space, Gecode::abs(r2));
+                                    Gecode::rel(*ctx.space, a1, Gecode::IRT_EQ, a2);
+                                } else if (rr_mode == "augmentation") {
+                                    // Sign must match: both note (>=0) or both rest (<0)
+                                    Gecode::BoolVar s1(*ctx.space, 0, 1);
+                                    Gecode::BoolVar s2(*ctx.space, 0, 1);
+                                    Gecode::rel(*ctx.space, r1, Gecode::IRT_GQ, 0, s1);
+                                    Gecode::rel(*ctx.space, r2, Gecode::IRT_GQ, 0, s2);
+                                    Gecode::rel(*ctx.space, s1, Gecode::IRT_EQ, s2);
+                                    // Duration ratio: den * |r1| == num * |r2|
+                                    Gecode::IntVar a1 = Gecode::expr(*ctx.space, Gecode::abs(r1));
+                                    Gecode::IntVar a2 = Gecode::expr(*ctx.space, Gecode::abs(r2));
+                                    Gecode::rel(*ctx.space,
+                                        Gecode::expr(*ctx.space, rr_ratio_den * a1),
+                                        Gecode::IRT_EQ,
+                                        Gecode::expr(*ctx.space, rr_ratio_num * a2));
+                                } else if (rr_mode == "diminution") {
+                                    // Sign must match
+                                    Gecode::BoolVar s1(*ctx.space, 0, 1);
+                                    Gecode::BoolVar s2(*ctx.space, 0, 1);
+                                    Gecode::rel(*ctx.space, r1, Gecode::IRT_GQ, 0, s1);
+                                    Gecode::rel(*ctx.space, r2, Gecode::IRT_GQ, 0, s2);
+                                    Gecode::rel(*ctx.space, s1, Gecode::IRT_EQ, s2);
+                                    // Duration ratio: num * |r1| == den * |r2|
+                                    Gecode::IntVar a1 = Gecode::expr(*ctx.space, Gecode::abs(r1));
+                                    Gecode::IntVar a2 = Gecode::expr(*ctx.space, Gecode::abs(r2));
+                                    Gecode::rel(*ctx.space,
+                                        Gecode::expr(*ctx.space, rr_ratio_num * a1),
+                                        Gecode::IRT_EQ,
+                                        Gecode::expr(*ctx.space, rr_ratio_den * a2));
+                                } else if (rr_mode == "no_simultaneous_rests") {
+                                    Gecode::BoolVar b1(*ctx.space, 0, 1);
+                                    Gecode::BoolVar b2(*ctx.space, 0, 1);
+                                    Gecode::rel(*ctx.space, r1, Gecode::IRT_GQ, 0, b1);
+                                    Gecode::rel(*ctx.space, r2, Gecode::IRT_GQ, 0, b2);
+                                    Gecode::rel(*ctx.space, b1, Gecode::BOT_OR, b2, 1);
+                                } else if (rr_mode == "rest_complement") {
+                                    Gecode::BoolVar b1(*ctx.space, 0, 1);
+                                    Gecode::BoolVar b2(*ctx.space, 0, 1);
+                                    Gecode::rel(*ctx.space, r1, Gecode::IRT_GQ, 0, b1);
+                                    Gecode::rel(*ctx.space, r2, Gecode::IRT_GQ, 0, b2);
+                                    Gecode::rel(*ctx.space, b1, Gecode::IRT_NQ, b2);
+                                } else {
+                                    throw std::runtime_error(
+                                        "r-rhythm-rhythm '" + rr_id +
+                                        "': unknown constraint mode '" + rr_mode + "'");
+                                }
+                            }
+                        };
+
+                        solver_.apply_compiled_constraint(std::move(compiled_rr));
+                        // ─────────────────────────────────────────────────────────────
                     } else if (rule_json.contains("id") && rule_json.contains("expression")) {
                         std::vector<nlohmann::json> single_rule = {rule_json};
                         solver_.load_dynamic_rules(single_rule);

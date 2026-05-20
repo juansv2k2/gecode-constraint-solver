@@ -320,6 +320,118 @@ Apply the same rule to multiple voices at once:
 }
 ```
 
+### 5.3a Cross-Voice Rhythm Rules (`r-rhythm-rhythm`)
+
+`r-rhythm-rhythm` posts position-aligned constraints between exactly two voices' rhythm variables. It is **automatically targeted to rhythm engines** — do not add `target_component`.
+
+`target_voices` must contain exactly two voice indices.
+
+**Isorhythm — identical values including note/rest sign:**
+
+```json
+{
+  "id": "homorhythm_v0_v1",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "isorhythm",
+  "target_voices": [0, 1]
+}
+```
+
+**Absolute isorhythm — same durations, note/rest status independent:**
+
+```json
+{
+  "id": "abs_iso_v0_v1",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "abs_isorhythm",
+  "target_voices": [0, 1]
+}
+```
+
+**Augmentation — v0 durations are `ratio`× longer than v1, note/rest status must match:**
+
+```json
+{
+  "id": "augment_2x",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "augmentation",
+  "parameters": [2],
+  "target_voices": [0, 1]
+}
+```
+
+The ratio can be a float. `0.5` means v0 durations are half as long as v1:
+
+```json
+{
+  "id": "diminish_half",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "augmentation",
+  "parameters": [0.5],
+  "target_voices": [0, 1]
+}
+```
+
+**Diminution — v0 durations are `ratio`× shorter than v1, note/rest status must match:**
+
+```json
+{
+  "id": "diminish_2x",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "diminution",
+  "parameters": [2],
+  "target_voices": [0, 1]
+}
+```
+
+**No simultaneous rests — at least one voice is active per position:**
+
+```json
+{
+  "id": "no_sim_rests",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "no_simultaneous_rests",
+  "target_voices": [0, 1]
+}
+```
+
+**Rest complement — exactly one voice rests per position:**
+
+```json
+{
+  "id": "rest_complement_v0_v1",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "rest_complement",
+  "target_voices": [0, 1]
+}
+```
+
+Use `"indices"` to restrict the constraint to specific sequence positions:
+
+```json
+{
+  "id": "augment_first_4",
+  "rule_type": "r-rhythm-rhythm",
+  "constraint": "augmentation",
+  "parameters": [2],
+  "indices": [0, 1, 2, 3],
+  "target_voices": [0, 1]
+}
+```
+
+> **Note on sign-matching:** `augmentation` and `diminution` compare absolute durations **and** require both positions to have the same note/rest status. A note in v0 can only be matched with a note in v1, and a rest with a rest. Use `abs_isorhythm` if you want to constrain duration ratios without tying note/rest status.
+
+> **Float ratios:** `parameters` accepts integers or floats. Common musical ratios are recognised exactly: `0.5` (1:2), `0.333…` (1:3), `1.5` (3:2), `0.75` (3:4), etc. The solver converts them internally to integer fractions (denominator ≤ 64).
+
+| `constraint`            | Description                                       | `parameters`                        |
+| ----------------------- | ------------------------------------------------- | ----------------------------------- |
+| `isorhythm`             | Identical rhythm values (note/rest sign included) | —                                   |
+| `abs_isorhythm`         | Same durations; note/rest status independent      | —                                   |
+| `augmentation`          | v0 is ratio× longer than v1; signs must match     | `[ratio]` (int or float, default 2) |
+| `diminution`            | v0 is ratio× shorter than v1; signs must match    | `[ratio]` (int or float, default 2) |
+| `no_simultaneous_rests` | At least one voice is active per position         | —                                   |
+| `rest_complement`       | Exactly one voice rests per position              | —                                   |
+
 ### 5.4 Metric Hierarchy Rules (`r-metric-hierarchy`)
 
 `r-metric-hierarchy` constrains rhythm values relative to the beat grid defined in `meter`. It is **automatically targeted to rhythm engines** — do not add `target_component` or `engine_type`.
@@ -510,24 +622,24 @@ The shorthand `"constraint": "..."` expands to:
 
 ### 5.7 Common Rule Parameters
 
-| Parameter                  | Type   | Description                                                                                          |
-| -------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| `rule_type`                | string | `r-one-voice`, `r-uniformity`, `r-metric-hierarchy`, `r-time-signature`, `r-palindrome-voice2`, etc. |
-| `constraint`               | string | Built-in function: `all_different`, `equal_values`, `palindrome_of_engine`, `min_grid`, etc.         |
-| `parameters`               | array  | Constraint parameters (rhythm values, time signatures, engine indices)                               |
-| `target_voices`            | array  | Multiple voices: `[0, 1]`                                                                            |
-| `target_component`         | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                                 |
-| `indices`                  | array  | Positions in sequence — omit to apply to all                                                         |
-| `timepoints`               | array  | Quarter-note positions for metric rules: `["0q", "4q"]`                                              |
-| `bar_pattern_type`         | string | Metric pattern mode: `fixed`, `repeating`, `random`, `weighted`                                      |
-| `bar_pattern`              | array  | Time-signature list for bar-oriented metric rules                                                    |
-| `bar_pattern_count`        | int    | Number of generated bars for `random`/`weighted`                                                     |
-| `bar_pattern_repetitions`  | int    | Explicit repetition count for `repeating`                                                            |
-| `bar_pattern_distribution` | object | Weights for `weighted` mode (signature -> probability)                                               |
-| `allow_cross_barline`      | bool   | For `r-time-signature` bar patterns: allow duration carry over barlines                              |
-| `enabled`                  | bool   | Enable/disable rule (default: `true`)                                                                |
-| `priority`                 | int    | Rule priority (higher = tried first)                                                                 |
-| `description`              | string | Human-readable label                                                                                 |
+| Parameter                  | Type   | Description                                                                                                               |
+| -------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `rule_type`                | string | `r-one-voice`, `r-uniformity`, `r-metric-hierarchy`, `r-time-signature`, `r-rhythm-rhythm`, `r-palindrome-voice2`, etc.   |
+| `constraint`               | string | Built-in function: `all_different`, `equal_values`, `palindrome_of_engine`, `min_grid`, `isorhythm`, `augmentation`, etc. |
+| `parameters`               | array  | Constraint parameters (rhythm values, time signatures, engine indices)                                                    |
+| `target_voices`            | array  | Multiple voices: `[0, 1]`                                                                                                 |
+| `target_component`         | string | `"pitch"`, `"rhythm"`, or `"metric"`                                                                                      |
+| `indices`                  | array  | Positions in sequence — omit to apply to all                                                                              |
+| `timepoints`               | array  | Quarter-note positions for metric rules: `["0q", "4q"]`                                                                   |
+| `bar_pattern_type`         | string | Metric pattern mode: `fixed`, `repeating`, `random`, `weighted`                                                           |
+| `bar_pattern`              | array  | Time-signature list for bar-oriented metric rules                                                                         |
+| `bar_pattern_count`        | int    | Number of generated bars for `random`/`weighted`                                                                          |
+| `bar_pattern_repetitions`  | int    | Explicit repetition count for `repeating`                                                                                 |
+| `bar_pattern_distribution` | object | Weights for `weighted` mode (signature -> probability)                                                                    |
+| `allow_cross_barline`      | bool   | For `r-time-signature` bar patterns: allow duration carry over barlines                                                   |
+| `enabled`                  | bool   | Enable/disable rule (default: `true`)                                                                                     |
+| `priority`                 | int    | Rule priority (higher = tried first)                                                                                      |
+| `description`              | string | Human-readable label                                                                                                      |
 
 > **Compatibility:** Legacy aliases `target_voice` and `voice` are auto-normalized. Always use `target_voices` in new configs.
 
@@ -853,25 +965,25 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 
 ### Rule Object
 
-| Field                      | Type   | Description                                                                                                                                                                                                           |
-| -------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rule_type`                | string | `r-one-voice`, `r-uniformity`, `r-metric-hierarchy`, `r-time-signature`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion` |
-| `constraint`               | string | Shorthand: `all_different`, `equal_values`, `palindrome_of_engine`, `no_unisons_between_engines`, `consecutive_perfect_fifths`, `retrograde_inversion_relationship`                                                   |
-| `parameters`               | array  | Constraint-specific params                                                                                                                                                                                            |
-| `target_voices`            | array  | Multiple voices `[0, 1]`                                                                                                                                                                                              |
-| `target_component`         | string | `"pitch"`, `"rhythm"`, `"metric"`                                                                                                                                                                                     |
-| `indices`                  | array  | Positions — omit to apply to all                                                                                                                                                                                      |
-| `timepoints`               | array  | Quarter-note positions for metric changes                                                                                                                                                                             |
-| `bar_pattern_type`         | string | `fixed`, `repeating`, `random`, or `weighted`                                                                                                                                                                         |
-| `bar_pattern`              | array  | Time-signature list, e.g. `["4/4", "3/4"]`                                                                                                                                                                            |
-| `bar_pattern_count`        | int    | Number of bars generated in `random`/`weighted` modes                                                                                                                                                                 |
-| `bar_pattern_repetitions`  | int    | Repetition count in `repeating` mode                                                                                                                                                                                  |
-| `bar_pattern_distribution` | object | Weighted probabilities per signature in `weighted` mode                                                                                                                                                               |
-| `allow_cross_barline`      | bool   | Allow duration carry across barlines for bar-pattern metric rules                                                                                                                                                     |
-| `enabled`                  | bool   | On/off (default `true`)                                                                                                                                                                                               |
-| `priority`                 | int    | Higher = tried first                                                                                                                                                                                                  |
-| `id`                       | string | Optional label                                                                                                                                                                                                        |
-| `description`              | string | Optional documentation                                                                                                                                                                                                |
+| Field                      | Type   | Description                                                                                                                                                                                                                              |
+| -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rule_type`                | string | `r-one-voice`, `r-uniformity`, `r-metric-hierarchy`, `r-time-signature`, `r-rhythm-rhythm`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion` |
+| `constraint`               | string | Shorthand: `all_different`, `equal_values`, `palindrome_of_engine`, `no_unisons_between_engines`, `consecutive_perfect_fifths`, `retrograde_inversion_relationship`                                                                      |
+| `parameters`               | array  | Constraint-specific params                                                                                                                                                                                                               |
+| `target_voices`            | array  | Multiple voices `[0, 1]`                                                                                                                                                                                                                 |
+| `target_component`         | string | `"pitch"`, `"rhythm"`, `"metric"`                                                                                                                                                                                                        |
+| `indices`                  | array  | Positions — omit to apply to all                                                                                                                                                                                                         |
+| `timepoints`               | array  | Quarter-note positions for metric changes                                                                                                                                                                                                |
+| `bar_pattern_type`         | string | `fixed`, `repeating`, `random`, or `weighted`                                                                                                                                                                                            |
+| `bar_pattern`              | array  | Time-signature list, e.g. `["4/4", "3/4"]`                                                                                                                                                                                               |
+| `bar_pattern_count`        | int    | Number of bars generated in `random`/`weighted` modes                                                                                                                                                                                    |
+| `bar_pattern_repetitions`  | int    | Repetition count in `repeating` mode                                                                                                                                                                                                     |
+| `bar_pattern_distribution` | object | Weighted probabilities per signature in `weighted` mode                                                                                                                                                                                  |
+| `allow_cross_barline`      | bool   | Allow duration carry across barlines for bar-pattern metric rules                                                                                                                                                                        |
+| `enabled`                  | bool   | On/off (default `true`)                                                                                                                                                                                                                  |
+| `priority`                 | int    | Higher = tried first                                                                                                                                                                                                                     |
+| `id`                       | string | Optional label                                                                                                                                                                                                                           |
+| `description`              | string | Optional documentation                                                                                                                                                                                                                   |
 
 ### Dynamic Rule Object
 

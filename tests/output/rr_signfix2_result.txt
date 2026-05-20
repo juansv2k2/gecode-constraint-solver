@@ -1,0 +1,29 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/rr_signfix2.json
+Problem: sign-matching and float ratio test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4
+  Rhythm:  1/2 + 1/2 + 1/2 + 1/2
+
+Voice 1:
+  Pitches: D4 → D4 → D4 → D4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 2:
+  Pitches: E4 → E4 → E4 → E4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 3:
+  Pitches: F4 → F4 → F4 → F4
+  Rhythm:  1/2 + 1/2 + 1/2 + 1/2
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 2

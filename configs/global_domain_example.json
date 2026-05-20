@@ -45,7 +45,11 @@
   },
 
   "output_options": {
-    "export_path": "output",
-    "export_xml": true
+    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+    "export_filename": "global_domain_example_1",
+    "export_xml": 1,
+    "export_png": 0,
+    "export_midi": 0,
+    "show_statistics": 1
   }
 }

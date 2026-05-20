@@ -1,0 +1,21 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/rr_rest_mix.json
+Problem: rest sign-matching test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4
+  Rhythm:  1/2 + 1/2 + 1/2 + 1/2
+
+Voice 1:
+  Pitches: D4 → D4 → D4 → D4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 1

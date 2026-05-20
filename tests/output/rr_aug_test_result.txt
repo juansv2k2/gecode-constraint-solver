@@ -1,0 +1,21 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/rr_aug_test.json
+Problem: r-rhythm-rhythm augmentation test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: G4 → G4 → G4 → G4
+  Rhythm:  1/8 + 1/8 + 1/8 + 1/8
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 1
