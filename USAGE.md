@@ -1148,12 +1148,12 @@ Export keys are **top-level** fields in the config — not nested under an `outp
 }
 ```
 
-| Key            | Type    | Default          | Description                                   |
-| -------------- | ------- | ---------------- | --------------------------------------------- |
-| `export_path`  | string  | `"tests/output"` | Output directory path (relative or absolute)  |
-| `export_json`  | boolean | `true`           | Save raw solution data as JSON                |
-| `export_txt`   | boolean | `true`           | Save human-readable text summary              |
-| `export_xml`   | boolean | `false`          | Save as MusicXML (viewable in notation software) |
+| Key           | Type    | Default          | Description                                      |
+| ------------- | ------- | ---------------- | ------------------------------------------------ |
+| `export_path` | string  | `"tests/output"` | Output directory path (relative or absolute)     |
+| `export_json` | boolean | `true`           | Save raw solution data as JSON                   |
+| `export_txt`  | boolean | `true`           | Save human-readable text summary                 |
+| `export_xml`  | boolean | `false`          | Save as MusicXML (viewable in notation software) |
 
 All three formats write to `export_path` using the config `name` as the base filename. If `name` is not set, the solver uses the config filename.
 
@@ -1163,48 +1163,48 @@ All three formats write to `export_path` using the config `name` as the base fil
 
 ### Top-Level
 
-| Field             | Type    | Required | Description                                                   |
-| ----------------- | ------- | -------- | ------------------------------------------------------------- |
-| `solution_length` | int     | ✅       | Notes per voice                                               |
-| `num_voices`      | int     | ✅       | Number of voices                                              |
+| Field             | Type    | Required | Description                                                    |
+| ----------------- | ------- | -------- | -------------------------------------------------------------- |
+| `solution_length` | int     | ✅       | Notes per voice                                                |
+| `num_voices`      | int     | ✅       | Number of voices                                               |
 | `voices`          | array   |          | Voice domain definitions (required unless `global_domain` set) |
-| `global_domain`   | object  |          | Shared fallback pitch/rhythm domain for all voices            |
-| `name`            | string  |          | Config label (used as output filename base)                   |
-| `description`     | string  |          | Human-readable description                                    |
-| `score_length`    | string  |          | e.g. `"8q"` = 8 quarter notes                                 |
-| `meter`           | object  |          | Metric engine configuration                                   |
-| `search_options`  | object  |          | Search strategy                                               |
-| `export_json`     | boolean |          | Save JSON result (default `true`)                             |
-| `export_txt`      | boolean |          | Save text summary (default `true`)                            |
-| `export_xml`      | boolean |          | Save MusicXML (default `false`)                               |
-| `export_path`     | string  |          | Output directory (default `"tests/output"`)                   |
-| `rules`           | array   |          | Built-in constraints (**export keys must precede this**)      |
-| `dynamic_rules`   | array   |          | Expression-based constraints and heuristics                   |
+| `global_domain`   | object  |          | Shared fallback pitch/rhythm domain for all voices             |
+| `name`            | string  |          | Config label (used as output filename base)                    |
+| `description`     | string  |          | Human-readable description                                     |
+| `score_length`    | string  |          | e.g. `"8q"` = 8 quarter notes                                  |
+| `meter`           | object  |          | Metric engine configuration                                    |
+| `search_options`  | object  |          | Search strategy                                                |
+| `export_json`     | boolean |          | Save JSON result (default `true`)                              |
+| `export_txt`      | boolean |          | Save text summary (default `true`)                             |
+| `export_xml`      | boolean |          | Save MusicXML (default `false`)                                |
+| `export_path`     | string  |          | Output directory (default `"tests/output"`)                    |
+| `rules`           | array   |          | Built-in constraints (**export keys must precede this**)       |
+| `dynamic_rules`   | array   |          | Expression-based constraints and heuristics                    |
 
 ### Rule Object
 
-| Field                      | Type    | Description                                                                                                                                                                                                                                    |
-| -------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field                      | Type    | Description                                                                                                                                                                                                                                                                      |
+| -------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `rule_type`                | string  | `r-one-voice`, `r-uniformity`, `r-metric-hierarchy`, `r-time-signature`, `r-rhythm-rhythm`, `r-pitch-pitch`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `wildcard_constraint` |
-| `constraint`               | string  | Shorthand built-in name: `all_different`, `equal_values`, `palindrome_of_engine`, `isorhythm`, `augmentation`, `no_unison`, `voice_above`, `interval_class`, `no_consecutive_fifths`, `contrary_motion`, etc.                                  |
-| `parameters`               | array   | Constraint-specific params (rhythm values, time signatures, semitone counts, ratios)                                                                                                                                                           |
-| `target_voices`            | array   | Voice indices: `[0]` or `[0, 1]`                                                                                                                                                                                                               |
-| `target_component`         | string  | `"pitch"`, `"rhythm"`, or `"metric"` — omit for `r-rhythm-rhythm` / `r-pitch-pitch` (auto-targeted)                                                                                                                                            |
-| `indices`                  | array   | Explicit position list — omit to apply to all positions                                                                                                                                                                                        |
-| `stride`                   | int     | Apply every N positions starting from `offset` (takes precedence over `indices`)                                                                                                                                                               |
-| `offset`                   | int     | Starting position for stride-based application (default `0`)                                                                                                                                                                                   |
-| `heuristic`                | boolean | **`r-pitch-pitch` / `r-rhythm-rhythm` only.** When `true`, converts the rule to a soft preference: values satisfying the rule are tried first, but violations are not rejected. Default `false` (hard constraint).                             |
-| `timepoints`               | array   | Quarter-note positions for metric rules: `["0q", "4q"]`                                                                                                                                                                                        |
-| `bar_pattern_type`         | string  | Metric pattern mode: `fixed`, `repeating`, `random`, `weighted`                                                                                                                                                                                |
-| `bar_pattern`              | array   | Time-signature list, e.g. `["4/4", "3/4"]`                                                                                                                                                                                                    |
-| `bar_pattern_count`        | int     | Number of bars generated in `random`/`weighted` modes                                                                                                                                                                                         |
-| `bar_pattern_repetitions`  | int     | Repetition count in `repeating` mode                                                                                                                                                                                                           |
-| `bar_pattern_distribution` | object  | Weights for `weighted` mode (signature → probability)                                                                                                                                                                                          |
-| `allow_cross_barline`      | boolean | For `r-time-signature` bar patterns: allow duration carry over barlines                                                                                                                                                                        |
-| `enabled`                  | boolean | Enable/disable rule (default `true`). Accepts `true`/`false` and `1`/`0`/`"yes"`/`"on"`.                                                                                                                                                      |
-| `priority`                 | int     | Higher = tried first                                                                                                                                                                                                                           |
-| `id`                       | string  | Optional label                                                                                                                                                                                                                                 |
-| `description`              | string  | Optional documentation                                                                                                                                                                                                                         |
+| `constraint`               | string  | Shorthand built-in name: `all_different`, `equal_values`, `palindrome_of_engine`, `isorhythm`, `augmentation`, `no_unison`, `voice_above`, `interval_class`, `no_consecutive_fifths`, `contrary_motion`, etc.                                                                    |
+| `parameters`               | array   | Constraint-specific params (rhythm values, time signatures, semitone counts, ratios)                                                                                                                                                                                             |
+| `target_voices`            | array   | Voice indices: `[0]` or `[0, 1]`                                                                                                                                                                                                                                                 |
+| `target_component`         | string  | `"pitch"`, `"rhythm"`, or `"metric"` — omit for `r-rhythm-rhythm` / `r-pitch-pitch` (auto-targeted)                                                                                                                                                                              |
+| `indices`                  | array   | Explicit position list — omit to apply to all positions                                                                                                                                                                                                                          |
+| `stride`                   | int     | Apply every N positions starting from `offset` (takes precedence over `indices`)                                                                                                                                                                                                 |
+| `offset`                   | int     | Starting position for stride-based application (default `0`)                                                                                                                                                                                                                     |
+| `heuristic`                | boolean | **`r-pitch-pitch` / `r-rhythm-rhythm` only.** When `true`, converts the rule to a soft preference: values satisfying the rule are tried first, but violations are not rejected. Default `false` (hard constraint).                                                               |
+| `timepoints`               | array   | Quarter-note positions for metric rules: `["0q", "4q"]`                                                                                                                                                                                                                          |
+| `bar_pattern_type`         | string  | Metric pattern mode: `fixed`, `repeating`, `random`, `weighted`                                                                                                                                                                                                                  |
+| `bar_pattern`              | array   | Time-signature list, e.g. `["4/4", "3/4"]`                                                                                                                                                                                                                                       |
+| `bar_pattern_count`        | int     | Number of bars generated in `random`/`weighted` modes                                                                                                                                                                                                                            |
+| `bar_pattern_repetitions`  | int     | Repetition count in `repeating` mode                                                                                                                                                                                                                                             |
+| `bar_pattern_distribution` | object  | Weights for `weighted` mode (signature → probability)                                                                                                                                                                                                                            |
+| `allow_cross_barline`      | boolean | For `r-time-signature` bar patterns: allow duration carry over barlines                                                                                                                                                                                                          |
+| `enabled`                  | boolean | Enable/disable rule (default `true`). Accepts `true`/`false` and `1`/`0`/`"yes"`/`"on"`.                                                                                                                                                                                         |
+| `priority`                 | int     | Higher = tried first                                                                                                                                                                                                                                                             |
+| `id`                       | string  | Optional label                                                                                                                                                                                                                                                                   |
+| `description`              | string  | Optional documentation                                                                                                                                                                                                                                                           |
 
 ### Dynamic Rule Object
 

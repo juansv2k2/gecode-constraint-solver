@@ -165,7 +165,10 @@
         "rhythm": {
           "oneOf": [
             { "$ref": "#/definitions/rhythmDomainObject" },
-            { "type": "array", "items": { "oneOf": [{ "type": "string" }, { "type": "number" }] } }
+            {
+              "type": "array",
+              "items": { "oneOf": [{ "type": "string" }, { "type": "number" }] }
+            }
           ]
         },
         "description": { "type": "string" }
@@ -251,7 +254,10 @@
         "parameters": {
           "description": "Constraint-specific parameters: rhythm values, semitone counts, ratios, time signatures.",
           "oneOf": [
-            { "type": "array", "items": { "oneOf": [{ "type": "number" }, { "type": "string" }] } },
+            {
+              "type": "array",
+              "items": { "oneOf": [{ "type": "number" }, { "type": "string" }] }
+            },
             { "type": "number" },
             { "type": "string" }
           ]
@@ -314,7 +320,11 @@
         "bar_pattern_distribution": {
           "type": "object",
           "description": "Probability weights for 'weighted' mode. Keys are time signatures, values are probabilities (should sum to ~1.0).",
-          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
         },
         "allow_cross_barline": {
           "$ref": "#/definitions/booleanOrInt",
