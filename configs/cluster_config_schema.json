@@ -3,8 +3,16 @@
   "title": "Voice-First Musical Constraint Configuration",
   "description": "User-facing JSON configuration for musical constraint solving with contiguous voices, optional meter, voice-based rule targets, and dynamic heuristic rules.",
   "type": "object",
-  "required": ["solution_length", "num_voices", "voices"],
+  "required": ["solution_length", "num_voices"],
   "properties": {
+    "name": {
+      "type": "string",
+      "description": "Optional human-readable name for this configuration."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of what this configuration does."
+    },
     "solution_length": {
       "type": "integer",
       "minimum": 1,
@@ -20,6 +28,19 @@
       "minimum": 1,
       "maximum": 10,
       "description": "Number of contiguous voices. This must match the length of voices when voices is an array."
+    },
+    "global_domain": {
+      "type": "object",
+      "description": "Optional shared pitch and/or rhythm domain used as a fallback for any voice that does not declare its own. The voices array may be shorter than num_voices (or omitted) when global_domain covers remaining voices.",
+      "properties": {
+        "pitch": {
+          "$ref": "#/definitions/pitchDomainObject"
+        },
+        "rhythm": {
+          "$ref": "#/definitions/rhythmDomainObject"
+        }
+      },
+      "additionalProperties": false
     },
     "voices": {
       "oneOf": [
@@ -41,7 +62,7 @@
           "additionalProperties": false
         }
       ],
-      "description": "Contiguous voice definitions. Array form is preferred because ordering is explicit."
+      "description": "Contiguous voice definitions. Array form is preferred because ordering is explicit. Can be omitted when global_domain covers all voices."
     },
     "meter": {
       "type": "object",
@@ -102,7 +123,12 @@
           "minimum": 0
         },
         "max_solutions": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Maximum number of solutions to find. Alias: 'solutions'."
+        },
+        "solutions": {
+          "type": "integer",
+          "description": "Alias for max_solutions. Maximum number of solutions to find."
         },
         "random_seed": {
           "type": "integer",
@@ -121,7 +147,11 @@
           "enum": ["none", "luby"]
         },
         "enable_metric_engine": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean" },
+            { "type": "integer", "minimum": 0, "maximum": 1 }
+          ],
+          "description": "Enable the metric/time-signature engine. Accepts true/false or 1/0.",
           "default": false
         },
         "require_exact_score_length": {
@@ -147,27 +177,13 @@
         "export_filename": {
           "type": "string"
         },
-        "export_json": {
-          "type": "boolean"
-        },
-        "export_txt": {
-          "type": "boolean"
-        },
-        "export_xml": {
-          "type": "boolean"
-        },
-        "export_png": {
-          "type": "boolean"
-        },
-        "export_midi": {
-          "type": "boolean"
-        },
-        "show_statistics": {
-          "type": "boolean"
-        },
-        "include_analysis": {
-          "type": "boolean"
-        }
+        "export_json": { "$ref": "#/definitions/booleanOrInt" },
+        "export_txt": { "$ref": "#/definitions/booleanOrInt" },
+        "export_xml": { "$ref": "#/definitions/booleanOrInt" },
+        "export_png": { "$ref": "#/definitions/booleanOrInt" },
+        "export_midi": { "$ref": "#/definitions/booleanOrInt" },
+        "show_statistics": { "$ref": "#/definitions/booleanOrInt" },
+        "include_analysis": { "$ref": "#/definitions/booleanOrInt" }
       }
     }
   },
@@ -175,6 +191,11 @@
     "voiceDomain": {
       "type": "object",
       "properties": {
+        "voice": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional explicit voice index for non-positional targeting. When omitted the position in the voices array determines the voice index."
+        },
         "rhythm": {
           "oneOf": [
             {
@@ -207,9 +228,11 @@
               }
             }
           ]
+        },
+        "description": {
+          "type": "string"
         }
       },
-      "required": ["rhythm", "pitch"],
       "additionalProperties": false
     },
     "rhythmDomainObject": {
@@ -251,6 +274,13 @@
       "required": ["midi_values"],
       "additionalProperties": false
     },
+    "booleanOrInt": {
+      "oneOf": [
+        { "type": "boolean" },
+        { "type": "integer", "minimum": 0, "maximum": 1 }
+      ],
+      "description": "Accepts true/false or 1/0."
+    },
     "constraintFunction": {
       "type": "object",
       "properties": {
@@ -285,15 +315,26 @@
         },
         "rule_type": {
           "type": "string",
+          "description": "The rule type identifier.",
           "enum": [
+            "r-one-voice",
             "r-pitches-one-engine",
+            "r-pitches-one-voice",
+            "r-index-pitches-one-voice",
             "r-uniformity",
             "r-cross-voice-no-unisons",
+            "r-cross-voice-retrograde-inversion",
             "r-time-signature",
+            "r-metric-hierarchy",
+            "r-rhythm-rhythm",
+            "r-pitch-pitch",
             "r-pitches-all-different",
             "r-twelve-tone-voice1",
             "r-palindrome-voice",
-            "r-palindrome-voice2"
+            "r-palindrome-voice2",
+            "r-perfect-fifth-intervals",
+            "r-timepoint-relationship",
+            "wildcard_constraint"
           ]
         },
         "constraint_function": {
@@ -378,7 +419,7 @@
           "description": "For 'repeating' pattern: explicit repetition count. If 0, calculated automatically to fill score."
         },
         "allow_cross_barline": {
-          "type": "boolean",
+          "$ref": "#/definitions/booleanOrInt",
           "description": "For r-time-signature bar patterns: if true, durations may carry across bar boundaries; if false, each bar is filled strictly."
         },
         "bar_pattern_distribution": {
@@ -390,8 +431,16 @@
             "maximum": 1
           }
         },
-        "enabled": {
-          "type": "boolean"
+        "enabled": { "$ref": "#/definitions/booleanOrInt" },
+        "stride": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Apply this rule every N positions starting from offset. Used by r-rhythm-rhythm and r-pitch-pitch. When set, takes precedence over indices."
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Starting position for stride-based application. Default 0."
         },
         "priority": {
           "type": "integer",
@@ -406,16 +455,6 @@
       "additionalProperties": true,
       "allOf": [
         {
-          "oneOf": [
-            {
-              "required": ["constraint_function"]
-            },
-            {
-              "required": ["constraint"]
-            }
-          ]
-        },
-        {
           "if": {
             "properties": {
               "rule_type": {
@@ -424,12 +463,8 @@
             },
             "required": ["rule_type"]
           },
-          "then": {
-            "required": ["timepoints"]
-          },
+          "then": {},
           "else": {
-            "required": ["indices", "target_component"],
-            "required": ["target_voices"],
             "not": {
               "anyOf": [
                 {
