@@ -1414,4 +1414,4 @@ Use the modern voice-first contract for all new configs.
 ## References
 
 - [README.md](README.md)
-- [configs/cluster_config_schema.json](configs/cluster_config_schema.json)
+- [configs/schema.json](configs/schema.json)
