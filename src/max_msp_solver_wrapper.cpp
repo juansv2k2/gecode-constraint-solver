@@ -2569,6 +2569,36 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                             rr_id, "r-rhythm-rhythm: " + rr_mode +
                                    " (voices " + std::to_string(rr_v1) + "," + std::to_string(rr_v2) + ")");
 
+                        const bool rr_is_heuristic = rule_json.value("heuristic", false);
+                        if (rr_is_heuristic) {
+                            compiled_rr->is_heuristic = true;
+                            compiled_rr->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                            compiled_rr->heuristic_variable_type = "rhythm";
+                            compiled_rr->applies_to_voices = {rr_v1, rr_v2};
+                            compiled_rr->score_candidate = [rr_v1, rr_v2, rr_mode, rr_ratio_num, rr_ratio_den, rr_indices]
+                                    (const DynamicRules::ConstraintContext& ctx,
+                                     const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                if (!ctx.rhythm_vars) return 0.0;
+                                const int this_v  = cand.voice;
+                                const int other_v = (this_v == rr_v1) ? rr_v2 : rr_v1;
+                                const int pos = cand.position;
+                                const int cv  = cand.candidate_value;
+                                if (!rr_indices.empty() &&
+                                    std::find(rr_indices.begin(), rr_indices.end(), pos) == rr_indices.end())
+                                    return 0.0;
+                                const int oi = other_v * ctx.sequence_length + pos;
+                                if (oi < 0 || oi >= (int)ctx.rhythm_vars->size()) return 0.0;
+                                const Gecode::IntVar& ov = (*ctx.rhythm_vars)[oi];
+                                const int oe = (ov.min() + ov.max()) / 2;
+                                if (rr_mode == "isorhythm")     return (cv == oe) ? 1.0 : 0.0;
+                                if (rr_mode == "abs_isorhythm") return (std::abs(cv) == std::abs(oe)) ? 1.0 : 0.0;
+                                if (rr_mode == "augmentation")  return (std::abs(cv)*rr_ratio_den == std::abs(oe)*rr_ratio_num) ? 1.0 : 0.0;
+                                if (rr_mode == "diminution")    return (std::abs(cv)*rr_ratio_num == std::abs(oe)*rr_ratio_den) ? 1.0 : 0.0;
+                                if (rr_mode == "no_simultaneous_rests") return (cv >= 0 || oe >= 0) ? 1.0 : -1.0;
+                                if (rr_mode == "rest_complement")       return ((cv < 0) != (oe < 0)) ? 1.0 : -1.0;
+                                return 0.0;
+                            };
+                        } else {
                         compiled_rr->post_constraint = [rr_v1, rr_v2, rr_mode, rr_ratio_num, rr_ratio_den, rr_indices, rr_id]
                                 (DynamicRules::ConstraintContext& ctx) {
                             if (!ctx.rhythm_vars) return;
@@ -2643,7 +2673,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                                         "': unknown constraint mode '" + rr_mode + "'");
                                 }
                             }
-                        };
+                        }; // end post_constraint
+                        } // end else (not heuristic rr)
 
                         solver_.apply_compiled_constraint(std::move(compiled_rr));
                         // ─────────────────────────────────────────────────────────────
@@ -2700,6 +2731,46 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                             pp_id, "r-pitch-pitch: " + pp_mode +
                                    " (voices " + std::to_string(pp_v1) + "," + std::to_string(pp_v2) + ")");
 
+                        const bool pp_is_heuristic = rule_json.value("heuristic", false);
+                        if (pp_is_heuristic) {
+                            compiled_pp->is_heuristic = true;
+                            compiled_pp->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                            compiled_pp->heuristic_variable_type = "pitch";
+                            compiled_pp->applies_to_voices = {pp_v1, pp_v2};
+                            compiled_pp->score_candidate = [pp_v1, pp_v2, pp_mode, pp_params, pp_indices, pp_stride, pp_offset]
+                                    (const DynamicRules::ConstraintContext& ctx,
+                                     const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                if (!ctx.pitch_vars) return 0.0;
+                                const int this_v  = cand.voice;
+                                const int other_v = (this_v == pp_v1) ? pp_v2 : pp_v1;
+                                const int pos = cand.position, cv = cand.candidate_value;
+                                if (pp_stride > 0) {
+                                    if (pos < pp_offset || (pos - pp_offset) % pp_stride != 0) return 0.0;
+                                } else if (!pp_indices.empty()) {
+                                    if (std::find(pp_indices.begin(), pp_indices.end(), pos) == pp_indices.end()) return 0.0;
+                                }
+                                const int oi = other_v * ctx.sequence_length + pos;
+                                if (oi < 0 || oi >= (int)ctx.pitch_vars->size()) return 0.0;
+                                const Gecode::IntVar& ov = (*ctx.pitch_vars)[oi];
+                                const int oe = (ov.min() + ov.max()) / 2;
+                                if (pp_mode == "no_unison")   return (cv != oe) ? 1.0 : -1.0;
+                                if (pp_mode == "same_pitch")  return (cv == oe) ? 1.0 : -0.5;
+                                if (pp_mode == "voice_above") {
+                                    if (this_v == pp_v1) return cv > oe ? 1.0 : (cv == oe ? -0.5 : -1.0);
+                                    else                 return cv < oe ? 1.0 : (cv == oe ? -0.5 : -1.0);
+                                }
+                                if (pp_mode == "voice_below") {
+                                    if (this_v == pp_v1) return cv < oe ? 1.0 : (cv == oe ? -0.5 : -1.0);
+                                    else                 return cv > oe ? 1.0 : (cv == oe ? -0.5 : -1.0);
+                                }
+                                if (pp_mode == "exact_interval")  { if (pp_params.empty()) return 0.0; return (cv - oe == pp_params[0]) ? 1.0 : 0.0; }
+                                if (pp_mode == "min_interval")    { if (pp_params.empty()) return 0.0; return (std::abs(cv-oe) >= pp_params[0]) ? 1.0 : -0.5; }
+                                if (pp_mode == "max_interval")    { if (pp_params.empty()) return 0.0; return (std::abs(cv-oe) <= pp_params[0]) ? 1.0 : -0.5; }
+                                if (pp_mode == "interval_range")  { if (pp_params.size() < 2) return 0.0; const int ad=std::abs(cv-oe); return (ad>=pp_params[0]&&ad<=pp_params[1]) ? 1.0 : -0.5; }
+                                if (pp_mode == "interval_class")  { const int ic=((cv-oe)%12+12)%12; return (std::find(pp_params.begin(),pp_params.end(),ic)!=pp_params.end()) ? 1.0 : -0.5; }
+                                return 0.0; // consecutive-pair modes not scorable per position
+                            };
+                        } else {
                         compiled_pp->post_constraint = [pp_v1, pp_v2, pp_mode, pp_params, pp_indices, pp_stride, pp_offset, pp_id]
                                 (DynamicRules::ConstraintContext& ctx) {
                             if (!ctx.pitch_vars) return;
@@ -2825,6 +2896,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                                 }
                             }
                         };
+                        } // end else (not heuristic pp)
 
                         solver_.apply_compiled_constraint(std::move(compiled_pp));
                         // ─────────────────────────────────────────────────────────────

@@ -23,7 +23,15 @@ int g_pitch_top_k = 0;
 bool g_pitch_trace = false;
 Gecode::Rnd* g_heuristic_rng = nullptr;
 
+HeuristicValueScorer g_rhythm_heuristic_scorer;
+bool g_rhythm_heuristic_enabled = false;
+unsigned int g_rhythm_tie_break_seed = 0;
+int g_rhythm_top_k = 0;
+bool g_rhythm_trace = false;
+Gecode::Rnd* g_rhythm_heuristic_rng = nullptr;
+
 int select_value_by_heuristic(const Space& home, IntVar x, int i);
+int select_rhythm_by_heuristic(const Space& home, IntVar x, int i);
 
 // Value selector for rhythm variables: picks the value with the smallest absolute value
 // (shortest duration/rest). On ties between a note and a rest of the same duration, the
@@ -100,6 +108,17 @@ void branch_rhythm_with_search_strategy(
         (variable_branching == VariableBranchingStrategy::INPUT_ORDER);
     const bool use_random_values =
         (value_selection == ValueSelectionStrategy::RANDOM && random_seed != 0);
+    const bool use_heuristic_values =
+        (value_selection == ValueSelectionStrategy::HEURISTIC && g_rhythm_heuristic_enabled);
+
+    if (use_heuristic_values) {
+        if (use_input_order) {
+            branch(space, vars, INT_VAR_NONE(), INT_VAL(select_rhythm_by_heuristic));
+        } else {
+            branch(space, vars, INT_VAR_SIZE_MIN(), INT_VAL(select_rhythm_by_heuristic));
+        }
+        return;
+    }
 
     if (use_random_values) {
         Gecode::Rnd rng(random_seed);
@@ -304,6 +323,55 @@ int select_value_by_heuristic(const Space& home, IntVar x, int i) {
     return selected_value;
 }
 
+// Rhythm heuristic value selector — mirrors select_value_by_heuristic but
+// uses g_rhythm_heuristic_scorer and treats positive values (notes) as
+// preferred over negative (rests) on exact score ties.
+int select_rhythm_by_heuristic(const Space& home, IntVar x, int i) {
+    if (!g_rhythm_heuristic_enabled || !g_rhythm_heuristic_scorer) {
+        return select_rhythm_abs_min_value(home, x, i);
+    }
+    const auto& space = static_cast<const IntegratedMusicalSpace&>(home);
+    const int seq_len = space.get_sequence_length();
+    if (seq_len <= 0) return x.min();
+    const int voice    = i / seq_len;
+    const int position = i % seq_len;
+
+    const bool top_k_enabled = g_rhythm_top_k > 0;
+    // Collect all candidate values (limited by top_k if set)
+    std::vector<std::pair<int, HeuristicValueScoreBuckets>> candidates;
+    for (IntVarValues v(x); v(); ++v) {
+        if (top_k_enabled && (int)candidates.size() >= g_rhythm_top_k) break;
+        candidates.push_back({v.val(), g_rhythm_heuristic_scorer(space, voice, position, v.val())});
+    }
+    if (candidates.empty()) return x.min();
+
+    // Find best bucket-ordered candidate
+    size_t best_idx = 0;
+    for (size_t k = 1; k < candidates.size(); ++k) {
+        const auto& cb = candidates[k].second;
+        const auto& bb = candidates[best_idx].second;
+        // Gather unique priorities across both bucket sets
+        std::vector<int> prios;
+        for (const auto& kv : cb) prios.push_back(kv.first);
+        for (const auto& kv : bb) prios.push_back(kv.first);
+        std::sort(prios.begin(), prios.end(), std::greater<int>());
+        prios.erase(std::unique(prios.begin(), prios.end()), prios.end());
+        bool decided = false;
+        for (int p : prios) {
+            double cs = bucket_value(cb, p);
+            double bs = bucket_value(bb, p);
+            if (cs > bs) { best_idx = k; decided = true; break; }
+            if (cs < bs) { decided = true; break; }
+        }
+        if (!decided) {
+            // Exact tie: prefer a note (positive) over a rest (negative)
+            if (candidates[k].first > 0 && candidates[best_idx].first < 0)
+                best_idx = k;
+        }
+    }
+    return candidates[best_idx].first;
+}
+
 } // namespace
 
 void configure_pitch_heuristic_value_ordering(
@@ -337,6 +405,37 @@ void clear_pitch_heuristic_value_ordering() {
     if (g_heuristic_rng != nullptr) {
         delete g_heuristic_rng;
         g_heuristic_rng = nullptr;
+    }
+}
+
+void configure_rhythm_heuristic_value_ordering(
+    HeuristicValueScorer scorer,
+    unsigned int tie_break_seed,
+    int top_k,
+    bool trace) {
+    g_rhythm_heuristic_scorer = std::move(scorer);
+    g_rhythm_heuristic_enabled = static_cast<bool>(g_rhythm_heuristic_scorer);
+    g_rhythm_tie_break_seed = tie_break_seed;
+    g_rhythm_top_k = std::max(0, top_k);
+    g_rhythm_trace = trace;
+    if (g_rhythm_heuristic_rng != nullptr) {
+        delete g_rhythm_heuristic_rng;
+        g_rhythm_heuristic_rng = nullptr;
+    }
+    if (tie_break_seed != 0) {
+        g_rhythm_heuristic_rng = new Gecode::Rnd(tie_break_seed);
+    }
+}
+
+void clear_rhythm_heuristic_value_ordering() {
+    g_rhythm_heuristic_scorer = nullptr;
+    g_rhythm_heuristic_enabled = false;
+    g_rhythm_tie_break_seed = 0;
+    g_rhythm_top_k = 0;
+    g_rhythm_trace = false;
+    if (g_rhythm_heuristic_rng != nullptr) {
+        delete g_rhythm_heuristic_rng;
+        g_rhythm_heuristic_rng = nullptr;
     }
 }
 

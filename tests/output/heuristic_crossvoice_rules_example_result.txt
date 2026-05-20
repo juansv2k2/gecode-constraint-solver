@@ -1,0 +1,25 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: configs/heuristic_crossvoice_rules_example.json
+Problem: Heuristic cross-voice rules example — r-pitch-pitch and r-rhythm-rhythm
+Description: Bass — lower range
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: B4 → E4 → D4 → B4 → E4 → C5 → R → R
+  Rhythm:  1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + R:1/8 + R:1/8
+
+Voice 1:
+  Pitches: B3 → B3 → E3 → B3 → F3 → C4 → F3 → F4
+  Rhythm:  1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8
+
+Voice 2:
+  Pitches: G2 → E3 → C3 → G2 → D2 → E2 → A2 → A2
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 14

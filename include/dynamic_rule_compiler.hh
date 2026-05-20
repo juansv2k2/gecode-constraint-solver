@@ -92,6 +92,8 @@ public:
     int applies_to_position = -1;
     int applies_to_voice = -1;
     std::vector<int> applies_to_voices;
+    // "pitch" (default) or "rhythm" — controls which brancher scorer uses this heuristic
+    std::string heuristic_variable_type = "pitch";
     
     // Function to post constraint to Gecode space
     std::function<void(ConstraintContext& ctx)> post_constraint;
@@ -270,25 +272,42 @@ public:
         const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) const {
         std::map<int, double, std::greater<int>> buckets;
         for (const auto& heuristic : heuristics_) {
-            if (!heuristic->has_score_callback()) {
-                continue;
-            }
+            if (!heuristic->has_score_callback()) continue;
+            if (heuristic->heuristic_variable_type == "rhythm") continue; // pitch scorer only
             buckets[heuristic->priority] += heuristic->evaluate_score(ctx, candidate_ctx);
         }
-
         std::vector<std::pair<int, double>> ordered;
         ordered.reserve(buckets.size());
-        for (const auto& kv : buckets) {
-            ordered.push_back(kv);
+        for (const auto& kv : buckets) ordered.push_back(kv);
+        return ordered;
+    }
+
+    std::vector<std::pair<int, double>> evaluate_rhythm_heuristic_buckets(
+        const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx) const {
+        std::map<int, double, std::greater<int>> buckets;
+        for (const auto& heuristic : heuristics_) {
+            if (!heuristic->has_score_callback()) continue;
+            if (heuristic->heuristic_variable_type != "rhythm") continue; // rhythm scorer only
+            buckets[heuristic->priority] += heuristic->evaluate_score(ctx, candidate_ctx);
         }
+        std::vector<std::pair<int, double>> ordered;
+        ordered.reserve(buckets.size());
+        for (const auto& kv : buckets) ordered.push_back(kv);
         return ordered;
     }
 
     bool has_heuristic_scorers() const {
         for (const auto& heuristic : heuristics_) {
-            if (heuristic->has_score_callback()) {
+            if (heuristic->has_score_callback() && heuristic->heuristic_variable_type != "rhythm")
                 return true;
-            }
+        }
+        return false;
+    }
+
+    bool has_rhythm_heuristic_scorers() const {
+        for (const auto& heuristic : heuristics_) {
+            if (heuristic->has_score_callback() && heuristic->heuristic_variable_type == "rhythm")
+                return true;
         }
         return false;
     }

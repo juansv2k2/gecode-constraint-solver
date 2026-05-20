@@ -49,6 +49,14 @@ void configure_pitch_heuristic_value_ordering(
 
 void clear_pitch_heuristic_value_ordering();
 
+void configure_rhythm_heuristic_value_ordering(
+    HeuristicValueScorer scorer,
+    unsigned int tie_break_seed = 0,
+    int top_k = 0,
+    bool trace = false);
+
+void clear_rhythm_heuristic_value_ordering();
+
 // ===============================
 // Core Musical Rule Types (from Cluster sources)
 // ===============================

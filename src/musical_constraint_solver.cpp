@@ -2624,6 +2624,33 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         GecodeClusterIntegration::clear_pitch_heuristic_value_ordering();
     }
 
+    if (compiled_rules_ && compiled_rules_->has_rhythm_heuristic_scorers()) {
+        GecodeClusterIntegration::configure_rhythm_heuristic_value_ordering(
+            [this](const GecodeClusterIntegration::IntegratedMusicalSpace& space,
+                   int voice, int position, int candidate_value) {
+                if (!compiled_rules_) {
+                    return GecodeClusterIntegration::HeuristicValueScoreBuckets{};
+                }
+                auto& mutable_space = const_cast<GecodeClusterIntegration::IntegratedMusicalSpace&>(space);
+                auto& mutable_pitch_vars = const_cast<Gecode::IntVarArray&>(space.get_absolute_vars());
+                auto& mutable_rhythm_vars = const_cast<Gecode::IntVarArray&>(space.get_rhythm_vars());
+                DynamicRules::ConstraintContext score_ctx(
+                    &mutable_space, &mutable_pitch_vars, &mutable_rhythm_vars,
+                    config_.num_voices, config_.sequence_length,
+                    &const_cast<Gecode::IntVarArray&>(space.get_metric_vars()));
+                DynamicRules::HeuristicCandidateContext candidate_ctx;
+                candidate_ctx.voice = voice;
+                candidate_ctx.position = position;
+                candidate_ctx.candidate_value = candidate_value;
+                return compiled_rules_->evaluate_rhythm_heuristic_buckets(score_ctx, candidate_ctx);
+            },
+            effective_random_seed,
+            config_.heuristic_top_k,
+            config_.heuristic_trace);
+    } else {
+        GecodeClusterIntegration::clear_rhythm_heuristic_value_ordering();
+    }
+
     bool has_metric_targeted_rule = false;
     bool has_explicit_metric_timepoint_rule = false;
     const int metric_engine_index = config_.num_voices * 2;
