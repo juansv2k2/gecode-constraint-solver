@@ -2351,6 +2351,9 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
         // Add basic rules but with special handling in solve()
         add_rule(std::make_shared<NoRepetitionRule>());
         
+    } else if (rule_type == "r-pitch-pitch") {
+        // Handled by CompiledConstraint in the enhanced-rules dispatch — no legacy rule needed.
+
     } else if (rule_type == "r-cross-voice-no-unisons") {
         // Add rule to prevent unisons between voices (handled by engine separation)
         add_rule(std::make_shared<MelodicIntervalRule>(12)); // Allow wide intervals between voices

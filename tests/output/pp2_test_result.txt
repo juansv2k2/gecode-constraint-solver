@@ -1,0 +1,29 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/pp2_test.json
+Problem: r-pitch-pitch Phase 2 test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: F3 → G3 → F3 → G3 → F3 → G3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 2:
+  Pitches: C4 → D4 → C4 → D4 → C4 → D4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 3:
+  Pitches: G3 → F3 → G3 → F3 → G3 → F3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 5 ms
+  Rules applied: 4

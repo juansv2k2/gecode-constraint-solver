@@ -1,0 +1,37 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: configs/r_pitch_pitch_test.json
+Problem: r-pitch-pitch constraint tests
+Description: Demonstrates all 13 r-pitch-pitch constraint modes across six voice pairs. Voices 0–1: single-position harmonic rules (Phase 1). Voices 2–3: consecutive-motion rules (Phase 2). Voices 4–5: stride/offset position selection.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: C3 → E3 → C3 → E3 → C3 → E3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 2:
+  Pitches: C4 → C4 → C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 3:
+  Pitches: C3 → C3 → C3 → C3 → C3 → C3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 4:
+  Pitches: C4 → D4 → C4 → D4 → C4 → D4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 5:
+  Pitches: D3 → C3 → D3 → C3 → D3 → C3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 10

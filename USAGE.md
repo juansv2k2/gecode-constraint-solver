@@ -432,6 +432,195 @@ Use `"indices"` to restrict the constraint to specific sequence positions:
 | `no_simultaneous_rests` | At least one voice is active per position         | —                                   |
 | `rest_complement`       | Exactly one voice rests per position              | —                                   |
 
+### 5.3b Cross-Voice Pitch Rules (`r-pitch-pitch`)
+
+`r-pitch-pitch` posts position-aligned constraints between exactly two voices' pitch variables. It is **automatically targeted to pitch engines** — do not add `target_component`.
+
+`target_voices` must contain exactly two voice indices.
+
+#### Phase 1 — single-position harmonic constraints
+
+These modes apply independently at each selected position.
+
+**No unison — voices must not share the same MIDI pitch:**
+
+```json
+{
+  "id": "no_unison_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "no_unison",
+  "target_voices": [0, 1]
+}
+```
+
+**Same pitch — force identical MIDI pitch at every position:**
+
+```json
+{
+  "id": "same_pitch_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "same_pitch",
+  "target_voices": [0, 1]
+}
+```
+
+**Voice above / voice below — enforce strict vertical ordering:**
+
+```json
+{
+  "id": "soprano_above_alto",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "voice_above",
+  "target_voices": [0, 1]
+}
+```
+
+`"voice_below"` constrains v0 to be strictly below v1.
+
+**Exact interval — signed semitone difference `p0 − p1 = n`:**
+
+```json
+{
+  "id": "perfect_fifth_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "exact_interval",
+  "parameters": [7],
+  "target_voices": [0, 1]
+}
+```
+
+**Minimum interval — `|p0 − p1| ≥ min` semitones:**
+
+```json
+{
+  "id": "min_fourth_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "min_interval",
+  "parameters": [5],
+  "target_voices": [0, 1]
+}
+```
+
+**Maximum interval — `|p0 − p1| ≤ max` semitones:**
+
+```json
+{
+  "id": "max_tenth_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "max_interval",
+  "parameters": [16],
+  "target_voices": [0, 1]
+}
+```
+
+**Interval range — `min ≤ |p0 − p1| ≤ max`:**
+
+```json
+{
+  "id": "third_to_octave",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "interval_range",
+  "parameters": [3, 12],
+  "target_voices": [0, 1]
+}
+```
+
+**Interval class — `(p0 − p1) mod 12` must be in the given set:**
+
+```json
+{
+  "id": "consonances_only",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "interval_class",
+  "parameters": [0, 3, 4, 7, 8, 9],
+  "target_voices": [0, 1],
+  "description": "Allow only unisons, thirds, fourths/fifths, and sixths"
+}
+```
+
+#### Phase 2 — consecutive-pair motion constraints
+
+These modes look at each position pair `(i, i+1)` and enforce motion rules. The last position is skipped (no `i+1`).
+
+**No consecutive perfect fifths — avoids two successive 7-semitone harmonic intervals:**
+
+```json
+{
+  "id": "no_par_fifths_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "no_consecutive_fifths",
+  "target_voices": [0, 1]
+}
+```
+
+**No consecutive octaves:**
+
+```json
+{
+  "id": "no_par_octaves_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "no_consecutive_octaves",
+  "target_voices": [0, 1]
+}
+```
+
+**No parallel motion — forbids both voices moving in the same direction. Oblique motion (one voice static) is allowed:**
+
+```json
+{
+  "id": "no_parallel_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "no_parallel_motion",
+  "target_voices": [0, 1]
+}
+```
+
+**Contrary motion — both voices must move in strictly opposite directions at every step:**
+
+```json
+{
+  "id": "contrary_v0_v1",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "contrary_motion",
+  "target_voices": [0, 1]
+}
+```
+
+#### Restricting positions with `indices`, `stride`, and `offset`
+
+By default a rule applies at all positions. Use `"indices"` for an explicit list, or `"stride"` + `"offset"` for a regular pattern:
+
+```json
+{
+  "id": "consonant_on_beats",
+  "rule_type": "r-pitch-pitch",
+  "constraint": "interval_class",
+  "parameters": [0, 3, 4, 7, 8, 9],
+  "stride": 2,
+  "offset": 0,
+  "target_voices": [0, 1],
+  "description": "Consonance constraint at positions 0, 2, 4, 6, ..."
+}
+```
+
+`"stride"` takes precedence over `"indices"`. If neither is set, all positions are used.
+
+| `constraint`             | Type        | Description                                           | `parameters`    |
+| ------------------------ | ----------- | ----------------------------------------------------- | --------------- |
+| `no_unison`              | position    | `p0 ≠ p1`                                             | —               |
+| `same_pitch`             | position    | `p0 = p1`                                             | —               |
+| `voice_above`            | position    | `p0 > p1`                                             | —               |
+| `voice_below`            | position    | `p0 < p1`                                             | —               |
+| `exact_interval`         | position    | `p0 − p1 = n` (signed semitones)                      | `[n]`           |
+| `min_interval`           | position    | `\|p0−p1\| ≥ min`                                     | `[min]`         |
+| `max_interval`           | position    | `\|p0−p1\| ≤ max`                                     | `[max]`         |
+| `interval_range`         | position    | `min ≤ \|p0−p1\| ≤ max`                               | `[min, max]`    |
+| `interval_class`         | position    | `(p0−p1) mod 12 ∈ set`                                | `[c1, c2, ...]` |
+| `no_consecutive_fifths`  | consec pair | NOT two successive interval-class-7 harmonies         | —               |
+| `no_consecutive_octaves` | consec pair | NOT two successive interval-class-0 harmonies         | —               |
+| `no_parallel_motion`     | consec pair | Voices may not both move in the same direction        | —               |
+| `contrary_motion`        | consec pair | Both voices must move in strictly opposite directions | —               |
+
 ### 5.4 Metric Hierarchy Rules (`r-metric-hierarchy`)
 
 `r-metric-hierarchy` constrains rhythm values relative to the beat grid defined in `meter`. It is **automatically targeted to rhythm engines** — do not add `target_component` or `engine_type`.

@@ -1,0 +1,29 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/pp_test.json
+Problem: r-pitch-pitch Phase 1 smoke test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: C3 → C3 → C3 → C3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 2:
+  Pitches: C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 3:
+  Pitches: E4 → E4 → E4 → E4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 2 ms
+  Rules applied: 0

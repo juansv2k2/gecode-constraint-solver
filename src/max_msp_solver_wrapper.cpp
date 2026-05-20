@@ -2647,6 +2647,187 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
                         solver_.apply_compiled_constraint(std::move(compiled_rr));
                         // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-pitch-pitch") {
+                        // ── R-PITCH-PITCH ─────────────────────────────────────────────
+                        // Phase 1 modes: no_unison, same_pitch, voice_above, voice_below,
+                        //   exact_interval, min_interval, max_interval, interval_range, interval_class
+                        // Phase 2 modes: no_consecutive_fifths, no_consecutive_octaves,
+                        //   no_parallel_motion, contrary_motion
+                        // Optional: "stride" (int) — apply every N positions; "offset" (int)
+                        std::vector<int> pp_voices;
+                        if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array())
+                            for (const auto& v : rule_json["target_voices"])
+                                if (v.is_number_integer()) pp_voices.push_back(v.get<int>());
+                        if (pp_voices.size() != 2)
+                            throw std::runtime_error(
+                                "r-pitch-pitch '" + rule_json.value("id", "") + "' requires exactly 2 target_voices");
+
+                        const int pp_v1 = pp_voices[0];
+                        const int pp_v2 = pp_voices[1];
+                        const std::string pp_mode = rule_json.value("constraint", "no_unison");
+                        const std::string pp_id   = rule_json.value(
+                            "id", "pp_v" + std::to_string(pp_v1) + "_v" + std::to_string(pp_v2));
+
+                        std::vector<int> pp_params;
+                        if (rule_json.contains("parameters") && rule_json["parameters"].is_array())
+                            for (const auto& p : rule_json["parameters"])
+                                if (p.is_number()) pp_params.push_back(static_cast<int>(p.get<double>()));
+
+                        std::vector<int> pp_indices;
+                        if (rule_json.contains("indices") && rule_json["indices"].is_array())
+                            for (const auto& idx : rule_json["indices"])
+                                if (idx.is_number_integer()) pp_indices.push_back(idx.get<int>());
+
+                        int pp_stride = 0;
+                        int pp_offset = 0;
+                        if (rule_json.contains("stride") && rule_json["stride"].is_number_integer())
+                            pp_stride = std::max(1, rule_json["stride"].get<int>());
+                        if (rule_json.contains("offset") && rule_json["offset"].is_number_integer())
+                            pp_offset = std::max(0, rule_json["offset"].get<int>());
+
+                        if ((pp_mode == "exact_interval" || pp_mode == "min_interval" || pp_mode == "max_interval") &&
+                                pp_params.empty())
+                            throw std::runtime_error(
+                                "r-pitch-pitch '" + pp_id + "': mode '" + pp_mode + "' requires at least one parameter");
+                        if (pp_mode == "interval_range" && pp_params.size() < 2)
+                            throw std::runtime_error(
+                                "r-pitch-pitch '" + pp_id + "': interval_range requires parameters [min, max]");
+                        if (pp_mode == "interval_class" && pp_params.empty())
+                            throw std::runtime_error(
+                                "r-pitch-pitch '" + pp_id + "': interval_class requires at least one class in parameters");
+
+                        auto compiled_pp = std::make_unique<DynamicRules::CompiledConstraint>(
+                            pp_id, "r-pitch-pitch: " + pp_mode +
+                                   " (voices " + std::to_string(pp_v1) + "," + std::to_string(pp_v2) + ")");
+
+                        compiled_pp->post_constraint = [pp_v1, pp_v2, pp_mode, pp_params, pp_indices, pp_stride, pp_offset, pp_id]
+                                (DynamicRules::ConstraintContext& ctx) {
+                            if (!ctx.pitch_vars) return;
+                            if (pp_v1 < 0 || pp_v1 >= ctx.num_voices ||
+                                pp_v2 < 0 || pp_v2 >= ctx.num_voices)
+                                throw std::runtime_error(
+                                    "r-pitch-pitch '" + pp_id + "': voice out of range");
+
+                            std::vector<int> indices;
+                            if (pp_stride > 0) {
+                                for (int i = pp_offset; i < ctx.sequence_length; i += pp_stride)
+                                    indices.push_back(i);
+                            } else if (!pp_indices.empty()) {
+                                indices = pp_indices;
+                            } else {
+                                for (int i = 0; i < ctx.sequence_length; ++i) indices.push_back(i);
+                            }
+
+                            for (int i : indices) {
+                                if (i < 0 || i >= ctx.sequence_length) continue;
+                                const int idx1 = pp_v1 * ctx.sequence_length + i;
+                                const int idx2 = pp_v2 * ctx.sequence_length + i;
+                                if (idx1 >= (int)ctx.pitch_vars->size() ||
+                                    idx2 >= (int)ctx.pitch_vars->size()) continue;
+
+                                Gecode::IntVar p1 = (*ctx.pitch_vars)[idx1];
+                                Gecode::IntVar p2 = (*ctx.pitch_vars)[idx2];
+
+                                if (pp_mode == "no_unison") {
+                                    Gecode::rel(*ctx.space, p1, Gecode::IRT_NQ, p2);
+                                } else if (pp_mode == "same_pitch") {
+                                    Gecode::rel(*ctx.space, p1, Gecode::IRT_EQ, p2);
+                                } else if (pp_mode == "voice_above") {
+                                    Gecode::rel(*ctx.space, p1, Gecode::IRT_GR, p2);
+                                } else if (pp_mode == "voice_below") {
+                                    Gecode::rel(*ctx.space, p1, Gecode::IRT_LE, p2);
+                                } else if (pp_mode == "exact_interval") {
+                                    Gecode::IntVar diff = Gecode::expr(*ctx.space, p1 - p2);
+                                    Gecode::rel(*ctx.space, diff, Gecode::IRT_EQ, pp_params[0]);
+                                } else if (pp_mode == "min_interval") {
+                                    Gecode::IntVar adiff = Gecode::expr(*ctx.space, Gecode::abs(p1 - p2));
+                                    Gecode::rel(*ctx.space, adiff, Gecode::IRT_GQ, pp_params[0]);
+                                } else if (pp_mode == "max_interval") {
+                                    Gecode::IntVar adiff = Gecode::expr(*ctx.space, Gecode::abs(p1 - p2));
+                                    Gecode::rel(*ctx.space, adiff, Gecode::IRT_LQ, pp_params[0]);
+                                } else if (pp_mode == "interval_range") {
+                                    Gecode::IntVar adiff = Gecode::expr(*ctx.space, Gecode::abs(p1 - p2));
+                                    Gecode::dom(*ctx.space, adiff, pp_params[0], pp_params[1]);
+                                } else if (pp_mode == "interval_class") {
+                                    Gecode::IntVar diff    = Gecode::expr(*ctx.space, p1 - p2);
+                                    Gecode::IntVar shifted = Gecode::expr(*ctx.space, diff + 132);
+                                    Gecode::IntVar twelve(*ctx.space, 12, 12);
+                                    Gecode::IntVar mod12(*ctx.space, 0, 11);
+                                    Gecode::mod(*ctx.space, shifted, twelve, mod12);
+                                    Gecode::IntArgs classes;
+                                    for (int c : pp_params) classes << c;
+                                    Gecode::dom(*ctx.space, mod12, Gecode::IntSet(classes));
+                                } else if (pp_mode == "no_consecutive_fifths" ||
+                                           pp_mode == "no_consecutive_octaves") {
+                                    if (i + 1 >= ctx.sequence_length) continue;
+                                    const int tc = (pp_mode == "no_consecutive_fifths") ? 7 : 0;
+                                    const int idx1n = pp_v1 * ctx.sequence_length + (i + 1);
+                                    const int idx2n = pp_v2 * ctx.sequence_length + (i + 1);
+                                    if (idx1n >= (int)ctx.pitch_vars->size() ||
+                                        idx2n >= (int)ctx.pitch_vars->size()) continue;
+                                    Gecode::IntVar p1n = (*ctx.pitch_vars)[idx1n];
+                                    Gecode::IntVar p2n = (*ctx.pitch_vars)[idx2n];
+                                    auto ic_bool = [&](Gecode::IntVar pa, Gecode::IntVar pb) -> Gecode::BoolVar {
+                                        Gecode::IntVar d  = Gecode::expr(*ctx.space, pa - pb);
+                                        Gecode::IntVar sh = Gecode::expr(*ctx.space, d + 132);
+                                        Gecode::IntVar tw(*ctx.space, 12, 12);
+                                        Gecode::IntVar mc(*ctx.space, 0, 11);
+                                        Gecode::mod(*ctx.space, sh, tw, mc);
+                                        Gecode::BoolVar b(*ctx.space, 0, 1);
+                                        Gecode::rel(*ctx.space, mc, Gecode::IRT_EQ, tc, b);
+                                        return b;
+                                    };
+                                    Gecode::BoolVar b_i  = ic_bool(p1,  p2);
+                                    Gecode::BoolVar b_i1 = ic_bool(p1n, p2n);
+                                    Gecode::rel(*ctx.space, b_i, Gecode::BOT_AND, b_i1, 0);
+                                } else if (pp_mode == "no_parallel_motion") {
+                                    if (i + 1 >= ctx.sequence_length) continue;
+                                    const int idx1n = pp_v1 * ctx.sequence_length + (i + 1);
+                                    const int idx2n = pp_v2 * ctx.sequence_length + (i + 1);
+                                    if (idx1n >= (int)ctx.pitch_vars->size() ||
+                                        idx2n >= (int)ctx.pitch_vars->size()) continue;
+                                    Gecode::IntVar p1n = (*ctx.pitch_vars)[idx1n];
+                                    Gecode::IntVar p2n = (*ctx.pitch_vars)[idx2n];
+                                    Gecode::IntVar dir1 = Gecode::expr(*ctx.space, p1n - p1);
+                                    Gecode::IntVar dir2 = Gecode::expr(*ctx.space, p2n - p2);
+                                    Gecode::BoolVar up1(*ctx.space, 0, 1), up2(*ctx.space, 0, 1);
+                                    Gecode::BoolVar dn1(*ctx.space, 0, 1), dn2(*ctx.space, 0, 1);
+                                    Gecode::rel(*ctx.space, dir1, Gecode::IRT_GR,  0, up1);
+                                    Gecode::rel(*ctx.space, dir2, Gecode::IRT_GR,  0, up2);
+                                    Gecode::rel(*ctx.space, dir1, Gecode::IRT_LE, -1, dn1);
+                                    Gecode::rel(*ctx.space, dir2, Gecode::IRT_LE, -1, dn2);
+                                    Gecode::rel(*ctx.space, up1, Gecode::BOT_AND, up2, 0);
+                                    Gecode::rel(*ctx.space, dn1, Gecode::BOT_AND, dn2, 0);
+                                } else if (pp_mode == "contrary_motion") {
+                                    if (i + 1 >= ctx.sequence_length) continue;
+                                    const int idx1n = pp_v1 * ctx.sequence_length + (i + 1);
+                                    const int idx2n = pp_v2 * ctx.sequence_length + (i + 1);
+                                    if (idx1n >= (int)ctx.pitch_vars->size() ||
+                                        idx2n >= (int)ctx.pitch_vars->size()) continue;
+                                    Gecode::IntVar p1n = (*ctx.pitch_vars)[idx1n];
+                                    Gecode::IntVar p2n = (*ctx.pitch_vars)[idx2n];
+                                    Gecode::IntVar dir1 = Gecode::expr(*ctx.space, p1n - p1);
+                                    Gecode::IntVar dir2 = Gecode::expr(*ctx.space, p2n - p2);
+                                    Gecode::BoolVar up1(*ctx.space, 0, 1), up2(*ctx.space, 0, 1);
+                                    Gecode::BoolVar dn1(*ctx.space, 0, 1), dn2(*ctx.space, 0, 1);
+                                    Gecode::rel(*ctx.space, dir1, Gecode::IRT_GR,  0, up1);
+                                    Gecode::rel(*ctx.space, dir2, Gecode::IRT_GR,  0, up2);
+                                    Gecode::rel(*ctx.space, dir1, Gecode::IRT_LE, -1, dn1);
+                                    Gecode::rel(*ctx.space, dir2, Gecode::IRT_LE, -1, dn2);
+                                    Gecode::BoolVar case1(*ctx.space, 0, 1), case2(*ctx.space, 0, 1);
+                                    Gecode::rel(*ctx.space, up1, Gecode::BOT_AND, dn2, case1);
+                                    Gecode::rel(*ctx.space, dn1, Gecode::BOT_AND, up2, case2);
+                                    Gecode::rel(*ctx.space, case1, Gecode::BOT_OR, case2, 1);
+                                } else {
+                                    throw std::runtime_error(
+                                        "r-pitch-pitch '" + pp_id +
+                                        "': unknown constraint mode '" + pp_mode + "'");
+                                }
+                            }
+                        };
+
+                        solver_.apply_compiled_constraint(std::move(compiled_pp));
+                        // ─────────────────────────────────────────────────────────────
                     } else if (rule_json.contains("id") && rule_json.contains("expression")) {
                         std::vector<nlohmann::json> single_rule = {rule_json};
                         solver_.load_dynamic_rules(single_rule);
