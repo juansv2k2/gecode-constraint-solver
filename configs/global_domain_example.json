@@ -14,10 +14,10 @@
 
   "voices": [
     {
-      "voice": 0,
+      "voice": 3,
       "pitch": { "midi_values": [48, 50, 52, 53, 55, 57, 59, 60] }
     },
-    { "voice": 3, "pitch": { "midi_values": [74, 76, 77, 79, 81, 83, 84] } }
+    { "voice": 0, "pitch": { "midi_values": [74, 76, 77, 79, 81, 83, 84] } }
   ],
 
   "meter": {
@@ -40,7 +40,7 @@
   "search_options": {
     "engine": "dfs",
     "enable_metric_engine": 1,
-    "random_seed": 42,
+    "random_seed": 0,
     "value_order": "random"
   },
 
