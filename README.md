@@ -1,6 +1,6 @@
 # Gecode Musical Constraint Solver
 
-Polyphonic musical constraint solving in C++17 on top of Gecode, with dynamic expression rules, wildcard rules, metric segmentation, and Max/MSP integration.
+Polyphonic musical constraint solving in C++17 on top of Gecode. The engine is inspired on the logic of the musical constraint solver Cluster-Engine, developed by Örjan Sandred, in particular the use of polyphonic dynamic constraints in the form of index and wildcard rules, metric segmentation and hierarchy. The system currently has a Max/MSP integration as an Max external package.
 
 ## What Is Current
 
