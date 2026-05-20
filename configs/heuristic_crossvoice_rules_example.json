@@ -35,7 +35,6 @@
   ],
 
   "rules": [
-
     {
       "id": "hard_no_unison_v0_v1",
       "rule_type": "r-pitch-pitch",
