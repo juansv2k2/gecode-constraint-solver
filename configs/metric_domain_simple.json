@@ -7,64 +7,165 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": ["1/8"]
+        "duration_values": [
+          "1/8"
+        ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72,
+          74,
+          76,
+          77,
+          79
+        ]
       }
     },
     {
       "rhythm": {
-        "duration_values": ["1/8"]
+        "duration_values": [
+          "1/8"
+        ]
       },
       "pitch": {
-        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72,
+          74
+        ]
       }
     },
     {
       "rhythm": {
-        "duration_values": ["1/8"]
+        "duration_values": [
+          "1/8"
+        ]
       },
       "pitch": {
-        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72,
+          74
+        ]
       }
     },
     {
       "rhythm": {
-        "duration_values": ["1/8"]
+        "duration_values": [
+          "1/8"
+        ]
       },
       "pitch": {
-        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74]
+        "midi_values": [
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72,
+          74
+        ]
       }
     }
   ],
   "meter": {
-    "time_signatures": ["4/4", "3/4", "2/4"],
+    "time_signatures": [
+      "4/4",
+      "3/4",
+      "2/4"
+    ],
     "tuplets": [3],
     "beat_divisions": [2, 3]
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
       "target_voice": 0,
       "target_component": "pitch",
       "description": "Voice 0 first 12 pitches are all different"
     },
-
     {
       "rule_type": "r-cross-voice-no-unisons",
       "constraint": "no_unisons_between_engines",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
       "target_voices": [0, 1, 2, 3],
       "target_component": "pitch"
     },
     {
       "rule_type": "r-time-signature",
       "constraint": "equal_values",
-      "parameters": ["4/4", "2/4", "3/4"],
-      "timepoints": ["0q", "4q", "6q"]
+      "parameters": [
+        "4/4",
+        "2/4",
+        "3/4"
+      ],
+      "timepoints": [
+        "0q",
+        "4q",
+        "6q"
+      ]
     }
   ],
   "search_options": {
@@ -77,14 +178,5 @@
     "max_solutions": 1,
     "timeout_ms": 20000,
     "random_seed": 0
-  },
-  "output_options": {
-    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-    "export_filename": "metric_domain_simple",
-    "export_json": false,
-    "export_txt": false,
-    "export_xml": true,
-    "export_png": false,
-    "export_midi": false
   }
 }

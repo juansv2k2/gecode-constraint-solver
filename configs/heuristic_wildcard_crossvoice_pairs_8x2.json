@@ -9,6 +9,10 @@
     "heuristic_trace": true,
     "branching": "first_fail"
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [],
   "dynamic_rules": [
     {
@@ -26,9 +30,7 @@
       "id": "prefer_contrary_interval_everywhere",
       "type": "heuristic_energy",
       "wildcard_type": "for_all_pairs",
-      "pattern_offsets": [
-        0
-      ],
+      "pattern_offsets": [0],
       "step_size": 1,
       "cross_voices": true,
       "expression": {

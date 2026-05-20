@@ -3,54 +3,100 @@
   "description": "Tests all six r-rhythm-rhythm constraint modes across four voice pairs",
   "solution_length": 4,
   "num_voices": 4,
-
   "global_domain": {
-    "pitch": { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72] }
+    "pitch": {
+      "midi_values": [
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72
+      ]
+    }
   },
-
   "voices": [
     {
       "voice": 0,
       "rhythm": {
-        "duration_values": ["1/16", "1/4", "1/8", "1/2", "-1/4", "-1/8"]
+        "duration_values": [
+          "1/16",
+          "1/4",
+          "1/8",
+          "1/2",
+          "-1/4",
+          "-1/8"
+        ]
       },
-      "pitch": { "midi_values": [60, 62, 64, 65, 67] }
+      "pitch": {
+        "midi_values": [60, 62, 64, 65, 67]
+      }
     },
     {
       "voice": 1,
       "rhythm": {
-        "duration_values": ["1/16", "1/4", "1/8", "1/2", "-1/4", "-1/8"]
+        "duration_values": [
+          "1/16",
+          "1/4",
+          "1/8",
+          "1/2",
+          "-1/4",
+          "-1/8"
+        ]
       },
-      "pitch": { "midi_values": [67, 69, 71, 72] }
+      "pitch": {
+        "midi_values": [67, 69, 71, 72]
+      }
     },
     {
       "voice": 2,
-      "rhythm": { "duration_values": ["1/2", "1/4"] },
-      "pitch": { "midi_values": [55, 57, 59, 60] }
+      "rhythm": {
+        "duration_values": [
+          "1/2",
+          "1/4"
+        ]
+      },
+      "pitch": {
+        "midi_values": [55, 57, 59, 60]
+      }
     },
     {
       "voice": 3,
-      "rhythm": { "duration_values": ["1/8", "1/16"] },
-      "pitch": { "midi_values": [48, 50, 52, 53] }
+      "rhythm": {
+        "duration_values": [
+          "1/8",
+          "1/16"
+        ]
+      },
+      "pitch": {
+        "midi_values": [48, 50, 52, 53]
+      }
     }
   ],
-
   "meter": {
-    "time_signatures": ["4/4"],
+    "time_signatures": [
+      "4/4"
+    ],
     "beat_divisions": [2, 4]
   },
-
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "id": "metric_constraint",
       "rule_type": "r-time-signature",
       "constraint": "equal_values",
-      "parameters": ["4/4"],
+      "parameters": [
+        "4/4"
+      ],
       "indices": [0],
       "target_component": "metric",
       "description": "Fix 4/4 time"
     },
-
     {
       "id": "isorhythm_v0_v1",
       "rule_type": "r-rhythm-rhythm",
@@ -58,7 +104,6 @@
       "target_voices": [0, 1],
       "description": "Voices 0 and 1 are homorhythmic (identical rhythm + rest values)"
     },
-
     {
       "id": "augmentation_2x_v2_v3",
       "rule_type": "r-rhythm-rhythm",
@@ -68,20 +113,11 @@
       "description": "Voice 2 durations are 2x longer than voice 3; note/rest status must match"
     }
   ],
-
   "search_options": {
     "engine": "dfs",
     "enable_metric_engine": 1,
     "random_seed": 0,
     "value_order": "random",
     "solutions": 3
-  },
-  "output_options": {
-    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-    "export_filename": "r_rhythm_rhythm_test_1",
-    "export_xml": 1,
-    "export_png": 0,
-    "export_midi": 0,
-    "show_statistics": 1
   }
 }

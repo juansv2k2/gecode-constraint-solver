@@ -3,6 +3,10 @@
   "description": "Single voice, 4 positions, mix of quarter notes and quarter rests. All note pitches distinct.",
   "solution_length": 4,
   "num_voices": 1,
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "id": "r-pitches-all-different",
@@ -16,23 +20,10 @@
     "max_solutions": 5,
     "branching": "first_fail"
   },
-  "output_options": {
-    "export_path": "output",
-    "export_json": true,
-    "export_txt": true,
-    "export_xml": false,
-    "export_png": false,
-    "export_midi": false
-  },
   "voices": [
     {
       "pitch": {
-        "midi_values": [
-          60,
-          62,
-          64,
-          65
-        ],
+        "midi_values": [60, 62, 64, 65],
         "description": "Voice 0: C D E F"
       },
       "rhythm": {

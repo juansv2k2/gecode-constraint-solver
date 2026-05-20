@@ -2,54 +2,86 @@
   "name": "Global Domain Example",
   "solution_length": 4,
   "num_voices": 4,
-
   "global_domain": {
     "rhythm": {
-      "duration_values": ["1/4", "1/8", "-1/4", "-1/8"]
+      "duration_values": [
+        "1/4",
+        "1/8",
+        "-1/4",
+        "-1/8"
+      ]
     },
     "pitch": {
-      "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+      "midi_values": [
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72
+      ]
     }
   },
-
   "voices": [
     {
       "voice": 3,
-      "pitch": { "midi_values": [48, 50, 52, 53, 55, 57, 59, 60] }
+      "pitch": {
+        "midi_values": [
+          48,
+          50,
+          52,
+          53,
+          55,
+          57,
+          59,
+          60
+        ]
+      }
     },
-    { "voice": 0, "pitch": { "midi_values": [74, 76, 77, 79, 81, 83, 84] } }
+    {
+      "voice": 0,
+      "pitch": {
+        "midi_values": [
+          74,
+          76,
+          77,
+          79,
+          81,
+          83,
+          84
+        ]
+      }
+    }
   ],
-
   "meter": {
-    "time_signatures": ["4/4"],
+    "time_signatures": [
+      "4/4"
+    ],
     "beat_divisions": [2, 4]
   },
-
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-time-signature",
       "target_component": "metric",
       "bar_pattern_type": "repeating",
-      "bar_pattern": ["4/4"],
+      "bar_pattern": [
+        "4/4"
+      ],
       "bar_pattern_repetitions": 1,
       "allow_cross_barline": 0,
       "enabled": 1
     }
   ],
-
   "search_options": {
     "engine": "dfs",
     "enable_metric_engine": 1,
     "random_seed": 0,
     "value_order": "random"
-  },
-
-  "output_options": {
-    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-    "export_filename": "global_domain_example_1",
-    "export_xml": 1,
-    "export_png": 0,
-    "export_midi": 0,
-    "show_statistics": 1
   }
 }

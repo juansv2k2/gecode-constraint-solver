@@ -9,6 +9,10 @@
     "heuristic_trace": false,
     "branching": "first_fail"
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [],
   "dynamic_rules": [
     {
@@ -69,12 +73,9 @@
     {
       "id": "heur_stepwise_preference",
       "type": "heuristic_preference",
-      "description": "Priority 5: Prefer stepwise motion (\u00b12 semitones) for smooth melody",
+      "description": "Priority 5: Prefer stepwise motion (±2 semitones) for smooth melody",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [
-        0,
-        1
-      ],
+      "pattern_offsets": [0, 1],
       "step_size": 1,
       "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "mode": "heur_switch",

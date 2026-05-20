@@ -7,30 +7,67 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": ["1/4"]
+        "duration_values": [
+          "1/4"
+        ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
       }
     },
     {
       "rhythm": {
-        "duration_values": ["1/4"]
+        "duration_values": [
+          "1/4"
+        ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
       }
     }
   ],
   "meter": {
-    "time_signatures": ["4/4"],
+    "time_signatures": [
+      "4/4"
+    ],
     "beat_divisions": [2, 4]
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
       "constraint": "all_different",
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "target_voices": [0, 1],
       "target_component": "pitch",
       "enabled": true,
@@ -40,7 +77,10 @@
       "id": "at_specific_timepoints",
       "rule_type": "r-timepoint-relationship",
       "time_scope": "at_timepoints",
-      "timepoints": ["0q", "4q"],
+      "timepoints": [
+        "0q",
+        "4q"
+      ],
       "constraint": "abs(voice[v2].pitch[i] - voice[v1].pitch[i]) in [12,7]",
       "target_voices": [0, 1],
       "target_component": "pitch",
@@ -56,14 +96,5 @@
     "enable_metric_engine": 1,
     "require_exact_score_length": 1,
     "random_seed": 0
-  },
-  "output_options": {
-    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-    "export_filename": "timepoint_relationship_smoke",
-    "export_json": 0,
-    "export_txt": 0,
-    "export_xml": 1,
-    "export_png": 0,
-    "export_midi": 0
   }
 }

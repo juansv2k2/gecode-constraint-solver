@@ -8,6 +8,10 @@
     "timeout_ms": 120000,
     "branching": "first_fail"
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-twelve-tone-voice1",
@@ -46,10 +50,7 @@
       "constraint_function": {
         "type": "builtin",
         "function": "palindrome_of_engine",
-        "parameters": [
-          1,
-          3
-        ]
+        "parameters": [1, 3]
       },
       "indices": [
         0,

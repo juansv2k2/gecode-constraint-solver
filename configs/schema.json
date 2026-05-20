@@ -1,0 +1,409 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Gecode Musical Constraint Solver Config",
+  "description": "JSON configuration for the Gecode Musical Constraint Solver. Export keys (export_json, export_txt, export_xml, export_path) must appear before the rules key.",
+  "type": "object",
+  "required": ["solution_length", "num_voices"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name. Used as the base filename for exported results."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of what this configuration does."
+    },
+    "solution_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Number of event slots (notes/rests) per voice."
+    },
+    "num_voices": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32,
+      "description": "Number of independent voices."
+    },
+    "score_length": {
+      "type": "string",
+      "description": "Optional total score length in quarter-note units, e.g. '8q' or '12q'."
+    },
+    "global_domain": {
+      "type": "object",
+      "description": "Shared fallback pitch and/or rhythm domain for all voices. Any voice not listed in 'voices' (or that omits a component) falls back to this.",
+      "properties": {
+        "pitch": { "$ref": "#/definitions/pitchDomainObject" },
+        "rhythm": { "$ref": "#/definitions/rhythmDomainObject" }
+      },
+      "additionalProperties": false
+    },
+    "voices": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/voiceDomain" },
+      "description": "Per-voice pitch and rhythm domain definitions. Array index determines voice index unless the entry has an explicit 'voice' key. Can be omitted or shorter than num_voices when global_domain covers remaining voices."
+    },
+    "meter": {
+      "type": "object",
+      "description": "Optional metric domain. Required when using r-time-signature or r-metric-hierarchy rules.",
+      "required": ["time_signatures"],
+      "properties": {
+        "time_signatures": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[0-9]+/[0-9]+$" }
+        },
+        "tuplets": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 2 },
+          "description": "Subdivision factors that require tuplet notation (e.g. [3] for triplets). The internal tick grid is extended automatically."
+        },
+        "beat_divisions": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "description": "All subdivision factors per beat, including native and tuplet ones."
+        }
+      },
+      "additionalProperties": false
+    },
+    "search_options": {
+      "type": "object",
+      "description": "Search strategy configuration.",
+      "properties": {
+        "engine": { "type": "string", "enum": ["dfs"] },
+        "branching": {
+          "type": "string",
+          "enum": ["first_fail", "input_order"],
+          "description": "'first_fail' picks the variable with the smallest domain (recommended). 'input_order' uses declaration order."
+        },
+        "value_order": {
+          "type": "string",
+          "enum": ["min", "random", "heuristic"],
+          "description": "'min' = shortest absolute duration / lowest pitch. 'random' = random order. 'heuristic' = scored by heuristic_energy rules."
+        },
+        "restart_policy": {
+          "type": "string",
+          "enum": ["none", "luby"]
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Time limit in milliseconds. Default 30000."
+        },
+        "max_solutions": {
+          "type": ["integer", "string"],
+          "description": "Maximum solutions to find. 0 or 'all' = unlimited. Default 1."
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "0 = fresh random seed per run. N > 0 = fixed reproducible seed. Omit for fully deterministic (no randomness)."
+        },
+        "heuristic_top_k": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Only evaluate top K candidates for heuristic scoring. 0 = all candidates."
+        },
+        "heuristic_trace": {
+          "type": "boolean",
+          "description": "Print heuristic scores during search for debugging."
+        },
+        "enable_metric_engine": {
+          "$ref": "#/definitions/booleanOrInt",
+          "description": "Enable the metric/time-signature engine. Auto-enabled when meter rules are present."
+        },
+        "require_exact_score_length": {
+          "type": "boolean",
+          "description": "Require the solution to exactly fill the score_length."
+        }
+      },
+      "additionalProperties": false
+    },
+    "export_json": {
+      "$ref": "#/definitions/booleanOrInt",
+      "description": "Save raw solution as JSON. Default true. MUST appear before 'rules' in the file."
+    },
+    "export_txt": {
+      "$ref": "#/definitions/booleanOrInt",
+      "description": "Save human-readable text summary. Default true. MUST appear before 'rules' in the file."
+    },
+    "export_xml": {
+      "$ref": "#/definitions/booleanOrInt",
+      "description": "Save as MusicXML. Default false. MUST appear before 'rules' in the file."
+    },
+    "export_path": {
+      "type": "string",
+      "description": "Output directory for all exported files. Default 'tests/output'. MUST appear before 'rules' in the file."
+    },
+    "rules": {
+      "type": "array",
+      "description": "Built-in constraint rules. Export keys must appear before this key in the JSON file.",
+      "items": { "$ref": "#/definitions/rule" }
+    },
+    "dynamic_rules": {
+      "type": "array",
+      "description": "Expression-based hard constraints and heuristics.",
+      "items": { "$ref": "#/definitions/dynamicRule" }
+    }
+  },
+  "definitions": {
+    "voiceDomain": {
+      "type": "object",
+      "properties": {
+        "voice": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Explicit voice index. When omitted the array position determines the index."
+        },
+        "pitch": {
+          "oneOf": [
+            { "$ref": "#/definitions/pitchDomainObject" },
+            { "type": "array", "items": { "type": "integer" } }
+          ]
+        },
+        "rhythm": {
+          "oneOf": [
+            { "$ref": "#/definitions/rhythmDomainObject" },
+            { "type": "array", "items": { "oneOf": [{ "type": "string" }, { "type": "number" }] } }
+          ]
+        },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "pitchDomainObject": {
+      "type": "object",
+      "required": ["midi_values"],
+      "properties": {
+        "midi_values": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "integer", "minimum": 0, "maximum": 127 }
+        },
+        "midi_min": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "midi_max": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "description": { "type": "string" }
+      }
+    },
+    "rhythmDomainObject": {
+      "type": "object",
+      "required": ["duration_values"],
+      "properties": {
+        "duration_values": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
+          "description": "Duration strings: '1/4', '1/8', '-1/4' (rest), '1/12' (triplet eighth), etc."
+        },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "booleanOrInt": {
+      "oneOf": [
+        { "type": "boolean" },
+        { "type": "integer", "minimum": 0, "maximum": 1 }
+      ],
+      "description": "Accepts true/false or 1/0."
+    },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Optional rule label." },
+        "rule_type": {
+          "type": "string",
+          "enum": [
+            "r-one-voice",
+            "r-pitches-one-engine",
+            "r-pitches-one-voice",
+            "r-index-pitches-one-voice",
+            "r-uniformity",
+            "r-rhythm-rhythm",
+            "r-pitch-pitch",
+            "r-cross-voice-no-unisons",
+            "r-cross-voice-retrograde-inversion",
+            "r-perfect-fifth-intervals",
+            "r-palindrome-voice",
+            "r-palindrome-voice2",
+            "r-twelve-tone-voice1",
+            "r-metric-hierarchy",
+            "r-time-signature",
+            "r-timepoint-relationship",
+            "wildcard_constraint"
+          ],
+          "description": "Rule type identifier. r-pitches-one-engine is a legacy alias for r-one-voice with target_component:pitch."
+        },
+        "constraint": {
+          "type": "string",
+          "description": "Shorthand built-in constraint name. E.g. 'all_different', 'equal_values', 'isorhythm', 'no_unison', 'interval_class', 'contrary_motion'."
+        },
+        "constraint_function": {
+          "type": "object",
+          "description": "Verbose form. Use 'constraint' shorthand in new configs.",
+          "required": ["type", "function"],
+          "properties": {
+            "type": { "type": "string" },
+            "function": { "type": "string" },
+            "parameters": { "type": "array" }
+          }
+        },
+        "parameters": {
+          "description": "Constraint-specific parameters: rhythm values, semitone counts, ratios, time signatures.",
+          "oneOf": [
+            { "type": "array", "items": { "oneOf": [{ "type": "number" }, { "type": "string" }] } },
+            { "type": "number" },
+            { "type": "string" }
+          ]
+        },
+        "target_voices": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Voice indices this rule applies to, e.g. [0] or [0, 1]."
+        },
+        "target_component": {
+          "type": "string",
+          "enum": ["pitch", "rhythm", "metric"],
+          "description": "Component to constrain. Omit for r-rhythm-rhythm and r-pitch-pitch (auto-targeted)."
+        },
+        "indices": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Explicit position list. Omit to apply at all positions."
+        },
+        "stride": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Apply rule every N positions starting from 'offset'. Takes precedence over 'indices'."
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Starting position for stride-based application. Default 0."
+        },
+        "heuristic": {
+          "type": "boolean",
+          "description": "r-pitch-pitch / r-rhythm-rhythm only. When true, converts the rule to a soft preference: values satisfying the rule are tried first but violations are not rejected. Default false (hard constraint)."
+        },
+        "timepoints": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Quarter-note positions for metric timeline, e.g. ['0q', '4q', '7q']."
+        },
+        "bar_pattern_type": {
+          "type": "string",
+          "enum": ["fixed", "repeating", "random", "weighted"],
+          "description": "For r-time-signature: how to expand bar_pattern."
+        },
+        "bar_pattern": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[0-9]+/[0-9]+$" },
+          "description": "List of time signatures for bar-oriented metric rules."
+        },
+        "bar_pattern_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of bars to generate for 'random' or 'weighted' mode."
+        },
+        "bar_pattern_repetitions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Explicit repetition count for 'repeating' mode. 0 = fill score automatically."
+        },
+        "bar_pattern_distribution": {
+          "type": "object",
+          "description": "Probability weights for 'weighted' mode. Keys are time signatures, values are probabilities (should sum to ~1.0).",
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "allow_cross_barline": {
+          "$ref": "#/definitions/booleanOrInt",
+          "description": "For r-time-signature bar patterns: allow note durations to cross barlines."
+        },
+        "wildcard_type": {
+          "type": "string",
+          "enum": ["for_all_positions", "for_all_voices", "sliding_window"],
+          "description": "For wildcard_constraint rules."
+        },
+        "pattern_offsets": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Window offsets for wildcard expansion, e.g. [0, 1]."
+        },
+        "enabled": {
+          "$ref": "#/definitions/booleanOrInt",
+          "description": "Enable or disable this rule. Default true."
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Evaluation priority. Higher = applied first."
+        },
+        "description": { "type": "string" }
+      },
+      "required": ["rule_type"]
+    },
+    "dynamicRule": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["basic_constraint", "heuristic_energy"],
+          "description": "'basic_constraint' = hard constraint (true/false). 'heuristic_energy' = soft preference (numeric score)."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["true_false", "real_heuristic"]
+        },
+        "expression": {
+          "type": "string",
+          "description": "Expression using voice[N].pitch[i], voice[N].rhythm[i], ?current, abs(), max(), min(), in, not_in."
+        },
+        "constraint": {
+          "type": "string",
+          "description": "Alias for 'expression'."
+        },
+        "weight": {
+          "type": "number",
+          "description": "Relative importance of this heuristic. Default 1."
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Scoring bucket — higher evaluated first in tie-breaking."
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["maximize", "minimize"],
+          "description": "Default 'maximize' (higher score = tried first)."
+        },
+        "wildcard_type": {
+          "type": "string",
+          "enum": ["for_all_positions", "for_all_voices", "sliding_window"]
+        },
+        "pattern_offsets": {
+          "type": "array",
+          "items": { "type": "integer" }
+        },
+        "candidate_voice": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Restrict heuristic evaluation to this specific voice."
+        },
+        "target_voices": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "target_component": {
+          "type": "string",
+          "enum": ["pitch", "rhythm"]
+        },
+        "indices": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "enabled": { "$ref": "#/definitions/booleanOrInt" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}

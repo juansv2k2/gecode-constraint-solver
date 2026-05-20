@@ -3,6 +3,10 @@
   "description": "Single voice, 4 notes from C major, all different. Exactly 4! = 24 permutations.",
   "solution_length": 4,
   "num_voices": 1,
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -11,16 +15,11 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [
-        0,
-        1,
-        2,
-        3
-      ],
+      "indices": [0, 1, 2, 3],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "All 4 notes must be different \u2014 gives 4! = 24 solutions",
+      "description": "All 4 notes must be different — gives 4! = 24 solutions",
       "target_voices": [0],
       "target_component": "pitch"
     }
@@ -31,14 +30,6 @@
     "branching": "first_fail",
     "random_seed": 42
   },
-  "output_options": {
-    "export_xml": false,
-    "export_png": false,
-    "export_midi": false,
-    "show_statistics": true,
-    "include_analysis": false,
-    "export_path": "tests/output"
-  },
   "voices": [
     {
       "rhythm": {
@@ -48,12 +39,7 @@
         "description": "Voice 0: quarter notes only (rhythm fixed, not the interesting variable)"
       },
       "pitch": {
-        "midi_values": [
-          60,
-          62,
-          64,
-          65
-        ],
+        "midi_values": [60, 62, 64, 65],
         "description": "Voice 0: C D E F (4 notes only)"
       }
     }

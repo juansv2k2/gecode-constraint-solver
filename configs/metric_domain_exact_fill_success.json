@@ -7,21 +7,40 @@
   "voices": [
     {
       "rhythm": {
-        "duration_values": ["1/8"],
+        "duration_values": [
+          "1/8"
+        ],
         "description": "Voice 0 rhythm: uniform eighth notes"
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72],
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ],
         "description": "Voice 0 pitch: C major scale"
       }
     }
   ],
   "meter": {
-    "time_signatures": ["4/4", "3/4", "6/8"],
+    "time_signatures": [
+      "4/4",
+      "3/4",
+      "6/8"
+    ],
     "tuplets": [3],
     "beat_divisions": [2, 3],
     "description": "Metric domain with three possible signatures"
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -30,7 +49,16 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "target_voices": [0],
       "target_component": "pitch",
       "enabled": true,
@@ -42,9 +70,20 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": ["1/8"]
+        "parameters": [
+          "1/8"
+        ]
       },
-      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "target_voices": [0],
       "target_component": "rhythm",
       "enabled": true,
@@ -56,9 +95,17 @@
       "constraint_function": {
         "type": "builtin",
         "function": "equal_values",
-        "parameters": ["4/4", "3/4", "6/8"]
+        "parameters": [
+          "4/4",
+          "3/4",
+          "6/8"
+        ]
       },
-      "timepoints": ["0q", "4q", "7q"],
+      "timepoints": [
+        "0q",
+        "4q",
+        "7q"
+      ],
       "enabled": true,
       "priority": 8,
       "description": "Segment mapping: [0q..4q)=4/4, [4q..7q)=3/4, [7q..10q)=6/8"
@@ -71,15 +118,5 @@
     "timeout_ms": 10000,
     "max_solutions": 1,
     "branching": "first_fail"
-  },
-  "output_options": {
-    "export_path": "output",
-    "export_json": false,
-    "export_txt": false,
-    "export_xml": false,
-    "export_png": false,
-    "export_midi": false,
-    "show_statistics": true,
-    "include_analysis": true
   }
 }

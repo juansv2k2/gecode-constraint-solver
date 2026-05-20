@@ -3,15 +3,16 @@
   "description": "Three rules, one per wildcard_type, so the behaviour of each can be observed in isolation.",
   "solution_length": 6,
   "num_voices": 2,
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "id": "no_repeated_pitch_window",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [
-        0,
-        1
-      ],
+      "pattern_offsets": [0, 1],
       "constraint": "voice[0].pitch[i+1] != voice[0].pitch[i]",
       "enabled": true,
       "priority": 10,
@@ -21,9 +22,7 @@
       "id": "voices_not_unison",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_positions",
-      "pattern_offsets": [
-        0
-      ],
+      "pattern_offsets": [0],
       "constraint": "voice[0].pitch[i] != voice[1].pitch[i]",
       "enabled": true,
       "priority": 9,
@@ -33,9 +32,7 @@
       "id": "voice1_above_voice0",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_voices",
-      "pattern_offsets": [
-        0
-      ],
+      "pattern_offsets": [0],
       "constraint": "voice[1].pitch[i] > voice[0].pitch[i]",
       "enabled": true,
       "priority": 8,
@@ -46,14 +43,6 @@
     "timeout_ms": 10000,
     "max_solutions": 5,
     "branching": "first_fail"
-  },
-  "output_options": {
-    "export_xml": false,
-    "export_png": false,
-    "export_midi": false,
-    "show_statistics": true,
-    "include_analysis": true,
-    "export_path": "tests/output"
   },
   "voices": [
     {

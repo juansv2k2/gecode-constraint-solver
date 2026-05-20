@@ -48,6 +48,19 @@ bin/dynamic-solver configs/metric_domain_example.json
     "time_signatures": ["4/4", "3/4"],
     "beat_divisions": [2, 3]
   },
+  "search_options": {
+    "engine": "dfs",
+    "branching": "first_fail",
+    "value_order": "heuristic",
+    "restart_policy": "none",
+    "timeout_ms": 30000,
+    "max_solutions": 1,
+    "random_seed": 42
+  },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-one-voice",
@@ -70,26 +83,11 @@ bin/dynamic-solver configs/metric_domain_example.json
       "parameters": ["4/4", "3/4"],
       "timepoints": ["0q", "4q"]
     }
-  ],
-  "search_options": {
-    "engine": "dfs",
-    "branching": "first_fail",
-    "value_order": "heuristic",
-    "restart_policy": "none",
-    "timeout_ms": 30000,
-    "max_solutions": 1,
-    "random_seed": 42
-  },
-  "output_options": {
-    "export_path": "output",
-    "export_json": true,
-    "export_txt": true,
-    "export_xml": false,
-    "export_png": false,
-    "export_midi": false
-  }
+  ]
 }
 ```
+
+> **Export key ordering:** `export_json`, `export_txt`, `export_xml`, and `export_path` must appear **before** the `rules` key in the JSON file.
 
 ## Wildcard Membership Example
 
@@ -160,7 +158,7 @@ Use `config_file` or `config_dict` with the `gecode.solver` object. For details,
 
 - [Usage Guide](USAGE.md)
 - [Max Usage](max-usage.md)
-- [JSON Schema](configs/cluster_config_schema.json)
+- [JSON Schema](configs/schema.json)
 - [Harmonic Consonance Example](configs/harmonic_consonance_4voice.json)
 - [Twelve-Tone Usage](docs/TWELVE_TONE_USAGE.md)
 - [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
@@ -169,6 +167,7 @@ Use `config_file` or `config_dict` with the `gecode.solver` object. For details,
 
 - User-facing configs are voice-first: `voices` + optional `meter`.
 - Built-in rule targeting is voice-based: `target_voices` with `target_component`.
+- Export settings are **top-level keys** (`export_json`, `export_txt`, `export_xml`, `export_path`) placed **before** the `rules` key — not nested inside an `output_options` block.
 - Search strategy is configured via `search_options`.
 - Dynamic expression parsing supports logical operators (`&&`, `||`, `!`, `not`), membership (`in`, `not_in`), and integer array literals (`[0, 5, 7, 12]`).
 - `wildcard_constraint` rules now honor `indices` directly in wildcard expansion.
@@ -177,8 +176,9 @@ Use `config_file` or `config_dict` with the `gecode.solver` object. For details,
 - `r-metric-hierarchy` DURATIONS_GRID mode now applies the grid filter to rest durations as well as note durations; previously rests always bypassed the filter. A warning is emitted when the combination of tuplet values produces a 1-tick (trivially fine) grid step.
 - Rhythm variable branching uses absolute-value minimum by default: the solver picks the shortest duration first (notes preferred over same-length rests) rather than the most negative value (longest rest). `value_order: "random"` is unchanged.
 - `global_domain` is an optional top-level key that defines shared pitch and/or rhythm domains used as a fallback for any voice that does not declare its own. The `voices` array can be shorter than `num_voices` (or omitted entirely) when `global_domain` fully covers the remaining voices. Per-voice entries can override only `pitch`, only `rhythm`, or both; the other component falls back to `global_domain`. Use the optional `"voice": N` key inside a voice entry to target a specific voice index non-positionally.
-- `r-rhythm-rhythm` is a cross-voice rhythm constraint. It posts position-aligned Gecode constraints between two voices' rhythm variables. Modes: `isorhythm` (identical values), `abs_isorhythm` (same durations, independent note/rest status), `augmentation` (v0 is ratio× longer than v1; note/rest status must match), `diminution` (v0 is ratio× shorter than v1; note/rest status must match), `no_simultaneous_rests` (at least one voice active per position), `rest_complement` (exactly one voice rests per position). Requires `target_voices: [A, B]`; automatically targets rhythm engines. The `parameters` ratio accepts integers and floats (`0.5`, `1.5`, `0.75`, etc.), converted internally to exact integer fractions.
-- `r-pitch-pitch` is a cross-voice pitch constraint. It posts position-aligned Gecode constraints between two voices' pitch variables. **Phase 1 modes** (per position): `no_unison`, `same_pitch`, `voice_above`, `voice_below`, `exact_interval` (signed semitones, requires `parameters: [n]`), `min_interval`, `max_interval`, `interval_range` (requires `parameters: [min, max]`), `interval_class` (requires `parameters: [c1, c2, ...]`, applies `(p0−p1) mod 12`). **Phase 2 modes** (consecutive pairs): `no_consecutive_fifths`, `no_consecutive_octaves`, `no_parallel_motion`, `contrary_motion`. Requires `target_voices: [A, B]`; automatically targets pitch engines. Use `"stride": N` and `"offset": K` to apply the rule every N positions starting from K, or `"indices": [...]` for an explicit position list.
+- `r-rhythm-rhythm` is a cross-voice rhythm constraint. It posts position-aligned Gecode constraints between two voices' rhythm variables. Modes: `isorhythm` (identical values), `abs_isorhythm` (same durations, independent note/rest status), `augmentation` (v0 is ratio× longer than v1; note/rest status must match), `diminution` (v0 is ratio× shorter than v1; note/rest status must match), `no_simultaneous_rests` (at least one voice active per position), `rest_complement` (exactly one voice rests per position). Requires `target_voices: [A, B]`; automatically targets rhythm engines. The `parameters` ratio accepts integers and floats (`0.5`, `1.5`, `0.75`, etc.), converted internally to exact integer fractions. Supports `"heuristic": true` to convert the rule into a soft preference.
+- `r-pitch-pitch` is a cross-voice pitch constraint. It posts position-aligned Gecode constraints between two voices' pitch variables. **Phase 1 modes** (per position): `no_unison`, `same_pitch`, `voice_above`, `voice_below`, `exact_interval` (signed semitones, requires `parameters: [n]`), `min_interval`, `max_interval`, `interval_range` (requires `parameters: [min, max]`), `interval_class` (requires `parameters: [c1, c2, ...]`, applies `(p0−p1) mod 12`). **Phase 2 modes** (consecutive pairs): `no_consecutive_fifths`, `no_consecutive_octaves`, `no_parallel_motion`, `contrary_motion`. Requires `target_voices: [A, B]`; automatically targets pitch engines. Use `"stride": N` and `"offset": K` to apply the rule every N positions starting from K, or `"indices": [...]` for an explicit position list. Supports `"heuristic": true` to convert the rule into a soft preference.
+- Legacy configs that used `output_options` blocks or `dynamic_rules`-only format are preserved in `configs/legacy/`.
 
 ## Development
 

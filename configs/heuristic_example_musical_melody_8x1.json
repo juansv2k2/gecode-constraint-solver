@@ -9,6 +9,10 @@
     "heuristic_trace": false,
     "branching": "first_fail"
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [],
   "dynamic_rules": [
     {

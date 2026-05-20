@@ -18,7 +18,16 @@
         ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
       }
     },
     {
@@ -35,7 +44,16 @@
         ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
       }
     },
     {
@@ -52,7 +70,16 @@
         ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
       }
     },
     {
@@ -69,15 +96,30 @@
         ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
       }
     }
   ],
   "meter": {
-    "time_signatures": ["4/4"],
+    "time_signatures": [
+      "4/4"
+    ],
     "tuplets": [5, 10],
     "beat_divisions": [2, 4]
   },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "rule_type": "r-metric-hierarchy",
@@ -98,7 +140,9 @@
       "target_component": "metric",
       "description": "Bar-pattern time signature (fixed)",
       "bar_pattern_type": "repeating",
-      "bar_pattern": ["4/4"],
+      "bar_pattern": [
+        "4/4"
+      ],
       "bar_pattern_repetitions": 4,
       "allow_cross_barline": 0,
       "enabled": 1
@@ -109,13 +153,5 @@
     "enable_metric_engine": 1,
     "random_seed": 0,
     "value_order": "random"
-  },
-  "output_options": {
-    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-    "export_filename": "quintuplet_test_1",
-    "export_xml": 1,
-    "export_png": 0,
-    "export_midi": 0,
-    "show_statistics": 1
   }
 }

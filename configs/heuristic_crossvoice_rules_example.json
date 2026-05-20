@@ -1,10 +1,8 @@
 {
   "name": "Heuristic cross-voice rules example — r-pitch-pitch and r-rhythm-rhythm",
   "description": "Demonstrates the 'heuristic: true' flag on r-pitch-pitch and r-rhythm-rhythm rules. Hard rules are strictly enforced; heuristic rules only guide value ordering and can be softly violated. Requires 'value_order: heuristic' in search_options to activate. Three voices: melody (v0), inner (v1), bass (v2). Eight positions.",
-
   "solution_length": 8,
   "num_voices": 3,
-
   "search_options": {
     "value_order": "heuristic",
     "random_seed": 42,
@@ -12,28 +10,89 @@
     "heuristic_trace": false,
     "branching": "first_fail"
   },
-
   "voices": [
     {
       "voice": 0,
       "description": "Melody — upper range",
-      "pitch": { "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76] },
-      "rhythm": { "duration_values": ["1/4", "1/8", "1/2", "-1/8"] }
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72,
+          74,
+          76
+        ]
+      },
+      "rhythm": {
+        "duration_values": [
+          "1/4",
+          "1/8",
+          "1/2",
+          "-1/8"
+        ]
+      }
     },
     {
       "voice": 1,
       "description": "Inner voice — middle range",
-      "pitch": { "midi_values": [52, 53, 55, 57, 59, 60, 62, 64, 65, 67] },
-      "rhythm": { "duration_values": ["1/4", "1/8", "1/2", "-1/4"] }
+      "pitch": {
+        "midi_values": [
+          52,
+          53,
+          55,
+          57,
+          59,
+          60,
+          62,
+          64,
+          65,
+          67
+        ]
+      },
+      "rhythm": {
+        "duration_values": [
+          "1/4",
+          "1/8",
+          "1/2",
+          "-1/4"
+        ]
+      }
     },
     {
       "voice": 2,
       "description": "Bass — lower range",
-      "pitch": { "midi_values": [36, 38, 40, 41, 43, 45, 47, 48, 50, 52] },
-      "rhythm": { "duration_values": ["1/2", "1/4", "-1/4"] }
+      "pitch": {
+        "midi_values": [
+          36,
+          38,
+          40,
+          41,
+          43,
+          45,
+          47,
+          48,
+          50,
+          52
+        ]
+      },
+      "rhythm": {
+        "duration_values": [
+          "1/2",
+          "1/4",
+          "-1/4"
+        ]
+      }
     }
   ],
-
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "output",
   "rules": [
     {
       "id": "hard_no_unison_v0_v1",
@@ -49,7 +108,6 @@
       "target_voices": [0, 2],
       "description": "HARD: melody (v0) must always be strictly above bass (v2)"
     },
-
     {
       "id": "heur_inner_above_bass",
       "rule_type": "r-pitch-pitch",
@@ -106,7 +164,6 @@
       "heuristic": true,
       "description": "HEURISTIC: prefer interval between melody and inner voice in range [2, 14] semitones at every other position (stride=2)"
     },
-
     {
       "id": "hard_no_sim_rests_v0_v2",
       "rule_type": "r-rhythm-rhythm",
@@ -114,7 +171,6 @@
       "target_voices": [0, 2],
       "description": "HARD: melody and bass may never rest at the same position — at least one must be active"
     },
-
     {
       "id": "heur_isorhythm_v1_v2",
       "rule_type": "r-rhythm-rhythm",
@@ -153,7 +209,9 @@
       "rule_type": "r-rhythm-rhythm",
       "constraint": "augmentation",
       "target_voices": [1, 2],
-      "parameters": [2.0],
+      "parameters": [
+        2.0
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer bass (v2) durations to be double those of inner voice (v1) — 2:1 augmentation ratio"
     }
