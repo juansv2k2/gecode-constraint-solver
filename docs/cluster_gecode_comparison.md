@@ -256,3 +256,115 @@ Performance depends heavily on problem structure. The table below compares chara
 **Cluster Engine is faster** for the primary use case here: open-ended multi-voice musical generation with ordered candidate lists and domain-specific musical heuristics. The combination of constant-cost stepping, musically-guided backjumping, and heuristic candidate sorting means it typically finds a musically valid solution with far fewer backtracks than Gecode would require navigating the same search space.
 
 In this project both are active simultaneously: Gecode enforces hard posted constraints (no unisons, interval bounds, metric hierarchy) while the Cluster Engine's architecture controls _which_ voice/position is assigned next, so each `Space::commit()` is already in a near-valid region of the search space.
+
+---
+
+## 6. How They Cooperate in This Project
+
+The two systems do not run in parallel — they are layered. The Cluster Engine's concepts (engine indexing, musical rules, heuristic scoring) are used to **configure** a Gecode space before the Gecode DFS takes over and runs the search.
+
+### The pipeline
+
+```
+JSON config
+    │
+    ▼
+Parse rules → compile each rule into a CompiledConstraint { post_constraint lambda }
+    │
+    ▼
+engine_index_for_voice_component(voice, "pitch"|"rhythm"|"metric", num_voices)
+    │   maps voice 0 pitch → engine 1, voice 0 rhythm → engine 0, metric → engine num_voices*2
+    ▼
+build_configured_space_()
+    ├── construct IntegratedMusicalSpace (Gecode Space subclass)
+    │       rhythm_vars_[voice * length + i]   — IntVarArray, domain narrowed by dom()
+    │       absolute_vars_[voice * length + i] — IntVarArray (pitch), domain narrowed by dom()
+    │       metric_vars_[i]                    — IntVarArray (time sig numerators)
+    │       interval_vars_                     — derived, with BoolVar reification for rests
+    │
+    ├── for each CompiledConstraint: call post_constraint(ctx)
+    │       ctx carries pointers to pitch_vars, rhythm_vars, metric_vars, space
+    │       lambda posts Gecode propagators: rel(), dom(), expr(), BoolVar reification
+    │
+    ├── if heuristic scorers exist: configure_pitch_heuristic_value_ordering(scorer)
+    │       wires CompiledHeuristicRule lambdas into Gecode's INT_VAL() brancher callback
+    │
+    └── branch() — registers variable and value selection strategies
+            rhythm_vars_: INT_VAR_NONE / INT_VAR_SIZE_MIN + custom value selector
+            absolute_vars_: INT_VAR_NONE / INT_VAR_SIZE_MIN + heuristic value selector
+    │
+    ▼
+Gecode DFS engine runs:
+    clone space → commit value → propagate → SS_SOLVED / SS_BRANCH / SS_FAILED
+    at each branch point: heuristic scorer is called to rank candidate values
+    │
+    ▼
+extract_solution_from_space_() → MusicalSolution
+```
+
+### Concrete example
+
+Config with one hard constraint and one heuristic:
+
+```json
+{
+  "num_voices": 2,
+  "solution_length": 8,
+  "voices": [
+    { "pitch": [60, 62, 64, 65, 67, 69, 71, 72] },
+    { "pitch": [48, 50, 52, 53, 55, 57, 59, 60] }
+  ],
+  "rules": [
+    {
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [0, 1],
+      "id": "soprano_above_bass"
+    },
+    {
+      "rule_type": "r-one-voice",
+      "constraint": "stepwise_preference",
+      "target_voice": 0,
+      "heuristic": true,
+      "id": "prefer_steps"
+    }
+  ]
+}
+```
+
+**What happens step by step:**
+
+1. `r-pitch-pitch / voice_above` is compiled into a `CompiledConstraint`. Its `post_constraint` lambda is:
+
+   ```cpp
+   // src/dynamic_constraint_solver_main.cpp ~line 2643
+   compiled_pp->post_constraint = [pp_v1, pp_v2, ...](DynamicRules::ConstraintContext& ctx) {
+       for (int i = 0; i < ctx.sequence_length; ++i) {
+           IntVar p1 = (*ctx.pitch_vars)[pp_v1 * ctx.sequence_length + i]; // voice 0
+           IntVar p2 = (*ctx.pitch_vars)[pp_v2 * ctx.sequence_length + i]; // voice 1
+           Gecode::rel(*ctx.space, p1, Gecode::IRT_GR, p2); // p0 > p1 at every position
+       }
+   };
+   ```
+
+2. `r-one-voice / stepwise_preference` (heuristic) compiles into a scorer lambda stored separately in `compiled_rules_->heuristic_scorers`.
+
+3. `build_configured_space_()` constructs the Gecode space, then:
+   - Calls `post_constraint(ctx)` → 8 `IRT_GR` propagators are posted on the space. Gecode propagation immediately narrows pitch domains: any value in voice 1 ≥ min(voice 0 domain) is eliminated.
+   - Calls `configure_pitch_heuristic_value_ordering(scorer)` → the stepwise scorer is wired into Gecode's `INT_VAL()` callback.
+
+4. Gecode DFS starts. When it picks a value for `absolute_vars_[0]` (voice 0, position 0), it calls the heuristic scorer for each candidate in the domain. The scorer returns a higher bucket score for pitches one or two semitones away from the previously assigned pitch. The brancher commits the top-ranked value first.
+
+5. The `IRT_GR` propagator immediately fires: it removes from voice 1's domain at that position any value ≥ the committed voice 0 pitch.
+
+6. If propagation leaves voice 1 with an empty domain → `SS_FAILED` → Gecode backtracks to the last branch point and tries the next heuristic-ranked value.
+
+**Division of responsibility:**
+
+|                                | Responsible for                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| Cluster Engine indexing        | Mapping `voice=0, component="pitch"` → Gecode variable index `voice * length + i` |
+| Cluster Engine compiled rules  | Generating the `post_constraint` lambdas that become Gecode propagators           |
+| Cluster Engine heuristic rules | Scoring candidate values inside Gecode's brancher callback                        |
+| Gecode propagation             | Enforcing `voice_above` globally, pruning domains before branching                |
+| Gecode DFS                     | Backtracking, cloning, driving the search to completion                           |
