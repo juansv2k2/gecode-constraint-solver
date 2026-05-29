@@ -33,14 +33,20 @@
       "3/4",
       "6/8"
     ],
-    "tuplets": [3],
-    "beat_divisions": [2, 3],
+    "tuplets": [
+      3
+    ],
+    "beat_divisions": [
+      2,
+      3
+    ],
     "description": "Metric domain with three possible signatures"
   },
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "metric_domain_exact_fill_success.xml",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -59,7 +65,9 @@
         6,
         7
       ],
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "target_component": "pitch",
       "enabled": true,
       "priority": 10,
@@ -84,7 +92,9 @@
         6,
         7
       ],
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "target_component": "rhythm",
       "enabled": true,
       "priority": 9,

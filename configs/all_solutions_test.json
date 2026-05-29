@@ -6,7 +6,8 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "all_solutions_test.xml",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -15,12 +16,19 @@
         "function": "all_different",
         "parameters": []
       },
-      "indices": [0, 1, 2, 3],
+      "indices": [
+        0,
+        1,
+        2,
+        3
+      ],
       "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
       "description": "All 4 notes must be different — gives 4! = 24 solutions",
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "target_component": "pitch"
     }
   ],
@@ -39,7 +47,12 @@
         "description": "Voice 0: quarter notes only (rhythm fixed, not the interesting variable)"
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65],
+        "midi_values": [
+          60,
+          62,
+          64,
+          65
+        ],
         "description": "Voice 0: C D E F (4 notes only)"
       }
     }

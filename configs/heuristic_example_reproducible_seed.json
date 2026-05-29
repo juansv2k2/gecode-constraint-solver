@@ -12,7 +12,8 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "heuristic_example_reproducible_seed.xml",
   "rules": [],
   "dynamic_rules": [
     {
@@ -75,7 +76,10 @@
       "type": "heuristic_preference",
       "description": "Priority 5: Prefer stepwise motion (±2 semitones) for smooth melody",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "step_size": 1,
       "expression": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "mode": "heur_switch",

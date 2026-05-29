@@ -67,18 +67,28 @@
       "4/4",
       "3/4"
     ],
-    "tuplets": [3, 6],
-    "beat_divisions": [2, 4]
+    "tuplets": [
+      3,
+      6
+    ],
+    "beat_divisions": [
+      2,
+      4
+    ]
   },
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "metric_domain_complex.xml",
   "rules": [
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "tuplet_on_beat_start",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "enabled": 1,
       "description": "explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)"
     },
@@ -89,7 +99,10 @@
         "min-grid",
         "1/8"
       ],
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "enabled": 0,
       "description": "Example B: stricter grid variant (1/8)"
     },
@@ -99,7 +112,10 @@
       "parameters": [
         "0<-1"
       ],
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "enabled": 0,
       "description": "Example D: partial-index hierarchy (first half of sequence only)"
     },
@@ -110,7 +126,10 @@
         "durations",
         "no-tuplets"
       ],
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "enabled": 0,
       "description": "Example E: legacy no-tuplets filtering"
     },

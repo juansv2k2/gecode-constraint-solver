@@ -60,13 +60,12 @@
     "timeout_ms": 30000,
     "random_seed": 0
   },
-  "output_options": {
-    "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-    "export_filename": "heuristic_all_positions_example",
-    "export_json": false,
-    "export_txt": false,
-    "export_xml": true,
-    "export_png": false,
-    "export_midi": false
-  }
+
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "heuristic_all_positions_example",
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_png": false,
+  "export_midi": false
 }

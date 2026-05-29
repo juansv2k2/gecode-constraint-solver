@@ -1,0 +1,35 @@
+{
+  "config_file": "/var/folders/cv/c6ctbt612w9_hm1ltt9l68vc0000gn/T/tmp2jckn6hi.json",
+  "problem_name": "",
+  "solutions_found": 1,
+  "solve_time_ms": 4,
+  "rules_applied": 0,
+  "solutions": [
+    {
+      "solution_index": 0,
+      "voices": [
+        {
+          "voice": 0,
+          "pitch_solution": [60, 65, 71, 62, 60, 69, 62, 69, 62, 72, 60, 69],
+          "rhythm_solution": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          "pitch_names": ["C4", "F4", "B4", "D4", "C4", "A4", "D4", "A4", "D4", "C5", "C4", "A4"],
+          "rhythm_names": ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4"]
+        },
+        {
+          "voice": 1,
+          "pitch_solution": [52, 50, 59, 53, 53, 60, 55, 53, 55, 60, 53, 53],
+          "rhythm_solution": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          "pitch_names": ["E3", "D3", "B3", "F3", "F3", "C4", "G3", "F3", "G3", "C4", "F3", "F3"],
+          "rhythm_names": ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4"]
+        }
+      ],
+      "metric_signature_numerators": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      "metric_signature": ["4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4"],
+      "score": {
+        "rhythm_base": 4,
+        "metric_timeline": [{"start_index":0,"end_index":11,"start_tick":0,"end_tick":12,"numerator":4,"denominator":4}],
+        "measures": [{"measure_index":0,"start_ticks":0,"end_ticks":12,"numerator":4,"denominator":4,"events":[{"voice":0,"index":0,"pitch":60,"rhythm_ticks":1,"onset_ticks":0,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":1,"pitch":65,"rhythm_ticks":1,"onset_ticks":1,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":2,"pitch":71,"rhythm_ticks":1,"onset_ticks":2,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":3,"pitch":62,"rhythm_ticks":1,"onset_ticks":3,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":4,"pitch":60,"rhythm_ticks":1,"onset_ticks":4,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":5,"pitch":69,"rhythm_ticks":1,"onset_ticks":5,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":6,"pitch":62,"rhythm_ticks":1,"onset_ticks":6,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":7,"pitch":69,"rhythm_ticks":1,"onset_ticks":7,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":8,"pitch":62,"rhythm_ticks":1,"onset_ticks":8,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":9,"pitch":72,"rhythm_ticks":1,"onset_ticks":9,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":10,"pitch":60,"rhythm_ticks":1,"onset_ticks":10,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":11,"pitch":69,"rhythm_ticks":1,"onset_ticks":11,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":0,"pitch":52,"rhythm_ticks":1,"onset_ticks":0,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":1,"pitch":50,"rhythm_ticks":1,"onset_ticks":1,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":2,"pitch":59,"rhythm_ticks":1,"onset_ticks":2,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":3,"pitch":53,"rhythm_ticks":1,"onset_ticks":3,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":4,"pitch":53,"rhythm_ticks":1,"onset_ticks":4,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":5,"pitch":60,"rhythm_ticks":1,"onset_ticks":5,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":6,"pitch":55,"rhythm_ticks":1,"onset_ticks":6,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":7,"pitch":53,"rhythm_ticks":1,"onset_ticks":7,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":8,"pitch":55,"rhythm_ticks":1,"onset_ticks":8,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":9,"pitch":60,"rhythm_ticks":1,"onset_ticks":9,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":10,"pitch":53,"rhythm_ticks":1,"onset_ticks":10,"duration_ticks":1,"is_rest":false}, {"voice":1,"index":11,"pitch":53,"rhythm_ticks":1,"onset_ticks":11,"duration_ticks":1,"is_rest":false}]}]
+      }
+    }
+  ]
+}

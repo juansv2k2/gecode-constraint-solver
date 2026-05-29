@@ -1,0 +1,28 @@
+{
+  "config_file": "configs/heuristic_priority_direction_8x1.json",
+  "problem_name": "Heuristic Priority+Direction 8x1",
+  "solutions_found": 1,
+  "solve_time_ms": 0,
+  "rules_applied": 0,
+  "solutions": [
+    {
+      "solution_index": 0,
+      "voices": [
+        {
+          "voice": 0,
+          "pitch_solution": [55, 57, 55, 55, 55, 55, 55, 55],
+          "rhythm_solution": [1, 1, 1, 1, 1, 1, 1, 1],
+          "pitch_names": ["G3", "A3", "G3", "G3", "G3", "G3", "G3", "G3"],
+          "rhythm_names": ["1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8"]
+        }
+      ],
+      "metric_signature_numerators": [4, 4, 4, 4, 4, 4, 4, 4],
+      "metric_signature": ["4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4", "4/4"],
+      "score": {
+        "rhythm_base": 8,
+        "metric_timeline": [{"start_index":0,"end_index":7,"start_tick":0,"end_tick":8,"numerator":4,"denominator":4}],
+        "measures": [{"measure_index":0,"start_ticks":0,"end_ticks":8,"numerator":4,"denominator":4,"events":[{"voice":0,"index":0,"pitch":55,"rhythm_ticks":1,"onset_ticks":0,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":1,"pitch":57,"rhythm_ticks":1,"onset_ticks":1,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":2,"pitch":55,"rhythm_ticks":1,"onset_ticks":2,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":3,"pitch":55,"rhythm_ticks":1,"onset_ticks":3,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":4,"pitch":55,"rhythm_ticks":1,"onset_ticks":4,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":5,"pitch":55,"rhythm_ticks":1,"onset_ticks":5,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":6,"pitch":55,"rhythm_ticks":1,"onset_ticks":6,"duration_ticks":1,"is_rest":false}, {"voice":0,"index":7,"pitch":55,"rhythm_ticks":1,"onset_ticks":7,"duration_ticks":1,"is_rest":false}]}]
+      }
+    }
+  ]
+}

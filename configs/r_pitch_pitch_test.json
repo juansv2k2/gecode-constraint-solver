@@ -128,82 +128,127 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "r_pitch_pitch_test.xml",
   "rules": [
     {
       "id": "no_unison_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "no_unison",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "No unison between voices 0 and 1 at any position"
     },
     {
       "id": "voice_above_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "voice_above",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "Voice 0 must be strictly above voice 1 at every position"
     },
     {
       "id": "min_interval_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "min_interval",
-      "parameters": [5],
-      "target_voices": [0, 1],
+      "parameters": [
+        5
+      ],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "Voices 0 and 1 must be at least a perfect fourth (5 semitones) apart"
     },
     {
       "id": "max_interval_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "max_interval",
-      "parameters": [19],
-      "target_voices": [0, 1],
+      "parameters": [
+        19
+      ],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "Voices 0 and 1 must be at most a 19-semitone (octave + fifth) apart"
     },
     {
       "id": "interval_class_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "interval_class",
-      "parameters": [0, 3, 4, 7, 8, 9],
-      "target_voices": [0, 1],
+      "parameters": [
+        0,
+        3,
+        4,
+        7,
+        8,
+        9
+      ],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "Interval class between voices 0 and 1 restricted to consonances (unison, thirds, fourths/fifths, sixths)"
     },
     {
       "id": "no_consecutive_fifths_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "no_consecutive_fifths",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "No two consecutive perfect fifths (interval class 7) between voices 0 and 1"
     },
     {
       "id": "no_consecutive_octaves_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "no_consecutive_octaves",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "No two consecutive octaves (interval class 0) between voices 0 and 1"
     },
     {
       "id": "no_parallel_motion_v2_v3",
       "rule_type": "r-pitch-pitch",
       "constraint": "no_parallel_motion",
-      "target_voices": [2, 3],
+      "target_voices": [
+        2,
+        3
+      ],
       "description": "Voices 2 and 3 may not move in the same direction simultaneously"
     },
     {
       "id": "contrary_motion_v4_v5",
       "rule_type": "r-pitch-pitch",
       "constraint": "contrary_motion",
-      "target_voices": [4, 5],
+      "target_voices": [
+        4,
+        5
+      ],
       "description": "Voices 4 and 5 must always move in strictly opposite directions"
     },
     {
       "id": "interval_range_on_beats_v4_v5",
       "rule_type": "r-pitch-pitch",
       "constraint": "interval_range",
-      "parameters": [3, 12],
+      "parameters": [
+        3,
+        12
+      ],
       "stride": 2,
       "offset": 0,
-      "target_voices": [4, 5],
+      "target_voices": [
+        4,
+        5
+      ],
       "description": "On even positions (0, 2, 4), voices 4 and 5 must be between a minor third and an octave apart"
     }
   ],

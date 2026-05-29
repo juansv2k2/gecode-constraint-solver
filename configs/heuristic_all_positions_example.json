@@ -4,10 +4,6 @@
   "solution_length": 8,
   "score_length": "8q",
   "num_voices": 2,
-  "export_json": true,
-  "export_txt": true,
-  "export_xml": true,
-  "export_path": "output",
   "dynamic_rules": [
     {
       "id": "prefer_parallel_fifths",
@@ -22,6 +18,11 @@
       "description": "Prefer voice 1 to stay a perfect fifth above voice 0"
     }
   ],
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "heuristic_all_positions_example.xml",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -39,19 +40,28 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 1 and 2: all notes different",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "target_component": "pitch"
     },
     {
       "id": "stepwise_motion",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_voices",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "enabled": true,
       "priority": 9,
       "description": "Voice 0: consecutive notes are a step apart",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "target_component": "pitch"
     },
     {
@@ -73,7 +83,9 @@
       "enabled": true,
       "priority": 7,
       "description": "Voice 0: all eighth notes",
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "target_component": "rhythm"
     },
     {
@@ -95,7 +107,9 @@
       "enabled": true,
       "priority": 7,
       "description": "Voice 1: all quarter notes",
-      "target_voices": [1],
+      "target_voices": [
+        1
+      ],
       "target_component": "rhythm"
     }
   ],

@@ -2,7 +2,7 @@
   "config_file": "configs/heuristic_crossvoice_rules_example.json",
   "problem_name": "Heuristic cross-voice rules example — r-pitch-pitch and r-rhythm-rhythm",
   "solutions_found": 1,
-  "solve_time_ms": 1,
+  "solve_time_ms": 0,
   "rules_applied": 14,
   "solutions": [
     {

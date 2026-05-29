@@ -113,25 +113,36 @@
     "time_signatures": [
       "4/4"
     ],
-    "tuplets": [5, 10],
-    "beat_divisions": [2, 4]
+    "tuplets": [
+      5,
+      10
+    ],
+    "beat_divisions": [
+      2,
+      4
+    ]
   },
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "metric_quintuplet_test.xml",
   "rules": [
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "durations",
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "enabled": 1,
       "description": "Constrain note durations to quintuplet metric grid"
     },
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "tuplet_on_beat_start",
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "enabled": 1,
       "description": "explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)"
     },

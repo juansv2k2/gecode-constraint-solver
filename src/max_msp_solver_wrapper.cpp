@@ -1758,6 +1758,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         sc.restart_policy = parse_restart_policy(cfg);
         sc.verbose_output = false;
 
+        // Legacy nested form: output_options { export_path, export_json, ... }
         if (cfg.contains("output_options") && cfg["output_options"].is_object()) {
             const auto& oo = cfg["output_options"];
             if (oo.contains("export_path") && oo["export_path"].is_string()) {
@@ -1773,6 +1774,26 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             if (oo.contains("export_png")) export_png_ = json_value_to_bool_with_default(oo["export_png"], false);
             if (oo.contains("export_midi")) export_midi_ = json_value_to_bool_with_default(oo["export_midi"], false);
         }
+
+        // Current flat form: export_json / export_txt / export_xml / export_path
+        // at the top level of the config (takes precedence over output_options).
+        if (cfg.contains("export_path") && cfg["export_path"].is_string()) {
+            const std::string p = cfg["export_path"].get<std::string>();
+            if (!p.empty()) export_path_ = p;
+        }
+        if (cfg.contains("export_filename") && cfg["export_filename"].is_string()) {
+            export_filename_ = cfg["export_filename"].get<std::string>();
+        }
+        // "file_name" is the canonical key for the output filename (takes precedence over export_filename).
+        if (cfg.contains("file_name") && cfg["file_name"].is_string()) {
+            const std::string fn = cfg["file_name"].get<std::string>();
+            if (!fn.empty()) export_filename_ = fn;
+        }
+        if (cfg.contains("export_json")) export_json_ = json_value_to_bool_with_default(cfg["export_json"], false);
+        if (cfg.contains("export_txt"))  export_txt_  = json_value_to_bool_with_default(cfg["export_txt"],  false);
+        if (cfg.contains("export_xml"))  export_xml_  = json_value_to_bool_with_default(cfg["export_xml"],  false);
+        if (cfg.contains("export_png"))  export_png_  = json_value_to_bool_with_default(cfg["export_png"],  false);
+        if (cfg.contains("export_midi")) export_midi_ = json_value_to_bool_with_default(cfg["export_midi"], false);
 
         // Expand and reorder voices array using global_domain before normalization.
         // Entries with an explicit "voice": N key are placed at position N regardless of

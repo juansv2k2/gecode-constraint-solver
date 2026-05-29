@@ -6,7 +6,8 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "index_rule_test.xml",
   "rules": [
     {
       "id": "fix_voice1",
@@ -63,7 +64,13 @@
   "voices": [
     {
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67],
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67
+        ],
         "description": "Voice 0: C D E F G"
       },
       "rhythm": {
@@ -76,7 +83,13 @@
     },
     {
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67],
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67
+        ],
         "description": "Voice 1: C D E F G"
       },
       "rhythm": {

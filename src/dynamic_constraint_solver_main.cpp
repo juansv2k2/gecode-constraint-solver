@@ -416,6 +416,12 @@ private:
             if (pos != std::string::npos) {
                 export_filename_ = removeQuotesAndComma(line.substr(pos + 1));
             }
+        } else if (line.find("\"file_name\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                const std::string fn = removeQuotesAndComma(line.substr(pos + 1));
+                if (!fn.empty()) export_filename_ = fn;
+            }
         } else if (line.find("\"export_json\"") != std::string::npos) {
             size_t pos = line.find(":");
             if (pos != std::string::npos) {

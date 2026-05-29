@@ -6,7 +6,10 @@
     "time_signatures": [
       "4/4"
     ],
-    "beat_divisions": [2, 4]
+    "beat_divisions": [
+      2,
+      4
+    ]
   },
   "voices": [
     {
@@ -148,7 +151,8 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "harmonic_consonance_4voice.xml",
   "rules": [
     {
       "rule_type": "r-one-voice",
@@ -167,7 +171,12 @@
         10,
         11
       ],
-      "target_voices": [0, 1, 2, 3],
+      "target_voices": [
+        0,
+        1,
+        2,
+        3
+      ],
       "target_component": "pitch",
       "enabled": true,
       "description": "all voices first 12 pitches are all different"
@@ -189,7 +198,10 @@
         18,
         22
       ],
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "target_component": "pitch",
       "enabled": true,
       "description": "V1-V0 perfect consonance on beats 1 and 3"
@@ -211,7 +223,10 @@
         18,
         22
       ],
-      "target_voices": [1, 2],
+      "target_voices": [
+        1,
+        2
+      ],
       "target_component": "pitch",
       "enabled": true,
       "description": "V2-V1 perfect consonance on beats 1 and 3"
@@ -233,7 +248,10 @@
         18,
         22
       ],
-      "target_voices": [2, 3],
+      "target_voices": [
+        2,
+        3
+      ],
       "target_component": "pitch",
       "enabled": true,
       "description": "V3-V2 perfect consonance on beats 1 and 3"
@@ -255,7 +273,10 @@
         19,
         23
       ],
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "target_component": "pitch",
       "enabled": true,
       "description": "V1-V0 imperfect consonance on beats 2 and 4"
@@ -277,7 +298,10 @@
         19,
         23
       ],
-      "target_voices": [1, 2],
+      "target_voices": [
+        1,
+        2
+      ],
       "target_component": "pitch",
       "enabled": true,
       "description": "V2-V1 imperfect consonance on beats 2 and 4"
@@ -299,7 +323,10 @@
         19,
         23
       ],
-      "target_voices": [2, 3],
+      "target_voices": [
+        2,
+        3
+      ],
       "target_component": "pitch",
       "enabled": true,
       "description": "V3-V2 imperfect consonance on beats 2 and 4"

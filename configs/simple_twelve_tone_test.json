@@ -3,10 +3,6 @@
   "description": "Test basic multi-engine constraint system with simple distinct constraints",
   "solution_length": 12,
   "num_voices": 2,
-  "export_json": true,
-  "export_txt": true,
-  "export_xml": true,
-  "export_path": "output",
   "search_options": {
     "branching": "first_fail"
   },
@@ -60,6 +56,11 @@
       }
     }
   ],
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "simple_twelve_tone_test.xml",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -85,7 +86,9 @@
       "enabled": true,
       "priority": 10,
       "description": "Engine 1: All 12 pitch classes different",
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "target_component": "pitch"
     }
   ]

@@ -11,7 +11,8 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "stress_unsat_contradiction.xml",
   "rules": [
     {
       "rule_type": "r-twelve-tone-voice1",
@@ -42,7 +43,9 @@
       "enabled": true,
       "priority": 10,
       "description": "Voice 1 all-different",
-      "target_voices": [0],
+      "target_voices": [
+        0
+      ],
       "target_component": "pitch"
     },
     {
@@ -50,7 +53,10 @@
       "constraint_function": {
         "type": "builtin",
         "function": "palindrome_of_engine",
-        "parameters": [1, 3]
+        "parameters": [
+          1,
+          3
+        ]
       },
       "indices": [
         0,
@@ -74,7 +80,9 @@
       "enabled": true,
       "priority": 9,
       "description": "Voice 2 palindrome of voice 1",
-      "target_voices": [1],
+      "target_voices": [
+        1
+      ],
       "target_component": "pitch"
     },
     {
@@ -82,7 +90,9 @@
       "constraint_function": {
         "type": "builtin",
         "function": "retrograde_inversion_relationship",
-        "parameters": [72]
+        "parameters": [
+          72
+        ]
       },
       "indices": [
         0,
@@ -106,7 +116,9 @@
       "enabled": true,
       "priority": 8,
       "description": "Voice 2 retrograde inversion of voice 1 around center 72",
-      "target_voices": [1],
+      "target_voices": [
+        1
+      ],
       "target_component": "pitch"
     }
   ],

@@ -136,6 +136,10 @@
       "type": "string",
       "description": "Output directory for all exported files. Default 'tests/output'. MUST appear before 'rules' in the file."
     },
+    "file_name": {
+      "type": "string",
+      "description": "Base filename (without extension) for all exported files saved to export_path. Overrides export_filename. When omitted the config 'name' field is used as the base."
+    },
     "rules": {
       "type": "array",
       "description": "Built-in constraint rules. Export keys must appear before this key in the JSON file.",

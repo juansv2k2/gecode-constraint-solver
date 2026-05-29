@@ -6,13 +6,17 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "different_wildcard_examples.xml",
   "rules": [
     {
       "id": "no_repeated_pitch_window",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "sliding_window",
-      "pattern_offsets": [0, 1],
+      "pattern_offsets": [
+        0,
+        1
+      ],
       "constraint": "voice[0].pitch[i+1] != voice[0].pitch[i]",
       "enabled": true,
       "priority": 10,
@@ -22,7 +26,9 @@
       "id": "voices_not_unison",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_positions",
-      "pattern_offsets": [0],
+      "pattern_offsets": [
+        0
+      ],
       "constraint": "voice[0].pitch[i] != voice[1].pitch[i]",
       "enabled": true,
       "priority": 9,
@@ -32,7 +38,9 @@
       "id": "voice1_above_voice0",
       "rule_type": "wildcard_constraint",
       "wildcard_type": "for_all_voices",
-      "pattern_offsets": [0],
+      "pattern_offsets": [
+        0
+      ],
       "constraint": "voice[1].pitch[i] > voice[0].pitch[i]",
       "enabled": true,
       "priority": 8,

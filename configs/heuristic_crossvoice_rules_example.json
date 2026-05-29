@@ -92,27 +92,37 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "heuristic_crossvoice_rules_example.xml",
   "rules": [
     {
       "id": "hard_no_unison_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "no_unison",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "HARD: melody and inner voice may never share the same pitch at any position"
     },
     {
       "id": "hard_melody_above_bass",
       "rule_type": "r-pitch-pitch",
       "constraint": "voice_above",
-      "target_voices": [0, 2],
+      "target_voices": [
+        0,
+        2
+      ],
       "description": "HARD: melody (v0) must always be strictly above bass (v2)"
     },
     {
       "id": "heur_inner_above_bass",
       "rule_type": "r-pitch-pitch",
       "constraint": "voice_above",
-      "target_voices": [1, 2],
+      "target_voices": [
+        1,
+        2
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer inner voice above bass (soft — crossing is allowed if needed)"
     },
@@ -120,8 +130,13 @@
       "id": "heur_min_interval_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "min_interval",
-      "target_voices": [0, 1],
-      "parameters": [3],
+      "target_voices": [
+        0,
+        1
+      ],
+      "parameters": [
+        3
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer at least a minor third (3 semitones) between melody and inner voice"
     },
@@ -129,8 +144,13 @@
       "id": "heur_max_interval_v0_v1",
       "rule_type": "r-pitch-pitch",
       "constraint": "max_interval",
-      "target_voices": [0, 1],
-      "parameters": [12],
+      "target_voices": [
+        0,
+        1
+      ],
+      "parameters": [
+        12
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer melody and inner voice stay within an octave of each other"
     },
@@ -138,8 +158,18 @@
       "id": "heur_consonant_intervals_v1_v2",
       "rule_type": "r-pitch-pitch",
       "constraint": "interval_class",
-      "target_voices": [1, 2],
-      "parameters": [3, 4, 5, 7, 8, 9],
+      "target_voices": [
+        1,
+        2
+      ],
+      "parameters": [
+        3,
+        4,
+        5,
+        7,
+        8,
+        9
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer consonant interval classes between inner voice and bass (minor/major thirds, fourths, fifths, sixths)"
     },
@@ -147,9 +177,17 @@
       "id": "heur_exact_fifth_on_downbeats",
       "rule_type": "r-pitch-pitch",
       "constraint": "exact_interval",
-      "target_voices": [0, 2],
-      "parameters": [19],
-      "indices": [0, 4],
+      "target_voices": [
+        0,
+        2
+      ],
+      "parameters": [
+        19
+      ],
+      "indices": [
+        0,
+        4
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer melody a perfect twelfth (octave+fifth, 19 semitones) above bass at positions 0 and 4 (structural downbeats)"
     },
@@ -157,8 +195,14 @@
       "id": "heur_interval_range_v0_v1_stride",
       "rule_type": "r-pitch-pitch",
       "constraint": "interval_range",
-      "target_voices": [0, 1],
-      "parameters": [2, 14],
+      "target_voices": [
+        0,
+        1
+      ],
+      "parameters": [
+        2,
+        14
+      ],
       "stride": 2,
       "offset": 0,
       "heuristic": true,
@@ -168,14 +212,20 @@
       "id": "hard_no_sim_rests_v0_v2",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "no_simultaneous_rests",
-      "target_voices": [0, 2],
+      "target_voices": [
+        0,
+        2
+      ],
       "description": "HARD: melody and bass may never rest at the same position — at least one must be active"
     },
     {
       "id": "heur_isorhythm_v1_v2",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "isorhythm",
-      "target_voices": [1, 2],
+      "target_voices": [
+        1,
+        2
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer inner voice and bass to share the same rhythmic value (homorhythm) at every position"
     },
@@ -183,7 +233,10 @@
       "id": "heur_abs_isorhythm_v0_v1",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "abs_isorhythm",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer melody and inner voice to share the same note length regardless of rest/note sign"
     },
@@ -191,7 +244,10 @@
       "id": "heur_no_sim_rests_v0_v1",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "no_simultaneous_rests",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "heuristic": true,
       "description": "HEURISTIC: prefer that melody and inner voice do not rest together (soft — permitted if necessary)"
     },
@@ -199,8 +255,14 @@
       "id": "heur_rest_complement_at_cadence",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "rest_complement",
-      "target_voices": [0, 1],
-      "indices": [6, 7],
+      "target_voices": [
+        0,
+        1
+      ],
+      "indices": [
+        6,
+        7
+      ],
       "heuristic": true,
       "description": "HEURISTIC: at the final two positions, prefer one voice to play while the other rests (antiphonal ending)"
     },
@@ -208,7 +270,10 @@
       "id": "heur_augmentation_v1_v2",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "augmentation",
-      "target_voices": [1, 2],
+      "target_voices": [
+        1,
+        2
+      ],
       "parameters": [
         2.0
       ],

@@ -31,7 +31,13 @@
         ]
       },
       "pitch": {
-        "midi_values": [60, 62, 64, 65, 67]
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67
+        ]
       }
     },
     {
@@ -47,7 +53,12 @@
         ]
       },
       "pitch": {
-        "midi_values": [67, 69, 71, 72]
+        "midi_values": [
+          67,
+          69,
+          71,
+          72
+        ]
       }
     },
     {
@@ -59,7 +70,12 @@
         ]
       },
       "pitch": {
-        "midi_values": [55, 57, 59, 60]
+        "midi_values": [
+          55,
+          57,
+          59,
+          60
+        ]
       }
     },
     {
@@ -71,7 +87,12 @@
         ]
       },
       "pitch": {
-        "midi_values": [48, 50, 52, 53]
+        "midi_values": [
+          48,
+          50,
+          52,
+          53
+        ]
       }
     }
   ],
@@ -79,12 +100,16 @@
     "time_signatures": [
       "4/4"
     ],
-    "beat_divisions": [2, 4]
+    "beat_divisions": [
+      2,
+      4
+    ]
   },
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "r_rhythm_rhythm_test.xml",
   "rules": [
     {
       "id": "metric_constraint",
@@ -93,7 +118,9 @@
       "parameters": [
         "4/4"
       ],
-      "indices": [0],
+      "indices": [
+        0
+      ],
       "target_component": "metric",
       "description": "Fix 4/4 time"
     },
@@ -101,15 +128,23 @@
       "id": "isorhythm_v0_v1",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "isorhythm",
-      "target_voices": [0, 1],
+      "target_voices": [
+        0,
+        1
+      ],
       "description": "Voices 0 and 1 are homorhythmic (identical rhythm + rest values)"
     },
     {
       "id": "augmentation_2x_v2_v3",
       "rule_type": "r-rhythm-rhythm",
       "constraint": "augmentation",
-      "parameters": [2],
-      "target_voices": [2, 3],
+      "parameters": [
+        2
+      ],
+      "target_voices": [
+        2,
+        3
+      ],
       "description": "Voice 2 durations are 2x longer than voice 3; note/rest status must match"
     }
   ],

@@ -104,13 +104,19 @@
       "3/4",
       "2/4"
     ],
-    "tuplets": [3],
-    "beat_divisions": [2, 3]
+    "tuplets": [
+      3
+    ],
+    "beat_divisions": [
+      2,
+      3
+    ]
   },
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "metric_domain_simple.xml",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
@@ -150,7 +156,12 @@
         10,
         11
       ],
-      "target_voices": [0, 1, 2, 3],
+      "target_voices": [
+        0,
+        1,
+        2,
+        3
+      ],
       "target_component": "pitch"
     },
     {
