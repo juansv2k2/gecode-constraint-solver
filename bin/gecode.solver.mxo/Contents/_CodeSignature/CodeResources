@@ -6,15 +6,6 @@
 	<dict/>
 	<key>files2</key>
 	<dict>
-		<key>Frameworks/libgecodeflatzinc.49.dylib</key>
-		<dict>
-			<key>cdhash</key>
-			<data>
-			lrTCGM+bMbXYFmWBg/OIwMRxZBQ=
-			</data>
-			<key>requirement</key>
-			<string>cdhash H"96b4c218cf9b31b5d816658183f388c0c4716414"</string>
-		</dict>
 		<key>Frameworks/libgecodeint.49.dylib</key>
 		<dict>
 			<key>cdhash</key>

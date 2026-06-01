@@ -3,7 +3,7 @@
 
 CXX = g++
 CXXFLAGS = -std=c++11 -O3 -DNDEBUG -Wall -g
-LIBS = -lgecodeminimodel -lgecodeint -lgecodesearch -lgecodekernel -lgecodesupport -lgecodeflatzinc
+LIBS = -lgecodeminimodel -lgecodeint -lgecodesearch -lgecodekernel -lgecodesupport
 
 # Try to detect Gecode installation
 GECODE_INC = $(shell pkg-config --cflags gecode 2>/dev/null || echo "")
