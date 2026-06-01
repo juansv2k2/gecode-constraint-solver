@@ -2,70 +2,8 @@
   "name": "C Major Stepwise with Parallel Fifths",
   "description": "Voice 0: C major, stepwise, all different. Voice 1: a fifth above.",
   "solution_length": 8,
+  "score_length": "8q",
   "num_voices": 2,
-  "export_path": "tests/output",
-  "engine_domains": {
-    "engine_0": {
-      "type": "rhythm",
-      "voice": 0,
-      "duration_values": [
-        "1/4"
-      ],
-      "description": "Voice 0: quarter notes only"
-    },
-    "engine_1": {
-      "type": "pitch",
-      "voice": 0,
-      "midi_values": [
-        60,
-        62,
-        64,
-        65,
-        67,
-        69,
-        71,
-        72,
-        74,
-        76,
-        77,
-        79,
-        81,
-        83,
-        84
-      ],
-      "description": "Voice 0: C major, two octaves"
-    },
-    "engine_2": {
-      "type": "rhythm",
-      "voice": 1,
-      "duration_values": [
-        "1/4"
-      ],
-      "description": "Voice 1: quarter notes only"
-    },
-    "engine_3": {
-      "type": "pitch",
-      "voice": 1,
-      "midi_values": [
-        67,
-        69,
-        71,
-        72,
-        74,
-        76,
-        77,
-        79,
-        81,
-        83,
-        84,
-        86,
-        88,
-        90,
-        91
-      ],
-      "description": "Voice 1: C major starting from G4, two octaves"
-    }
-  },
   "dynamic_rules": [
     {
       "id": "prefer_parallel_fifths",
@@ -80,14 +18,15 @@
       "description": "Prefer voice 1 to stay a perfect fifth above voice 0"
     }
   ],
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "heuristic_all_positions_example.xml",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "all_different",
-        "parameters": []
-      },
+      "constraint": "all_different",
       "indices": [
         0,
         1,
@@ -98,14 +37,14 @@
         6,
         7
       ],
-      "target_engines": [
-        1,
-        3
-      ],
-      "engine_type": "pitch",
       "enabled": true,
       "priority": 10,
-      "description": "Voice 1 and 2: all notes different"
+      "description": "Voice 1 and 2: all notes different",
+      "target_voices": [
+        0,
+        1
+      ],
+      "target_component": "pitch"
     },
     {
       "id": "stepwise_motion",
@@ -115,24 +54,22 @@
         0,
         1
       ],
-      "target_engines": [
-        1,
-        3
-      ],
       "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
       "enabled": true,
       "priority": 9,
-      "description": "Voice 0: consecutive notes are a step apart"
+      "description": "Voice 0: consecutive notes are a step apart",
+      "target_voices": [
+        0,
+        1
+      ],
+      "target_component": "pitch"
     },
     {
-      "rule_type": "r-rhythmic-uniformity",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": [
-          4
-        ]
-      },
+      "rule_type": "r-uniformity",
+      "constraint": "equal_values",
+      "parameters": [
+        "1/8"
+      ],
       "indices": [
         0,
         1,
@@ -143,67 +80,110 @@
         6,
         7
       ],
-      "target_engine": 0,
-      "engine_type": "rhythm",
       "enabled": true,
       "priority": 7,
-      "description": "Voice 0: all quarter notes"
-    },
-    {
-      "rule_type": "r-rhythmic-uniformity",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": [
-          4
-        ]
-      },
-      "indices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ],
-      "target_engine": 2,
-      "engine_type": "rhythm",
-      "enabled": true,
-      "priority": 7,
-      "description": "Voice 1: all quarter notes"
-    },
-    {
-      "rule_type": "r-metric-signature",
-      "constraint_function": {
-        "type": "builtin",
-        "function": "equal_values",
-        "parameters": [
-          4
-        ]
-      },
-      "indices": [
+      "description": "Voice 0: all eighth notes",
+      "target_voices": [
         0
       ],
-      "target_engine": 4,
-      "engine_type": "metric",
+      "target_component": "rhythm"
+    },
+    {
+      "rule_type": "r-uniformity",
+      "constraint": "equal_values",
+      "parameters": [
+        "1/4"
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "enabled": true,
-      "priority": 6,
-      "description": "4/4 time"
+      "priority": 7,
+      "description": "Voice 1: all quarter notes",
+      "target_voices": [
+        1
+      ],
+      "target_component": "rhythm"
     }
   ],
   "search_options": {
     "random_seed": 0,
     "timeout_ms": 30000,
     "max_solutions": 1,
-    "branching": "first_fail"
+    "branching": "first_fail",
+    "value_order": "heuristic",
+    "heuristic_trace": false,
+    "enable_metric_engine": true
   },
-  "output_options": {
-    "export_xml": false,
-    "export_png": false,
-    "export_midi": false,
-    "show_statistics": true,
-    "include_analysis": true
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/8"
+        ],
+        "description": "Voice 0: quarter notes only"
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72,
+          74,
+          76,
+          77,
+          79,
+          81,
+          83,
+          84
+        ],
+        "description": "Voice 0: C major, two octaves"
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/4"
+        ],
+        "description": "Voice 1: quarter notes only"
+      },
+      "pitch": {
+        "midi_values": [
+          67,
+          69,
+          71,
+          72,
+          74,
+          76,
+          77,
+          79,
+          81,
+          83,
+          84,
+          86,
+          88,
+          90,
+          91
+        ],
+        "description": "Voice 1: C major starting from G4, two octaves"
+      }
+    }
+  ],
+  "meter": {
+    "time_signatures": [
+      "2/4"
+    ],
+    "description": "possible time signatures is 4/4"
   }
 }

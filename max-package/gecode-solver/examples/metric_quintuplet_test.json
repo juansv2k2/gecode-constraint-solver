@@ -1,0 +1,168 @@
+{
+  "name": "Quintuplet Test",
+  "description": "Tests dynamic tuplet support with quintuplets (N=5) in 4/4 time. rhythm_base must be extended to LCM(48, 4*5=20) = 240 to support 1/20 grid steps.",
+  "solution_length": 20,
+  "num_voices": 4,
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/4",
+          "1/8",
+          "1/10",
+          "1/20",
+          "-1/4",
+          "-1/8",
+          "-1/10",
+          "-1/20"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/4",
+          "1/8",
+          "1/10",
+          "1/20",
+          "-1/4",
+          "-1/8",
+          "-1/10",
+          "-1/20"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/4",
+          "1/8",
+          "1/10",
+          "1/20",
+          "-1/4",
+          "-1/8",
+          "-1/10",
+          "-1/20"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
+      }
+    },
+    {
+      "rhythm": {
+        "duration_values": [
+          "1/4",
+          "1/8",
+          "1/10",
+          "1/20",
+          "-1/4",
+          "-1/8",
+          "-1/10",
+          "-1/20"
+        ]
+      },
+      "pitch": {
+        "midi_values": [
+          60,
+          62,
+          64,
+          65,
+          67,
+          69,
+          71,
+          72
+        ]
+      }
+    }
+  ],
+  "meter": {
+    "time_signatures": [
+      "4/4"
+    ],
+    "tuplets": [
+      5,
+      10
+    ],
+    "beat_divisions": [
+      2,
+      4
+    ]
+  },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "file_name": "metric_quintuplet_test.xml",
+  "rules": [
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "durations",
+      "target_voices": [
+        0
+      ],
+      "enabled": 1,
+      "description": "Constrain note durations to quintuplet metric grid"
+    },
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "tuplet_on_beat_start",
+      "target_voices": [
+        0
+      ],
+      "enabled": 1,
+      "description": "explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)"
+    },
+    {
+      "rule_type": "r-time-signature",
+      "target_component": "metric",
+      "description": "Bar-pattern time signature (fixed)",
+      "bar_pattern_type": "repeating",
+      "bar_pattern": [
+        "4/4"
+      ],
+      "bar_pattern_repetitions": 4,
+      "allow_cross_barline": 0,
+      "enabled": 1
+    }
+  ],
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 1,
+    "random_seed": 0,
+    "value_order": "random"
+  }
+}
