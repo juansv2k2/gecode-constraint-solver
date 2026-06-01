@@ -511,6 +511,18 @@ void maxsolver_poll(t_maxsolver* x) {
 
     if (x->wrapper->is_running()) {
         clock_delay(static_cast<t_clock*>(x->poll_clock), 20);
+        return;
+    }
+
+    // The thread may have finished between the take_result check above and the
+    // is_running check: with result_ready_ set inside the status mutex, this
+    // final take is guaranteed to see the result if the thread just completed.
+    if (x->wrapper->take_result(result)) {
+        emit_all_solutions(x, result.result_json);
+        emit_result_json(x, result.result_json);
+        emit_export_info(x, result.result_json);
+        const std::string st = x->wrapper->get_status_string();
+        emit_status(x, st.c_str(), result.message.c_str());
     }
 }
 

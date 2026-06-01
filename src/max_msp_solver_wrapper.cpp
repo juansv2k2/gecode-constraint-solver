@@ -2,6 +2,7 @@
 #include "wildcard_rule_extension.hh"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -1518,8 +1519,25 @@ void AsyncSolverWrapper::run_solve_job() {
         local_result.message = "Solve cancelled before start";
     } else {
         try {
-            // Use solve_multiple() to handle both single and multiple solutions
-            auto solutions = solver_.solve_multiple(max_solutions_, static_cast<int>(timeout_ms_));
+            // Use solve_multiple() to handle both single and multiple solutions.
+            // Pass cancel_requested_ so the Gecode search engine stops immediately
+            // on cancel (destructor, explicit cancel message) without waiting for timeout.
+            const auto solve_wall_start = std::chrono::steady_clock::now();
+            auto solutions = solver_.solve_multiple(max_solutions_, static_cast<int>(timeout_ms_),
+                                                    nullptr, &cancel_requested_);
+            const double solve_wall_ms = static_cast<double>(
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now() - solve_wall_start).count()) / 1000.0;
+            const auto search_stats = solver_.last_search_stats();
+
+            // Format solve time: show milliseconds below 1 s, seconds above.
+            char time_buf[32];
+            if (solve_wall_ms < 1000.0)
+                std::snprintf(time_buf, sizeof(time_buf), "%.1f ms", solve_wall_ms);
+            else
+                std::snprintf(time_buf, sizeof(time_buf), "%.2f s", solve_wall_ms / 1000.0);
+            const std::string time_str(time_buf);
+
             const int rules_ok = solver_.get_dynamic_rule_post_success_count();
             const int rules_failed = solver_.get_dynamic_rule_post_failed_count();
             local_result.dynamic_rules_posted_ok = rules_ok;
@@ -1532,11 +1550,17 @@ void AsyncSolverWrapper::run_solve_job() {
 
             if (cancel_requested_.load()) {
                 local_result.status = SolveStatus::CANCELLED;
-                local_result.message = "Solve cancelled | " + rule_compile_summary;
+                local_result.message = "Solve cancelled | " + time_str +
+                    " | nodes: " + std::to_string(search_stats.nodes) +
+                    " | fails: " + std::to_string(search_stats.failures) +
+                    " | " + rule_compile_summary;
             } else if (solutions.empty()) {
                 local_result.status = SolveStatus::FAILED;
                 local_result.found_solution = false;
-                local_result.message = "No solutions found | " + rule_compile_summary;
+                local_result.message = "No solutions found | " + time_str +
+                    " | nodes: " + std::to_string(search_stats.nodes) +
+                    " | fails: " + std::to_string(search_stats.failures) +
+                    " | " + rule_compile_summary;
             } else {
                 // Handle first solution (for backward compatibility)
                 const auto& solution = solutions[0];
@@ -1546,12 +1570,38 @@ void AsyncSolverWrapper::run_solve_job() {
                     local_result.message = !solution.failure_reason.empty()
                         ? solution.failure_reason
                         : "No solutions found";
-                    local_result.message += " | " + rule_compile_summary;
+                    local_result.message += " | " + time_str +
+                        " | nodes: " + std::to_string(search_stats.nodes) +
+                        " | fails: " + std::to_string(search_stats.failures) +
+                        " | " + rule_compile_summary;
                 } else {
                     local_result.status = SolveStatus::SUCCESS;
                     local_result.found_solution = true;
+
+                    // Build a rule/constraint summary that covers all active constraint types,
+                    // not just dynamic rules.  Configs that only use metric or structural
+                    // constraints would otherwise show "0 dynamic" with no other context.
+                    const size_t static_rules  = solver_.get_rules_count();  // legacy MusicalRule objects
+                    const size_t dynamic_rules = solver_.get_dynamic_rules_count(); // compiled dynamic rules
+
+                    std::string constraints_summary;
+                    if (dynamic_rules > 0) {
+                        constraints_summary = "rules: ";
+                        if (static_rules > 0)
+                            constraints_summary += std::to_string(static_rules) + " static, ";
+                        constraints_summary += std::to_string(rules_ok) + "/" + std::to_string(dynamic_rules)
+                            + " dynamic" + (rules_failed > 0 ? " (FAILED: " + std::to_string(rules_failed) + ")" : " OK");
+                    } else if (static_rules > 0) {
+                        constraints_summary = "rules: " + std::to_string(static_rules) + " static, 0 dynamic";
+                    } else {
+                        constraints_summary = "rules: none (metric/domain constraints only)";
+                    }
+
                     local_result.message = "Found " + std::to_string(solutions.size()) +
-                        " solution(s) | " + rule_compile_summary;
+                        " solution(s) | " + time_str +
+                        " | nodes: " + std::to_string(search_stats.nodes) +
+                        " | fails: " + std::to_string(search_stats.failures) +
+                        " | " + constraints_summary;
 
                     local_result.voice_solutions = solution.voice_solutions;
                     local_result.voice_rhythms = solution.voice_rhythms;
@@ -1722,11 +1772,14 @@ void AsyncSolverWrapper::run_solve_job() {
     }
 
     {
+        // Set result_ready_ INSIDE the mutex so the poll's is_running() check and
+        // result_ready_ are always changed atomically.  This eliminates the race where
+        // the poll sees status = non-RUNNING but result_ready_ = false and drops the clock.
         std::lock_guard<std::mutex> lock(mutex_);
         last_result_ = local_result;
         status_ = local_result.status;
+        result_ready_.store(true);
     }
-    result_ready_.store(true);
 }
 
 bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::string& error_message) {
@@ -1741,6 +1794,9 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 "'engine_domains' is deprecated in frontend configs. Use top-level 'voices' with per-voice pitch/rhythm domains.");
         }
 
+        // Reset all per-solve parameters to defaults so each config is self-contained.
+        // Without this, values like max_solutions_ or timeout_ms_ from a previous
+        // configure call would silently carry over into the new solve.
         export_path_ = ".";
         export_filename_.clear();
         export_json_ = false;
@@ -1748,6 +1804,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         export_xml_ = false;
         export_png_ = false;
         export_midi_ = false;
+        max_solutions_ = 1;         // default: stop after the first solution
+        timeout_ms_    = 30000.0;   // default: 30-second wall-clock limit
 
         MusicalConstraintSolver::SolverConfig sc;
         sc.sequence_length = cfg.value("solution_length", 12);
@@ -1946,6 +2004,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
         if (cfg.contains("timeout_ms") && cfg["timeout_ms"].is_number()) {
             sc.timeout_seconds = cfg["timeout_ms"].get<double>() / 1000.0;
+            timeout_ms_ = cfg["timeout_ms"].get<double>();  // keep in sync with solve_multiple param
         }
 
         if (!cfg.contains("engine_domains") || !cfg["engine_domains"].is_object()) {

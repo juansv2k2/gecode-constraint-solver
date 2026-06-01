@@ -268,14 +268,19 @@ $(MAX_EXTERNAL_TARGET): $(MAX_EXTERNAL_SOURCE) include/max_msp_solver_wrapper.hh
 		'  <key>CFBundleVersion</key><string>0.1.0</string>' \
 		'</dict>' \
 		'</plist>' > $(MAX_EXTERNAL_TARGET)/Contents/Info.plist
-	@# ── Bundle Gecode dylibs so the external is self-contained on any Mac ────────
+	@# ── Bundle ALL clean Gecode dylibs so the external is self-contained ─────────
 	@BUNDLE_BIN="$(MAX_EXTERNAL_TARGET)/Contents/MacOS/$(MAX_EXTERNAL_NAME)"; \
 	FWDIR="$(MAX_EXTERNAL_TARGET)/Contents/Frameworks"; \
+	GECODE_LIBDIR=$$(otool -L "$$BUNDLE_BIN" | awk '{print $$1}' | grep 'libgecode' | head -1 | xargs dirname); \
 	mkdir -p "$$FWDIR"; \
-	echo "Bundling Gecode dylibs into Contents/Frameworks/..."; \
+	echo "Bundling Gecode dylibs from $$GECODE_LIBDIR ..."; \
+	for lib_path in "$$GECODE_LIBDIR"/libgecode*.49.dylib; do \
+		lib_name=$$(basename "$$lib_path"); \
+		case "$$lib_name" in libgecodegist*|libgecodeflatzinc*) continue ;; esac; \
+		cp -f "$$lib_path" "$$FWDIR/$$lib_name"; \
+	done; \
 	for lib_path in $$(otool -L "$$BUNDLE_BIN" | awk '{print $$1}' | grep 'libgecode'); do \
 		lib_name=$$(basename "$$lib_path"); \
-		cp -f "$$lib_path" "$$FWDIR/$$lib_name"; \
 		install_name_tool -change "$$lib_path" "@loader_path/../Frameworks/$$lib_name" "$$BUNDLE_BIN"; \
 	done; \
 	for bundled in "$$FWDIR"/libgecode*.dylib; do \

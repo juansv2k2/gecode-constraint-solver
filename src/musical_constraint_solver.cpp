@@ -2502,9 +2502,33 @@ MusicalSolution Solver::solve() {
     return solve_internal();
 }
 
+namespace {
+// Gecode Stop implementation that respects both a wall-clock timeout and an
+// external atomic cancel flag.  Either condition causes the search to stop.
+class CombinedStop : public Gecode::Search::Stop {
+    std::unique_ptr<Gecode::Search::TimeStop> time_stop_;
+    const std::atomic<bool>*                  cancel_flag_;
+public:
+    CombinedStop(int timeout_ms, const std::atomic<bool>* cancel_flag)
+        : time_stop_(timeout_ms > 0
+            ? std::make_unique<Gecode::Search::TimeStop>(
+                  static_cast<unsigned long int>(timeout_ms))
+            : nullptr)
+        , cancel_flag_(cancel_flag) {}
+
+    bool stop(const Gecode::Search::Statistics& s,
+              const Gecode::Search::Options& o) override {
+        if (cancel_flag_ && cancel_flag_->load(std::memory_order_relaxed))
+            return true;
+        return time_stop_ ? time_stop_->stop(s, o) : false;
+    }
+};
+} // anonymous namespace
+
 std::vector<MusicalSolution> Solver::solve_multiple(
         int max_solutions, int timeout_ms,
-        std::function<void(const MusicalSolution&, int)> on_solution) {
+        std::function<void(const MusicalSolution&, int)> on_solution,
+        const std::atomic<bool>* cancel_flag) {
     std::vector<MusicalSolution> solutions;
     try {
         auto* raw_space = build_configured_space_();
@@ -2516,12 +2540,11 @@ std::vector<MusicalSolution> Solver::solve_multiple(
         Gecode::Search::Options search_opts;
         search_opts.threads = 1;
         search_opts.nogoods_limit = 128;
-        std::unique_ptr<Gecode::Search::TimeStop> time_stop;
-        if (timeout_ms > 0) {
-            // Critical: enforce timeout inside the search engine so next() cannot block indefinitely.
-            time_stop = std::make_unique<Gecode::Search::TimeStop>(
-                static_cast<unsigned long int>(timeout_ms));
-            search_opts.stop = time_stop.get();
+        // CombinedStop handles both timeout and external cancel flag so that
+        // the Gecode search engine itself respects cancellation mid-next().
+        CombinedStop combined_stop(timeout_ms, cancel_flag);
+        if (timeout_ms > 0 || cancel_flag) {
+            search_opts.stop = &combined_stop;
         }
 
         if (config_.search_engine != SolverConfig::SearchEngine::DFS) {
@@ -2536,6 +2559,10 @@ std::vector<MusicalSolution> Solver::solve_multiple(
         // Count only accepted solutions against the limit.
         int accepted = 0;
         while (accepted < limit) {
+            // Fast path: honour an external cancel request before even calling next().
+            if (cancel_flag && cancel_flag->load(std::memory_order_relaxed)) {
+                break;
+            }
             // Keep a wall-clock guard in addition to Gecode TimeStop for diagnostics.
             if (timeout_ms > 0) {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -2549,12 +2576,16 @@ std::vector<MusicalSolution> Solver::solve_multiple(
 
             auto* solved_space = search_engine.next();
             if (!solved_space) {
-                if (timeout_ms > 0 && search_engine.stopped()) {
+                if (search_engine.stopped()) {
                     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::high_resolution_clock::now() - wall_start).count();
-                    std::cout << "   ⏱️  Search stopped by timeout after " << elapsed
-                              << " ms — returning " << solutions.size()
-                              << " solution(s) found so far" << std::endl;
+                    if (cancel_flag && cancel_flag->load(std::memory_order_relaxed)) {
+                        // Stopped by external cancel — no console noise needed.
+                    } else {
+                        std::cout << "   ⏱️  Search stopped by timeout after " << elapsed
+                                  << " ms — returning " << solutions.size()
+                                  << " solution(s) found so far" << std::endl;
+                    }
                 }
                 break;
             }
@@ -2565,6 +2596,14 @@ std::vector<MusicalSolution> Solver::solve_multiple(
                 if (on_solution) on_solution(sol, accepted);
                 ++accepted;
             }
+        }
+        // Capture Gecode's final search statistics so callers can report
+        // search difficulty (nodes explored, failures/backtracks, max depth).
+        {
+            const auto& gs = search_engine.statistics();
+            last_search_stats_.nodes    = static_cast<long long>(gs.node);
+            last_search_stats_.failures = static_cast<long long>(gs.fail);
+            last_search_stats_.depth    = static_cast<long long>(gs.depth);
         }
     } catch (const std::exception& e) {
         MusicalSolution failed;

@@ -19,6 +19,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <atomic>
 #include <functional>
 #include <limits>
 #include <cstdint>
@@ -438,7 +439,15 @@ public:
      * @brief Get count of dynamic constraints that failed posting in latest space build
      */
     int get_dynamic_rule_post_failed_count() const;
-    
+
+    /// Statistics captured from the most recent solve_multiple() call.
+    struct SearchStats {
+        long long nodes    = 0;  ///< Total nodes explored in the Gecode search tree
+        long long failures = 0;  ///< Failed (backtracked) nodes — proxy for search difficulty
+        long long depth    = 0;  ///< Maximum depth reached in the search tree
+    };
+    const SearchStats& last_search_stats() const { return last_search_stats_; }
+
     // ===============================
     // Solving Interface
     // ===============================
@@ -453,11 +462,13 @@ public:
      * @param max_solutions Number of solutions to find, or -1 for all.
      * @param timeout_ms    Stop after this many milliseconds (0 = no limit).
      * @param on_solution   Optional callback invoked immediately when each solution is found.
+     * @param cancel_flag   Optional pointer to an atomic cancel flag; search stops when set true.
      */
     std::vector<MusicalSolution> solve_multiple(
         int max_solutions = 1,
         int timeout_ms = 0,
-        std::function<void(const MusicalSolution&, int)> on_solution = nullptr);
+        std::function<void(const MusicalSolution&, int)> on_solution = nullptr,
+        const std::atomic<bool>* cancel_flag = nullptr);
     
     /**
      * @brief Solve with custom starting note
@@ -620,6 +631,8 @@ private:
      * @brief Update performance statistics
      */
     void update_stats(const std::string& operation, double time_ms);
+
+    SearchStats last_search_stats_;  ///< Set by solve_multiple(); zero-initialized otherwise.
     
     /**
      * @brief Create solution from storage

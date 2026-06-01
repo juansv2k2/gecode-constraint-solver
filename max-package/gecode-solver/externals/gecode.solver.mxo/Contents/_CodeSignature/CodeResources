@@ -6,6 +6,24 @@
 	<dict/>
 	<key>files2</key>
 	<dict>
+		<key>Frameworks/libgecodedriver.49.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			e3v+blsIlasiC57bjhxyrzGKMGU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7b7bfe6e5b0895ab220b9edb8e1c72af318a3065"</string>
+		</dict>
+		<key>Frameworks/libgecodefloat.49.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			o3ePu39eKaIFJMmexQ2ph9ZbJaI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a3778fbb7f5e29a20524c99ec50da987d65b25a2"</string>
+		</dict>
 		<key>Frameworks/libgecodeint.49.dylib</key>
 		<dict>
 			<key>cdhash</key>
@@ -41,6 +59,15 @@
 			</data>
 			<key>requirement</key>
 			<string>cdhash H"b02b790aea719943304376f76942b7db0efce2b6"</string>
+		</dict>
+		<key>Frameworks/libgecodeset.49.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Yjz5dyQ+bIGmNSpMPU6rniZmq6c=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"623cf977243e6c81a6352a4c3d4eab9e2666aba7"</string>
 		</dict>
 		<key>Frameworks/libgecodesupport.49.dylib</key>
 		<dict>
