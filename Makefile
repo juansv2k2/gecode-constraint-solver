@@ -268,6 +268,26 @@ $(MAX_EXTERNAL_TARGET): $(MAX_EXTERNAL_SOURCE) include/max_msp_solver_wrapper.hh
 		'  <key>CFBundleVersion</key><string>0.1.0</string>' \
 		'</dict>' \
 		'</plist>' > $(MAX_EXTERNAL_TARGET)/Contents/Info.plist
+	@# ── Bundle Gecode dylibs so the external is self-contained on any Mac ────────
+	@BUNDLE_BIN="$(MAX_EXTERNAL_TARGET)/Contents/MacOS/$(MAX_EXTERNAL_NAME)"; \
+	FWDIR="$(MAX_EXTERNAL_TARGET)/Contents/Frameworks"; \
+	mkdir -p "$$FWDIR"; \
+	echo "Bundling Gecode dylibs into Contents/Frameworks/..."; \
+	for lib_path in $$(otool -L "$$BUNDLE_BIN" | awk '{print $$1}' | grep 'libgecode'); do \
+		lib_name=$$(basename "$$lib_path"); \
+		cp -f "$$lib_path" "$$FWDIR/$$lib_name"; \
+		install_name_tool -change "$$lib_path" "@loader_path/../Frameworks/$$lib_name" "$$BUNDLE_BIN"; \
+	done; \
+	for bundled in "$$FWDIR"/libgecode*.dylib; do \
+		lib_name=$$(basename "$$bundled"); \
+		install_name_tool -id "@loader_path/$$lib_name" "$$bundled"; \
+		for dep_path in $$(otool -L "$$bundled" | awk '{print $$1}' | grep 'libgecode'); do \
+			dep_name=$$(basename "$$dep_path"); \
+			install_name_tool -change "$$dep_path" "@loader_path/$$dep_name" "$$bundled"; \
+		done; \
+	done; \
+	codesign --force --deep --sign - "$(MAX_EXTERNAL_TARGET)" 2>/dev/null || true; \
+	echo "✅ Gecode dylibs bundled — external is now self-contained (arm64)"
 
 # Wildcard Rule Extension Test Program
 WILDCARD_TEST_TARGET = wildcard-test
