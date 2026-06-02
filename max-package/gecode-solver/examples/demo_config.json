@@ -20,7 +20,6 @@
       "rhythm": { "duration_values": ["1/4"], "description": "quarter notes" }
     }
   ],
-  "export_path": "output",
   "rules": [
     {
       "rule_type": "wildcard_constraint",
@@ -55,5 +54,5 @@
     "value_order": "min"
   },
   "export_xml": true,
-  "file_name": "demo_output.xml"
+  "file_name": "output/demo_config"
 }

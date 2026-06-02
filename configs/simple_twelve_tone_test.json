@@ -59,8 +59,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-  "file_name": "simple_twelve_tone_test.xml",
+  "file_name": "output/simple_twelve_tone_test",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",

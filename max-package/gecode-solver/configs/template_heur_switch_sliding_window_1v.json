@@ -18,7 +18,7 @@
       }
     }
   ],
-  "export_path": "output",
+  "file_name": "output/template_heur_switch_sliding_window_1v",
   "rules": [],
   "dynamic_rules": [
     {

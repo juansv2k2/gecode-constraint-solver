@@ -19,7 +19,7 @@
       }
     }
   ],
-  "export_path": "output",
+  "file_name": "output/heuristic_example_musical_melody_8x1",
   "rules": [],
   "dynamic_rules": [
     {

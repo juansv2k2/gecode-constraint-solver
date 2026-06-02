@@ -6,8 +6,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-  "file_name": "rest_test.xml",
+  "file_name": "output/rest_test",
   "rules": [
     {
       "id": "r-pitches-all-different",

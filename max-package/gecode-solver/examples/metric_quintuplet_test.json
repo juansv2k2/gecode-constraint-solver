@@ -18,16 +18,7 @@
         ]
       },
       "pitch": {
-        "midi_values": [
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71,
-          72
-        ]
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
       }
     },
     {
@@ -44,16 +35,7 @@
         ]
       },
       "pitch": {
-        "midi_values": [
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71,
-          72
-        ]
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
       }
     },
     {
@@ -70,16 +52,7 @@
         ]
       },
       "pitch": {
-        "midi_values": [
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71,
-          72
-        ]
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
       }
     },
     {
@@ -96,53 +69,31 @@
         ]
       },
       "pitch": {
-        "midi_values": [
-          60,
-          62,
-          64,
-          65,
-          67,
-          69,
-          71,
-          72
-        ]
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72]
       }
     }
   ],
   "meter": {
-    "time_signatures": [
-      "4/4"
-    ],
-    "tuplets": [
-      5,
-      10
-    ],
-    "beat_divisions": [
-      2,
-      4
-    ]
+    "time_signatures": ["4/4"],
+    "tuplets": [5, 10],
+    "beat_divisions": [2, 4]
   },
-  "export_json": true,
-  "export_txt": true,
+  "export_json": false,
+  "export_txt": false,
   "export_xml": true,
-  "export_path": "output",
-  "file_name": "metric_quintuplet_test.xml",
+  "file_name": "output/metric_quintuplet_test",
   "rules": [
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "durations",
-      "target_voices": [
-        0
-      ],
+      "target_voices": [0],
       "enabled": 1,
       "description": "Constrain note durations to quintuplet metric grid"
     },
     {
       "rule_type": "r-metric-hierarchy",
       "constraint": "tuplet_on_beat_start",
-      "target_voices": [
-        0
-      ],
+      "target_voices": [0],
       "enabled": 1,
       "description": "explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)"
     },
@@ -151,9 +102,7 @@
       "target_component": "metric",
       "description": "Bar-pattern time signature (fixed)",
       "bar_pattern_type": "repeating",
-      "bar_pattern": [
-        "4/4"
-      ],
+      "bar_pattern": ["4/4"],
       "bar_pattern_repetitions": 4,
       "allow_cross_barline": 0,
       "enabled": 1

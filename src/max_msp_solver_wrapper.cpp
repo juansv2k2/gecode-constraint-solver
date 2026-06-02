@@ -1858,10 +1858,23 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         if (cfg.contains("export_filename") && cfg["export_filename"].is_string()) {
             export_filename_ = cfg["export_filename"].get<std::string>();
         }
-        // "file_name" is the canonical key for the output filename (takes precedence over export_filename).
+        // "file_name" is the canonical key for the output path (takes precedence over
+        // export_path + export_filename). If it contains a directory component
+        // (e.g. "output/my_piece"), that directory overrides export_path_ so a single
+        // key handles both the folder and the base name.
         if (cfg.contains("file_name") && cfg["file_name"].is_string()) {
             const std::string fn = cfg["file_name"].get<std::string>();
-            if (!fn.empty()) export_filename_ = fn;
+            if (!fn.empty()) {
+                const std::filesystem::path fn_path(fn);
+                const std::filesystem::path dir = fn_path.parent_path();
+                if (!dir.empty() && dir != ".") {
+                    // Directory component present — use it as the export directory.
+                    export_path_    = dir.string();
+                    export_filename_ = fn_path.filename().string();
+                } else {
+                    export_filename_ = fn;
+                }
+            }
         }
         if (cfg.contains("export_json")) export_json_ = json_value_to_bool_with_default(cfg["export_json"], false);
         if (cfg.contains("export_txt"))  export_txt_  = json_value_to_bool_with_default(cfg["export_txt"],  false);

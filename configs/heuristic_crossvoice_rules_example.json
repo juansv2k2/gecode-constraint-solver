@@ -92,8 +92,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-  "file_name": "heuristic_crossvoice_rules_example.xml",
+  "file_name": "output/heuristic_crossvoice_rules_example",
   "rules": [
     {
       "id": "hard_no_unison_v0_v1",

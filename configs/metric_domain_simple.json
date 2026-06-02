@@ -115,8 +115,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-  "file_name": "metric_domain_simple.xml",
+  "file_name": "output/metric_domain_simple",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",

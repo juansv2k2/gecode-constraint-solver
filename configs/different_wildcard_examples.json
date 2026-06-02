@@ -6,8 +6,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-  "file_name": "different_wildcard_examples.xml",
+  "file_name": "output/different_wildcard_examples",
   "rules": [
     {
       "id": "no_repeated_pitch_window",

@@ -11,8 +11,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-  "file_name": "heuristic_priority_direction_8x1.xml",
+  "file_name": "output/heuristic_priority_direction_8x1",
   "rules": [],
   "dynamic_rules": [
     {

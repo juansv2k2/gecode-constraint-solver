@@ -56,8 +56,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
-  "file_name": "timepoint_relationship_smoke.xml",
+  "file_name": "output/timepoint_relationship_smoke",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",

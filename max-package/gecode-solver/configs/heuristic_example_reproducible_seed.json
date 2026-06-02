@@ -19,7 +19,7 @@
       }
     }
   ],
-  "export_path": "output",
+  "file_name": "output/heuristic_example_reproducible_seed",
   "rules": [],
   "dynamic_rules": [
     {

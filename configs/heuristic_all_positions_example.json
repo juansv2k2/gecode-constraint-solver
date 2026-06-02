@@ -21,7 +21,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "file_name": "heuristic_all_positions_example.xml",
+  "file_name": "output/heuristic_all_positions_example",
   "rules": [
     {
       "rule_type": "r-pitches-one-engine",

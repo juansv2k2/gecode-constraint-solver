@@ -18,7 +18,7 @@
       }
     }
   ],
-  "export_path": "output",
+  "file_name": "output/template_mixed_hard_plus_heuristics_1v",
   "rules": [],
   "dynamic_rules": [
     {

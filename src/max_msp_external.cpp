@@ -244,8 +244,36 @@ static std::string get_patch_folder(t_maxsolver* x) {
     if (patcher) {
         t_symbol* filepath = jpatcher_get_filepath(patcher);
         if (filepath && filepath->s_name && filepath->s_name[0]) {
-            std::filesystem::path p(filepath->s_name);
-            return p.parent_path().string();
+            // jpatcher_get_filepath can return an HFS-style path on macOS
+            // ("Macintosh HD:/Users/..." or "Macintosh HD:Users:dir:...").
+            // Run it through Max's own path API to get a guaranteed POSIX path.
+            short path_id = 0;
+            char filename[MAX_PATH_CHARS] = {};
+            char abspath[MAX_PATH_CHARS] = {};
+            if (path_frompathname(filepath->s_name, &path_id, filename) == MAX_ERR_NONE &&
+                path_toabsolutesystempath(path_id, filename, abspath) == MAX_ERR_NONE &&
+                abspath[0]) {
+                return std::filesystem::path(abspath).parent_path().string();
+            }
+
+            // Fallback: manually strip "Volume:" prefix so std::filesystem can
+            // handle the rest (covers "Macintosh HD:/posix/path" and pure HFS
+            // "Volume:dir1:dir2:file" variants).
+            std::string raw(filepath->s_name);
+            if (!raw.empty() && raw[0] != '/') {
+                const auto colon = raw.find(':');
+                if (colon != std::string::npos) {
+                    std::string rest = raw.substr(colon + 1);
+                    if (!rest.empty() && rest[0] != '/') {
+                        // Pure HFS separators — convert colons to slashes
+                        for (auto& c : rest) if (c == ':') c = '/';
+                        raw = "/" + rest;
+                    } else {
+                        raw = rest;   // "Volume:/posix/path" → "/posix/path"
+                    }
+                }
+            }
+            return std::filesystem::path(raw).parent_path().string();
         }
     }
 

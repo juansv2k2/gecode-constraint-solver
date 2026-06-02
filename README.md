@@ -60,7 +60,7 @@ bin/dynamic-solver configs/metric_domain_example.json
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "file_name": "my_piece.xml",
+  "file_name": "output/my_piece",
   "rules": [
     {
       "rule_type": "r-one-voice",
@@ -87,7 +87,7 @@ bin/dynamic-solver configs/metric_domain_example.json
 }
 ```
 
-> **`export_path` resolution (Max external):** omitting `export_path` (or setting it to `"."`) saves files in the same folder as the open .maxpat file. A relative value like `"output"` is placed inside that folder. An absolute path is used as-is.
+> **`file_name` path resolution:** `"output/my_piece"` saves files as `<patch-folder>/output/my_piece.xml` (etc.). A plain name like `"my_piece"` puts files directly in the patch folder. An absolute path is used as-is. Extension is always appended automatically. `export_path` is still accepted as a legacy fallback.
 
 ## Wildcard Membership Example
 
@@ -167,7 +167,7 @@ Use `config_file` or `config_dict` with the `gecode.solver` object. For details,
 
 - User-facing configs are voice-first: `voices` + optional `meter`.
 - Built-in rule targeting is voice-based: `target_voices` with `target_component`.
-- Export settings are **top-level keys** (`export_json`, `export_txt`, `export_xml`, `export_path`, `file_name`) — not nested inside an `output_options` block. `export_path` resolution: no value → same folder as the .maxpat file; relative value → inside the patch folder; absolute path → used as-is.
+- Export settings are **top-level keys** (`export_json`, `export_txt`, `export_xml`, `file_name`) — not nested inside an `output_options` block. `file_name` carries both the subdirectory and base name: `"output/my_piece"` writes to `<patch-folder>/output/my_piece.xml`. A plain name like `"my_piece"` writes to the patch folder directly.
 - Search strategy is configured via `search_options`.
 - Dynamic expression parsing supports logical operators (`&&`, `||`, `!`, `not`), membership (`in`, `not_in`), and integer array literals (`[0, 5, 7, 12]`).
 - `wildcard_constraint` rules now honor `indices` directly in wildcard expansion.

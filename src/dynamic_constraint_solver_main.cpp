@@ -420,7 +420,17 @@ private:
             size_t pos = line.find(":");
             if (pos != std::string::npos) {
                 const std::string fn = removeQuotesAndComma(line.substr(pos + 1));
-                if (!fn.empty()) export_filename_ = fn;
+                if (!fn.empty()) {
+                    // If file_name contains a directory component (e.g. "output/my_piece"),
+                    // extract it into export_path_ so one key handles both dir and base name.
+                    size_t last_slash = fn.find_last_of("/\\");
+                    if (last_slash != std::string::npos) {
+                        export_path_    = fn.substr(0, last_slash);
+                        export_filename_ = fn.substr(last_slash + 1);
+                    } else {
+                        export_filename_ = fn;
+                    }
+                }
             }
         } else if (line.find("\"export_json\"") != std::string::npos) {
             size_t pos = line.find(":");
@@ -3013,6 +3023,9 @@ int main(int argc, char* argv[]) {
             if (slash_pos != std::string::npos) {
                 base_name = base_name.substr(slash_pos + 1);
             }
+        }
+        // Strip any file extension so we can append format-specific ones cleanly.
+        {
             size_t dot_pos = base_name.find_last_of('.');
             if (dot_pos != std::string::npos) base_name = base_name.substr(0, dot_pos);
         }

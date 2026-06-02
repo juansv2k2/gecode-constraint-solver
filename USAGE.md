@@ -58,7 +58,7 @@ Wrapper path (same as used by Max):
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
+  "file_name": "output/my_piece",
   "rules": [ ... ],
   "dynamic_rules": [ ... ]
 }
@@ -77,8 +77,7 @@ Wrapper path (same as used by Max):
 - `meter`: Metric signature configuration
 - `search_options`: Search behavior configuration
 - `export_json`, `export_txt`, `export_xml`: Export flags (default `false` for all)
-- `export_path`: Output directory — see [§9 Export Options](#9-export-options) for path resolution rules
-- `file_name`: Output filename (e.g. `"my_piece.xml"`)
+- `file_name`: Output path and base name — see [§9 Export Options](#9-export-options). Directory component optional (e.g. `"output/my_piece"`).
 - `rules`: Built-in constraints
 - `dynamic_rules`: Expression-based constraints and heuristics
 
@@ -1142,33 +1141,31 @@ Export keys are **top-level** fields in the config — not nested under an `outp
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "output",
-  "file_name": "my_piece.xml",
+  "file_name": "output/my_piece",
   "rules": [ ... ]
 }
 ```
 
-| Key           | Type    | Default       | Description                                                 |
-| ------------- | ------- | ------------- | ----------------------------------------------------------- |
-| `export_path` | string  | _(see below)_ | Output directory — path resolution rules apply (see below)  |
-| `file_name`   | string  |               | Output filename including extension (e.g. `"my_piece.xml"`) |
-| `export_json` | boolean | `false`       | Save raw solution data as JSON                              |
-| `export_txt`  | boolean | `false`       | Save human-readable text summary                            |
-| `export_xml`  | boolean | `false`       | Save as MusicXML (viewable in notation software)            |
+| Key           | Type    | Default | Description                                                        |
+| ------------- | ------- | ------- | ------------------------------------------------------------------ |
+| `file_name`   | string  |         | Output path + base name. Directory part is optional (see below).   |
+| `export_json` | boolean | `false` | Save raw solution data as JSON                                     |
+| `export_txt`  | boolean | `false` | Save human-readable text summary                                   |
+| `export_xml`  | boolean | `false` | Save as MusicXML (viewable in notation software)                   |
 
-### `export_path` resolution (Max external)
+### `file_name` path resolution (Max external)
 
-The external resolves `export_path` relative to the folder of the **currently open .maxpat file**:
+`file_name` is the single key that controls both the output folder and the base filename. The file extension is always appended automatically per format (`.xml`, `.json`, `.txt`).
 
-| `export_path` value   | Where files are written         |
-| --------------------- | ------------------------------- |
-| omitted or `"."`      | Same folder as the .maxpat file |
-| `"output"` (relative) | `<patch-folder>/output/`        |
-| `"/absolute/path"`    | That exact path, unchanged      |
+| `file_name` value            | Where files are written                          |
+| ---------------------------- | ------------------------------------------------ |
+| `"my_piece"` (no directory)  | Same folder as the .maxpat file                  |
+| `"output/my_piece"`          | `<patch-folder>/output/my_piece.xml` etc.        |
+| `"/absolute/path/my_piece"` | That exact directory, unchanged                  |
 
-If the patch has not been saved yet, the external falls back to Max's current default path. The resolved path is echoed back in the `export_path_resolved` field of the result JSON.
+If the patch has not been saved yet, the external falls back to Max's current default path. If `file_name` is omitted entirely, the solver uses `"max_solver"` as the base name in the patch folder.
 
-All export formats write to the same `export_path` folder using `file_name` as the filename (extension is appended automatically if not present). If `file_name` is not set, the solver uses `"max_solver"` as the base name.
+> **Legacy `export_path` key:** still accepted for backward compatibility. When `file_name` contains a directory component, it takes precedence over `export_path`. New configs should use only `file_name`.
 
 > **Legacy `output_options` block:** Older configs used a nested `output_options: { export_path: ..., export_json: ... }` object. The wrapper still accepts this but top-level export keys take precedence. All new configs should use top-level keys.
 
@@ -1190,8 +1187,7 @@ All export formats write to the same `export_path` folder using `file_name` as t
 | `export_json`     | boolean |          | Save JSON result                                                                         |
 | `export_txt`      | boolean |          | Save text summary                                                                        |
 | `export_xml`      | boolean |          | Save MusicXML                                                                            |
-| `export_path`     | string  |          | Output directory (omit → patch folder; relative → inside patch folder; absolute → as-is) |
-| `file_name`       | string  |          | Output filename with extension (e.g. `"my_piece.xml"`)                                   |
+| `file_name`       | string  |          | Output path + base name — directory part optional (e.g. `"output/my_piece"`)             |
 | `rules`           | array   |          | Built-in constraints                                                                     |
 | `dynamic_rules`   | array   |          | Expression-based constraints and heuristics                                              |
 
