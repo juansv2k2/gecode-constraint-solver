@@ -1711,9 +1711,21 @@ void AsyncSolverWrapper::run_solve_job() {
 
                     if (export_json_ || export_txt_ || export_xml_ || export_png_ || export_midi_) {
                         try {
-                            std::filesystem::path out_dir = export_path_.empty()
-                                ? std::filesystem::path(".")
-                                : std::filesystem::path(export_path_);
+                            // Path resolution:
+                            //   1. Empty / "."      → folder of the owning .maxpat file
+                            //   2. Relative path   → relative to the .maxpat folder
+                            //   3. Absolute path   → used as-is
+                            auto resolve_export_dir = [&]() -> std::filesystem::path {
+                                const std::filesystem::path base =
+                                    patch_folder_.empty()
+                                        ? std::filesystem::current_path()
+                                        : std::filesystem::path(patch_folder_);
+                                if (export_path_.empty() || export_path_ == ".")
+                                    return base;
+                                std::filesystem::path p(export_path_);
+                                return p.is_absolute() ? p : base / p;
+                            };
+                            std::filesystem::path out_dir = resolve_export_dir();
                             std::error_code mk_err;
                             std::filesystem::create_directories(out_dir, mk_err);
                             if (mk_err) {
@@ -1780,6 +1792,10 @@ void AsyncSolverWrapper::run_solve_job() {
         status_ = local_result.status;
         result_ready_.store(true);
     }
+}
+
+void AsyncSolverWrapper::set_patch_folder(const std::string& folder) {
+    patch_folder_ = folder;
 }
 
 bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::string& error_message) {

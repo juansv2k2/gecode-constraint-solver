@@ -26,6 +26,7 @@
       }
     }
   ],
+  "export_path": "output",
   "rules": [],
   "dynamic_rules": [
     {

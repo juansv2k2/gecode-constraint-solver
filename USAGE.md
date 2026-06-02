@@ -76,12 +76,11 @@ Wrapper path (same as used by Max):
 - `score_length`: Total musical score length (e.g., `"8q"` = 8 quarter notes)
 - `meter`: Metric signature configuration
 - `search_options`: Search behavior configuration
-- `export_json`, `export_txt`, `export_xml`: Export flags (default `true`, `true`, `false`)
-- `export_path`: Output directory (default `"tests/output"`)
+- `export_json`, `export_txt`, `export_xml`: Export flags (default `false` for all)
+- `export_path`: Output directory — see [§9 Export Options](#9-export-options) for path resolution rules
+- `file_name`: Output filename (e.g. `"my_piece.xml"`)
 - `rules`: Built-in constraints
 - `dynamic_rules`: Expression-based constraints and heuristics
-
-> **Key ordering note:** Export keys (`export_json`, `export_txt`, `export_xml`, `export_path`) **must appear before** the `rules` and `dynamic_rules` keys in the JSON file. The config parser reads exports in a linear pass and stops tracking them once it enters the rules section.
 
 ## 3. Voices & Domains
 
@@ -1136,7 +1135,7 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 
 ## 9. Export Options
 
-Export keys are **top-level** fields in the config — not nested under an `output_options` object. They must appear **before** the `rules` key in the JSON file.
+Export keys are **top-level** fields in the config — not nested under an `output_options` object.
 
 ```json
 {
@@ -1144,42 +1143,57 @@ Export keys are **top-level** fields in the config — not nested under an `outp
   "export_txt": true,
   "export_xml": true,
   "export_path": "output",
+  "file_name": "my_piece.xml",
   "rules": [ ... ]
 }
 ```
 
-| Key           | Type    | Default          | Description                                      |
-| ------------- | ------- | ---------------- | ------------------------------------------------ |
-| `export_path` | string  | `"tests/output"` | Output directory path (relative or absolute)     |
-| `export_json` | boolean | `true`           | Save raw solution data as JSON                   |
-| `export_txt`  | boolean | `true`           | Save human-readable text summary                 |
-| `export_xml`  | boolean | `false`          | Save as MusicXML (viewable in notation software) |
+| Key           | Type    | Default       | Description                                                 |
+| ------------- | ------- | ------------- | ----------------------------------------------------------- |
+| `export_path` | string  | _(see below)_ | Output directory — path resolution rules apply (see below)  |
+| `file_name`   | string  |               | Output filename including extension (e.g. `"my_piece.xml"`) |
+| `export_json` | boolean | `false`       | Save raw solution data as JSON                              |
+| `export_txt`  | boolean | `false`       | Save human-readable text summary                            |
+| `export_xml`  | boolean | `false`       | Save as MusicXML (viewable in notation software)            |
 
-All three formats write to `export_path` using the config `name` as the base filename. If `name` is not set, the solver uses the config filename.
+### `export_path` resolution (Max external)
 
-> **Legacy `output_options` block:** Older configs used an `output_options: { export_path: ..., export_json: ... }` nested object. This format is no longer used. All configs in `configs/` use top-level export keys. Old configs using `output_options` are preserved in `configs/legacy/` for reference.
+The external resolves `export_path` relative to the folder of the **currently open .maxpat file**:
+
+| `export_path` value   | Where files are written         |
+| --------------------- | ------------------------------- |
+| omitted or `"."`      | Same folder as the .maxpat file |
+| `"output"` (relative) | `<patch-folder>/output/`        |
+| `"/absolute/path"`    | That exact path, unchanged      |
+
+If the patch has not been saved yet, the external falls back to Max's current default path. The resolved path is echoed back in the `export_path_resolved` field of the result JSON.
+
+All export formats write to the same `export_path` folder using `file_name` as the filename (extension is appended automatically if not present). If `file_name` is not set, the solver uses `"max_solver"` as the base name.
+
+> **Legacy `output_options` block:** Older configs used a nested `output_options: { export_path: ..., export_json: ... }` object. The wrapper still accepts this but top-level export keys take precedence. All new configs should use top-level keys.
 
 ## 10. Complete Parameter Reference
 
 ### Top-Level
 
-| Field             | Type    | Required | Description                                                    |
-| ----------------- | ------- | -------- | -------------------------------------------------------------- |
-| `solution_length` | int     | ✅       | Notes per voice                                                |
-| `num_voices`      | int     | ✅       | Number of voices                                               |
-| `voices`          | array   |          | Voice domain definitions (required unless `global_domain` set) |
-| `global_domain`   | object  |          | Shared fallback pitch/rhythm domain for all voices             |
-| `name`            | string  |          | Config label (used as output filename base)                    |
-| `description`     | string  |          | Human-readable description                                     |
-| `score_length`    | string  |          | e.g. `"8q"` = 8 quarter notes                                  |
-| `meter`           | object  |          | Metric engine configuration                                    |
-| `search_options`  | object  |          | Search strategy                                                |
-| `export_json`     | boolean |          | Save JSON result (default `true`)                              |
-| `export_txt`      | boolean |          | Save text summary (default `true`)                             |
-| `export_xml`      | boolean |          | Save MusicXML (default `false`)                                |
-| `export_path`     | string  |          | Output directory (default `"tests/output"`)                    |
-| `rules`           | array   |          | Built-in constraints (**export keys must precede this**)       |
-| `dynamic_rules`   | array   |          | Expression-based constraints and heuristics                    |
+| Field             | Type    | Required | Description                                                                              |
+| ----------------- | ------- | -------- | ---------------------------------------------------------------------------------------- |
+| `solution_length` | int     | ✅       | Notes per voice                                                                          |
+| `num_voices`      | int     | ✅       | Number of voices                                                                         |
+| `voices`          | array   |          | Voice domain definitions (required unless `global_domain` set)                           |
+| `global_domain`   | object  |          | Shared fallback pitch/rhythm domain for all voices                                       |
+| `name`            | string  |          | Config label (used as output filename base)                                              |
+| `description`     | string  |          | Human-readable description                                                               |
+| `score_length`    | string  |          | e.g. `"8q"` = 8 quarter notes                                                            |
+| `meter`           | object  |          | Metric engine configuration                                                              |
+| `search_options`  | object  |          | Search strategy                                                                          |
+| `export_json`     | boolean |          | Save JSON result                                                                         |
+| `export_txt`      | boolean |          | Save text summary                                                                        |
+| `export_xml`      | boolean |          | Save MusicXML                                                                            |
+| `export_path`     | string  |          | Output directory (omit → patch folder; relative → inside patch folder; absolute → as-is) |
+| `file_name`       | string  |          | Output filename with extension (e.g. `"my_piece.xml"`)                                   |
+| `rules`           | array   |          | Built-in constraints                                                                     |
+| `dynamic_rules`   | array   |          | Expression-based constraints and heuristics                                              |
 
 ### Rule Object
 

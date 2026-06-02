@@ -56,6 +56,10 @@ public:
     // Configure from a JSON string compatible with dynamic-solver configs.
     bool configure_from_json(const std::string& config_json, std::string& error_message);
 
+    // Set the folder of the owning Max patch.  Called by the external each time
+    // a config is loaded so relative / missing export paths resolve correctly.
+    void set_patch_folder(const std::string& folder);
+
     // Starts an asynchronous solve job. Returns false if wrapper is not ready.
     bool solve_async(std::string& error_message);
 
@@ -78,7 +82,8 @@ private:
     int max_solutions_ = 1;
     double timeout_ms_ = 30000.0;
 
-    std::string export_path_ = ".";
+    std::string export_path_ = ".";   // ".", relative, or absolute — resolved at solve time
+    std::string patch_folder_;        // folder of the owning .maxpat file (empty = unknown)
     std::string export_filename_;
     bool export_json_ = false;
     bool export_txt_ = false;

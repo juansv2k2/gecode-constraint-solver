@@ -1,0 +1,59 @@
+{
+  "name": "Demo — C Major Stepwise Motion",
+  "description": "Two voices moving stepwise through C major. Voice 0 uses eighth notes, Voice 1 uses quarter notes. All pitches different. A good starting point for exploring the solver.",
+  "solution_length": 8,
+  "score_length": "4q",
+  "num_voices": 2,
+  "voices": [
+    {
+      "pitch": {
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76],
+        "description": "C major scale"
+      },
+      "rhythm": { "duration_values": ["1/8"], "description": "eighth notes" }
+    },
+    {
+      "pitch": {
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76],
+        "description": "C major scale"
+      },
+      "rhythm": { "duration_values": ["1/4"], "description": "quarter notes" }
+    }
+  ],
+  "export_path": "output",
+  "rules": [
+    {
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
+      "enabled": true,
+      "priority": 9,
+      "description": "Stepwise motion: consecutive notes at most a whole step apart",
+      "target_voices": [0, 1],
+      "target_component": "pitch"
+    },
+    {
+      "rule_type": "r-pitches-one-engine",
+      "constraint": "all_different",
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7],
+      "enabled": true,
+      "priority": 10,
+      "description": "All pitches different within each voice",
+      "target_voices": [0, 1],
+      "target_component": "pitch"
+    }
+  ],
+  "meter": {
+    "time_signatures": ["4/4"]
+  },
+  "search_options": {
+    "random_seed": 42,
+    "timeout_ms": 10000,
+    "max_solutions": 1,
+    "branching": "first_fail",
+    "value_order": "min"
+  },
+  "export_xml": true,
+  "file_name": "demo_output.xml"
+}

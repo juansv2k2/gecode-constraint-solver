@@ -125,7 +125,7 @@
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
-  "export_path": "/Users/juanvassallo/Documents/Max 9/Packages/gecode-solver/examples/output",
+  "export_path": "output",
   "file_name": "metric_quintuplet_test.xml",
   "rules": [
     {

@@ -7,16 +7,15 @@ BUILT_BUNDLE="$ROOT_DIR/bin/gecode.solver.mxo"
 
 deploy_to_user_package() {
   local package_root="$1"
-  local target_dir="$package_root/gecode-solver/externals"
-
-  mkdir -p "$target_dir"
-  rm -rf "$target_dir/gecode.solver.mxo"
-  cp -R "$BUILT_BUNDLE" "$target_dir/"
-
-  local installed_bundle="$target_dir/gecode.solver.mxo"
+  local dest="$package_root/gecode-solver"
+  local installed_bundle="$dest/externals/gecode.solver.mxo"
   local installed_bin="$installed_bundle/Contents/MacOS/gecode.solver"
 
-  # Remove quarantine/extended attributes and ad-hoc sign the whole bundle.
+  echo "[smoke] syncing full package to: $dest"
+  rm -rf "$dest"
+  cp -R "$PKG_DIR" "$dest"
+
+  # Remove quarantine/extended attributes and ad-hoc sign the installed bundle.
   xattr -cr "$installed_bundle" || true
   if command -v codesign >/dev/null 2>&1; then
     codesign --force --deep --sign - "$installed_bundle"

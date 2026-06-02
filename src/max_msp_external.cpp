@@ -11,10 +11,13 @@ extern "C" {
 #include "ext.h"
 #include "ext_obex.h"
 #include "ext_dictobj.h"
+#include "ext_path.h"
+#include "jpatcher_api.h"
 }
 
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <set>
@@ -229,6 +232,33 @@ void emit_result_json(t_maxsolver* x, const std::string& json_payload) {
     outlet_anything(x->json_outlet, s_json_sym, 1, &a);
 }
 
+// Returns the filesystem folder that contains the currently open .maxpat file,
+// or an empty string if the patch has not been saved yet.
+// Falls back to Max's default path when the patch file path is unavailable.
+static std::string get_patch_folder(t_maxsolver* x) {
+    if (!x) return std::string();
+
+    // Try to get the parent patcher and its saved filepath.
+    t_object* patcher = nullptr;
+    object_obex_lookup((t_object*)x, gensym("#P"), (t_object**)&patcher);
+    if (patcher) {
+        t_symbol* filepath = jpatcher_get_filepath(patcher);
+        if (filepath && filepath->s_name && filepath->s_name[0]) {
+            std::filesystem::path p(filepath->s_name);
+            return p.parent_path().string();
+        }
+    }
+
+    // Patch is unsaved — use Max's current default path.
+    char path_str[MAX_PATH_CHARS] = {};
+    const short path_id = path_getdefault();
+    if (path_id > 0) {
+        if (path_toabsolutesystempath(path_id, "", path_str) == MAX_ERR_NONE && path_str[0])
+            return std::string(path_str);
+    }
+    return std::string();  // wrapper will fall back to cwd
+}
+
 bool configure_from_json_payload(t_maxsolver* x, const std::string& json_text, const char* success_message) {
     if (!x || !x->wrapper) return false;
 
@@ -236,6 +266,9 @@ bool configure_from_json_payload(t_maxsolver* x, const std::string& json_text, c
         emit_status(x, "failed", "Empty config payload");
         return false;
     }
+
+    // Inject the patch folder before configuring so path resolution works correctly.
+    x->wrapper->set_patch_folder(get_patch_folder(x));
 
     std::string error;
     if (!x->wrapper->configure_from_json(json_text, error)) {
