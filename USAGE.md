@@ -769,6 +769,39 @@ Example: partial cantus anchors
 
 `enabled` accepts `true`/`false` and also truthy values like `1`, `yes`, and `on` in the CLI config parser.
 
+**No syncopation (notes must not cross strong beat boundaries):**
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "no-syncopation",
+  "target_voices": [0, 1]
+}
+```
+
+Constrains every note so that it ends at or before the next beat boundary: `onset % beat_ticks + |duration| ≤ beat_ticks`. Rests are unconstrained. Subdivisions (eighth, sixteenth, triplet-eighth, etc.) are freely allowed as long as they fit within their beat cell. Only a note that **spans across** a beat boundary — i.e., a syncopation — is rejected.
+
+The optional `beats` parameter selects which beat positions act as strong boundaries, which widens the allowed cell:
+
+```json
+{
+  "rule_type": "r-metric-hierarchy",
+  "constraint": "no-syncopation",
+  "parameters": ["beats:1,3"],
+  "target_voices": [0, 1],
+  "description": "No cross-beat-3 notes; stp = 2 beats (half-note grid)"
+}
+```
+
+| `parameters`      | Strong-beat period (`stp`) in 4/4            | Effect                                        |
+| ----------------- | -------------------------------------------- | --------------------------------------------- |
+| _(omitted)_       | `1 × beat_ticks` (e.g. 24 ticks)             | Every beat is a boundary                      |
+| `"beats:1,3"`     | `min_spacing × beat_ticks` (e.g. 48 t)       | Half-note grid; notes must fit within 2 beats |
+| `"beats:1"`       | `numerator × beat_ticks` (e.g. 72 t for 3/4) | Bar-boundary mode: no note crosses a barline  |
+| `"beats:1,2,3,4"` | `1 × beat_ticks` (every beat)                | Same as omitting `beats`                      |
+
+`beats` values are 1-indexed and sorted automatically. The period `stp` is derived from the **minimum spacing** between the listed strong beats, multiplied by `beat_ticks`.
+
 `r-uniformity` works on whichever component you target. For pitch, provide MIDI values or integers in the pitch domain; for rhythm, provide duration strings or tick values.
 
 ### 5.5 Time Signature Rules

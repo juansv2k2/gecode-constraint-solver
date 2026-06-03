@@ -13,6 +13,20 @@
         "boxes": [
             {
                 "box": {
+                    "id": "obj-14",
+                    "maxclass": "newobj",
+                    "numinlets": 1,
+                    "numoutlets": 1,
+                    "outlettype": [ "" ],
+                    "patching_rect": [ 167.0, 1215.0, 115.0, 22.0 ],
+                    "saved_object_attributes": {
+                        "versionnumber": 80300
+                    },
+                    "text": "bach.pick 3 @out m"
+                }
+            },
+            {
+                "box": {
                     "id": "obj-45",
                     "maxclass": "button",
                     "numinlets": 1,
@@ -574,20 +588,20 @@
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 512.0, 1295.0, 246.0, 20.0 ],
+                    "patching_rect": [ 502.0, 1360.0, 246.0, 20.0 ],
                     "text": "harmonic interval (for heuristic_all_positions)"
                 }
             },
             {
                 "box": {
                     "id": "obj-23",
-                    "linecount": 2,
+                    "linecount": 3,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 512.0, 1266.0, 117.0, 35.0 ],
-                    "text": "7 8 -5 4 -7 8 -5 8 -7 -3 -7 -4"
+                    "patching_rect": [ 512.0, 1266.0, 117.0, 49.0 ],
+                    "text": "0 11 0 4 7 70 -2 -61 -65 73 -61 0 -10 61 -73 -68 -61 -5 -73 9"
                 }
             },
             {
@@ -604,13 +618,13 @@
             {
                 "box": {
                     "id": "obj-21",
-                    "linecount": 2,
+                    "linecount": 3,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 430.0, 1221.0, 139.0, 35.0 ],
-                    "text": "60 63 71 64 70 61 66 62 67 65 72 68"
+                    "patching_rect": [ 430.0, 1221.0, 143.0, 49.0 ],
+                    "text": "-1 60 67 67 65 -1 71 60 64 -1 60 -1 72 -1 72 67 60 69 72 60"
                 }
             },
             {
@@ -644,13 +658,13 @@
             {
                 "box": {
                     "id": "obj-12",
-                    "linecount": 2,
+                    "linecount": 3,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 324.0, 1184.0, 139.0, 35.0 ],
-                    "text": "67 71 66 68 63 69 61 70 60 62 65 64"
+                    "patching_rect": [ 324.0, 1184.0, 139.0, 49.0 ],
+                    "text": "-1 71 67 71 72 69 69 -1 -1 72 -1 -1 62 60 -1 -1 -1 64 -1 69"
                 }
             },
             {
@@ -757,7 +771,7 @@
             },
             {
                 "box": {
-                    "code": "{\n    \"description\": \"4-voice harmonic consonance study. Quarter-note grid, MIDI 48-72. Perfect consonances (unison/4th/5th/octave) on beats 1 and 3; imperfect consonances (3rds/6ths) on beats 2 and 4.\",\n    \"num_voices\": 4,\n    \"solution_length\": 12,\n    \"meter\": {\n        \"time_signatures\": [ \"4/4\" ],\n        \"beat_divisions\": [ 2, 4 ]\n    },\n    \"voices\": [\n        {\n            \"id\": 0,\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72 ]\n            }\n        },\n        {\n            \"id\": 1,\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72 ]\n            }\n        },\n        {\n            \"id\": 2,\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72 ]\n            }\n        },\n        {\n            \"id\": 3,\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72 ]\n            }\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 1,\n        \"require_exact_score_length\": 1,\n        \"random_seed\": 0,\n        \"timeout_ms\": 30000,\n        \"max_solutions\": 1,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"random\",\n        \"restart_policy\": \"none\"\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/harmonic_consonance_4voice\",\n    \"rules\": [\n        {\n            \"rule_type\": \"r-one-voice\",\n            \"constraint\": \"all_different\",\n            \"indices\": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],\n            \"target_voices\": [ 0, 1, 2, 3 ],\n            \"target_component\": \"pitch\",\n            \"enabled\": 1,\n            \"description\": \"all voices first 12 pitches are all different\"\n        },\n        {\n            \"rule_type\": \"wildcard_constraint\",\n            \"constraint\": \"abs(voice[1].pitch[i] - voice[0].pitch[i]) in [0, 5, 7, 12]\",\n            \"indices\": [ 0, 4, 8, 12, 16, 20, 2, 6, 10, 14, 18, 22 ],\n            \"target_voices\": [ 0, 1 ],\n            \"target_component\": \"pitch\",\n            \"enabled\": 1,\n            \"description\": \"V1-V0 perfect consonance on beats 1 and 3\"\n        },\n        {\n            \"rule_type\": \"wildcard_constraint\",\n            \"constraint\": \"abs(voice[2].pitch[i] - voice[1].pitch[i]) in [0, 5, 7, 12]\",\n            \"indices\": [ 0, 4, 8, 12, 16, 20, 2, 6, 10, 14, 18, 22 ],\n            \"target_voices\": [ 1, 2 ],\n            \"target_component\": \"pitch\",\n            \"enabled\": 1,\n            \"description\": \"V2-V1 perfect consonance on beats 1 and 3\"\n        },\n        {\n            \"rule_type\": \"wildcard_constraint\",\n            \"constraint\": \"abs(voice[3].pitch[i] - voice[2].pitch[i]) in [0, 5, 7, 12]\",\n            \"indices\": [ 0, 4, 8, 12, 16, 20, 2, 6, 10, 14, 18, 22 ],\n            \"target_voices\": [ 2, 3 ],\n            \"target_component\": \"pitch\",\n            \"enabled\": 1,\n            \"description\": \"V3-V2 perfect consonance on beats 1 and 3\"\n        },\n        {\n            \"rule_type\": \"wildcard_constraint\",\n            \"constraint\": \"abs(voice[1].pitch[i] - voice[0].pitch[i]) in [3, 4, 8, 9]\",\n            \"indices\": [ 1, 5, 9, 13, 17, 21, 3, 7, 11, 15, 19, 23 ],\n            \"target_voices\": [ 0, 1 ],\n            \"target_component\": \"pitch\",\n            \"enabled\": 1,\n            \"description\": \"V1-V0 imperfect consonance on beats 2 and 4\"\n        },\n        {\n            \"rule_type\": \"wildcard_constraint\",\n            \"constraint\": \"abs(voice[2].pitch[i] - voice[1].pitch[i]) in [3, 4, 8, 9]\",\n            \"indices\": [ 1, 5, 9, 13, 17, 21, 3, 7, 11, 15, 19, 23 ],\n            \"target_voices\": [ 1, 2 ],\n            \"target_component\": \"pitch\",\n            \"enabled\": 1,\n            \"description\": \"V2-V1 imperfect consonance on beats 2 and 4\"\n        },\n        {\n            \"rule_type\": \"wildcard_constraint\",\n            \"constraint\": \"abs(voice[3].pitch[i] - voice[2].pitch[i]) in [3, 4, 8, 9]\",\n            \"indices\": [ 1, 5, 9, 13, 17, 21, 3, 7, 11, 15, 19, 23 ],\n            \"target_voices\": [ 2, 3 ],\n            \"target_component\": \"pitch\",\n            \"enabled\": 1,\n            \"description\": \"V3-V2 imperfect consonance on beats 2 and 4\"\n        }\n    ]\n}",
+                    "code": "{\n    \"name\": \"Quintuplet Test\",\n    \"description\": \"Tests dynamic tuplet support with quintuplets (N=5) in 4/4 time. rhythm_base must be extended to LCM(48, 4*5=20) = 240 to support 1/20 grid steps.\",\n    \"solution_length\": 20,\n    \"num_voices\": 4,\n    \"voices\": [\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/8\", \"1/10\", \"1/20\", \"-1/4\", \"-1/8\", \"-1/10\", \"-1/20\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/8\", \"1/10\", \"1/20\", \"-1/4\", \"-1/8\", \"-1/10\", \"-1/20\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/8\", \"1/10\", \"1/20\", \"-1/4\", \"-1/8\", \"-1/10\", \"-1/20\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/8\", \"1/10\", \"1/20\", \"-1/4\", \"-1/8\", \"-1/10\", \"-1/20\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72 ]\n            }\n        }\n    ],\n    \"meter\": {\n        \"time_signatures\": [ \"4/4\" ],\n        \"tuplets\": [ 5, 10 ],\n        \"beat_divisions\": [ 2, 4 ]\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/metric_quintuplet_test\",\n    \"rules\": [\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"durations\",\n            \"target_voices\": [ 0 ],\n            \"enabled\": 1,\n            \"description\": \"Constrain note durations to quintuplet metric grid\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"tuplet_on_beat_start\",\n            \"target_voices\": [ 0 ],\n            \"enabled\": 1,\n            \"description\": \"explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)\"\n        },\n        {\n            \"rule_type\": \"r-time-signature\",\n            \"target_component\": \"metric\",\n            \"description\": \"Bar-pattern time signature (fixed)\",\n            \"bar_pattern_type\": \"repeating\",\n            \"bar_pattern\": [ \"4/4\" ],\n            \"bar_pattern_repetitions\": 4,\n            \"allow_cross_barline\": 0,\n            \"enabled\": 1\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 1,\n        \"random_seed\": 0,\n        \"value_order\": \"random\"\n    }\n}",
                     "editlocked": 1,
                     "fontface": 0,
                     "fontname": "<Monospaced>",

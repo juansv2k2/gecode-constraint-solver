@@ -1,6 +1,6 @@
 # Gecode Musical Constraint Solver - Project Status
 
-**Date:** April 6, 2026  
+**Date:** June 3, 2026  
 **Status:** ✅ PRODUCTION READY  
 **Build Status:** ✅ Clean (No Warnings)
 
@@ -12,8 +12,8 @@
 
 - **JSON Configuration Interface**: `./dynamic-solver [config.json]`
 - **Multi-Voice Generation**: Automatic engine coordination (rhythm/pitch per voice)
-- **MusicXML Export**: Professional notation format via `json_to_xml.py`
-- **Musical Rule System**: Advanced constraints (no-unisons, voice-leading, intervals)
+- **MusicXML Export**: Native C++ generation with explicit `<beam>` elements for correct beaming in notation software
+- **Musical Rule System**: Advanced constraints (no-unisons, voice-leading, intervals, metric hierarchy)
 - **Performance**: Sub-millisecond solving for typical musical problems
 
 ### ✅ Validated Examples
@@ -38,8 +38,9 @@ make clean                    # Clean build artifacts ✅
 
 - ✅ **Makefile Warnings**: Fixed duplicate target definitions
 - ✅ **Multi-Voice Data Extraction**: Engine-to-voice parsing implemented
-- ✅ **Built-in XML Export**: Native C++ MusicXML generation
+- ✅ **Built-in XML Export**: Native C++ MusicXML generation with explicit `<beam>` elements
 - ✅ **JSON Configuration**: Complete rule mapping and domain support
+- ✅ **`r-metric-hierarchy` `no-syncopation` mode**: Notes constrained not to span strong beat boundaries; optional `beats` parameter selects which beats are strong
 
 ---
 

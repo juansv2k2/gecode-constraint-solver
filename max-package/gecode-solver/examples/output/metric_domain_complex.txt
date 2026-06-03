@@ -1,0 +1,15 @@
+🎼 Musical Solution
+==================
+Notes (MIDI): 65 → 71 → 69 → 72 → 65 → 76 → 62 → 69 → 77 → 71 → 60 → 67 → 71 → 62 → 79 → 64 → 67 → 71 → 60 → 79 → 76 → 74 → 64 → 60 → 79 → 77 → 62 → 62 → 65 → 71 → 64 → 60 → 64 → 60 → 62
+Note names:   F4 → B4 → A4 → C5 → F4 → E5 → D4 → A4 → F5 → B4 → C4 → G4 → B4 → D4 → G5 → E4 → G4 → B4 → C4 → G5 → E5 → D5 → E4 → C4 → G5 → F5 → D4 → D4 → F4 → B4 → E4 → C4 → E4 → C4 → D4
+Intervals:    +6, -2, +3, -7, +11, -14, +7, +8, -6, -11, +7, +4, -9, +17, -15, +3, +4, -11, +19, -3, -2, -10, -4, +19, -2, -15, +0, +3, +6, -7, -4, +4, -4, +2
+
+📊 Solution Statistics
+Solve time: 0.03 ms
+Rules checked: 0
+Backjumps performed: 0
+Average interval: 7.3
+Direction changes: 23
+
+🎯 Applied Rules:
+  ✅ Gecode constraint propagation completed successfully

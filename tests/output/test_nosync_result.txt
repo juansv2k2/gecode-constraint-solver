@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/test_nosync.json
+Problem: no-sync beats:1,3 test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4
+  Rhythm:  1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16 + 1/16
+
+Performance:
+  Total solve time: 5 ms
+  Rules applied: 0

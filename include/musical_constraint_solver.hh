@@ -602,6 +602,29 @@ private:
         const std::vector<int>& selected_indices) const;
 
     /**
+     * @brief Prevent syncopation by ensuring no note spans across a strong-beat
+     * boundary.  A note at onset `a` with duration `d` is syncopated iff the
+     * interval (a, a+d) contains a multiple of stp.  Equivalently:
+     *   onset % stp + |duration| <= stp
+     *
+     * Notes may start on any subdivision; only crossing a boundary is forbidden.
+     * Rests are never constrained.
+     *
+     * @param strong_beat_numbers  1-indexed beat numbers that define boundaries.
+     *   Empty  → stp = beat_ticks (every beat is a boundary).
+     *   Single → stp = min_measure_ticks (bar boundaries only).
+     *   Multi  → stp = min consecutive spacing * beat_ticks.
+     *   E.g. {1,3} in 4/4 → stp = 2*beat = half-note grid; any note must fit
+     *   within a half-note cell (quarter notes, 8ths, 16ths all fine as long
+     *   as they don't cross beat 3 or beat 1).
+     */
+    void post_no_syncopation_constraint_(
+        GecodeClusterIntegration::IntegratedMusicalSpace* gecode_space,
+        int voice,
+        const std::vector<int>& selected_indices,
+        const std::vector<int>& strong_beat_numbers) const;
+
+    /**
      * @brief Convert bar_pattern to list of bar descriptors with tick boundaries
      */
     struct BarDescriptor {

@@ -64,6 +64,29 @@
       "description": "Example E: legacy no-tuplets filtering"
     },
     {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "no-syncopation",
+      "target_voices": [0, 1],
+      "enabled": 1,
+      "description": "No syncopation (beat-level): no note may span across any beat boundary. Subdivisions are free as long as they fit within one beat."
+    },
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "no-syncopation",
+      "parameters": ["beats:1,3"],
+      "target_voices": [0, 1],
+      "enabled": 0,
+      "description": "No syncopation at beats 1 and 3 (half-note grid, stp=2 beats). Notes can start anywhere but must not cross beat 1 or beat 3. Quarter notes, 8ths, 16ths all allowed; only a note that ties ACROSS beat 3 is rejected."
+    },
+    {
+      "rule_type": "r-metric-hierarchy",
+      "constraint": "no-syncopation",
+      "parameters": ["beats:1"],
+      "target_voices": [0],
+      "enabled": 0,
+      "description": "No cross-barline notes for voice 0: stp = minimum measure length. Any note must fit entirely within a single bar."
+    },
+    {
       "rule_type": "r-time-signature",
       "target_component": "metric",
       "description": "Bar-pattern time signature (fixed)",

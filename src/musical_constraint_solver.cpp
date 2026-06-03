@@ -26,6 +26,7 @@
 #include <optional>
 #include <cctype>
 #include <set>
+#include <unordered_set>
 #include <numeric>
 
 namespace MusicalConstraintSolver {
@@ -259,7 +260,8 @@ enum class MetricHierarchyMode {
     DURATIONS_GRID,
     TUPLET_ON_BEAT_START,
     MIN_GRID,
-    HIERARCHICAL_VOICES
+    HIERARCHICAL_VOICES,
+    NO_SYNCOPATION
 };
 
 MetricHierarchyMode parse_metric_hierarchy_mode(const std::string& function,
@@ -275,6 +277,11 @@ MetricHierarchyMode parse_metric_hierarchy_mode(const std::string& function,
     if (f == "hierarchical_voices" || f == "hierarchical-voices" ||
         f == "voice_hierarchy" || f == "voice-hierarchy") {
         return MetricHierarchyMode::HIERARCHICAL_VOICES;
+    }
+    if (f == "no_syncopation" || f == "no-syncopation" ||
+        f == "anti_syncopation" || f == "anti-syncopation" ||
+        f == "no_sync" || f == "no-sync") {
+        return MetricHierarchyMode::NO_SYNCOPATION;
     }
 
     if (metric_hierarchy_has_token(parameter_strings, "tuplet_on_beat_start") ||
@@ -293,8 +300,65 @@ MetricHierarchyMode parse_metric_hierarchy_mode(const std::string& function,
         metric_hierarchy_has_token(parameter_strings, "voice-hierarchy")) {
         return MetricHierarchyMode::HIERARCHICAL_VOICES;
     }
+    if (metric_hierarchy_has_token(parameter_strings, "no_syncopation") ||
+        metric_hierarchy_has_token(parameter_strings, "no-syncopation") ||
+        metric_hierarchy_has_token(parameter_strings, "anti_syncopation") ||
+        metric_hierarchy_has_token(parameter_strings, "anti-syncopation") ||
+        metric_hierarchy_has_token(parameter_strings, "no_sync") ||
+        metric_hierarchy_has_token(parameter_strings, "no-sync")) {
+        return MetricHierarchyMode::NO_SYNCOPATION;
+    }
 
     return MetricHierarchyMode::DURATIONS_GRID;
+}
+
+// metric_hierarchy_parse_beat_numbers
+// Parses a "beats" or "beat" parameter from rule parameter_strings.
+// Accepts:
+//   "beats:1,3"   or  "beats:[1,3]"  → {1, 3}
+//   "beat:1", "beat:3"               → {1, 3}  (individual tokens)
+// Returns empty vector if no beats parameter is present (= all beats allowed).
+std::vector<int> metric_hierarchy_parse_beat_numbers(
+        const std::vector<std::string>& parameter_strings) {
+    std::vector<int> result;
+    bool found_beats_key = false;
+
+    for (const auto& raw : parameter_strings) {
+        const std::string s = to_lower_ascii(raw);
+
+        // "beats:..." or "beats=..."
+        for (const char* prefix : {"beats:", "beats="}) {
+            const std::string p(prefix);
+            if (s.rfind(p, 0) == 0 && s.size() > p.size()) {
+                found_beats_key = true;
+                std::string val = raw.substr(p.size());
+                if (!val.empty() && val.front() == '[') val = val.substr(1);
+                if (!val.empty() && val.back()  == ']') val.pop_back();
+                std::istringstream ss(val);
+                std::string tok;
+                while (std::getline(ss, tok, ',')) {
+                    try { result.push_back(std::stoi(tok)); } catch (...) {}
+                }
+                break;
+            }
+        }
+
+        // "beat:N" or "beat=N" (individual tokens)
+        for (const char* prefix : {"beat:", "beat="}) {
+            const std::string p(prefix);
+            if (s.rfind(p, 0) == 0 && s.size() > p.size()) {
+                found_beats_key = true;
+                try { result.push_back(std::stoi(raw.substr(p.size()))); } catch (...) {}
+            }
+        }
+    }
+    (void)found_beats_key;
+
+    std::sort(result.begin(), result.end());
+    result.erase(std::unique(result.begin(), result.end()), result.end());
+    // Remove non-positive beat numbers.
+    result.erase(std::remove_if(result.begin(), result.end(), [](int b){ return b <= 0; }), result.end());
+    return result;
 }
 
 std::vector<int> metric_hierarchy_target_voices_from_rule(const std::vector<int>& target_engines,
@@ -1779,10 +1843,12 @@ std::string MusicalSolution::to_musicxml() const {
                     // Pre-compute notation per event and identify tuplet group boundaries.
                     struct EvNotation {
                         MusicXmlDurationNotation n;
-                        bool tuplet_start  = false;
+                        bool tuplet_start    = false;
                         bool tuplet_continue = false;
-                        bool tuplet_stop   = false;
-                        int  tuplet_number = 0;
+                        bool tuplet_stop     = false;
+                        int  tuplet_number   = 0;
+                        // "begin", "continue", "end", or "" (not beamed)
+                        std::string beam_value;
                     };
                     std::vector<EvNotation> ev_notations;
                     ev_notations.reserve(events.size());
@@ -1814,6 +1880,49 @@ std::string MusicalSolution::to_musicxml() const {
                         ti = tj;
                     }
 
+                    // Beam-grouping pass.
+                    // Notes are beamable when their type is eighth or shorter and they are not rests.
+                    // Groups break at beat boundaries and at rests/non-beamable notes.
+                    // beat_ticks = one beat at the measure's denominator level.
+                    {
+                        static const std::unordered_set<std::string> beamable_types =
+                            {"eighth", "16th", "32nd", "64th", "128th"};
+                        const int beat_ticks = std::max(1, whole_ticks / std::max(1, measure.denominator));
+
+                        // Collect indices of beamable (non-rest) events.
+                        // Walk through events grouped by beat.
+                        size_t i = 0;
+                        while (i < events.size()) {
+                            // Skip non-beamable or rest notes.
+                            if (events[i].is_rest || events[i].pitch < 0 ||
+                                beamable_types.find(ev_notations[i].n.type) == beamable_types.end()) {
+                                ++i;
+                                continue;
+                            }
+                            // Find the beat-group end: all consecutive beamable non-rest notes
+                            // whose onset stays within the same beat.
+                            const int beat_start = (measure.start_ticks > 0)
+                                ? ((events[i].onset_ticks / beat_ticks) * beat_ticks)
+                                : ((events[i].onset_ticks / beat_ticks) * beat_ticks);
+                            const int beat_end = beat_start + beat_ticks;
+                            size_t j = i;
+                            while (j < events.size() &&
+                                   !events[j].is_rest && events[j].pitch >= 0 &&
+                                   beamable_types.find(ev_notations[j].n.type) != beamable_types.end() &&
+                                   events[j].onset_ticks < beat_end) {
+                                ++j;
+                            }
+                            // Only beam if the group has 2+ notes.
+                            if (j - i >= 2) {
+                                ev_notations[i].beam_value = "begin";
+                                for (size_t k = i + 1; k + 1 < j; ++k)
+                                    ev_notations[k].beam_value = "continue";
+                                ev_notations[j - 1].beam_value = "end";
+                            }
+                            i = j;
+                        }
+                    }
+
                     for (size_t ei = 0; ei < events.size(); ++ei) {
                         const auto& ev = events[ei];
                         const auto& en = ev_notations[ei];
@@ -1839,6 +1948,9 @@ std::string MusicalSolution::to_musicxml() const {
                             }
                         }
                         emit_musicxml_note_duration(xml, std::max(1, ev.duration_ticks), whole_ticks);
+                        if (!en.beam_value.empty()) {
+                            xml << "        <beam number=\"1\">" << en.beam_value << "</beam>\n";
+                        }
                         const bool has_tied_notation = (!ev.is_rest && (ev.tie_start || ev.tie_stop));
                         if (en.tuplet_start || en.tuplet_continue || en.tuplet_stop || has_tied_notation) {
                             xml << "        <notations>\n";
@@ -3161,6 +3273,15 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     continue;
                 }
 
+                // NO_SYNCOPATION: notes must start on strong beat positions.
+                if (mh_mode == MetricHierarchyMode::NO_SYNCOPATION) {
+                    const std::vector<int> beat_nums =
+                        metric_hierarchy_parse_beat_numbers(cfg.parameter_strings);
+                    post_no_syncopation_constraint_(
+                        gecode_space.get(), voice, selected_indices, beat_nums);
+                    continue;
+                }
+
                 if (mh_mode == MetricHierarchyMode::MIN_GRID) {
                     int min_grid_ticks = 0;
                     if (!metric_hierarchy_try_parse_labeled_duration_ticks(
@@ -3550,6 +3671,115 @@ void Solver::post_tuplet_on_beat_start_constraint_(
         va[i] = gecode_space->get_rhythm_vars()[voice * stride + i];
 
     TupletOnBeatStartPropagator::post(*gecode_space, va, beat_ticks, active_tuplet_ticks);
+}
+
+
+// post_no_syncopation_constraint_
+//
+// Prevents syncopation by ensuring no note SPANS a strong-beat boundary.
+// A note at onset `a` with duration `d` is syncopated iff it crosses a strong
+// beat boundary, i.e. there exists a multiple of stp in the open interval (a, a+d).
+//
+// The "no-spanning" condition is:
+//   onset_mod + |duration| <= stp     where  onset_mod = onset % stp
+//
+// Notes can START anywhere (subdivisions are fully allowed); only notes that
+// would tie ACROSS a strong beat are rejected.
+//
+// stp (strong-beat period) is derived from `strong_beat_numbers`:
+//   empty         → stp = beat_ticks         (every beat is a boundary)
+//   single beat   → stp = min_numerator * beat_ticks  (bar boundary)
+//   multiple beats → stp = min(consecutive spacing) * beat_ticks
+//
+// Rests (rhythm var < 0) are never constrained.
+// ---------------------------------------------------------------------------
+void Solver::post_no_syncopation_constraint_(
+    GecodeClusterIntegration::IntegratedMusicalSpace* gecode_space,
+    int voice,
+    const std::vector<int>& selected_indices,
+    const std::vector<int>& strong_beat_numbers) const {
+
+    if (gecode_space == nullptr || !gecode_space->has_rhythm_vars()) {
+        throw std::runtime_error("post_no_syncopation: no gecode space or rhythm vars");
+    }
+    if (voice < 0 || voice >= config_.num_voices) {
+        throw std::runtime_error("post_no_syncopation: voice out of range");
+    }
+    if (config_.metric_domain.empty() || config_.rhythm_base <= 0) {
+        throw std::runtime_error("post_no_syncopation: requires non-empty metric_domain and positive rhythm_base");
+    }
+
+    // beat_ticks = one denominator-level beat.
+    const int denominator = std::max(1, config_.metric_domain.front().denominator);
+    const int beat_ticks  = std::max(1, config_.rhythm_base / denominator);
+
+    // Derive stp from the beats parameter.
+    int stp = beat_ticks;
+    if (!strong_beat_numbers.empty()) {
+        if (strong_beat_numbers.size() == 1) {
+            // Single beat: boundary period = minimum measure length.
+            int min_num = std::numeric_limits<int>::max();
+            for (const auto& entry : config_.metric_domain)
+                if (entry.numerator > 0) min_num = std::min(min_num, entry.numerator);
+            if (min_num == std::numeric_limits<int>::max()) min_num = 4;
+            stp = min_num * beat_ticks;
+        } else {
+            // Multiple beats (sorted): minimum spacing between consecutive specified beats.
+            int min_gap = std::numeric_limits<int>::max();
+            for (std::size_t k = 1; k < strong_beat_numbers.size(); ++k)
+                min_gap = std::min(min_gap, strong_beat_numbers[k] - strong_beat_numbers[k - 1]);
+            stp = std::max(1, min_gap) * beat_ticks;
+        }
+    }
+    if (stp <= 0) return;
+
+    const int rhythm_stride = config_.sequence_length;
+
+    int max_abs_tick = 1;
+    for (int tick : config_.voice_rhythm_domains[voice])
+        max_abs_tick = std::max(max_abs_tick, std::abs(tick));
+    const int max_onset = max_abs_tick * rhythm_stride;
+
+    // Build prefix-sum onset variables: onset[i] = sum of |rhythm[0..i-1]|.
+    std::vector<Gecode::IntVar> onsets;
+    onsets.reserve(config_.sequence_length);
+    onsets.push_back(Gecode::IntVar(*gecode_space, 0, 0));
+    for (int pos = 1; pos < config_.sequence_length; ++pos) {
+        const int prev_idx = voice * rhythm_stride + (pos - 1);
+        Gecode::IntVar abs_dur(*gecode_space, 0, max_abs_tick);
+        Gecode::abs(*gecode_space, gecode_space->get_rhythm_vars()[prev_idx], abs_dur);
+        Gecode::IntVar next_onset(*gecode_space, 0, max_onset);
+        Gecode::rel(*gecode_space, next_onset == onsets.back() + abs_dur);
+        onsets.push_back(next_onset);
+    }
+
+    // Constant IntVar for stp (required by Gecode::mod).
+    Gecode::IntVar stp_var(*gecode_space, stp, stp);
+
+    for (int idx : selected_indices) {
+        if (idx < 0 || idx >= static_cast<int>(onsets.size())) continue;
+        const int rv_idx = voice * rhythm_stride + idx;
+
+        // Only constrain notes (rhythm > 0); rests may fall anywhere.
+        Gecode::BoolVar is_note =
+            Gecode::expr(*gecode_space, gecode_space->get_rhythm_vars()[rv_idx] > 0);
+
+        // onset_mod = onset[idx] mod stp  — position within the current strong-beat cell.
+        Gecode::IntVar onset_mod(*gecode_space, 0, stp - 1);
+        Gecode::mod(*gecode_space, onsets[idx], stp_var, onset_mod);
+
+        // abs_dur = |rhythm[idx]|
+        Gecode::IntVar abs_dur(*gecode_space, 0, max_abs_tick);
+        Gecode::abs(*gecode_space, gecode_space->get_rhythm_vars()[rv_idx], abs_dur);
+
+        // span_end = onset_mod + abs_dur  (how far into / past the current cell this note reaches)
+        Gecode::IntVar span_end(*gecode_space, 0, stp - 1 + max_abs_tick);
+        Gecode::rel(*gecode_space, span_end == onset_mod + abs_dur);
+
+        // No syncopation: if note, span_end must not exceed stp.
+        Gecode::rel(*gecode_space, span_end, Gecode::IRT_LQ, stp,
+                    Gecode::Reify(is_note, Gecode::RM_IMP));
+    }
 }
 
 
