@@ -1,4 +1,5 @@
 #include "max_msp_solver_wrapper.hh"
+#include "neural_pitch_scorer.hh"
 #include "wildcard_rule_extension.hh"
 
 #include <algorithm>
@@ -1091,6 +1092,9 @@ GecodeClusterIntegration::ValueSelectionStrategy parse_value_selection(const nlo
         if (value_order == "heuristic") {
             return GecodeClusterIntegration::ValueSelectionStrategy::HEURISTIC;
         }
+        if (value_order == "neural") {
+            return GecodeClusterIntegration::ValueSelectionStrategy::HEURISTIC;
+        }
         throw std::runtime_error("search_options.value_order: unsupported value '" + value_order + "'");
     }
     return GecodeClusterIntegration::ValueSelectionStrategy::MIN;
@@ -1519,6 +1523,26 @@ void AsyncSolverWrapper::run_solve_job() {
         local_result.message = "Solve cancelled before start";
     } else {
         try {
+            // Register neural pitch scorer if configured
+            if (!neural_weights_file_.empty()) {
+                // Resolve relative paths against the patch folder (same rule as export)
+                std::filesystem::path wp(neural_weights_file_);
+                if (wp.is_relative() && !patch_folder_.empty())
+                    wp = std::filesystem::path(patch_folder_) / wp;
+
+                if (!std::filesystem::exists(wp))
+                    throw std::runtime_error(
+                        "neural_weights_file not found: " + wp.string() +
+                        " (set neural_weights_file relative to the patch folder, "
+                        "e.g. \"weights/pitch_mlp_weights.json\")");
+
+                auto scorer = NeuralPitch::make_scorer(
+                    wp.string(), neural_shadow_mode_,
+                    neural_seed_, neural_temperature_);
+                GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
+                    scorer, 0, 0, false);
+            }
+
             // Use solve_multiple() to handle both single and multiple solutions.
             // Pass cancel_requested_ so the Gecode search engine stops immediately
             // on cancel (destructor, explicit cancel message) without waiting for timeout.
@@ -2026,8 +2050,20 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             if (so.contains("heuristic_top_k") && so["heuristic_top_k"].is_number_integer()) {
                 sc.heuristic_top_k = std::max(0, so["heuristic_top_k"].get<int>());
             }
-            if (so.contains("heuristic_trace") && so["heuristic_trace"].is_boolean()) {
-                sc.heuristic_trace = so["heuristic_trace"].get<bool>();
+            if (so.contains("heuristic_trace")) {
+                sc.heuristic_trace = json_value_to_bool_with_default(so["heuristic_trace"], false);
+            }
+            // Neural scorer config — stored for use in run_solve_job
+            if (so.value("value_order", std::string("min")) == "neural") {
+                neural_weights_file_ = so.value("neural_weights_file",
+                                                std::string("datasets/pitch_mlp_weights.json"));
+                neural_shadow_mode_  = so.contains("neural_shadow_mode")
+                                       ? json_value_to_bool_with_default(so["neural_shadow_mode"], false)
+                                       : false;
+                neural_temperature_  = so.value("neural_temperature", 0.04f);
+                neural_seed_         = sc.random_seed;
+            } else {
+                neural_weights_file_.clear();
             }
         }
 

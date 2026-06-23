@@ -2771,7 +2771,8 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
             effective_random_seed,
             config_.heuristic_top_k,
             config_.heuristic_trace);
-    } else {
+    } else if (!GecodeClusterIntegration::has_pitch_heuristic_value_ordering()) {
+        // Only clear if no external scorer (e.g. neural) was registered by the caller.
         GecodeClusterIntegration::clear_pitch_heuristic_value_ordering();
     }
 

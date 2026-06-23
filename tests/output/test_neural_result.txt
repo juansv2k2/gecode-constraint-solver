@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/test_neural.json
+Problem: Phase 1 neural scorer smoke test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4
+  Rhythm:  1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8 + 1/8
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 0

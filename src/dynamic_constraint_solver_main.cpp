@@ -10,6 +10,7 @@
 #include "dynamic_rule_compiler.hh"
 #include "wildcard_rule_extension.hh"
 #include "rule_expression_parser.hh"
+#include "neural_pitch_scorer.hh"
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <fstream>
@@ -969,6 +970,11 @@ public:
                 return GecodeClusterIntegration::ValueSelectionStrategy::RANDOM;
             }
             if (value_order == "heuristic") {
+                return GecodeClusterIntegration::ValueSelectionStrategy::HEURISTIC;
+            }
+            if (value_order == "neural") {
+                // Neural heuristic: treated as HEURISTIC strategy.
+                // The scorer is registered separately via configure_pitch_heuristic_value_ordering.
                 return GecodeClusterIntegration::ValueSelectionStrategy::HEURISTIC;
             }
             throw std::runtime_error("Unsupported search_options.value_order: " + value_order);
@@ -2942,6 +2948,39 @@ int main(int argc, char* argv[]) {
         }
         std::cout << std::endl;
         
+        // Register neural pitch scorer when value_order == "neural"
+        {
+            nlohmann::json cfg_json;
+            std::ifstream cfg_f(config_file);
+            bool neural_active = false;
+            if (cfg_f.is_open()) {
+                try { cfg_f >> cfg_json; } catch (...) {}
+                if (cfg_json.contains("search_options") &&
+                    cfg_json["search_options"].value("value_order", "") == "neural") {
+                    const std::string weights_path =
+                        cfg_json["search_options"].value("neural_weights_file",
+                                                         "datasets/pitch_mlp_weights.json");
+                    const bool shadow =
+                        cfg_json["search_options"].value("neural_shadow_mode", false);
+                    const float temperature =
+                        cfg_json["search_options"].value("neural_temperature", 0.04f);
+                    // Pass solver seed so warm-start context is tied to the run's seed
+                    const unsigned int warmup_seed = solver_config.random_seed;
+                    auto scorer = NeuralPitch::make_scorer(weights_path, shadow, warmup_seed, temperature);
+                    const int top_k = solver_config.heuristic_top_k;
+                    const bool trace = solver_config.heuristic_trace;
+                    GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
+                        scorer, 0, top_k, trace);
+                    neural_active = true;
+                    std::cout << "   🧠 Neural pitch scorer active"
+                              << (shadow ? " (shadow mode)" : "") << "\n";
+                }
+            }
+            if (!neural_active) {
+                GecodeClusterIntegration::clear_pitch_heuristic_value_ordering();
+            }
+        }
+
         // Solve the constraint problem
         std::cout << "\n🎯 Solving Constraint Problem" << std::endl;
         std::cout << std::string(50, '-') << std::endl;

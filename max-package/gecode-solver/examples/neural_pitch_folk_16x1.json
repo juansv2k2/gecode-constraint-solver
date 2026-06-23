@@ -1,0 +1,60 @@
+{
+  "_comment": "Neural pitch scorer test (Phase 1). The max-interval-fifth wildcard leaves ~10 valid candidates per step so the neural scorer's ranking drives pitch selection. Pitch domain matches Weimar folk melody training range (MIDI 55-81, mean 68.5). Expected: first note near A4(69). Compare with value_order:min which gives G3(55). Toggle neural_shadow_mode:true to log scores without affecting search.",
+  "name": "Neural Pitch Scorer — Folk Melody 16x1",
+  "description": "16-note single-voice melody guided by the MLP trained on Weimar folk data. Hard max-interval constraint leaves ~10 candidates per step so neural ordering is meaningful.",
+  "solution_length": 16,
+  "num_voices": 1,
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": ["1/8"]
+      },
+      "pitch": {
+        "midi_values": [
+          55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81
+        ]
+      }
+    }
+  ],
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 42,
+    "timeout_ms": 10000,
+    "branching": "first_fail",
+    "value_order": "neural",
+    "neural_weights_file": "weights/pitch_mlp_weights.json",
+    "neural_shadow_mode": false,
+    "neural_temperature": 0.04,
+    "heuristic_trace": false,
+    "heuristic_top_k": 0
+  },
+  "export_json": false,
+  "export_txt": false,
+  "export_xml": true,
+  "file_name": "output/neural_folk_16x1",
+  "rules": [
+    {
+      "id": "max_interval_fifth",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 7",
+      "enabled": true,
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Hard: no leaps larger than a perfect fifth — leaves ~10 candidates per step so neural ordering matters"
+    },
+    {
+      "id": "no_repeat_adjacent",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
+      "enabled": true,
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Hard: no immediately repeated pitches"
+    }
+  ]
+}

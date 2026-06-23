@@ -408,6 +408,10 @@ void clear_pitch_heuristic_value_ordering() {
     }
 }
 
+bool has_pitch_heuristic_value_ordering() {
+    return g_pitch_heuristic_enabled && g_pitch_heuristic_scorer != nullptr;
+}
+
 void configure_rhythm_heuristic_value_ordering(
     HeuristicValueScorer scorer,
     unsigned int tie_break_seed,
