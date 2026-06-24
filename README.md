@@ -115,8 +115,9 @@ Notes:
 Use `search_options`:
 
 - `branching`: `first_fail` or `input_order`
-- `value_order`: `min`, `random`, or `heuristic`  
-  `min` for rhythm variables uses absolute-value minimum (shortest duration, notes before same-length rests).
+- `value_order`: `min`, `random`, `heuristic`, or `neural`  
+  `min` for rhythm variables uses absolute-value minimum (shortest duration, notes before same-length rests).  
+  `neural` activates the MLP pitch scorer — see [Neural Pitch Scorer](#neural-pitch-scorer) below.
 - `restart_policy`: `none` or `luby`
 
 Notes:
@@ -147,6 +148,47 @@ Notes:
 - `allow_cross_barline: true` allows carried duration across barlines.
 - MusicXML export now writes ties (`<tie>` and `<notations><tied>`) when notes are split at barlines.
 
+## Neural Pitch Scorer
+
+Set `"value_order": "neural"` to guide pitch selection using a small MLP trained on
+Weimar folk melodies (4334 notes, MIDI 52–81, mean A4). The scorer uses
+**Gumbel-max sampling**: each candidate receives `logit_i / T + gumbel(seed, voice, pos, cand)`,
+so `argmax` over candidates is equivalent to sampling from the learned distribution.
+Different `random_seed` values produce different but reproducible melodies;
+`T < 1.0` sharpens (more folk-like), `T > 1.0` flattens (more adventurous).
+
+```json
+"search_options": {
+  "value_order": "neural",
+  "neural_weights_file": "datasets/pitch_mlp_weights.json",
+  "neural_temperature": 1.0,
+  "neural_shadow_mode": false,
+  "random_seed": 0
+}
+```
+
+| Parameter             | Default                           | Effect                                                                                |
+| --------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
+| `neural_weights_file` | `datasets/pitch_mlp_weights.json` | Path to weights JSON (relative paths resolved from patch folder in Max)               |
+| `neural_temperature`  | `1.0`                             | Logit temperature. `1.0` = trained distribution, `< 1.0` = sharper, `> 1.0` = flatter |
+| `neural_shadow_mode`  | `false`                           | Log scores to stderr without affecting search (debugging)                             |
+| `random_seed`         | `0`                               | `0` = fresh random per solve, `N > 0` = reproducible                                  |
+
+Retrain the model:
+
+```bash
+python3 scripts/train_pitch_mlp.py          # writes datasets/pitch_mlp_weights.json
+cp datasets/pitch_mlp_weights.json max-package/gecode-solver/examples/weights/
+```
+
+Verify neural influence:
+
+```bash
+python3 tests/test_neural_influence.py       # runs 30 seeds, checks 4 properties
+```
+
+See [tests/NEURAL_TEST_RESULTS.md](tests/NEURAL_TEST_RESULTS.md) for baseline results.
+
 ## Max Integration
 
 Use `config_file` or `config_dict` with the `gecode.solver` object. For details, see:
@@ -162,6 +204,7 @@ Use `config_file` or `config_dict` with the `gecode.solver` object. For details,
 - [Harmonic Consonance Example](configs/harmonic_consonance_4voice.json)
 - [Twelve-Tone Usage](docs/TWELVE_TONE_USAGE.md)
 - [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
+- [Neural Pitch Scorer Test Results](tests/NEURAL_TEST_RESULTS.md)
 
 ## What Is Current
 

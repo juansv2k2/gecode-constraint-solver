@@ -24,6 +24,7 @@ The advanced JSON-AST expression form is still supported but not required.
 6. [Dynamic Rules & Heuristics](#6-dynamic-rules--heuristics)
 7. [Wildcard Constraints](#7-wildcard-constraints)
 8. [Search Options (DETAILED)](#8-search-options-detailed)
+   - [8.6 Neural Pitch Scorer](#86-neural-pitch-scorer)
 9. [Export Options](#9-export-options)
 10. [Complete Parameter Reference](#10-complete-parameter-reference)
 11. [CRITICAL: How Heuristics Interact with Rules](#11-critical-how-heuristics-interact-with-rules)
@@ -1129,6 +1130,7 @@ Controls how the solver searches for solutions. None of these affect whether con
 - **`min`** (default): Try the value with the smallest **absolute** tick count first. For rhythm variables, this means the shortest duration, with notes (positive) preferred over rests (negative) of the same length. For pitch variables, it means the lowest MIDI value. Fully deterministic.
 - **`random`**: Try values in random order. Requires `random_seed > 0` for reproducibility.
 - **`heuristic`**: Score candidates using `heuristic_energy` rules from `dynamic_rules`, try higher-scoring candidates first. When candidates are tied, selection depends on `random_seed` (see below).
+- **`neural`**: Score pitch candidates using the MLP neural scorer — see [§8.6 Neural Pitch Scorer](#86-neural-pitch-scorer). Uses Gumbel-max sampling so different `random_seed` values produce different melodies while respecting all hard constraints. Has no effect on rhythm variables (those fall back to `min`).
 
 > **Note on `min` and rests.** Before this change the `min` strategy always selected the most negative rhythm tick (= longest rest), causing outputs of all rests when rests were present in the domain. It now picks the shortest absolute duration. If you need the old strict-min behavior, use `value_order: "random"` with a fixed seed, or remove rest values from `duration_values`.
 
@@ -1164,6 +1166,72 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 | `max_solutions`   | 1        | Number of solutions to collect (0 = unlimited)                    |
 | `heuristic_top_k` | 0        | Only evaluate top K candidates for heuristic scoring (0 = all)    |
 | `heuristic_trace` | false    | Print heuristic scores during search (for debugging)              |
+
+### 8.6 Neural Pitch Scorer
+
+When `value_order` is `"neural"`, the solver scores pitch candidates using a trained
+MLP that predicts the probability of each MIDI value given the preceding notes.
+Scoring uses **Gumbel-max sampling**: each candidate receives
+`score = logit_i / T + gumbel(seed, voice, pos, cand)`, where the Gumbel term is
+deterministically derived from `random_seed`. Taking the `argmax` over all
+candidates is then statistically equivalent to sampling from the learned
+distribution with temperature `T`. This means:
+
+- Different `random_seed` values produce different, reproducible melodies.
+- `random_seed: 0` gives a fresh random result each solve (non-reproducible).
+- All hard constraints remain fully enforced — the neural scorer only changes the
+  **order** in which values are tried, not which values are valid.
+- Pitches absent from the training vocabulary receive a hard floor score of `−20`,
+  so they are never selected as long as at least one in-vocabulary candidate is
+  reachable.
+
+```json
+"search_options": {
+  "value_order": "neural",
+  "neural_weights_file": "datasets/pitch_mlp_weights.json",
+  "neural_temperature": 1.0,
+  "neural_shadow_mode": false,
+  "random_seed": 0
+}
+```
+
+**Neural parameters:**
+
+| Parameter             | Type    | Default                             | Description                                                                                                                                                       |
+| --------------------- | ------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `neural_weights_file` | string  | `"datasets/pitch_mlp_weights.json"` | Path to the exported MLP weights. Relative paths are resolved from the Max patch folder when running inside Max; from the working directory when running the CLI. |
+| `neural_temperature`  | float   | `1.0`                               | Logit temperature `T`. `1.0` = trained probabilities as-is. `< 1.0` = sharper/more predictable. `> 1.0` = flatter/more adventurous.                               |
+| `neural_shadow_mode`  | boolean | `false`                             | When `true`, logs candidate probabilities and Gumbel scores to stderr without affecting search output. Useful for debugging.                                      |
+
+**Temperature guide:**
+
+| `neural_temperature` | Character                                                                 |
+| -------------------: | ------------------------------------------------------------------------- |
+|                  0.5 | Strongly folk-idiomatic — favours the most statistically common intervals |
+|                  1.0 | Balanced — reproduces the training distribution                           |
+|                  2.0 | More varied — uncommon intervals appear more often                        |
+|                  5.0 | Nearly uniform over in-vocabulary pitches                                 |
+
+**Retraining the model:**
+
+```bash
+# train on datasets/pitch_<100.txt → writes datasets/pitch_mlp_weights.json
+python3 scripts/train_pitch_mlp.py
+
+# copy updated weights into Max package
+cp datasets/pitch_mlp_weights.json max-package/gecode-solver/examples/weights/
+bash scripts/max_package_smoke.sh
+```
+
+**Verifying neural influence:**
+
+```bash
+python3 tests/test_neural_influence.py          # 30 seeds, 4 assertions
+python3 tests/test_neural_influence.py --seeds 100
+```
+
+See [tests/NEURAL_TEST_RESULTS.md](tests/NEURAL_TEST_RESULTS.md) for recorded
+baseline results (Pearson r = 0.983 vs training distribution, 0% out-of-vocab rate).
 
 ## 9. Export Options
 
@@ -1223,6 +1291,23 @@ If the patch has not been saved yet, the external falls back to Max's current de
 | `file_name`       | string  |          | Output path + base name — directory part optional (e.g. `"output/my_piece"`) |
 | `rules`           | array   |          | Built-in constraints                                                         |
 | `dynamic_rules`   | array   |          | Expression-based constraints and heuristics                                  |
+
+### `search_options` Object
+
+| Field                  | Type    | Default                             | Description                                                                                                  |
+| ---------------------- | ------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `branching`            | string  | `"first_fail"`                      | Variable ordering: `"first_fail"` or `"input_order"`                                                         |
+| `value_order`          | string  | `"min"`                             | Value ordering: `"min"`, `"random"`, `"heuristic"`, or `"neural"`                                            |
+| `restart_policy`       | string  | `"none"`                            | `"none"` or `"luby"`                                                                                         |
+| `timeout_ms`           | int     | `30000`                             | Search time limit in milliseconds                                                                            |
+| `max_solutions`        | int     | `1`                                 | Solutions to collect (0 = unlimited)                                                                         |
+| `random_seed`          | int     | `0`                                 | `0` = fresh random each solve, `N > 0` = reproducible                                                        |
+| `heuristic_top_k`      | int     | `0`                                 | Only score top K candidates with heuristic (0 = all). `"heuristic"` mode only.                               |
+| `heuristic_trace`      | boolean | `false`                             | Log heuristic scores to stdout during search                                                                 |
+| `enable_metric_engine` | int     | `1`                                 | `0` disables the metric engine (no meter constraints)                                                        |
+| `neural_weights_file`  | string  | `"datasets/pitch_mlp_weights.json"` | Path to MLP weights JSON. `"neural"` mode only. Relative paths resolved from patch folder in Max.            |
+| `neural_temperature`   | float   | `1.0`                               | Logit temperature. `1.0` = trained distribution, `< 1.0` = sharper, `> 1.0` = flatter. `"neural"` mode only. |
+| `neural_shadow_mode`   | boolean | `false`                             | Log scores without affecting search (debug). `"neural"` mode only.                                           |
 
 ### Rule Object
 

@@ -11,7 +11,7 @@ configuration, and assertion outcomes so regressions are immediately visible.
 
 | Field         | Value                                                                                  |
 | ------------- | -------------------------------------------------------------------------------------- |
-| Script        | `scripts/test_neural_influence.py`                                                     |
+| Script        | `tests/test_neural_influence.py`                                                       |
 | Solver        | `bin/dynamic-solver`                                                                   |
 | Model         | `datasets/pitch_mlp_weights.json` — **classification**, context=4, hidden=32, vocab=28 |
 | Scoring       | Gumbel-max: `score = logit_i / T + gumbel(seed, voice, pos, cand)`                     |
