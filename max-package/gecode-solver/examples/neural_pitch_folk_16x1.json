@@ -11,7 +11,8 @@
       },
       "pitch": {
         "midi_values": [
-          55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81
+          55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
+          72, 73, 74, 75, 76, 77, 78, 79, 80, 81
         ]
       }
     }
@@ -19,13 +20,13 @@
   "search_options": {
     "engine": "dfs",
     "enable_metric_engine": 0,
-    "random_seed": 42,
+    "random_seed": 0,
     "timeout_ms": 10000,
     "branching": "first_fail",
     "value_order": "neural",
     "neural_weights_file": "weights/pitch_mlp_weights.json",
     "neural_shadow_mode": false,
-    "neural_temperature": 0.04,
+    "neural_temperature": 0,
     "heuristic_trace": false,
     "heuristic_top_k": 0
   },
@@ -40,7 +41,7 @@
       "wildcard_type": "for_all_voices",
       "pattern_offsets": [0, 1],
       "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 7",
-      "enabled": true,
+      "enabled": false,
       "target_voices": [0],
       "target_component": "pitch",
       "description": "Hard: no leaps larger than a perfect fifth — leaves ~10 candidates per step so neural ordering matters"
@@ -51,7 +52,7 @@
       "wildcard_type": "for_all_voices",
       "pattern_offsets": [0, 1],
       "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
-      "enabled": true,
+      "enabled": false,
       "target_voices": [0],
       "target_component": "pitch",
       "description": "Hard: no immediately repeated pitches"

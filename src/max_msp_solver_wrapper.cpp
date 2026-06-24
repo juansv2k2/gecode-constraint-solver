@@ -11,6 +11,7 @@
 #include <limits>
 #include <numeric>
 #include <nlohmann/json.hpp>
+#include <random>
 #include <sstream>
 #include <set>
 #include <stdexcept>
@@ -1524,6 +1525,7 @@ void AsyncSolverWrapper::run_solve_job() {
     } else {
         try {
             // Register neural pitch scorer if configured
+            std::string neural_info;  // included in result message for diagnostics
             if (!neural_weights_file_.empty()) {
                 // Resolve relative paths against the patch folder (same rule as export)
                 std::filesystem::path wp(neural_weights_file_);
@@ -1536,11 +1538,31 @@ void AsyncSolverWrapper::run_solve_job() {
                         " (set neural_weights_file relative to the patch folder, "
                         "e.g. \"weights/pitch_mlp_weights.json\")");
 
+                // Resolve seed=0 to a fresh random seed (same semantics as the Gecode solver).
+                unsigned int effective_seed = neural_seed_;
+                if (effective_seed == 0u) {
+                    std::random_device rd;
+                    effective_seed = rd();
+                    if (effective_seed == 0u) {
+                        effective_seed = static_cast<unsigned int>(
+                            std::chrono::steady_clock::now().time_since_epoch().count());
+                        if (effective_seed == 0u) effective_seed = 1u;
+                    }
+                }
+
                 auto scorer = NeuralPitch::make_scorer(
                     wp.string(), neural_shadow_mode_,
-                    neural_seed_, neural_temperature_);
+                    effective_seed, neural_temperature_);
                 GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
                     scorer, 0, 0, false);
+
+                char nbuf[128];
+                std::snprintf(nbuf, sizeof(nbuf), "neural: loaded seed=%u temp=%.3f",
+                              effective_seed, neural_temperature_);
+                neural_info = nbuf;
+                std::cerr << "[NeuralPitch] registered — seed=" << effective_seed
+                          << " temp=" << neural_temperature_
+                          << " path=" << wp.string() << "\n";
             }
 
             // Use solve_multiple() to handle both single and multiple solutions.
@@ -1625,7 +1647,8 @@ void AsyncSolverWrapper::run_solve_job() {
                         " solution(s) | " + time_str +
                         " | nodes: " + std::to_string(search_stats.nodes) +
                         " | fails: " + std::to_string(search_stats.failures) +
-                        " | " + constraints_summary;
+                        " | " + constraints_summary +
+                        (neural_info.empty() ? "" : " | " + neural_info);
 
                     local_result.voice_solutions = solution.voice_solutions;
                     local_result.voice_rhythms = solution.voice_rhythms;
@@ -2060,7 +2083,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 neural_shadow_mode_  = so.contains("neural_shadow_mode")
                                        ? json_value_to_bool_with_default(so["neural_shadow_mode"], false)
                                        : false;
-                neural_temperature_  = so.value("neural_temperature", 0.04f);
+                neural_temperature_  = so.value("neural_temperature", 1.0f);
                 neural_seed_         = sc.random_seed;
             } else {
                 neural_weights_file_.clear();

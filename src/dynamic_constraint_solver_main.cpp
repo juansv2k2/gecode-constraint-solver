@@ -23,6 +23,7 @@
 #include <regex>
 #include <algorithm>
 #include <limits>
+#include <random>
 #include <cctype>
 #include <functional>
 
@@ -2963,9 +2964,14 @@ int main(int argc, char* argv[]) {
                     const bool shadow =
                         cfg_json["search_options"].value("neural_shadow_mode", false);
                     const float temperature =
-                        cfg_json["search_options"].value("neural_temperature", 0.04f);
-                    // Pass solver seed so warm-start context is tied to the run's seed
-                    const unsigned int warmup_seed = solver_config.random_seed;
+                        cfg_json["search_options"].value("neural_temperature", 1.0f);
+                    // Pass solver seed; resolve 0 to a fresh random seed (same as Gecode solver).
+                    unsigned int warmup_seed = solver_config.random_seed;
+                    if (warmup_seed == 0u) {
+                        std::random_device rd;
+                        warmup_seed = rd();
+                        if (warmup_seed == 0u) warmup_seed = 1u;
+                    }
                     auto scorer = NeuralPitch::make_scorer(weights_path, shadow, warmup_seed, temperature);
                     const int top_k = solver_config.heuristic_top_k;
                     const bool trace = solver_config.heuristic_trace;

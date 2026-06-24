@@ -1,15 +1,15 @@
 🎼 Musical Solution
 ==================
-Notes (MIDI): 55 → 57 → 55 → 57 → 55 → 57 → 55 → 57 → 55 → 57 → 55 → 57 → 55 → 57 → 55 → 57
-Note names:   G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3
-Intervals:    +2, -2, +2, -2, +2, -2, +2, -2, +2, -2, +2, -2, +2, -2, +2
+Notes (MIDI): 64 → 63 → 56 → 63 → 59 → 60 → 62 → 55 → 62 → 67 → 61 → 58 → 65 → 72 → 73 → 74
+Note names:   E4 → D#4 → G#3 → D#4 → B3 → C4 → D4 → G3 → D4 → G4 → C#4 → A#3 → F4 → C5 → C#5 → D5
+Intervals:    -1, -7, +7, -4, +1, +2, -7, +7, +5, -6, -3, +7, +7, +1, +1
 
 📊 Solution Statistics
 Solve time: 0.01 ms
 Rules checked: 64
 Backjumps performed: 0
-Average interval: 2.0
-Direction changes: 15
+Average interval: 4.4
+Direction changes: 8
 
 🎯 Applied Rules:
   ✅ Gecode constraint propagation completed successfully

@@ -1,25 +1,25 @@
 /**
  * @file neural_pitch_scorer.hh
- * @brief Phase 1 — Tiny MLP pitch scorer for the Gecode heuristic value-ordering hook.
+ * @brief Neural MLP pitch scorer for the Gecode heuristic value-ordering hook.
  *
- * Architecture (regression, Phase 1):
- *   Input  : CONTEXT_SIZE recent MIDI pitches, normalised to [0,1] by /127
- *   Hidden : HIDDEN_SIZE neurons, ReLU
- *   Output : 1 scalar in [0,1] (predicted next pitch, normalised)
+ * Supports two model types (auto-detected from the weights JSON):
  *
- * Scoring:
- *   score(candidate) = -|predicted - candidate/127|
- *   Higher score → candidate is closer to the network's prediction.
+ * Classification (recommended, phase="classification"):
+ *   Output: softmax over pitch_vocab  (unique MIDI values in training data)
+ *   Loss:   cross-entropy
+ *   Score:  log P(candidate | context)  with optional logit temperature T
+ *   T=1.0 (default): raw trained probabilities
+ *   T<1.0: sharper distribution (more deterministic / folk-like)
+ *   T>1.0: flatter distribution (more varied)
  *
- * The scorer is placed in the lowest heuristic bucket (priority 0) so it
- * acts as a tiebreak below any explicit symbolic heuristics (priority ≥ 1).
- *
- * Weights are loaded at startup from a JSON file produced by
- * scripts/train_pitch_mlp.py.  If the file is missing or malformed, the
- * scorer falls back to returning a zero bucket (no preference).
+ * Regression (legacy, phase absent or numeric):
+ *   Output: scalar predicted next pitch
+ *   Score:  -|predicted - candidate/127|
+ *   (This approach collapses to the conditional mean; use classification instead.)
  *
  * Usage:
- *   auto scorer = NeuralPitch::make_scorer("datasets/pitch_mlp_weights.json");
+ *   auto scorer = NeuralPitch::make_scorer("datasets/pitch_mlp_weights.json",
+ *                                          false, seed, 1.0f);
  *   GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(scorer);
  */
 
@@ -47,18 +47,24 @@ namespace NeuralPitch {
 struct MLPWeights {
     int context_size  = 4;
     int hidden_size   = 16;
+    int vocab_size    = 0;   // >0 for classification, 0 for regression
+    bool is_classifier = false;
 
     // Training pitch samples stored for solver-level warm-start (inference only).
-    // The C++ scorer draws from these when fewer than context_size pitches have
-    // been assigned so far, keeping the network in-distribution without changing
-    // how training was done.
     std::vector<int> pitch_samples;  // raw MIDI values sampled from training set
+    std::vector<int> pitch_vocab;    // sorted MIDI values (classification only)
 
-    // W1[j][k] — hidden neuron j, input k        shape: [hidden][context]
-    std::vector<std::vector<float>> W1;
-    std::vector<float>              b1;   // [hidden]
-    std::vector<float>              W2;   // [hidden]  (output layer weights)
-    float                           b2 = 0.0f;
+    // Shared weights (both model types)
+    std::vector<std::vector<float>> W1;  // [hidden x context]
+    std::vector<float>              b1;  // [hidden]
+
+    // Regression output
+    std::vector<float> W2;    // [hidden]  (flat, regression only)
+    float              b2 = 0.0f;
+
+    // Classification output
+    std::vector<std::vector<float>> W2_clf;  // [vocab x hidden]
+    std::vector<float>              b2_clf;  // [vocab]
 
     bool loaded = false;
 };
@@ -150,6 +156,14 @@ inline bool read_int_at_key(const std::string& s, const std::string& key, int& o
     return true;
 }
 
+// Detect whether this is a classification model.
+inline bool detect_classifier(const std::string& s) {
+    size_t p = find_key(s, "phase");
+    if (p == std::string::npos) return false;
+    while (p < s.size() && (s[p]==' '||s[p]=='\t'||s[p]=='\n'||s[p]=='\r')) ++p;
+    return s.size() > p + 16 && s.substr(p, 16) == "\"classification\"";
+}
+
 } // namespace detail
 
 // ---------------------------------------------------------------------------
@@ -188,21 +202,7 @@ inline MLPWeights load_weights(const std::string& path) {
         return w;
     }
 
-    // W2
-    p = detail::find_key(s, "W2");
-    if (p == std::string::npos || !detail::read_float_array(s, p, w.W2)) {
-        std::cerr << "[NeuralPitch] failed to read W2 from " << path << "\n";
-        return w;
-    }
-
-    // b2 (scalar stored as a JSON number)
-    p = detail::find_key(s, "b2");
-    if (p != std::string::npos) {
-        float v = 0.0f;
-        if (detail::read_float(s, p, v)) w.b2 = v;
-    }
-
-    // pitch_samples — stored for warm-start at inference; optional
+    // pitch_samples (warm-start, both model types)
     p = detail::find_key(s, "pitch_samples");
     if (p != std::string::npos) {
         std::vector<float> tmp;
@@ -212,46 +212,118 @@ inline MLPWeights load_weights(const std::string& path) {
         }
     }
 
-    // Validate shapes
-    if ((int)w.W1.size() != w.hidden_size) {
-        std::cerr << "[NeuralPitch] W1 row count mismatch (expected " << w.hidden_size
-                  << ", got " << w.W1.size() << ")\n";
-        return w;
-    }
-    for (const auto& row : w.W1) {
-        if ((int)row.size() != w.context_size) {
-            std::cerr << "[NeuralPitch] W1 column count mismatch\n";
+    w.is_classifier = detail::detect_classifier(s);
+
+    if (w.is_classifier) {
+        // --- Classification model ---
+        // pitch_vocab
+        p = detail::find_key(s, "pitch_vocab");
+        if (p != std::string::npos) {
+            std::vector<float> tmp;
+            if (detail::read_float_array(s, p, tmp)) {
+                w.pitch_vocab.reserve(tmp.size());
+                for (float v : tmp) w.pitch_vocab.push_back(static_cast<int>(v + 0.5f));
+            }
+        }
+        if (w.pitch_vocab.empty()) {
+            std::cerr << "[NeuralPitch] classification model missing pitch_vocab in " << path << "\n";
             return w;
         }
-    }
-    if ((int)w.b1.size() != w.hidden_size || (int)w.W2.size() != w.hidden_size) {
-        std::cerr << "[NeuralPitch] b1 or W2 size mismatch\n";
-        return w;
+        w.vocab_size = static_cast<int>(w.pitch_vocab.size());
+
+        // W2 is a matrix [vocab x hidden] for classification
+        p = detail::find_key(s, "W2");
+        if (p == std::string::npos || !detail::read_matrix(s, p, w.W2_clf)) {
+            std::cerr << "[NeuralPitch] failed to read W2 (classifier matrix) from " << path << "\n";
+            return w;
+        }
+        // b2 is a vector [vocab] for classification
+        p = detail::find_key(s, "b2");
+        if (p == std::string::npos || !detail::read_float_array(s, p, w.b2_clf)) {
+            std::cerr << "[NeuralPitch] failed to read b2 (classifier vector) from " << path << "\n";
+            return w;
+        }
+        if ((int)w.W2_clf.size() != w.vocab_size || (int)w.b2_clf.size() != w.vocab_size) {
+            std::cerr << "[NeuralPitch] W2_clf/b2_clf size mismatch (expected vocab="
+                      << w.vocab_size << ")\n";
+            return w;
+        }
+        std::cerr << "[NeuralPitch] loaded classifier from " << path
+                  << "  ctx=" << w.context_size << " hidden=" << w.hidden_size
+                  << " vocab=" << w.vocab_size
+                  << " samples=" << w.pitch_samples.size() << "\n";
+    } else {
+        // --- Regression model (legacy) ---
+        p = detail::find_key(s, "W2");
+        if (p == std::string::npos || !detail::read_float_array(s, p, w.W2)) {
+            std::cerr << "[NeuralPitch] failed to read W2 from " << path << "\n";
+            return w;
+        }
+        p = detail::find_key(s, "b2");
+        if (p != std::string::npos) {
+            float v = 0.0f;
+            if (detail::read_float(s, p, v)) w.b2 = v;
+        }
+        if ((int)w.b1.size() != w.hidden_size || (int)w.W2.size() != w.hidden_size) {
+            std::cerr << "[NeuralPitch] b1 or W2 size mismatch\n";
+            return w;
+        }
+        std::cerr << "[NeuralPitch] loaded regression model from " << path
+                  << "  ctx=" << w.context_size << " hidden=" << w.hidden_size
+                  << " samples=" << w.pitch_samples.size() << "\n";
     }
 
     w.loaded = true;
-    std::cerr << "[NeuralPitch] loaded weights from " << path
-              << "  context=" << w.context_size << " hidden=" << w.hidden_size
-              << " samples=" << w.pitch_samples.size() << "\n";
     return w;
 }
 
 // ---------------------------------------------------------------------------
-// Forward pass
+// Forward passes
 // ---------------------------------------------------------------------------
 
+// Regression: returns scalar predicted next pitch (normalised)
 inline float forward(const MLPWeights& w, const std::vector<float>& x) {
-    // h = relu(W1 @ x + b1)
     std::vector<float> h(w.hidden_size);
     for (int j = 0; j < w.hidden_size; ++j) {
         float s = w.b1[j];
         for (int k = 0; k < w.context_size; ++k) s += w.W1[j][k] * x[k];
         h[j] = s > 0.0f ? s : 0.0f;
     }
-    // y = W2 . h + b2
     float y = w.b2;
     for (int j = 0; j < w.hidden_size; ++j) y += w.W2[j] * h[j];
     return y;
+}
+
+// Classification: returns logits vector [vocab_size]
+inline std::vector<float> forward_clf(const MLPWeights& w, const std::vector<float>& x) {
+    std::vector<float> h(w.hidden_size);
+    for (int j = 0; j < w.hidden_size; ++j) {
+        float s = w.b1[j];
+        for (int k = 0; k < w.context_size; ++k) s += w.W1[j][k] * x[k];
+        h[j] = s > 0.0f ? s : 0.0f;
+    }
+    const int vs = w.vocab_size;
+    std::vector<float> logits(vs);
+    for (int k = 0; k < vs; ++k) {
+        float s = w.b2_clf[k];
+        for (int j = 0; j < w.hidden_size; ++j) s += w.W2_clf[k][j] * h[j];
+        logits[k] = s;
+    }
+    return logits;
+}
+
+// Softmax with temperature (T=1.0 = neutral, T<1.0 = sharper, T>1.0 = flatter)
+inline std::vector<float> softmax_vec(const std::vector<float>& logits, float temp) {
+    const float T = (temp > 1e-5f) ? temp : 1e-5f;
+    float max_l = *std::max_element(logits.begin(), logits.end());
+    std::vector<float> probs(logits.size());
+    float total = 0.0f;
+    for (size_t i = 0; i < logits.size(); ++i) {
+        probs[i] = std::exp((logits[i] - max_l) / T);
+        total   += probs[i];
+    }
+    for (auto& p : probs) p /= total;
+    return probs;
 }
 
 // ---------------------------------------------------------------------------
@@ -261,21 +333,16 @@ inline float forward(const MLPWeights& w, const std::vector<float>& x) {
 /**
  * Build a HeuristicValueScorer from a weights file.
  *
- * warmup_seed  : ties warm-start and temperature noise to the solver seed.
- *                Same seed => same melodic character; different seeds => variety.
- * temperature  : std-dev of Gaussian noise added to the prediction before scoring
- *                (in normalised MIDI units, i.e. semitones / 127).
- *                0.0 => deterministic (closest-to-mean wins every time → oscillation).
- *                0.04 ≈ 5 MIDI semitones: good melodic variety while staying on-style.
- *                0.08 ≈ 10 MIDI semitones: more adventurous.
- *                The noise is per-(voice, position), identical for all candidates at
- *                that position, so search consistency is preserved.
+ * warmup_seed  : ties warm-start context to the solver seed.
+ * temperature  : logit temperature for classification (T=1.0 = neutral, default).
+ *                For legacy regression models, T adds Gaussian noise to break
+ *                the mean-prediction lock (less relevant with classification).
  */
 inline GecodeClusterIntegration::HeuristicValueScorer
 make_scorer(const std::string& weights_path,
             bool         shadow_mode  = false,
             unsigned int warmup_seed  = 12345,
-            float        temperature  = 0.04f) {
+            float        temperature  = 1.0f) {
     auto w = std::make_shared<MLPWeights>(load_weights(weights_path));
 
     if (!w->loaded) {
@@ -291,8 +358,12 @@ make_scorer(const std::string& weights_path,
     const int   n_samples = static_cast<int>(w->pitch_samples.size());
     const float temp      = temperature;
 
-    std::cerr << "[NeuralPitch] temperature=" << temperature
-              << " (" << static_cast<int>(temperature * 127 + 0.5f) << " semitones)\n";
+    if (w->is_classifier) {
+        std::cerr << "[NeuralPitch] classifier active — vocab=" << w->vocab_size
+                  << " temperature=" << temperature << "\n";
+    } else {
+        std::cerr << "[NeuralPitch] regression model (legacy) — temperature=" << temperature << "\n";
+    }
 
     return [w, ctx_size, shadow, warmup_seed, n_samples, temp](
         const GecodeClusterIntegration::IntegratedMusicalSpace& space,
@@ -300,7 +371,7 @@ make_scorer(const std::string& weights_path,
         int position,
         int candidate_value) -> GecodeClusterIntegration::HeuristicValueScoreBuckets
     {
-        const int seq_len = space.get_sequence_length();
+        const int seq_len     = space.get_sequence_length();
         const auto& pitch_vars = space.get_absolute_vars();
         const int voice_offset = voice * seq_len;
 
@@ -318,7 +389,6 @@ make_scorer(const std::string& weights_path,
         std::vector<float> ctx(ctx_size);
         const int have = static_cast<int>(assigned.size());
         const int need = ctx_size - have;
-
         for (int k = 0; k < need; ++k) {
             float v = 0.5f;
             if (n_samples > 0) {
@@ -331,36 +401,77 @@ make_scorer(const std::string& weights_path,
         for (int k = 0; k < have; ++k)
             ctx[need + k] = static_cast<float>(assigned[have - 1 - k]) / 127.0f;
 
-        // ── 3. MLP prediction ──
-        float predicted = forward(*w, ctx);
+        // ── 3. Score ──
+        float score;
 
-        // ── 4. Temperature noise (deterministic per position, same for all candidates) ──
-        // Box-Muller from two hashes of (seed, voice, position)
-        if (temp > 0.0f) {
-            auto hash32 = [](unsigned int seed, unsigned int a, unsigned int b) -> unsigned int {
-                unsigned int h = seed ^ (a * 2654435761u) ^ (b * 40503u);
+        if (w->is_classifier) {
+            // Classification: Gumbel-max sampling from P(candidate | context).
+            // score = logit_i/T + Gumbel(seed, voice, pos, cand)
+            // → solver argmax ≡ sampling from the distribution with temperature T.
+            // Different seeds produce different melodies; T controls sharpness.
+            // Out-of-vocab candidates score -20 (below any Gumbel in-vocab score).
+            const auto& vocab = w->pitch_vocab;
+            const auto it = std::find(vocab.begin(), vocab.end(), candidate_value);
+            if (it == vocab.end()) {
+                score = -20.0f;
+            } else {
+                const int idx    = static_cast<int>(it - vocab.begin());
+                auto logits      = forward_clf(*w, ctx);
+                // Scaled logit (temperature controls sharpness)
+                float logit_i    = logits[idx] / std::max(temp, 1e-6f);
+                // Gumbel noise: hash (seed, voice, position, candidate) → Uniform(0,1) → Gumbel
+                unsigned int h = warmup_seed;
+                h ^= static_cast<unsigned int>(voice)     * 2654435761u;
+                h ^= static_cast<unsigned int>(position)  * 40503u;
+                h ^= static_cast<unsigned int>(candidate_value + 200) * 16777619u;
                 h ^= (h >> 16); h *= 0x45d9f3bu; h ^= (h >> 16);
-                return h;
-            };
-            unsigned int h1 = hash32(warmup_seed, (unsigned int)voice, (unsigned int)position);
-            unsigned int h2 = hash32(warmup_seed + 1, (unsigned int)(voice + 1), (unsigned int)position);
-            float u1 = std::max((h1 & 0xFFFFFF) / 16777216.0f, 1e-7f);
-            float u2 = (h2 & 0xFFFFFF) / 16777216.0f;
-            float noise = temp * std::sqrt(-2.0f * std::log(u1))
-                               * std::cos(2.0f * 3.14159265f * u2);
-            predicted += noise;
-        }
+                float U     = std::max(static_cast<float>(h & 0xFFFFFFu) / 16777216.0f, 1e-7f);
+                float gumbel = -std::log(-std::log(U));
+                score = logit_i + gumbel;
+            }
 
-        const float candidate_norm = static_cast<float>(candidate_value) / 127.0f;
-        const float score          = -std::fabs(predicted - candidate_norm);
+            if (shadow) {
+                const auto it2 = std::find(w->pitch_vocab.begin(), w->pitch_vocab.end(), candidate_value);
+                float prob = 0.0f;
+                if (it2 != w->pitch_vocab.end()) {
+                    auto logits = forward_clf(*w, ctx);
+                    auto probs  = softmax_vec(logits, temp);
+                    prob = probs[static_cast<int>(it2 - w->pitch_vocab.begin())];
+                }
+                std::cerr << "[NeuralPitch shadow] v=" << voice << " pos=" << position
+                          << " warm=" << need << " actual=" << have
+                          << " cand=" << candidate_value
+                          << " prob=" << prob << " gumbel_score=" << score << "\n";
+                return {};
+            }
+        } else {
+            // Regression (legacy): score by distance to predicted value
+            float predicted = forward(*w, ctx);
+            if (temp > 0.0f) {
+                auto hash32 = [](unsigned int seed, unsigned int a, unsigned int b) -> unsigned int {
+                    unsigned int h = seed ^ (a * 2654435761u) ^ (b * 40503u);
+                    h ^= (h >> 16); h *= 0x45d9f3bu; h ^= (h >> 16);
+                    return h;
+                };
+                unsigned int h1 = hash32(warmup_seed, (unsigned int)voice, (unsigned int)position);
+                unsigned int h2 = hash32(warmup_seed + 1, (unsigned int)(voice + 1), (unsigned int)position);
+                float u1 = std::max((h1 & 0xFFFFFF) / 16777216.0f, 1e-7f);
+                float u2 = (h2 & 0xFFFFFF) / 16777216.0f;
+                float noise = temp * std::sqrt(-2.0f * std::log(u1))
+                                   * std::cos(2.0f * 3.14159265f * u2);
+                predicted += noise;
+            }
+            const float candidate_norm = static_cast<float>(candidate_value) / 127.0f;
+            score = -std::fabs(predicted - candidate_norm);
 
-        if (shadow) {
-            std::cerr << "[NeuralPitch shadow] v=" << voice << " pos=" << position
-                      << " warm=" << need << " actual=" << have
-                      << " cand=" << candidate_value
-                      << " pred_noisy=" << static_cast<int>(predicted * 127 + 0.5f)
-                      << " score=" << score << "\n";
-            return {};
+            if (shadow) {
+                std::cerr << "[NeuralPitch shadow] v=" << voice << " pos=" << position
+                          << " warm=" << need << " actual=" << have
+                          << " cand=" << candidate_value
+                          << " pred_noisy=" << static_cast<int>(predicted * 127 + 0.5f)
+                          << " score=" << score << "\n";
+                return {};
+            }
         }
 
         return {{0, static_cast<double>(score)}};

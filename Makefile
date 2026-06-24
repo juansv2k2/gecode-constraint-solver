@@ -230,7 +230,7 @@ $(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/music
 	$(CXX) $(CONSTRAINT_SOLVER_MAIN_CXXFLAGS) $(GECODE_INC) -o $@ $(CONSTRAINT_SOLVER_MAIN_SOURCE) $(GECODE_LIB)
 
 # Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
-$(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh
+$(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh include/neural_pitch_scorer.hh
 	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
 
 # Max/MSP async wrapper smoke test (SDK-independent wrapper layer)

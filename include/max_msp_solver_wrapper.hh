@@ -105,7 +105,7 @@ private:
     // Neural pitch scorer params (populated when value_order == "neural")
     std::string  neural_weights_file_;
     bool         neural_shadow_mode_ = false;
-    float        neural_temperature_ = 0.04f;
+    float        neural_temperature_ = 1.0f;
     unsigned int neural_seed_        = 12345;
 
     void join_worker_if_needed();
