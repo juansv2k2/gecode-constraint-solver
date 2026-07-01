@@ -33,49 +33,33 @@ import os
 import random
 import sys
 
+import mlx.core as mx
+import mlx.nn as nn
+import mlx.optimizers as optim
+
 # ---------------------------------------------------------------------------
-# Hyper-parameters (kept deliberately tiny for fast inference in Gecode)
+# Hyper-parameters
 # ---------------------------------------------------------------------------
-CONTEXT_SIZE = 4    # Number of preceding pitches fed to the network
-HIDDEN_SIZE  = 32   # Neurons in the single hidden layer (larger for classifier)
-LR           = 0.005
-EPOCHS       = 600
+CONTEXT_SIZE = 8    # Number of preceding pitches fed to the network
+HIDDEN_SIZE  = 256  # Neurons in the single hidden layer
+LR           = 0.003
+EPOCHS       = 5000
 BATCH_SIZE   = 32
 SEED         = 42
 
 # ---------------------------------------------------------------------------
-# Tiny numpy-free matrix helpers (pure Python floats)
+# Model
 # ---------------------------------------------------------------------------
 
-def dot(v, w):
-    """Dot product of two flat lists."""
-    return sum(a * b for a, b in zip(v, w))
+class PitchMLP(nn.Module):
+    """Single hidden-layer MLP for pitch classification."""
+    def __init__(self, input_size, hidden_size, vocab_size):
+        super().__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, vocab_size)
 
-def mat_vec(M, v):
-    """Matrix-vector product.  M is list-of-rows, each row a list of floats."""
-    return [dot(row, v) for row in M]
-
-def relu(v):
-    return [max(0.0, x) for x in v]
-
-def relu_grad(v):
-    """Derivative of ReLU: 1 if v > 0, else 0."""
-    return [1.0 if x > 0 else 0.0 for x in v]
-
-def softmax_fn(logits):
-    max_l = max(logits)
-    exps  = [math.exp(l - max_l) for l in logits]
-    total = sum(exps)
-    return [e / total for e in exps]
-
-def forward_clf(W1, b1, W2, b2, x):
-    """Forward pass for classifier.
-    W1: [hidden x input], W2: [vocab x hidden], b2: [vocab]
-    Returns (h_pre, h, logits)."""
-    h_pre  = [dot(W1[j], x) + b1[j] for j in range(len(W1))]
-    h      = relu(h_pre)
-    logits = [dot(W2[k], h) + b2[k] for k in range(len(W2))]
-    return h_pre, h, logits
+    def __call__(self, x):
+        return self.fc2(nn.relu(self.fc1(x)))
 
 # ---------------------------------------------------------------------------
 # Dataset loading
@@ -115,35 +99,33 @@ def load_dataset(path):
     return pitches
 
 # ---------------------------------------------------------------------------
-# Initialisation
+# Training
 # ---------------------------------------------------------------------------
 
-def glorot_uniform(fan_in, fan_out, rng):
-    limit = math.sqrt(6.0 / (fan_in + fan_out))
-    return [[rng.uniform(-limit, limit) for _ in range(fan_in)]
-            for _ in range(fan_out)]
+def loss_fn(model, X, y):
+    """Cross-entropy loss for classification."""
+    return mx.mean(nn.losses.cross_entropy(model(X), y))
 
-def zeros(n):
-    return [0.0] * n
+def train(X_list, y_list, vocab_size, context_size, hidden_size, lr, epochs, batch_size, rng):
+    model     = PitchMLP(context_size, hidden_size, vocab_size)
+    optimizer = optim.SGD(learning_rate=lr)
 
-# ---------------------------------------------------------------------------
-# Training (SGD, cross-entropy loss)
-# ---------------------------------------------------------------------------
+    X_mx = mx.array(X_list, dtype=mx.float32)
+    y_mx = mx.array(y_list, dtype=mx.int32)
+    n    = len(X_list)
 
-def train(X, y_idx, vocab_size, context_size, hidden_size, lr, epochs, batch_size, rng):
-    W1 = glorot_uniform(context_size, hidden_size, rng)   # [hidden x input]
-    b1 = zeros(hidden_size)
-    W2 = glorot_uniform(hidden_size, vocab_size, rng)     # [vocab x hidden]
-    b2 = zeros(vocab_size)
-
-    n       = len(X)
-    indices = list(range(n))
+    loss_and_grad = nn.value_and_grad(model, loss_fn)
 
     print(f"Training classifier on {n} examples  vocab={vocab_size}  ctx={context_size}  hidden={hidden_size}")
-    print(f"Epochs={epochs}  LR={lr}  batch={batch_size}")
+    print(f"Epochs={epochs}  LR={lr} (cosine decay)  batch={batch_size}  backend=MLX")
+
+    indices = list(range(n))
 
     for epoch in range(epochs):
+        lr_t = lr * 0.5 * (1.0 + math.cos(math.pi * epoch / epochs))
+        optimizer.learning_rate = lr_t
         rng.shuffle(indices)
+
         epoch_loss  = 0.0
         num_batches = 0
 
@@ -151,70 +133,35 @@ def train(X, y_idx, vocab_size, context_size, hidden_size, lr, epochs, batch_siz
             batch_idx = indices[start:start + batch_size]
             if not batch_idx:
                 break
+            X_batch = X_mx[batch_idx]
+            y_batch = y_mx[batch_idx]
 
-            dW1 = [[0.0] * context_size for _ in range(hidden_size)]
-            db1 = [0.0] * hidden_size
-            dW2 = [[0.0] * hidden_size for _ in range(vocab_size)]
-            db2 = [0.0] * vocab_size
+            loss, grads = loss_and_grad(model, X_batch, y_batch)
+            optimizer.update(model, grads)
+            mx.eval(model.parameters(), optimizer.state)
 
-            batch_loss = 0.0
-            for i in batch_idx:
-                h_pre, h, logits = forward_clf(W1, b1, W2, b2, X[i])
-                probs  = softmax_fn(logits)
-                target = y_idx[i]
-                batch_loss += -math.log(max(probs[target], 1e-15))
-
-                # dL/dlogit[k] = probs[k] - 1(k==target)
-                dlogits = list(probs)
-                dlogits[target] -= 1.0
-
-                for k in range(vocab_size):
-                    for j in range(hidden_size):
-                        dW2[k][j] += dlogits[k] * h[j]
-                    db2[k] += dlogits[k]
-
-                rg = relu_grad(h_pre)
-                for j in range(hidden_size):
-                    dh    = sum(dlogits[k] * W2[k][j] for k in range(vocab_size))
-                    delta = dh * rg[j]
-                    for kk in range(context_size):
-                        dW1[j][kk] += delta * X[i][kk]
-                    db1[j] += delta
-
-            bs = len(batch_idx)
-            epoch_loss += batch_loss / bs
-
-            for j in range(hidden_size):
-                for kk in range(context_size):
-                    W1[j][kk] -= lr * dW1[j][kk] / bs
-                b1[j] -= lr * db1[j] / bs
-            for k in range(vocab_size):
-                for j in range(hidden_size):
-                    W2[k][j] -= lr * dW2[k][j] / bs
-                b2[k] -= lr * db2[k] / bs
+            epoch_loss  += loss.item()
             num_batches += 1
 
         if (epoch + 1) % 100 == 0 or epoch == 0:
             avg_loss = epoch_loss / max(num_batches, 1)
-            print(f"  epoch {epoch+1:4d}/{epochs}  CE={avg_loss:.4f}")
+            print(f"  epoch {epoch+1:4d}/{epochs}  CE={avg_loss:.4f}  lr={lr_t:.5f}")
 
-    return W1, b1, W2, b2
+    return model
 
 # ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
 
-def evaluate(W1, b1, W2, b2, X, y_idx, vocab_size):
-    total_loss = 0.0
-    correct    = 0
-    for x_i, t in zip(X, y_idx):
-        _, _, logits = forward_clf(W1, b1, W2, b2, x_i)
-        probs = softmax_fn(logits)
-        total_loss += -math.log(max(probs[t], 1e-15))
-        if probs.index(max(probs)) == t:
-            correct += 1
-    n = len(X)
-    return total_loss / n, correct / n * 100.0
+def evaluate(model, X, y_idx):
+    X_mx   = mx.array(X,     dtype=mx.float32)
+    y_mx   = mx.array(y_idx, dtype=mx.int32)
+    logits = model(X_mx)
+    mx.eval(logits)
+    loss    = mx.mean(nn.losses.cross_entropy(logits, y_mx)).item()
+    preds   = mx.argmax(logits, axis=1)
+    correct = mx.sum(preds == y_mx).item()
+    return loss, correct / len(y_idx) * 100.0
 
 # ---------------------------------------------------------------------------
 # Main
@@ -241,6 +188,7 @@ def main():
         sys.exit(1)
 
     rng = random.Random(args.seed)
+    mx.random.seed(args.seed)
 
     pitches = load_dataset(dataset_path)
     print(f"Loaded {len(pitches)} pitches from {dataset_path}")
@@ -266,12 +214,12 @@ def main():
     X_train, y_train  = X[:split],     y_idx[:split]
     X_val,   y_val    = X[split:],     y_idx[split:]
 
-    W1, b1, W2, b2 = train(X_train, y_train, vocab_size,
-                            args.context, args.hidden,
-                            args.lr, args.epochs, BATCH_SIZE, rng)
+    model = train(X_train, y_train, vocab_size,
+                  args.context, args.hidden,
+                  args.lr, args.epochs, BATCH_SIZE, rng)
 
-    train_loss, train_acc = evaluate(W1, b1, W2, b2, X_train, y_train, vocab_size)
-    val_loss,   val_acc   = evaluate(W1, b1, W2, b2, X_val,   y_val,   vocab_size)
+    train_loss, train_acc = evaluate(model, X_train, y_train)
+    val_loss,   val_acc   = evaluate(model, X_val,   y_val)
     print(f"\nFinal — train: CE={train_loss:.4f} acc={train_acc:.1f}%"
           f"  val: CE={val_loss:.4f} acc={val_acc:.1f}%")
 
@@ -289,10 +237,10 @@ def main():
         "dataset":       os.path.basename(dataset_path),
         "num_examples":  len(X),
         "pitch_samples": pitch_samples,
-        "W1": W1,
-        "b1": b1,
-        "W2": W2,   # [vocab_size x hidden_size]
-        "b2": b2    # [vocab_size]
+        "W1": model.fc1.weight.tolist(),   # [hidden_size x context_size]
+        "b1": model.fc1.bias.tolist(),     # [hidden_size]
+        "W2": model.fc2.weight.tolist(),   # [vocab_size x hidden_size]
+        "b2": model.fc2.bias.tolist()      # [vocab_size]
     }
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
