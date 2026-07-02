@@ -150,12 +150,17 @@ Notes:
 
 ## Neural Pitch Scorer
 
-Set `"value_order": "neural"` to guide pitch selection using a small MLP trained on
-Weimar folk melodies (4334 notes, MIDI 52–81, mean A4). The scorer uses
-**Gumbel-max sampling**: each candidate receives `logit_i / T + gumbel(seed, voice, pos, cand)`,
-so `argmax` over candidates is equivalent to sampling from the learned distribution.
-Different `random_seed` values produce different but reproducible melodies;
-`T < 1.0` sharpens (more folk-like), `T > 1.0` flattens (more adventurous).
+Set `"value_order": "neural"` to guide pitch selection using an MLP trained on
+Weimar folk melodies (4334 notes, MIDI 52–81, mean A4). Architecture: 8-note
+context window → 256 hidden neurons (ReLU) → softmax over 28 pitch classes.
+Trained with **Apple MLX** (~15 s on M1) to **27% top-1 accuracy** — 7.5× above
+random baseline, with no train/val gap.
+
+The scorer uses **Gumbel-max sampling**: each candidate receives
+`logit_i / T + gumbel(seed, voice, pos, cand)`, so `argmax` over candidates is
+equivalent to sampling from the learned distribution. Different `random_seed`
+values produce different but reproducible melodies; `T < 1.0` sharpens
+(more folk-like), `T > 1.0` flattens (more adventurous).
 
 ```json
 "search_options": {
@@ -174,11 +179,13 @@ Different `random_seed` values produce different but reproducible melodies;
 | `neural_shadow_mode`  | `false`                           | Log scores to stderr without affecting search (debugging)                             |
 | `random_seed`         | `0`                               | `0` = fresh random per solve, `N > 0` = reproducible                                  |
 
-Retrain the model:
+Retrain the model (requires Apple MLX — `pip3 install mlx`):
 
 ```bash
-python3 scripts/train_pitch_mlp.py          # writes datasets/pitch_mlp_weights.json
+# defaults: hidden=256, epochs=5000, context=8  (~15 s on M1)
+python3 scripts/train_pitch_mlp.py
 cp datasets/pitch_mlp_weights.json max-package/gecode-solver/examples/weights/
+bash scripts/max_package_smoke.sh
 ```
 
 Verify neural influence:

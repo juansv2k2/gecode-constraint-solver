@@ -1171,6 +1171,10 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 
 When `value_order` is `"neural"`, the solver scores pitch candidates using a trained
 MLP that predicts the probability of each MIDI value given the preceding notes.
+The current model uses an 8-note context window, 256 hidden neurons (ReLU), and a
+softmax over 28 pitch classes. It is trained with **Apple MLX** (~15 s on M1)
+and achieves **27% top-1 accuracy** (7.5× random baseline) with no train/val gap.
+
 Scoring uses **Gumbel-max sampling**: each candidate receives
 `score = logit_i / T + gumbel(seed, voice, pos, cand)`, where the Gumbel term is
 deterministically derived from `random_seed`. Taking the `argmax` over all
@@ -1215,10 +1219,10 @@ distribution with temperature `T`. This means:
 **Retraining the model:**
 
 ```bash
-# train on datasets/pitch_<100.txt → writes datasets/pitch_mlp_weights.json
+# defaults: hidden=256, epochs=5000, context=8  (~15 s on M1, requires: pip3 install mlx)
 python3 scripts/train_pitch_mlp.py
 
-# copy updated weights into Max package
+# copy updated weights into Max package and deploy
 cp datasets/pitch_mlp_weights.json max-package/gecode-solver/examples/weights/
 bash scripts/max_package_smoke.sh
 ```
@@ -1231,7 +1235,8 @@ python3 tests/test_neural_influence.py --seeds 100
 ```
 
 See [tests/NEURAL_TEST_RESULTS.md](tests/NEURAL_TEST_RESULTS.md) for recorded
-baseline results (Pearson r = 0.983 vs training distribution, 0% out-of-vocab rate).
+baseline results (27% top-1 accuracy, Pearson r = 0.983 vs training distribution,
+0% out-of-vocab rate, 100% unique melodies across 30 seeds).
 
 ## 9. Export Options
 
