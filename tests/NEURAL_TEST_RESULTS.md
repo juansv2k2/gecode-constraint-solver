@@ -254,4 +254,136 @@ exactly the behaviour expected when a trained scorer drives candidate selection.
 
 ---
 
+---
+
+## Run 3 — 2026-07-03
+
+### Setup
+
+| Field           | Value                                                                                                                                                                            |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Script          | `tests/run3_influence_test.py`                                                                                                                                                   |
+| Solver          | `bin/dynamic-solver`                                                                                                                                                             |
+| Model           | `datasets/unified_weights.json` — **unified_melodic_mlp**, context=8, hidden=256, vocab=128, input=60, trained on Bach chorales + folk (455,823 notes, CE=2.58, acc=19.1%)       |
+| Scoring         | Gumbel-max: `score = logit_i / T + gumbel(seed, voice, pos, cand)`, full MIDI vocab (no floor-score for in-range pitches)                                                        |
+| Temperature     | 1.0                                                                                                                                                                              |
+| Config          | `configs/neural_counterpoint_soprano_bass.json` — 64 notes, 2 voices, C major I–IV–V–I harmonic domain (beats 0/16/32/48)                                                        |
+| Seeds           | 1 – 20 (1 280 notes per mode)                                                                                                                                                    |
+| Voice 0         | Soprano — MIDI 60–83 (C major + 2 chromatic), guided by unified neural scorer with harmonic_state context                                                                        |
+| Voice 1         | Bass — MIDI 45–64 (chromatic A2–E4), random Gumbel                                                                                                                               |
+| Harmonic domain | `C major` (pos 0–15), `F major` (pos 16–31), `G dom7` (pos 32–47), `C major` (pos 48–63)                                                                                         |
+| Hard rules      | `voice_above`, `consonant_harmony` (interval_class 0/3/4/7/8/9), `max_interval` 24, soprano `max_leap` ≤7 st, soprano `no_adjacent_repeat`, `isorhythm`, `no_simultaneous_rests` |
+| Soft rules      | `soft_no_parallel_fifths`, `soft_no_parallel_octaves`, `prefer_perfect_on_downbeats`, `prefer_contrary_motion` (all `heuristic:true`)                                            |
+| Baseline        | `value_order: "random"` with same seeds and config                                                                                                                               |
+| Training data   | Bach chorales (music21 built-in, 4 voices, 100% chord-labeled) + folk melodies (voice_id=0, 6% chord-labeled)                                                                    |
+
+---
+
+### Assertions
+
+| #   | Property                                                       |  Result  | Neural     | Random     |
+| --- | -------------------------------------------------------------- | :------: | ---------- | ---------- |
+| 1   | Neural pitch entropy < random (model has preferences)          | **PASS** | 2.613 bits | 3.965 bits |
+| 2   | Neural mean step <= random (prefers stepwise motion)           | **PASS** | 3.22 st    | 3.98 st    |
+| 3   | All 20 neural seeds produce unique melodies                    | **PASS** | 20 / 20    | —          |
+| 4   | Neural chord-tone rate > random (harmonic conditioning active) | **FAIL** | 16.0%      | 40.3%      |
+| 5   | Neural MIDI-83 rate <= random (extreme pitch deprioritised)    | **PASS** | 0.2%       | 4.1%       |
+| 6   | All 20 neural seeds produce solutions                          | **PASS** | 20 / 20    | —          |
+
+**Overall: PARTIAL (5/6)**
+
+---
+
+### Summary Statistics
+
+1 280 notes per mode (20 seeds × 64 notes).
+
+| Metric                          |      Neural |    Random |
+| ------------------------------- | ----------: | --------: |
+| Notes collected                 |       1 280 |     1 280 |
+| Pitch entropy (bits) ↓          |   **2.613** |     3.965 |
+| Mean melodic step (semitones) ↓ |    **3.22** |      3.98 |
+| Chord-tone alignment rate ↑     |       16.0% | **40.3%** |
+| MIDI 83 (B5) rate ↓             |    **0.2%** |      4.1% |
+| Unique melodies                 | **20 / 20** |   20 / 20 |
+| Solve failures                  |           0 |         0 |
+
+#### Neural pitch distribution (top pitches, voice 0)
+
+| MIDI | Note | % of notes |
+| ---- | ---- | ---------: |
+| 61   | C#4  |      24.5% |
+| 63   | D#4  |      23.2% |
+| 62   | D4   |      22.4% |
+| 69   | A4   |      14.9% |
+| 74   | D5   |       6.0% |
+| 81   | A5   |       3.8% |
+| 76   | E5   |       3.1% |
+
+The model concentrates 70% of notes on three chromatic pitches (C#4/D4/D#4), reproducing
+the same low-register loop seen in Run 2. Entropy and step-size metrics are nearly
+identical to Run 2 (2.613 bits, 3.22 st vs Run 2's 2.613 bits, 3.19 st), confirming the
+harmonic_state context is not yet influencing the output.
+
+---
+
+### Assertion #4 Analysis — Why Chord-Tone Alignment Fails
+
+The unified MLP architecture includes a 36-dim chord one-hot input and was trained on
+harmonically-labelled Bach chorales. However the failure has a clear cause:
+
+- **94% of soprano (voice_id=0) training data has no chord labels** (379 k folk notes,
+  chord_root=−1 → all-zero chord vector)
+- Only **6% of voice_id=0 training examples** (Bach soprano, ~24 k notes) carried real
+  chord labels
+- The model correctly learned: "for voice 0, ignore the chord input" because 94% of the
+  time it was all zeros with no predictive value
+
+The random baseline achieves 40.3% chord-tone alignment because the soprano domain
+`[60,61,62,63,64,65,67,69,71,72,74,76,77,79,81,83]` happens to contain many chord tones
+(C/E/G for C major, F/A/C for F major, G/B/D/F for G dom7) — roughly 37–50% per section.
+Neural's 16% is lower than random because the model concentrates on C#4–D#4 (MIDI 61–63),
+which are chromatic passing tones not aligned with any of the four chord areas.
+
+**Fix**: retrain with upsampled Bach soprano data so voice_id=0 sees balanced chord labels.
+Target: ≥50% chord-labeled examples for voice_id=0 → expect chord-tone rate > random.
+
+---
+
+### What Changed Relative to Run 2
+
+| Aspect                   | Run 2 (legacy MLP)                   | Run 3 (unified MLP + harmonic domain)           |
+| ------------------------ | ------------------------------------ | ----------------------------------------------- |
+| Model                    | classification, vocab=28, input=8    | unified_melodic_mlp, vocab=128, input=60        |
+| Harmonic conditioning    | none                                 | C major I–IV–V–I (harmonic_state wired)         |
+| Entropy                  | 2.613 bits                           | 2.613 bits (unchanged — harmonic not effective) |
+| Mean step                | 3.19 st                              | 3.22 st (unchanged)                             |
+| Chord-tone alignment     | not measured                         | 16.0% neural vs 40.3% random (**below random**) |
+| MIDI-83 floor-score rate | 0.2% (floor score −20)               | 0.2% (model trained preference, no floor score) |
+| Training data            | 4 334 Weimar folk pitches, no chords | 455 823 Bach+folk notes, partial chord labels   |
+
+---
+
+### Next Step: Retrain with Balanced Chord Labels
+
+To activate harmonic conditioning for voice_id=0:
+
+1. In `scripts/build_chorale_dataset.py`, upsample Bach soprano rows (voice_id=0 with chord
+   labels) so they represent ≥40% of the voice_id=0 training set (currently 6%)
+2. Re-run `python3 scripts/train_unified_melodic.py` (200 epochs)
+3. Re-run `python3 tests/run3_influence_test.py` — expect assertion #4 to pass
+
+---
+
+### What This Test Does NOT Verify
+
+- **Context sensitivity**: the model uses an 8-note context window but this test only
+  measures marginal pitch distributions.
+- **Cross-voice conditioning**: voice_id one-hot is in the input but soprano/bass
+  interaction is not measured.
+- **Rhythm conditioning**: rhythm_context W1 columns receive a constant input (isorhythm
+  config), so rhythm signal cannot be detected here. A varied-rhythm config is needed.
+
+---
+
 <!-- To add a new run, copy the "## Run N" section above and fill in values. -->

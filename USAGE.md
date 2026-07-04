@@ -1170,10 +1170,17 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 ### 8.6 Neural Pitch Scorer
 
 When `value_order` is `"neural"`, the solver scores pitch candidates using a trained
-MLP that predicts the probability of each MIDI value given the preceding notes.
-The current model uses an 8-note context window, 256 hidden neurons (ReLU), and a
-softmax over 28 pitch classes. It is trained with **Apple MLX** (~15 s on M1)
-and achieves **27% top-1 accuracy** (7.5× random baseline) with no train/val gap.
+unified melodic MLP. Two models are included:
+
+| Model file | Training data | Val accuracy | Chord conditioning |
+|---|---|---|---|
+| `harmonic_weights.json` | 67k labeled Bach chorale notes | **50% top-1** (128 MIDI classes) | ✅ `harmonic_domain` key |
+| `folk_melodic_weights.json` | 455k folk + Bach notes | — | ❌ melody only |
+
+**Architecture:** 60-dim input — 8 pitch context values + 8 rhythm context values +
+8-voice one-hot + 36-class chord one-hot (12 roots × 3 qualities) → 256 hidden
+neurons (ReLU) → softmax over 128 MIDI pitch classes. Trained with **Apple MLX**
+on Apple Silicon.
 
 Scoring uses **Gumbel-max sampling**: each candidate receives
 `score = logit_i / T + gumbel(seed, voice, pos, cand)`, where the Gumbel term is
@@ -1185,15 +1192,14 @@ distribution with temperature `T`. This means:
 - `random_seed: 0` gives a fresh random result each solve (non-reproducible).
 - All hard constraints remain fully enforced — the neural scorer only changes the
   **order** in which values are tried, not which values are valid.
-- Pitches absent from the training vocabulary receive a hard floor score of `−20`,
-  so they are never selected as long as at least one in-vocabulary candidate is
-  reachable.
+- When heuristic soft-rules are also active they act as lower-priority tiebreakers;
+  the neural score is always the primary bucket.
 
 ```json
 "search_options": {
   "value_order": "neural",
-  "neural_weights_file": "datasets/pitch_mlp_weights.json",
-  "neural_temperature": 1.0,
+  "neural_weights_file": "datasets/weights/harmonic_weights.json",
+  "neural_temperature": 0.3,
   "neural_shadow_mode": false,
   "random_seed": 0
 }
@@ -1201,29 +1207,67 @@ distribution with temperature `T`. This means:
 
 **Neural parameters:**
 
-| Parameter             | Type    | Default                             | Description                                                                                                                                                       |
-| --------------------- | ------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `neural_weights_file` | string  | `"datasets/pitch_mlp_weights.json"` | Path to the exported MLP weights. Relative paths are resolved from the Max patch folder when running inside Max; from the working directory when running the CLI. |
-| `neural_temperature`  | float   | `1.0`                               | Logit temperature `T`. `1.0` = trained probabilities as-is. `< 1.0` = sharper/more predictable. `> 1.0` = flatter/more adventurous.                               |
-| `neural_shadow_mode`  | boolean | `false`                             | When `true`, logs candidate probabilities and Gumbel scores to stderr without affecting search output. Useful for debugging.                                      |
+| Parameter             | Type    | Default                                      | Description                                                                                                                                                       |
+| --------------------- | ------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `neural_weights_file` | string  | `"datasets/weights/harmonic_weights.json"`   | Path to the exported MLP weights. Relative paths are resolved from the Max patch folder when running inside Max; from the working directory when running the CLI. |
+| `neural_temperature`  | float   | `1.0`                                        | Logit temperature `T`. `0.3` = chord-following / idiomatic, `1.0` = balanced, `> 1.0` = more adventurous.                                                        |
+| `neural_shadow_mode`  | boolean | `false`                                      | When `true`, logs candidate probabilities and Gumbel scores to stderr without affecting search output. Useful for debugging.                                      |
 
 **Temperature guide:**
 
 | `neural_temperature` | Character                                                                 |
 | -------------------: | ------------------------------------------------------------------------- |
-|                  0.5 | Strongly folk-idiomatic — favours the most statistically common intervals |
-|                  1.0 | Balanced — reproduces the training distribution                           |
-|                  2.0 | More varied — uncommon intervals appear more often                        |
-|                  5.0 | Nearly uniform over in-vocabulary pitches                                 |
+|                  0.3 | Chord-following — highest-logit candidate wins almost every position      |
+|                  0.5 | Strongly idiomatic — favours the most statistically common intervals       |
+|                  1.0 | Balanced — reproduces the training distribution                            |
+|                  2.0 | More varied — uncommon intervals appear more often                         |
 
-**Retraining the model:**
+#### 8.6.1 Harmonic Domain Conditioning
+
+When using `harmonic_weights.json`, add a `harmonic_domain` array to bias the
+scorer toward chord tones at each note position. Each entry specifies the chord
+root and quality that applies **from that beat onward** (forward-fill until the
+next entry or the end of the sequence):
+
+```json
+"harmonic_domain": [
+  { "beat": 0,  "chord": "C", "quality": "major" },
+  { "beat": 4,  "chord": "F", "quality": "major" },
+  { "beat": 8,  "chord": "G", "quality": "dom7"  },
+  { "beat": 12, "chord": "C", "quality": "major" }
+]
+```
+
+The `beat` value corresponds directly to the note **position index** in the
+solution (0-based). A `beat: 0` entry with no subsequent entry covers every
+position in a single-chord piece. Supported qualities: `major`, `minor`, `dom7`.
+Roots: `C`, `C#`/`Db`, `D`, `D#`/`Eb`, `E`, `F`, `F#`/`Gb`, `G`, `G#`/`Ab`,
+`A`, `A#`/`Bb`, `B`.
+
+**Isolation test result** (`configs/chromatic_chord_test.json`): chromatic
+MIDI domain (C4–B5, 24 pitches), `C–F–G7–C` progression, no-adjacent-repeat
+constraint, `neural_temperature: 0.3` —
+
+```
+Output: G E C G | A C F A | G F D G | E C G C   →  100% chord tones
+```
+
+The no-adjacent-repeat constraint forces the voice to cycle through chord tones,
+naturally producing an arpeggio pattern guided entirely by the neural scorer.
+
+**Retraining the harmonic model:**
 
 ```bash
-# defaults: hidden=256, epochs=5000, context=8  (~15 s on M1, requires: pip3 install mlx)
-python3 scripts/train_pitch_mlp.py
+# Rebuild dataset (fixes chord labels), retrain, sync weights everywhere
+python3 scripts/build_chorale_dataset.py       # rebuilds datasets/unified_training.tsv
+python3 scripts/train_unified_melodic.py --mode harmonic  # ~5000 epochs on M1
+bash scripts/max_package_smoke.sh              # syncs datasets/weights/ → examples/weights/
+```
 
-# copy updated weights into Max package and deploy
-cp datasets/pitch_mlp_weights.json max-package/gecode-solver/examples/weights/
+Retrain folk/melody model (no chord conditioning):
+
+```bash
+python3 scripts/train_unified_melodic.py --mode folk
 bash scripts/max_package_smoke.sh
 ```
 
@@ -1235,8 +1279,7 @@ python3 tests/test_neural_influence.py --seeds 100
 ```
 
 See [tests/NEURAL_TEST_RESULTS.md](tests/NEURAL_TEST_RESULTS.md) for recorded
-baseline results (27% top-1 accuracy, Pearson r = 0.983 vs training distribution,
-0% out-of-vocab rate, 100% unique melodies across 30 seeds).
+baseline results.
 
 ## 9. Export Options
 
@@ -1310,7 +1353,7 @@ If the patch has not been saved yet, the external falls back to Max's current de
 | `heuristic_top_k`      | int     | `0`                                 | Only score top K candidates with heuristic (0 = all). `"heuristic"` mode only.                               |
 | `heuristic_trace`      | boolean | `false`                             | Log heuristic scores to stdout during search                                                                 |
 | `enable_metric_engine` | int     | `1`                                 | `0` disables the metric engine (no meter constraints)                                                        |
-| `neural_weights_file`  | string  | `"datasets/pitch_mlp_weights.json"` | Path to MLP weights JSON. `"neural"` mode only. Relative paths resolved from patch folder in Max.            |
+| `neural_weights_file`  | string  | `"datasets/weights/harmonic_weights.json"` | Path to MLP weights JSON. `"neural"` mode only. Relative paths resolved from patch folder in Max.            |
 | `neural_temperature`   | float   | `1.0`                               | Logit temperature. `1.0` = trained distribution, `< 1.0` = sharper, `> 1.0` = flatter. `"neural"` mode only. |
 | `neural_shadow_mode`   | boolean | `false`                             | Log scores without affecting search (debug). `"neural"` mode only.                                           |
 

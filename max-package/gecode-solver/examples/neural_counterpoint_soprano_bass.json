@@ -1,0 +1,175 @@
+{
+  "name": "Neural Folk Counterpoint — Soprano + Bass, 16 Positions",
+  "description": "2-voice counterpoint with neural scorer and minimal hard constraints — designed to maximise neural influence visibility. Hard rules: soprano above bass, max two-octave spread, soprano max leap P5, no adjacent repeat in soprano, isorhythm. Soft rules (heuristic:true, always active): prefer consonant harmony, avoid parallel 5ths/8ths, prefer perfect consonances on downbeats, prefer contrary motion. The reduced hard-constraint set leaves ~8–12 candidates per soprano step after propagation, giving the neural folk-melody MLP clear room to rank them by trained probability.",
+  "solution_length": 16,
+  "num_voices": 2,
+
+  "voices": [
+    {
+      "id": 0,
+      "description": "Soprano — C major pitches C4–A5, neural-guided",
+      "rhythm": {
+        "duration_values": ["1/4"]
+      },
+      "pitch": {
+        "midi_values": [
+          60, 61, 62, 63, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "description": "Bass — C major pitches A2–E4, harmonic support",
+      "rhythm": {
+        "duration_values": ["1/4"]
+      },
+      "pitch": {
+        "midi_values": [
+          45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+          62, 63, 64
+        ]
+      }
+    }
+  ],
+
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "timeout_ms": 30000,
+    "branching": "first_fail",
+    "value_order": "neural",
+    "neural_weights_file": "weights/harmonic_weights.json",
+    "neural_temperature": 0.3
+  },
+
+  "export_json": false,
+  "export_txt": false,
+  "export_xml": true,
+  "file_name": "output/neural_counterpoint_soprano_bass",
+
+  "rules": [
+    {
+      "id": "soprano_above_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [0, 1],
+      "description": "Hard: soprano strictly above bass at every position"
+    },
+
+    {
+      "id": "consonant_harmony",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "interval_class",
+      "parameters": [0, 3, 4, 7, 8, 9],
+      "target_voices": [0, 1],
+      "enabled": false,
+      "description": "Disabled: was masking neural harmonic signal. Soft version (soft_consonant_harmony) still applies as a heuristic."
+    },
+
+    {
+      "id": "max_spacing_two_octaves",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "max_interval",
+      "parameters": [24],
+      "target_voices": [0, 1],
+      "description": "Hard: voices may not be more than two octaves (24 semitones) apart"
+    },
+
+    {
+      "id": "soprano_max_leap_fifth",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 7",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Hard: soprano max leap P5 (7 semitones) -- leaves ~8-12 candidates per step for the neural scorer"
+    },
+
+    {
+      "id": "soprano_no_adjacent_repeat",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "heuristic": true,
+      "description": "Soft: prefer no immediately repeated pitches in soprano (was hard — made soft so neural model can hold chord tones)"
+    },
+
+    {
+      "id": "isorhythm_voices",
+      "rule_type": "r-rhythm-rhythm",
+      "constraint": "isorhythm",
+      "target_voices": [0, 1],
+      "description": "Hard: both voices share identical rhythm values"
+    },
+
+    {
+      "id": "no_simultaneous_rests",
+      "rule_type": "r-rhythm-rhythm",
+      "constraint": "no_simultaneous_rests",
+      "target_voices": [0, 1],
+      "description": "Hard: at least one voice sounding at every position"
+    },
+
+    {
+      "id": "soft_consonant_harmony",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "interval_class",
+      "parameters": [0, 3, 4, 7, 8, 9],
+      "target_voices": [0, 1],
+      "heuristic": true,
+      "description": "Soft: prefer consonant intervals -- never rejects, only ranks consonant options higher"
+    },
+
+    {
+      "id": "soft_no_parallel_fifths",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 1],
+      "heuristic": true,
+      "description": "Soft: prefer to avoid parallel fifths"
+    },
+
+    {
+      "id": "soft_no_parallel_octaves",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0, 1],
+      "heuristic": true,
+      "description": "Soft: prefer to avoid parallel octaves"
+    },
+
+    {
+      "id": "prefer_perfect_on_downbeats",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "interval_class",
+      "parameters": [0, 7],
+      "indices": [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60],
+      "target_voices": [0, 1],
+      "heuristic": true,
+      "description": "Soft: prefer perfect consonances on every downbeat (every 4th position)"
+    },
+
+    {
+      "id": "prefer_contrary_motion",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "contrary_motion",
+      "target_voices": [0, 1],
+      "heuristic": true,
+      "description": "Soft: prefer contrary motion between voices"
+    }
+  ],
+
+  "dynamic_rules": [],
+
+  "harmonic_domain": [
+    { "beat": 0, "chord": "C", "quality": "major" },
+    { "beat": 4, "chord": "F", "quality": "major" },
+    { "beat": 8, "chord": "G", "quality": "dom7" },
+    { "beat": 12, "chord": "C", "quality": "major" }
+  ]
+}

@@ -107,6 +107,7 @@ private:
     bool         neural_shadow_mode_ = false;
     float        neural_temperature_ = 1.0f;
     unsigned int neural_seed_        = 12345;
+    std::vector<int> neural_harmonic_state_;   // per-position chord class (from harmonic_domain)
 
     void join_worker_if_needed();
     void run_solve_job();

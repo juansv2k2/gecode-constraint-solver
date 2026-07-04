@@ -50,9 +50,18 @@ struct MLPWeights {
     int vocab_size    = 0;   // >0 for classification, 0 for regression
     bool is_classifier = false;
 
+    // Unified melodic MLP fields (model_type == "unified_melodic_mlp").
+    // For legacy models these keep their zero/false defaults and are ignored.
+    std::string model_type;             // "unified_melodic_mlp" or empty
+    int  max_voices        = 8;         // one-hot slots for voice identity
+    int  chord_vocab_size  = 36;        // 12 roots x 3 qualities
+    int  input_size        = 0;         // full input width (set on load)
+    float rhythm_norm      = 4.0f;      // normalise rhythm fraction by this
+    bool uses_harmonic_conditioning = false;
+
     // Training pitch samples stored for solver-level warm-start (inference only).
     std::vector<int> pitch_samples;  // raw MIDI values sampled from training set
-    std::vector<int> pitch_vocab;    // sorted MIDI values (classification only)
+    std::vector<int> pitch_vocab;    // sorted MIDI values (legacy classification only)
 
     // Shared weights (both model types)
     std::vector<std::vector<float>> W1;  // [hidden x context]
@@ -164,6 +173,27 @@ inline bool detect_classifier(const std::string& s) {
     return s.size() > p + 16 && s.substr(p, 16) == "\"classification\"";
 }
 
+// Read a quoted string value at a given JSON key.
+inline bool read_string_at_key(const std::string& s, const std::string& key,
+                                std::string& out) {
+    size_t p = find_key(s, key);
+    if (p == std::string::npos) return false;
+    while (p < s.size() && s[p] != '"') ++p;
+    if (p >= s.size()) return false;
+    ++p; // skip opening quote
+    size_t start = p;
+    while (p < s.size() && s[p] != '"') ++p;
+    out = s.substr(start, p - start);
+    return true;
+}
+
+// Detect unified or folk melodic MLP (any model_type requiring the 60-dim input).
+inline bool detect_unified(const std::string& s) {
+    std::string mt;
+    return read_string_at_key(s, "model_type", mt) &&
+           (mt == "unified_melodic_mlp" || mt == "folk_melodic_mlp");
+}
+
 } // namespace detail
 
 // ---------------------------------------------------------------------------
@@ -213,9 +243,58 @@ inline MLPWeights load_weights(const std::string& path) {
     }
 
     w.is_classifier = detail::detect_classifier(s);
+    detail::read_string_at_key(s, "model_type", w.model_type);
 
-    if (w.is_classifier) {
-        // --- Classification model ---
+    if (w.model_type == "unified_melodic_mlp" || w.model_type == "folk_melodic_mlp") {
+        // --- Unified / folk melodic MLP (same 60-dim architecture) ---
+        detail::read_int_at_key(s, "max_voices",       w.max_voices);
+        detail::read_int_at_key(s, "chord_vocab_size",  w.chord_vocab_size);
+        detail::read_int_at_key(s, "input_size",        w.input_size);
+        detail::read_int_at_key(s, "vocab_size",        w.vocab_size);  // 128 full MIDI
+        float rn = 0.0f;
+        if (detail::read_float(s, p = detail::find_key(s, "rhythm_norm"), rn) && rn > 0.0f)
+            w.rhythm_norm = rn;
+        w.is_classifier  = true;   // both are always classifiers
+        // uses_harmonic_conditioning: true for harmonic model (Bach-trained),
+        //                             false for folk_melodic_mlp (chord input = noise)
+        // The field is a JSON boolean literal (true/false), not a quoted string.
+        {
+            auto uhc_pos = s.find("\"uses_harmonic_conditioning\"");
+            if (uhc_pos != std::string::npos) {
+                auto colon = s.find(':', uhc_pos);
+                if (colon != std::string::npos) {
+                    auto vs = s.find_first_not_of(" \t\n\r", colon + 1);
+                    if (vs != std::string::npos && s.compare(vs, 4, "true") == 0)
+                        w.uses_harmonic_conditioning = true;
+                }
+            }
+        }
+
+        if (w.input_size == 0)
+            w.input_size = w.context_size * 2 + w.max_voices + w.chord_vocab_size;
+        if (w.vocab_size == 0) w.vocab_size = 128;
+
+        // W2 [vocab x hidden]
+        p = detail::find_key(s, "W2");
+        if (p == std::string::npos || !detail::read_matrix(s, p, w.W2_clf)) {
+            std::cerr << "[NeuralPitch] failed to read W2 from " << path << "\n";
+            return w;
+        }
+        p = detail::find_key(s, "b2");
+        if (p == std::string::npos || !detail::read_float_array(s, p, w.b2_clf)) {
+            std::cerr << "[NeuralPitch] failed to read b2 from " << path << "\n";
+            return w;
+        }
+        std::cerr << "[NeuralPitch] loaded " << w.model_type << " from " << path
+                  << "  input=" << w.input_size
+                  << " hidden=" << w.hidden_size
+                  << " vocab=" << w.vocab_size
+                  << " voices=" << w.max_voices
+                  << " chords=" << w.chord_vocab_size
+                  << " harmonic_cond=" << (w.uses_harmonic_conditioning ? "yes" : "no") << "\n";
+
+    } else if (w.is_classifier) {
+        // --- Legacy classification model ---
         // pitch_vocab
         p = detail::find_key(s, "pitch_vocab");
         if (p != std::string::npos) {
@@ -296,10 +375,11 @@ inline float forward(const MLPWeights& w, const std::vector<float>& x) {
 
 // Classification: returns logits vector [vocab_size]
 inline std::vector<float> forward_clf(const MLPWeights& w, const std::vector<float>& x) {
+    const int in_dim = (w.input_size > 0) ? w.input_size : static_cast<int>(x.size());
     std::vector<float> h(w.hidden_size);
     for (int j = 0; j < w.hidden_size; ++j) {
         float s = w.b1[j];
-        for (int k = 0; k < w.context_size; ++k) s += w.W1[j][k] * x[k];
+        for (int k = 0; k < in_dim; ++k) s += w.W1[j][k] * x[k];
         h[j] = s > 0.0f ? s : 0.0f;
     }
     const int vs = w.vocab_size;
@@ -340,9 +420,11 @@ inline std::vector<float> softmax_vec(const std::vector<float>& logits, float te
  */
 inline GecodeClusterIntegration::HeuristicValueScorer
 make_scorer(const std::string& weights_path,
-            bool         shadow_mode  = false,
-            unsigned int warmup_seed  = 12345,
-            float        temperature  = 1.0f) {
+            bool         shadow_mode    = false,
+            unsigned int warmup_seed    = 12345,
+            float        temperature    = 1.0f,
+            const std::vector<int>&   harmonic_state  = {},
+            const std::vector<float>& rhythm_context  = {}) {
     auto w = std::make_shared<MLPWeights>(load_weights(weights_path));
 
     if (!w->loaded) {
@@ -357,6 +439,9 @@ make_scorer(const std::string& weights_path,
     const bool  shadow    = shadow_mode;
     const int   n_samples = static_cast<int>(w->pitch_samples.size());
     const float temp      = temperature;
+    // Capture optional unified-model context vectors (by value — Option A)
+    const std::vector<int>   harm_state   = harmonic_state;
+    const std::vector<float> rhythm_ctx   = rhythm_context;
 
     if (w->is_classifier) {
         std::cerr << "[NeuralPitch] classifier active — vocab=" << w->vocab_size
@@ -365,13 +450,14 @@ make_scorer(const std::string& weights_path,
         std::cerr << "[NeuralPitch] regression model (legacy) — temperature=" << temperature << "\n";
     }
 
-    return [w, ctx_size, shadow, warmup_seed, n_samples, temp](
+    return [w, ctx_size, shadow, warmup_seed, n_samples, temp,
+            harm_state, rhythm_ctx](
         const GecodeClusterIntegration::IntegratedMusicalSpace& space,
         int voice,
         int position,
         int candidate_value) -> GecodeClusterIntegration::HeuristicValueScoreBuckets
     {
-        const int seq_len     = space.get_sequence_length();
+        const int seq_len      = space.get_sequence_length();
         const auto& pitch_vars = space.get_absolute_vars();
         const int voice_offset = voice * seq_len;
 
@@ -404,7 +490,54 @@ make_scorer(const std::string& weights_path,
         // ── 3. Score ──
         float score;
 
-        if (w->is_classifier) {
+        if (w->model_type == "unified_melodic_mlp" || w->model_type == "folk_melodic_mlp") {
+            // ── Unified/folk model: 60-dim input ──
+            const int mv = w->max_voices;
+            const int cv = w->chord_vocab_size;
+
+            // Rhythm context (Option A: pre-built capture, constant for isorhythm)
+            std::vector<float> r_ctx(ctx_size, 1.0f / w->rhythm_norm);  // default: 1 beat
+            for (int k = 0; k < ctx_size; ++k) {
+                int rpos = position - ctx_size + k;
+                if (rpos >= 0 && rpos < (int)rhythm_ctx.size())
+                    r_ctx[k] = rhythm_ctx[rpos] / w->rhythm_norm;
+            }
+
+            // Voice one-hot
+            std::vector<float> v_hot(mv, 0.0f);
+            if (voice >= 0 && voice < mv) v_hot[voice] = 1.0f;
+
+            // Chord one-hot: only populated when harmonic conditioning was trained in
+            std::vector<float> c_hot(cv, 0.0f);
+            if (w->uses_harmonic_conditioning &&
+                    !harm_state.empty() && position < (int)harm_state.size()) {
+                int cls = harm_state[position];
+                if (cls >= 0 && cls < cv) c_hot[cls] = 1.0f;
+            }
+
+            // Concatenate: [pitch_ctx | rhythm_ctx | voice_hot | chord_hot]
+            std::vector<float> inp;
+            inp.reserve(ctx_size + ctx_size + mv + cv);
+            inp.insert(inp.end(), ctx.begin(),   ctx.end());
+            inp.insert(inp.end(), r_ctx.begin(), r_ctx.end());
+            inp.insert(inp.end(), v_hot.begin(), v_hot.end());
+            inp.insert(inp.end(), c_hot.begin(), c_hot.end());
+
+            // Score via full-MIDI classifier (vocab_size = 128)
+            if (candidate_value < 0 || candidate_value >= w->vocab_size) {
+                score = -20.0f;
+            } else {
+                auto logits  = forward_clf(*w, inp);
+                float logit_i = logits[candidate_value] / std::max(temp, 1e-6f);
+                unsigned int h = warmup_seed;
+                h ^= static_cast<unsigned int>(voice)          * 2654435761u;
+                h ^= static_cast<unsigned int>(position)       * 40503u;
+                h ^= static_cast<unsigned int>(candidate_value + 200) * 16777619u;
+                h ^= (h >> 16); h *= 0x45d9f3bu; h ^= (h >> 16);
+                float U = std::max(static_cast<float>(h & 0xFFFFFFu) / 16777216.0f, 1e-7f);
+                score = logit_i + (-std::log(-std::log(U)));
+            }
+        } else if (w->is_classifier) {
             // Classification: Gumbel-max sampling from P(candidate | context).
             // score = logit_i/T + Gumbel(seed, voice, pos, cand)
             // → solver argmax ≡ sampling from the distribution with temperature T.

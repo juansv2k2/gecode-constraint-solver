@@ -1,0 +1,21 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/test_cfg.json
+Problem: 
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C#4 → D4 → A4 → D4 → C#4 → D4 → C#4 → D4 → C#4 → D4 → A4 → D4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: C#3 → F#3 → C#4 → F#3 → C#3 → F3 → A3 → F#3 → C#3 → A2 → C#3 → D3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 39 ms
+  Rules applied: 0

@@ -170,7 +170,7 @@ def evaluate(model, X, y_idx):
 def main():
     ap = argparse.ArgumentParser(description="Train tiny pitch MLP and export weights")
     ap.add_argument("--dataset", default="datasets/pitch_<100.txt")
-    ap.add_argument("--out",     default="datasets/pitch_mlp_weights.json")
+    ap.add_argument("--out",     default="datasets/weights/pitch_mlp_weights.json")
     ap.add_argument("--epochs",  type=int, default=EPOCHS)
     ap.add_argument("--context", type=int, default=CONTEXT_SIZE)
     ap.add_argument("--hidden",  type=int, default=HIDDEN_SIZE)

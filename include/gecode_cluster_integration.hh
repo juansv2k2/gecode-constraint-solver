@@ -52,6 +52,9 @@ void clear_pitch_heuristic_value_ordering();
 /** Returns true if a pitch heuristic scorer is currently registered. */
 bool has_pitch_heuristic_value_ordering();
 
+/** Returns the currently registered pitch heuristic scorer (may be null). */
+HeuristicValueScorer get_pitch_heuristic_value_ordering();
+
 void configure_rhythm_heuristic_value_ordering(
     HeuristicValueScorer scorer,
     unsigned int tie_break_seed = 0,

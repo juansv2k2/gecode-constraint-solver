@@ -1552,7 +1552,8 @@ void AsyncSolverWrapper::run_solve_job() {
 
                 auto scorer = NeuralPitch::make_scorer(
                     wp.string(), neural_shadow_mode_,
-                    effective_seed, neural_temperature_);
+                    effective_seed, neural_temperature_,
+                    neural_harmonic_state_);
                 GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
                     scorer, 0, 0, false);
 
@@ -2078,8 +2079,14 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             }
             // Neural scorer config — stored for use in run_solve_job
             if (so.value("value_order", std::string("min")) == "neural") {
-                neural_weights_file_ = so.value("neural_weights_file",
-                                                std::string("datasets/pitch_mlp_weights.json"));
+                if (!so.contains("neural_weights_file") ||
+                        !so["neural_weights_file"].is_string() ||
+                        so["neural_weights_file"].get<std::string>().empty()) {
+                    throw std::runtime_error(
+                        "value_order=\"neural\" requires \"neural_weights_file\" "
+                        "to be set explicitly in search_options");
+                }
+                neural_weights_file_ = so.value("neural_weights_file", std::string(""));
                 neural_shadow_mode_  = so.contains("neural_shadow_mode")
                                        ? json_value_to_bool_with_default(so["neural_shadow_mode"], false)
                                        : false;
@@ -2088,6 +2095,47 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             } else {
                 neural_weights_file_.clear();
             }
+        }
+
+        // ── Parse harmonic_domain (same encoding as CLI solver) ────────────
+        neural_harmonic_state_.clear();
+        if (cfg.contains("harmonic_domain") && cfg["harmonic_domain"].is_array() &&
+                !cfg["harmonic_domain"].empty()) {
+            static const std::map<std::string,int> NOTE_MAP = {
+                {"C",0},{"C#",1},{"Db",1},{"D",2},{"D#",3},{"Eb",3},
+                {"E",4},{"F",5},{"F#",6},{"Gb",6},{"G",7},{"G#",8},
+                {"Ab",8},{"A",9},{"A#",10},{"Bb",10},{"B",11}
+            };
+            static const std::map<std::string,int> QUAL_MAP = {
+                {"major",0},{"maj",0},{"M",0},
+                {"minor",1},{"min",1},{"m",1},
+                {"dom7",2},{"dominant",2},{"dominant-seventh",2},{"7",2}
+            };
+            struct HEntry { int beat_pos, chord_root, chord_quality; };
+            std::vector<HEntry> entries;
+            for (const auto& e : cfg["harmonic_domain"]) {
+                HEntry he{};
+                he.beat_pos     = e.value("beat", 0);
+                auto nit = NOTE_MAP.find(e.value("chord", std::string("C")));
+                he.chord_root   = (nit != NOTE_MAP.end()) ? nit->second : 0;
+                auto qit = QUAL_MAP.find(e.value("quality", std::string("major")));
+                he.chord_quality = (qit != QUAL_MAP.end()) ? qit->second : 0;
+                entries.push_back(he);
+            }
+            std::sort(entries.begin(), entries.end(),
+                      [](const HEntry& a, const HEntry& b){ return a.beat_pos < b.beat_pos; });
+            const int seq_len = sc.sequence_length > 0 ? sc.sequence_length : 64;
+            neural_harmonic_state_.assign(seq_len, -1);
+            for (int i = 0; i < (int)entries.size(); ++i) {
+                const auto& e  = entries[i];
+                int end_pos    = (i + 1 < (int)entries.size())
+                                 ? entries[i+1].beat_pos : seq_len;
+                int chord_cls  = e.chord_root * 3 + std::min(e.chord_quality, 2);
+                for (int p = e.beat_pos; p < end_pos && p < seq_len; ++p)
+                    neural_harmonic_state_[p] = chord_cls;
+            }
+            std::cerr << "[MaxWrapper] harmonic_domain: " << entries.size()
+                      << " chord entries parsed\n";
         }
 
         if (cfg.contains("timeout_ms") && cfg["timeout_ms"].is_number()) {

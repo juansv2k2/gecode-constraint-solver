@@ -1,0 +1,65 @@
+{
+  "name": "Chord Conditioning Test — Chromatic Soprano, 16 Positions",
+  "description": "Minimal isolation test: chromatic domain, quarter notes, single logical constraint (every 3 consecutive notes distinct). No voice-interaction rules. Neural scorer + harmonic_domain should drive all note choice toward chord tones.",
+  "solution_length": 16,
+  "num_voices": 1,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "timeout_ms": 10000,
+    "branching": "first_fail",
+    "value_order": "neural",
+    "neural_weights_file": "weigths/harmonic_weights.json",
+    "neural_temperature": 0.3,
+    "heuristic_trace": false
+  },
+  "export_json": false,
+  "export_txt": false,
+  "export_xml": true,
+  "file_name": "output/chromatic_chord_test",
+  "dynamic_rules": [],
+  "voices": [
+    {
+      "name": "Soprano (chromatic, C4–B5)",
+      "description": "All 24 chromatic pitches C4–B5",
+      "pitch": {
+        "midi_values": [
+          60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+          77, 78, 79, 80, 81, 82, 83
+        ]
+      },
+      "rhythm": {
+        "duration_values": [1]
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_adjacent_repeat",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Hard: 3-consecutive-distinct (part 1) — no immediately repeated pitch"
+    },
+    {
+      "id": "no_2back_repeat",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1, 2],
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+2]",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Hard: 3-consecutive-distinct (part 2) — pitch[i] != pitch[i+2]"
+    }
+  ],
+  "harmonic_domain": [
+    { "beat": 0, "chord": "C", "quality": "major" },
+    { "beat": 4, "chord": "F", "quality": "major" },
+    { "beat": 8, "chord": "G", "quality": "dom7" },
+    { "beat": 12, "chord": "C", "quality": "major" }
+  ]
+}

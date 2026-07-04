@@ -95,6 +95,32 @@ struct SolverConfig {
     // Guardrail flag for incremental rollout of metric as a first-class engine.
     bool enable_metric_engine = false;
 
+    // ── Harmonic domain (third domain, Phase 3) ─────────────────────────────
+    // Each entry defines the chord active at a given solver position.
+    // Voices are not directly constrained here; the constraint system reads
+    // this domain via chord_tone rules, and the neural scorer receives it as
+    // conditioning context via harmonic_state[position].
+    //
+    // chord_root : 0-11 (C=0 ... B=11)
+    // chord_quality : 0=major  1=minor  2=dom7
+    // chord_tones : MIDI pitch-classes consistent with this chord (mod 12)
+    //               derived at parse time from root + quality
+    // beat_position : solver position index (0-based) at which this entry starts
+    struct HarmonicEntry {
+        int beat_position  = 0;
+        int chord_root     = 0;   // 0-11
+        int chord_quality  = 0;   // 0=major 1=minor 2=dom7
+        std::vector<int> chord_tones;  // MIDI pitch-classes (0-11) in chord
+    };
+
+    struct HarmonicConfig {
+        bool enabled = false;
+        std::vector<HarmonicEntry> entries;
+        // Per-position chord class index (0-35 = root*3+quality, -1=unspecified).
+        // Derived from entries at parse time; length == sequence_length.
+        std::vector<int> harmonic_state;
+    } harmonic_domain;
+
     // Random search seed semantics:
     // - std::numeric_limits<unsigned int>::max(): deterministic search order
     // - 0: generate a fresh random seed for each solve

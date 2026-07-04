@@ -150,42 +150,68 @@ Notes:
 
 ## Neural Pitch Scorer
 
-Set `"value_order": "neural"` to guide pitch selection using an MLP trained on
-Weimar folk melodies (4334 notes, MIDI 52–81, mean A4). Architecture: 8-note
-context window → 256 hidden neurons (ReLU) → softmax over 28 pitch classes.
-Trained with **Apple MLX** (~15 s on M1) to **27% top-1 accuracy** — 7.5× above
-random baseline, with no train/val gap.
+Set `"value_order": "neural"` to guide pitch selection using a trained unified
+melodic MLP. Two ready-to-use models ship with the package:
+
+| Model file | Training data | Accuracy | Conditioning |
+|---|---|---|---|
+| `harmonic_weights.json` | 67k Bach chorale notes | 50% top-1 (128-class) | ✅ chord one-hot (`harmonic_domain`) |
+| `folk_melodic_weights.json` | 455k folk + Bach notes | — | ❌ melody only |
+
+Architecture: 8-note pitch context + 8-note rhythm context + 8-voice one-hot +
+36-class chord one-hot → 256 hidden (ReLU) → softmax over 128 MIDI values.
+Trained with **Apple MLX** on Apple Silicon.
 
 The scorer uses **Gumbel-max sampling**: each candidate receives
 `logit_i / T + gumbel(seed, voice, pos, cand)`, so `argmax` over candidates is
 equivalent to sampling from the learned distribution. Different `random_seed`
-values produce different but reproducible melodies; `T < 1.0` sharpens
-(more folk-like), `T > 1.0` flattens (more adventurous).
+values produce different but reproducible melodies; `T < 1.0` sharpens,
+`T > 1.0` flattens.
 
 ```json
 "search_options": {
   "value_order": "neural",
-  "neural_weights_file": "datasets/pitch_mlp_weights.json",
-  "neural_temperature": 1.0,
+  "neural_weights_file": "datasets/weights/harmonic_weights.json",
+  "neural_temperature": 0.3,
   "neural_shadow_mode": false,
   "random_seed": 0
 }
 ```
 
-| Parameter             | Default                           | Effect                                                                                |
-| --------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
-| `neural_weights_file` | `datasets/pitch_mlp_weights.json` | Path to weights JSON (relative paths resolved from patch folder in Max)               |
-| `neural_temperature`  | `1.0`                             | Logit temperature. `1.0` = trained distribution, `< 1.0` = sharper, `> 1.0` = flatter |
-| `neural_shadow_mode`  | `false`                           | Log scores to stderr without affecting search (debugging)                             |
-| `random_seed`         | `0`                               | `0` = fresh random per solve, `N > 0` = reproducible                                  |
+### Harmonic Domain Conditioning
 
-Retrain the model (requires Apple MLX — `pip3 install mlx`):
+When using `harmonic_weights.json`, add a `harmonic_domain` key to bias the
+scorer toward chord tones at each position. Each entry specifies the chord root
+and quality that applies from that beat onward (forward-fill until the next entry):
+
+```json
+"harmonic_domain": [
+  { "beat": 0,  "chord": "C", "quality": "major" },
+  { "beat": 4,  "chord": "F", "quality": "major" },
+  { "beat": 8,  "chord": "G", "quality": "dom7"  },
+  { "beat": 12, "chord": "C", "quality": "major" }
+]
+```
+
+Supported qualities: `major`, `minor`, `dom7`. Roots: `C`, `C#`/`Db`, `D`, …, `B`.
+With `neural_temperature: 0.3` and a no-adjacent-repeat constraint, the scorer
+produces **100% chord-tone output** (verified on chromatic 24-note domain —
+see `configs/chromatic_chord_test.json`).
+
+| Parameter             | Default                                     | Effect                                                                                |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `neural_weights_file` | `datasets/weights/harmonic_weights.json`    | Path to weights JSON (relative paths resolved from patch folder in Max)               |
+| `neural_temperature`  | `1.0`                                       | Logit temperature. `0.3` for chord-following, `1.0` balanced, `>1` more adventurous  |
+| `neural_shadow_mode`  | `false`                                     | Log scores to stderr without affecting search (debugging)                             |
+| `random_seed`         | `0`                                         | `0` = fresh random per solve, `N > 0` = reproducible                                  |
+
+Retrain the harmonic model (requires Apple MLX — `pip3 install mlx`):
 
 ```bash
-# defaults: hidden=256, epochs=5000, context=8  (~15 s on M1)
-python3 scripts/train_pitch_mlp.py
-cp datasets/pitch_mlp_weights.json max-package/gecode-solver/examples/weights/
-bash scripts/max_package_smoke.sh
+# Rebuild dataset, retrain, deploy — all weights sync automatically
+python3 scripts/build_chorale_dataset.py
+python3 scripts/train_unified_melodic.py --mode harmonic
+bash scripts/max_package_smoke.sh          # syncs datasets/weights/ → examples/weights/
 ```
 
 Verify neural influence:

@@ -2029,6 +2029,87 @@ int main(int argc, char* argv[]) {
         solver_config.value_selection = parser.getValueSelection(config_file);
         solver_config.restart_policy = parser.getRestartPolicy(config_file);
 
+        // ── Parse harmonic_domain (Phase 3) ────────────────────────────────
+        // Expected JSON shape:
+        //   "harmonic_domain": [
+        //     {"beat": 0, "chord": "C",  "quality": "major"},
+        //     {"beat": 4, "chord": "F",  "quality": "major"},
+        //     {"beat": 8, "chord": "G",  "quality": "dom7"},
+        //     ...
+        //   ]
+        {
+            nlohmann::json hcfg;
+            {
+                std::ifstream hf(config_file);
+                if (hf.is_open()) { try { hf >> hcfg; } catch (...) {} }
+            }
+            if (hcfg.contains("harmonic_domain") && hcfg["harmonic_domain"].is_array() &&
+                !hcfg["harmonic_domain"].empty()) {
+
+                // Map note name -> pitch class (C=0)
+                static const std::map<std::string, int> NOTE_MAP = {
+                    {"C",0},{"C#",1},{"Db",1},{"D",2},{"D#",3},{"Eb",3},
+                    {"E",4},{"F",5},{"F#",6},{"Gb",6},{"G",7},{"G#",8},
+                    {"Ab",8},{"A",9},{"A#",10},{"Bb",10},{"B",11}
+                };
+                static const std::map<std::string, int> QUAL_MAP = {
+                    {"major",0},{"maj",0},{"M",0},
+                    {"minor",1},{"min",1},{"m",1},
+                    {"dom7",2},{"dominant",2},{"dominant-seventh",2},{"7",2}
+                };
+                // Chord tones (pitch classes) per quality
+                static const std::vector<std::vector<int>> CHORD_TONES = {
+                    {0, 4, 7},        // major:  root, M3, P5
+                    {0, 3, 7},        // minor:  root, m3, P5
+                    {0, 4, 7, 10}     // dom7:   root, M3, P5, m7
+                };
+
+                auto& hd = solver_config.harmonic_domain;
+                hd.enabled = true;
+
+                for (const auto& entry : hcfg["harmonic_domain"]) {
+                    MusicalConstraintSolver::SolverConfig::HarmonicEntry he;
+                    he.beat_position = entry.value("beat", 0);
+
+                    std::string chord_name = entry.value("chord", "C");
+                    auto nit = NOTE_MAP.find(chord_name);
+                    he.chord_root = (nit != NOTE_MAP.end()) ? nit->second : 0;
+
+                    std::string qual_name = entry.value("quality", "major");
+                    auto qit = QUAL_MAP.find(qual_name);
+                    he.chord_quality = (qit != QUAL_MAP.end()) ? qit->second : 0;
+
+                    // Derive chord tones from root + quality
+                    const auto& tones = CHORD_TONES[std::min(he.chord_quality, 2)];
+                    for (int t : tones)
+                        he.chord_tones.push_back((he.chord_root + t) % 12);
+
+                    hd.entries.push_back(he);
+                }
+
+                // Build per-position harmonic_state vector
+                const int seq_len = solver_config.sequence_length;
+                hd.harmonic_state.assign(seq_len, -1);
+                // Sort entries by beat_position, then fill forward
+                std::sort(hd.entries.begin(), hd.entries.end(),
+                          [](const auto& a, const auto& b){
+                              return a.beat_position < b.beat_position;
+                          });
+                for (int i = 0; i < (int)hd.entries.size(); ++i) {
+                    const auto& e  = hd.entries[i];
+                    int end_pos    = (i + 1 < (int)hd.entries.size())
+                                     ? hd.entries[i+1].beat_position
+                                     : seq_len;
+                    int chord_cls  = e.chord_root * 3 + std::min(e.chord_quality, 2);
+                    for (int p = e.beat_position; p < end_pos && p < seq_len; ++p)
+                        hd.harmonic_state[p] = chord_cls;
+                }
+
+                std::cout << "   Harmonic domain: " << hd.entries.size()
+                          << " chord entries parsed\n";
+            }
+        }
+
         solver_config.num_voices = parser.getNumVoices();
         solver_config.allow_repetitions = false;
         solver_config.style = MusicalConstraintSolver::SolverConfig::CONTEMPORARY;
@@ -2958,9 +3039,15 @@ int main(int argc, char* argv[]) {
                 try { cfg_f >> cfg_json; } catch (...) {}
                 if (cfg_json.contains("search_options") &&
                     cfg_json["search_options"].value("value_order", "") == "neural") {
+                    // neural_weights_file is mandatory — no silent fallback.
+                    if (!cfg_json["search_options"].contains("neural_weights_file")) {
+                        std::cerr << "\u274c Config error: value_order=\"neural\" requires "
+                                     "\"neural_weights_file\" to be set explicitly in "
+                                     "search_options.\n";
+                        return 1;
+                    }
                     const std::string weights_path =
-                        cfg_json["search_options"].value("neural_weights_file",
-                                                         "datasets/pitch_mlp_weights.json");
+                        cfg_json["search_options"].value("neural_weights_file", "");
                     const bool shadow =
                         cfg_json["search_options"].value("neural_shadow_mode", false);
                     const float temperature =
@@ -2972,7 +3059,43 @@ int main(int argc, char* argv[]) {
                         warmup_seed = rd();
                         if (warmup_seed == 0u) warmup_seed = 1u;
                     }
-                    auto scorer = NeuralPitch::make_scorer(weights_path, shadow, warmup_seed, temperature);
+
+                    // ── Option A: pre-build rhythm_context from first voice's duration domain ──
+                    // For isorhythm configs this produces a constant vector.
+                    // beat_fraction = 4 * numerator / denominator  (quarter note = 1.0)
+                    std::vector<float> rhythm_context;
+                    {
+                        float beat_frac = 1.0f; // default: quarter note
+                        try {
+                            if (cfg_json.contains("voices") && cfg_json["voices"].is_array() &&
+                                !cfg_json["voices"].empty()) {
+                                const auto& v0 = cfg_json["voices"][0];
+                                if (v0.contains("rhythm") &&
+                                    v0["rhythm"].contains("duration_values") &&
+                                    v0["rhythm"]["duration_values"].is_array() &&
+                                    !v0["rhythm"]["duration_values"].empty()) {
+                                    std::string dv = v0["rhythm"]["duration_values"][0].get<std::string>();
+                                    auto slash = dv.find('/');
+                                    if (slash != std::string::npos) {
+                                        float num  = std::stof(dv.substr(0, slash));
+                                        float den  = std::stof(dv.substr(slash + 1));
+                                        if (den > 0.0f) beat_frac = 4.0f * num / den;
+                                    }
+                                }
+                            }
+                        } catch (...) {}
+                        const int seq_len = solver_config.sequence_length > 0
+                                            ? solver_config.sequence_length : 16;
+                        rhythm_context.assign(seq_len, beat_frac);
+                    }
+
+                    // harmonic_state: from parsed harmonic_domain (Phase 3); empty if not configured
+                    const std::vector<int>& harmonic_state =
+                        solver_config.harmonic_domain.harmonic_state;
+
+                    auto scorer = NeuralPitch::make_scorer(
+                        weights_path, shadow, warmup_seed, temperature,
+                        harmonic_state, rhythm_context);
                     const int top_k = solver_config.heuristic_top_k;
                     const bool trace = solver_config.heuristic_trace;
                     GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(

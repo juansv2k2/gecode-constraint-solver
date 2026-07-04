@@ -60,6 +60,26 @@ if [[ -d "$BUILT_BUNDLE" ]]; then
   cp -R "$BUILT_BUNDLE" "$PKG_DIR/externals/"
   echo "[smoke] copied built external bundle into package externals/"
 
+  # Sync any weights files: datasets/weights/<name>.json -> examples/weights/<name>.json
+  # Runs whenever a matching filename exists in both places, keeping the package
+  # copy current without requiring a manual cp after each retrain.
+  WEIGHTS_PKG_DIR="$PKG_DIR/examples/weights"
+  WEIGHTS_SRC_DIR="$ROOT_DIR/datasets/weights"
+  if [[ -d "$WEIGHTS_PKG_DIR" ]]; then
+    synced=0
+    for wf in "$WEIGHTS_PKG_DIR"/*.json; do
+      [[ -f "$wf" ]] || continue
+      fname="$(basename "$wf")"
+      src="$WEIGHTS_SRC_DIR/$fname"
+      if [[ -f "$src" ]]; then
+        cp "$src" "$wf"
+        echo "[smoke] synced weights: $fname"
+        synced=$((synced + 1))
+      fi
+    done
+    [[ $synced -eq 0 ]] && echo "[smoke] weights: no datasets/weights/ matches found for package weights"
+  fi
+
   # Also deploy to active user package folders so Max loads the latest build.
   if [[ -d "$HOME/Documents/Max 8/Packages" ]]; then
     deploy_to_user_package "$HOME/Documents/Max 8/Packages"

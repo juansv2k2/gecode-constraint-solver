@@ -452,7 +452,7 @@
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 817.0, 66.0, 82.0, 20.0 ],
+                    "patching_rect": [ 886.0, 66.0, 82.0, 20.0 ],
                     "text": "MLP example"
                 }
             },
@@ -463,8 +463,8 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 593.0, 65.0, 218.0, 22.0 ],
-                    "text": "read neural_pitch_folk_16x1.json, bang"
+                    "patching_rect": [ 593.0, 65.0, 283.0, 22.0 ],
+                    "text": "read neural_counterpoint_soprano_bass.json, bang"
                 }
             },
             {
@@ -490,13 +490,13 @@
             {
                 "box": {
                     "id": "obj-23",
-                    "linecount": 6,
+                    "linecount": 3,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 506.0, 1141.0, 119.0, 89.0 ],
-                    "text": "479/8 551/8 535/8 591/8 559/8 559/8 535/8 551/8 551/8 575/8 559/8 559/8 567/8 567/8 591/8 591/8"
+                    "patching_rect": [ 506.0, 1141.0, 125.0, 49.0 ],
+                    "text": "1 12 14 22 11 17 19 18 14 14 1 5 11 11 5 9"
                 }
             },
             {
@@ -513,13 +513,13 @@
             {
                 "box": {
                     "id": "obj-21",
-                    "linecount": 3,
+                    "linecount": 2,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 424.0, 1096.0, 149.0, 49.0 ],
-                    "text": "1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8"
+                    "patching_rect": [ 424.0, 1096.0, 149.0, 35.0 ],
+                    "text": "64 60 62 57 63 62 57 63 62 57 63 62 63 60 64 62"
                 }
             },
             {
@@ -559,7 +559,7 @@
                     "numoutlets": 1,
                     "outlettype": [ "" ],
                     "patching_rect": [ 318.0, 1059.0, 143.0, 35.0 ],
-                    "text": "60 69 67 74 70 70 67 69 69 72 70 70 71 71 74 74"
+                    "text": "65 72 76 79 74 79 76 81 76 71 64 67 74 71 69 71"
                 }
             },
             {
@@ -645,7 +645,7 @@
             },
             {
                 "box": {
-                    "code": "{\n    \"_comment\": \"Neural pitch scorer test (Phase 1). The max-interval-fifth wildcard leaves ~10 valid candidates per step so the neural scorer's ranking drives pitch selection. Pitch domain matches Weimar folk melody training range (MIDI 55-81, mean 68.5). Expected: first note near A4(69). Compare with value_order:min which gives G3(55). Toggle neural_shadow_mode:true to log scores without affecting search.\",\n    \"name\": \"Neural Pitch Scorer — Folk Melody 16x1\",\n    \"description\": \"16-note single-voice melody guided by the MLP trained on Weimar folk data. Hard max-interval constraint leaves ~10 candidates per step so neural ordering is meaningful.\",\n    \"solution_length\": 16,\n    \"num_voices\": 1,\n    \"voices\": [\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81 ]\n            }\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 0,\n        \"random_seed\": 0,\n        \"timeout_ms\": 10000,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"neural\",\n        \"neural_weights_file\": \"weights/pitch_mlp_weights.json\",\n        \"neural_shadow_mode\": 0,\n        \"neural_temperature\":1.,\n        \"heuristic_trace\": 0,\n        \"heuristic_top_k\": 0\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/neural_folk_16x1\",\n    \"rules\": [\n        {\n            \"id\": \"max_interval_fifth\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_voices\",\n            \"pattern_offsets\": [ 0, 1 ],\n            \"constraint\": \"abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 7\",\n            \"enabled\": 0,\n            \"target_voices\": [ 0 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Hard: no leaps larger than a perfect fifth — leaves ~10 candidates per step so neural ordering matters\"\n        },\n        {\n            \"id\": \"no_repeat_adjacent\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_voices\",\n            \"pattern_offsets\": [ 0, 1 ],\n            \"constraint\": \"voice[v].pitch[i] != voice[v].pitch[i+1]\",\n            \"enabled\": 0,\n            \"target_voices\": [ 0 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Hard: no immediately repeated pitches\"\n        }\n    ]\n}",
+                    "code": "{\n    \"name\": \"Neural Folk Counterpoint — Soprano + Bass, 16 Positions\",\n    \"description\": \"2-voice counterpoint with neural scorer and minimal hard constraints — designed to maximise neural influence visibility. Hard rules: soprano above bass, max two-octave spread, soprano max leap P5, no adjacent repeat in soprano, isorhythm. Soft rules (heuristic:true, always active): prefer consonant harmony, avoid parallel 5ths/8ths, prefer perfect consonances on downbeats, prefer contrary motion. The reduced hard-constraint set leaves ~8–12 candidates per soprano step after propagation, giving the neural folk-melody MLP clear room to rank them by trained probability.\",\n    \"solution_length\": 16,\n    \"num_voices\": 2,\n    \"voices\": [\n        {\n            \"id\": 0,\n            \"description\": \"Soprano — C major pitches C4–A5, neural-guided\",\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 61, 62, 63, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83 ]\n            }\n        },\n        {\n            \"id\": 1,\n            \"description\": \"Bass — C major pitches A2–E4, harmonic support\",\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64 ]\n            }\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 0,\n        \"random_seed\": 0,\n        \"timeout_ms\": 30000,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"neural\",\n        \"neural_weights_file\": \"weights/harmonic_weights.json\",\n        \"neural_temperature\": 1.0\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/neural_counterpoint_soprano_bass\",\n    \"rules\": [\n        {\n            \"id\": \"soprano_above_bass\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"voice_above\",\n            \"target_voices\": [ 0, 1 ],\n            \"description\": \"Hard: soprano strictly above bass at every position\"\n        },\n        {\n            \"id\": \"consonant_harmony\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"interval_class\",\n            \"parameters\": [ 0, 3, 4, 7, 8, 9 ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"Disabled: was masking neural harmonic signal. Soft version (soft_consonant_harmony) still applies as a heuristic.\"\n        },\n        {\n            \"id\": \"max_spacing_two_octaves\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"max_interval\",\n            \"parameters\": [ 24 ],\n            \"target_voices\": [ 0, 1 ],\n            \"description\": \"Hard: voices may not be more than two octaves (24 semitones) apart\"\n        },\n        {\n            \"id\": \"soprano_max_leap_fifth\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_voices\",\n            \"pattern_offsets\": [ 0, 1 ],\n            \"constraint\": \"abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 7\",\n            \"target_voices\": [ 0 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Hard: soprano max leap P5 (7 semitones) -- leaves ~8-12 candidates per step for the neural scorer\"\n        },\n        {\n            \"id\": \"soprano_no_adjacent_repeat\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_voices\",\n            \"pattern_offsets\": [ 0, 1 ],\n            \"constraint\": \"voice[v].pitch[i] != voice[v].pitch[i+1]\",\n            \"target_voices\": [ 0 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Hard: no immediately repeated pitches in soprano\"\n        },\n        {\n            \"id\": \"isorhythm_voices\",\n            \"rule_type\": \"r-rhythm-rhythm\",\n            \"constraint\": \"isorhythm\",\n            \"target_voices\": [ 0, 1 ],\n            \"description\": \"Hard: both voices share identical rhythm values\"\n        },\n        {\n            \"id\": \"no_simultaneous_rests\",\n            \"rule_type\": \"r-rhythm-rhythm\",\n            \"constraint\": \"no_simultaneous_rests\",\n            \"target_voices\": [ 0, 1 ],\n            \"description\": \"Hard: at least one voice sounding at every position\"\n        },\n        {\n            \"id\": \"soft_consonant_harmony\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"interval_class\",\n            \"parameters\": [ 0, 3, 4, 7, 8, 9 ],\n            \"target_voices\": [ 0, 1 ],\n            \"heuristic\": 1,\n            \"description\": \"Soft: prefer consonant intervals -- never rejects, only ranks consonant options higher\"\n        },\n        {\n            \"id\": \"soft_no_parallel_fifths\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_fifths\",\n            \"target_voices\": [ 0, 1 ],\n            \"heuristic\": 1,\n            \"description\": \"Soft: prefer to avoid parallel fifths\"\n        },\n        {\n            \"id\": \"soft_no_parallel_octaves\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_octaves\",\n            \"target_voices\": [ 0, 1 ],\n            \"heuristic\": 1,\n            \"description\": \"Soft: prefer to avoid parallel octaves\"\n        },\n        {\n            \"id\": \"prefer_perfect_on_downbeats\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"interval_class\",\n            \"parameters\": [ 0, 7 ],\n            \"indices\": [ 0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60 ],\n            \"target_voices\": [ 0, 1 ],\n            \"heuristic\": 1,\n            \"description\": \"Soft: prefer perfect consonances on every downbeat (every 4th position)\"\n        },\n        {\n            \"id\": \"prefer_contrary_motion\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"contrary_motion\",\n            \"target_voices\": [ 0, 1 ],\n            \"heuristic\": 1,\n            \"description\": \"Soft: prefer contrary motion between voices\"\n        }\n    ],\n    \"dynamic_rules\": [],\n    \"harmonic_domain\": [\n        {\n            \"beat\": 0,\n            \"chord\": \"C\",\n            \"quality\": \"major\"\n        },\n        {\n            \"beat\": 4,\n            \"chord\": \"F\",\n            \"quality\": \"major\"\n        },\n        {\n            \"beat\": 8,\n            \"chord\": \"G\",\n            \"quality\": \"dom7\"\n        },\n        {\n            \"beat\": 12,\n            \"chord\": \"C\",\n            \"quality\": \"major\"\n        }\n    ]\n}",
                     "editlocked": 1,
                     "fontface": 0,
                     "fontname": "<Monospaced>",

@@ -412,6 +412,10 @@ bool has_pitch_heuristic_value_ordering() {
     return g_pitch_heuristic_enabled && g_pitch_heuristic_scorer != nullptr;
 }
 
+HeuristicValueScorer get_pitch_heuristic_value_ordering() {
+    return g_pitch_heuristic_scorer;
+}
+
 void configure_rhythm_heuristic_value_ordering(
     HeuristicValueScorer scorer,
     unsigned int tie_break_seed,

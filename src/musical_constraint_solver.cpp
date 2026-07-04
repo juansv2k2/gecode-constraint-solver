@@ -2742,8 +2742,12 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     const unsigned int effective_random_seed = resolve_effective_random_seed(config_.random_seed);
 
     if (compiled_rules_ && compiled_rules_->has_heuristic_scorers()) {
+        // Preserve any externally-registered scorer (e.g. neural MLP) so it can be
+        // chained as the highest-priority bucket inside the combined scorer.
+        auto prior_scorer = GecodeClusterIntegration::get_pitch_heuristic_value_ordering();
+
         GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
-            [this](const GecodeClusterIntegration::IntegratedMusicalSpace& space,
+            [this, prior_scorer](const GecodeClusterIntegration::IntegratedMusicalSpace& space,
                    int voice, int position, int candidate_value) {
                 if (!compiled_rules_) {
                     return GecodeClusterIntegration::HeuristicValueScoreBuckets{};
@@ -2766,7 +2770,17 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 candidate_ctx.position = position;
                 candidate_ctx.candidate_value = candidate_value;
 
-                return compiled_rules_->evaluate_heuristic_buckets(score_ctx, candidate_ctx);
+                auto rule_buckets = compiled_rules_->evaluate_heuristic_buckets(score_ctx, candidate_ctx);
+                // If a neural scorer was registered before this solver ran, chain it as
+                // the primary bucket so neural guidance dominates over soft rules.
+                if (prior_scorer) {
+                    auto neural_buckets = prior_scorer(space, voice, position, candidate_value);
+                    // Prepend neural buckets — they carry the highest priority.
+                    neural_buckets.insert(neural_buckets.end(),
+                                          rule_buckets.begin(), rule_buckets.end());
+                    return neural_buckets;
+                }
+                return rule_buckets;
             },
             effective_random_seed,
             config_.heuristic_top_k,

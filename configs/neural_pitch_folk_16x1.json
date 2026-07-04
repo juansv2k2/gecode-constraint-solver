@@ -24,7 +24,7 @@
     "timeout_ms": 10000,
     "branching": "first_fail",
     "value_order": "neural",
-    "neural_weights_file": "datasets/pitch_mlp_weights.json",
+    "neural_weights_file": "datasets/weights/pitch_mlp_weights.json",
     "neural_shadow_mode": false,
     "neural_temperature": 1.0,
     "heuristic_trace": false,
