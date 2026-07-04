@@ -1172,10 +1172,10 @@ When `value_order: "heuristic"` and `random_seed > 0`:
 When `value_order` is `"neural"`, the solver scores pitch candidates using a trained
 unified melodic MLP. Two models are included:
 
-| Model file | Training data | Val accuracy | Chord conditioning |
-|---|---|---|---|
-| `harmonic_weights.json` | 67k labeled Bach chorale notes | **50% top-1** (128 MIDI classes) | ✅ `harmonic_domain` key |
-| `folk_melodic_weights.json` | 455k folk + Bach notes | — | ❌ melody only |
+| Model file                  | Training data                  | Val accuracy                     | Chord conditioning       |
+| --------------------------- | ------------------------------ | -------------------------------- | ------------------------ |
+| `harmonic_weights.json`     | 67k labeled Bach chorale notes | **50% top-1** (128 MIDI classes) | ✅ `harmonic_domain` key |
+| `folk_melodic_weights.json` | 455k folk + Bach notes         | —                                | ❌ melody only           |
 
 **Architecture:** 60-dim input — 8 pitch context values + 8 rhythm context values +
 8-voice one-hot + 36-class chord one-hot (12 roots × 3 qualities) → 256 hidden
@@ -1207,20 +1207,20 @@ distribution with temperature `T`. This means:
 
 **Neural parameters:**
 
-| Parameter             | Type    | Default                                      | Description                                                                                                                                                       |
-| --------------------- | ------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `neural_weights_file` | string  | `"datasets/weights/harmonic_weights.json"`   | Path to the exported MLP weights. Relative paths are resolved from the Max patch folder when running inside Max; from the working directory when running the CLI. |
-| `neural_temperature`  | float   | `1.0`                                        | Logit temperature `T`. `0.3` = chord-following / idiomatic, `1.0` = balanced, `> 1.0` = more adventurous.                                                        |
-| `neural_shadow_mode`  | boolean | `false`                                      | When `true`, logs candidate probabilities and Gumbel scores to stderr without affecting search output. Useful for debugging.                                      |
+| Parameter             | Type    | Default                                    | Description                                                                                                                                                       |
+| --------------------- | ------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `neural_weights_file` | string  | `"datasets/weights/harmonic_weights.json"` | Path to the exported MLP weights. Relative paths are resolved from the Max patch folder when running inside Max; from the working directory when running the CLI. |
+| `neural_temperature`  | float   | `1.0`                                      | Logit temperature `T`. `0.3` = chord-following / idiomatic, `1.0` = balanced, `> 1.0` = more adventurous.                                                         |
+| `neural_shadow_mode`  | boolean | `false`                                    | When `true`, logs candidate probabilities and Gumbel scores to stderr without affecting search output. Useful for debugging.                                      |
 
 **Temperature guide:**
 
-| `neural_temperature` | Character                                                                 |
-| -------------------: | ------------------------------------------------------------------------- |
-|                  0.3 | Chord-following — highest-logit candidate wins almost every position      |
-|                  0.5 | Strongly idiomatic — favours the most statistically common intervals       |
-|                  1.0 | Balanced — reproduces the training distribution                            |
-|                  2.0 | More varied — uncommon intervals appear more often                         |
+| `neural_temperature` | Character                                                            |
+| -------------------: | -------------------------------------------------------------------- |
+|                  0.3 | Chord-following — highest-logit candidate wins almost every position |
+|                  0.5 | Strongly idiomatic — favours the most statistically common intervals |
+|                  1.0 | Balanced — reproduces the training distribution                      |
+|                  2.0 | More varied — uncommon intervals appear more often                   |
 
 #### 8.6.1 Harmonic Domain Conditioning
 
@@ -1342,20 +1342,20 @@ If the patch has not been saved yet, the external falls back to Max's current de
 
 ### `search_options` Object
 
-| Field                  | Type    | Default                             | Description                                                                                                  |
-| ---------------------- | ------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `branching`            | string  | `"first_fail"`                      | Variable ordering: `"first_fail"` or `"input_order"`                                                         |
-| `value_order`          | string  | `"min"`                             | Value ordering: `"min"`, `"random"`, `"heuristic"`, or `"neural"`                                            |
-| `restart_policy`       | string  | `"none"`                            | `"none"` or `"luby"`                                                                                         |
-| `timeout_ms`           | int     | `30000`                             | Search time limit in milliseconds                                                                            |
-| `max_solutions`        | int     | `1`                                 | Solutions to collect (0 = unlimited)                                                                         |
-| `random_seed`          | int     | `0`                                 | `0` = fresh random each solve, `N > 0` = reproducible                                                        |
-| `heuristic_top_k`      | int     | `0`                                 | Only score top K candidates with heuristic (0 = all). `"heuristic"` mode only.                               |
-| `heuristic_trace`      | boolean | `false`                             | Log heuristic scores to stdout during search                                                                 |
-| `enable_metric_engine` | int     | `1`                                 | `0` disables the metric engine (no meter constraints)                                                        |
+| Field                  | Type    | Default                                    | Description                                                                                                  |
+| ---------------------- | ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `branching`            | string  | `"first_fail"`                             | Variable ordering: `"first_fail"` or `"input_order"`                                                         |
+| `value_order`          | string  | `"min"`                                    | Value ordering: `"min"`, `"random"`, `"heuristic"`, or `"neural"`                                            |
+| `restart_policy`       | string  | `"none"`                                   | `"none"` or `"luby"`                                                                                         |
+| `timeout_ms`           | int     | `30000`                                    | Search time limit in milliseconds                                                                            |
+| `max_solutions`        | int     | `1`                                        | Solutions to collect (0 = unlimited)                                                                         |
+| `random_seed`          | int     | `0`                                        | `0` = fresh random each solve, `N > 0` = reproducible                                                        |
+| `heuristic_top_k`      | int     | `0`                                        | Only score top K candidates with heuristic (0 = all). `"heuristic"` mode only.                               |
+| `heuristic_trace`      | boolean | `false`                                    | Log heuristic scores to stdout during search                                                                 |
+| `enable_metric_engine` | int     | `1`                                        | `0` disables the metric engine (no meter constraints)                                                        |
 | `neural_weights_file`  | string  | `"datasets/weights/harmonic_weights.json"` | Path to MLP weights JSON. `"neural"` mode only. Relative paths resolved from patch folder in Max.            |
-| `neural_temperature`   | float   | `1.0`                               | Logit temperature. `1.0` = trained distribution, `< 1.0` = sharper, `> 1.0` = flatter. `"neural"` mode only. |
-| `neural_shadow_mode`   | boolean | `false`                             | Log scores without affecting search (debug). `"neural"` mode only.                                           |
+| `neural_temperature`   | float   | `1.0`                                      | Logit temperature. `1.0` = trained distribution, `< 1.0` = sharper, `> 1.0` = flatter. `"neural"` mode only. |
+| `neural_shadow_mode`   | boolean | `false`                                    | Log scores without affecting search (debug). `"neural"` mode only.                                           |
 
 ### Rule Object
 

@@ -29,15 +29,16 @@ produces **100% chord-tone output** on isolated tests.
 
 ### Key bugs fixed (July 2026)
 
-| Bug | Symptom | Fix |
-|---|---|---|
-| `forward_clf` loop bound was `context_size` (8) instead of `input_size` (60) | Rhythm, voice, and chord input dims silently ignored | Changed inner loop to `in_dim = w.input_size > 0 ? w.input_size : x.size()` |
-| `musical_constraint_solver.cpp` overwrote neural scorer on every `solve()` | Neural MLP never actually ran — soft heuristic rules always won | Save prior scorer with `get_pitch_heuristic_value_ordering()`, chain neural as primary bucket |
-| `heuristic_top_k: 5` in test config only evaluated lowest-MIDI candidates | G4(67), A4(69) etc. never scored — E4 was best of first 5 | Removed top_k limit from test config; document that top_k must be 0 or ≥ domain size |
+| Bug                                                                          | Symptom                                                         | Fix                                                                                           |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `forward_clf` loop bound was `context_size` (8) instead of `input_size` (60) | Rhythm, voice, and chord input dims silently ignored            | Changed inner loop to `in_dim = w.input_size > 0 ? w.input_size : x.size()`                   |
+| `musical_constraint_solver.cpp` overwrote neural scorer on every `solve()`   | Neural MLP never actually ran — soft heuristic rules always won | Save prior scorer with `get_pitch_heuristic_value_ordering()`, chain neural as primary bucket |
+| `heuristic_top_k: 5` in test config only evaluated lowest-MIDI candidates    | G4(67), A4(69) etc. never scored — E4 was best of first 5       | Removed top_k limit from test config; document that top_k must be 0 or ≥ domain size          |
 
 ### Isolation test result
 
 Config: `configs/chromatic_chord_test.json`
+
 - 1 voice, 16 notes, chromatic domain C4–B5 (24 pitches)
 - Chord progression: C major (beats 0–3), F major (4–7), G dom7 (8–11), C major (12–15)
 - Constraints: no adjacent repeat + no pitch[i] == pitch[i+2]

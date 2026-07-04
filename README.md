@@ -153,10 +153,10 @@ Notes:
 Set `"value_order": "neural"` to guide pitch selection using a trained unified
 melodic MLP. Two ready-to-use models ship with the package:
 
-| Model file | Training data | Accuracy | Conditioning |
-|---|---|---|---|
-| `harmonic_weights.json` | 67k Bach chorale notes | 50% top-1 (128-class) | ✅ chord one-hot (`harmonic_domain`) |
-| `folk_melodic_weights.json` | 455k folk + Bach notes | — | ❌ melody only |
+| Model file                  | Training data          | Accuracy              | Conditioning                         |
+| --------------------------- | ---------------------- | --------------------- | ------------------------------------ |
+| `harmonic_weights.json`     | 67k Bach chorale notes | 50% top-1 (128-class) | ✅ chord one-hot (`harmonic_domain`) |
+| `folk_melodic_weights.json` | 455k folk + Bach notes | —                     | ❌ melody only                       |
 
 Architecture: 8-note pitch context + 8-note rhythm context + 8-voice one-hot +
 36-class chord one-hot → 256 hidden (ReLU) → softmax over 128 MIDI values.
@@ -198,12 +198,12 @@ With `neural_temperature: 0.3` and a no-adjacent-repeat constraint, the scorer
 produces **100% chord-tone output** (verified on chromatic 24-note domain —
 see `configs/chromatic_chord_test.json`).
 
-| Parameter             | Default                                     | Effect                                                                                |
-| --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `neural_weights_file` | `datasets/weights/harmonic_weights.json`    | Path to weights JSON (relative paths resolved from patch folder in Max)               |
-| `neural_temperature`  | `1.0`                                       | Logit temperature. `0.3` for chord-following, `1.0` balanced, `>1` more adventurous  |
-| `neural_shadow_mode`  | `false`                                     | Log scores to stderr without affecting search (debugging)                             |
-| `random_seed`         | `0`                                         | `0` = fresh random per solve, `N > 0` = reproducible                                  |
+| Parameter             | Default                                  | Effect                                                                              |
+| --------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| `neural_weights_file` | `datasets/weights/harmonic_weights.json` | Path to weights JSON (relative paths resolved from patch folder in Max)             |
+| `neural_temperature`  | `1.0`                                    | Logit temperature. `0.3` for chord-following, `1.0` balanced, `>1` more adventurous |
+| `neural_shadow_mode`  | `false`                                  | Log scores to stderr without affecting search (debugging)                           |
+| `random_seed`         | `0`                                      | `0` = fresh random per solve, `N > 0` = reproducible                                |
 
 Retrain the harmonic model (requires Apple MLX — `pip3 install mlx`):
 
