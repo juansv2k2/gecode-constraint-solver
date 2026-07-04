@@ -79,8 +79,17 @@
         },
         "value_order": {
           "type": "string",
-          "enum": ["min", "random", "heuristic"],
-          "description": "'min' = shortest absolute duration / lowest pitch. 'random' = random order. 'heuristic' = scored by heuristic_energy rules."
+          "enum": ["min", "random", "heuristic", "neural"],
+          "description": "'min' = shortest absolute duration / lowest pitch. 'random' = random order. 'heuristic' = scored by heuristic_energy rules. 'neural' = scored by a loaded MLP neural pitch scorer (requires neural_weights_file)."
+        },
+        "neural_weights_file": {
+          "type": "string",
+          "description": "Path to a JSON neural MLP weights file (e.g. datasets/weights/harmonic_weights.json). Required when value_order is 'neural'."
+        },
+        "neural_temperature": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Gumbel-max sampling temperature for the neural scorer. Lower = more deterministic (0.1–0.5 typical). Default 1.0."
         },
         "restart_policy": {
           "type": "string",
@@ -149,6 +158,30 @@
       "type": "array",
       "description": "Expression-based hard constraints and heuristics.",
       "items": { "$ref": "#/definitions/dynamicRule" }
+    },
+    "harmonic_domain": {
+      "type": "array",
+      "description": "Chord progression for neural harmonic conditioning. Each entry specifies a beat-aligned chord that the neural scorer uses to bias pitch selection toward chord tones. Entries are forward-filled to cover all positions.",
+      "items": {
+        "type": "object",
+        "required": ["beat", "chord"],
+        "properties": {
+          "beat": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Quarter-note beat position where this chord begins (0-indexed)."
+          },
+          "chord": {
+            "type": "string",
+            "description": "Root note name, e.g. 'C', 'F', 'G', 'Bb', 'F#'."
+          },
+          "quality": {
+            "type": "string",
+            "description": "Chord quality: 'major', 'minor', 'dom7', 'maj7', 'min7', 'dim', 'aug'."
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "definitions": {
@@ -159,6 +192,15 @@
           "type": "integer",
           "minimum": 0,
           "description": "Explicit voice index. When omitted the array position determines the index."
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Alias for 'voice'. Explicit voice index."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable label for this voice, e.g. 'Soprano' or 'Bass'."
         },
         "pitch": {
           "oneOf": [

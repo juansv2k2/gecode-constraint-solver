@@ -1404,35 +1404,131 @@ If the patch has not been saved yet, the external falls back to Max's current de
 
 **Heuristics affect search order. They never affect constraint validity.**
 
-The search process:
+### 11.1 The Search Loop
 
 ```
-1. Select a variable          → branching (first_fail / input_order)
-2. Propose a value            → value_order (min / random / heuristic)
-3. Check ALL constraints      → rules + dynamic_rules (always applied)
-   ✓ Hard constraints: value PASSES or FAILS
-   ✓ Heuristic scores: only determined ORDERING of step 2
-4. If pass → go deeper
-   If fail → backtrack
+1. Select a variable          → branching strategy (first_fail / input_order)
+2. Rank candidates            → value_order (min / random / heuristic / neural)
+3. Propose best candidate     → highest-scored value is tried first
+4. Check ALL constraints      → rules + dynamic_rules (hard constraints always applied)
+   ✓ Passes → go deeper, select next variable
+   ✗ Fails  → reject candidate, try next in ranked list
+5. If all candidates fail → backtrack up the search tree
 ```
 
-**What this means in practice:**
+At step 4, hard constraints are checked regardless of how the candidate was ranked. A value that scores highly under any heuristic or neural scorer is still rejected if it violates a rule. The scorer only determines _order of proposal_, never validity.
 
-- Setting `value_order: "heuristic"` does not weaken or bypass any rule
-- Palindrome constraints, 12-tone rows, stepwise limits — all enforced exactly the same
-- Heuristics only change _which value is proposed first_ at each variable
-- If the best heuristic candidate violates a constraint, it is rejected and the next candidate is tried
+### 11.2 Value-Order Modes
 
-**Stochastic tie-breaking explained:**
+| `value_order` | Behaviour |
+|---|---|
+| `"min"` | Lowest MIDI pitch / shortest duration first. Fully deterministic. |
+| `"random"` | Random permutation. Controlled by `random_seed`. |
+| `"heuristic"` | Scored by `heuristic_energy` dynamic rules. Tied candidates break randomly when `random_seed: 0`. |
+| `"neural"` | MLP neural scorer (requires `neural_weights_file`). Neural score is the **primary bucket**; symbolic soft rules are lower-priority tiebreakers. |
 
-When `value_order: "heuristic"` and `random_seed: 0`:
+All four modes operate identically with respect to hard constraints: every proposed value goes through the full constraint check before it is accepted.
 
-- Many candidates may score identically (especially when cross-voice context isn't yet assigned)
-- The solver randomly selects from the tied group
-- This gives **different valid solutions on each run**, all satisfying all constraints
-- Use this to get solution diversity without giving up musical structure
+### 11.3 Symbolic Heuristics (`value_order: "heuristic"`)
 
-**Example — Heuristic + Palindrome:**
+Symbolic heuristics are `dynamic_rules` of type `"heuristic_energy"`. Each rule computes a numeric score for a candidate value; the solver tries candidates in descending score order.
+
+Multiple heuristic rules are combined through **priority buckets**:
+
+- Rules with higher `priority` values form a primary ranking.
+- Rules with lower `priority` values break ties within the primary ranking.
+- When `random_seed: 0`, unbroken ties are resolved randomly → different valid solutions per run.
+
+Built-in soft preferences via `"heuristic": true` on `r-pitch-pitch` / `r-rhythm-rhythm` rules are inserted as tiebreaker buckets below explicit `heuristic_energy` rules.
+
+```json
+{
+  "search_options": { "value_order": "heuristic", "random_seed": 0 },
+  "dynamic_rules": [
+    {
+      "id": "prefer_stepwise",
+      "type": "heuristic_energy",
+      "wildcard_type": "for_all_positions",
+      "expression": "max(0, 3 - abs(voice[0].pitch[i+1] - voice[0].pitch[i]))",
+      "weight": 10,
+      "priority": 1,
+      "direction": "maximize"
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_unison",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_unison",
+      "target_voices": [0, 1],
+      "heuristic": true
+    }
+  ]
+}
+```
+
+Here `prefer_stepwise` (priority 1) ranks candidates first; `no_unison` with `heuristic: true` breaks ties. The hard constraint `r-twelve-tone-voice1` (if present) remains completely unchanged.
+
+### 11.4 Neural Scorer (`value_order: "neural"`)
+
+The neural scorer replaces the top-priority ranking bucket with an MLP forward pass. It does **not** change the constraint checking step.
+
+**Required configuration:**
+
+```json
+{
+  "search_options": {
+    "value_order": "neural",
+    "neural_weights_file": "datasets/weights/harmonic_weights.json",
+    "neural_temperature": 0.3
+  },
+  "harmonic_domain": [
+    { "beat": 0, "chord": "C",  "quality": "major" },
+    { "beat": 4, "chord": "F",  "quality": "major" },
+    { "beat": 8, "chord": "G",  "quality": "dom7"  },
+    { "beat": 12,"chord": "C",  "quality": "major"  }
+  ]
+}
+```
+
+**How it works internally:**
+
+1. At solver start the MLP weights file is loaded once into memory.
+2. The `harmonic_domain` array is forward-filled into a per-position `harmonic_state` vector (one chord-class entry per note position).
+3. At each variable assignment, every candidate pitch is scored by calling the MLP with a 60-dimensional input: `[pitch_context (8), interval_context (8), mod-octave_class (12), chord_one_hot (24), voice_id (4), position_norm (4)]`.
+4. Gumbel-max sampling (`logit / T + gumbel_noise`) converts logits to a stochastic ranking. Lower `neural_temperature` = more deterministic chord-tone selection.
+5. Symbolic soft rules (`"heuristic": true`) are placed in a **lower-priority tiebreaker bucket** below the neural score. They further sort candidates that the MLP scores identically.
+6. Hard constraints (`rules`, `dynamic_rules` with `type: "basic_constraint"`) run unchanged after the neural ranking.
+
+**Priority stack (highest → lowest):**
+
+```
+[Neural MLP score + Gumbel noise]   ← primary ranking
+[Symbolic heuristic_energy rules]   ← tiebreaker
+[heuristic:true soft built-in rules]← secondary tiebreaker
+[min / random fallback]             ← final tiebreaker
+```
+
+**What the neural scorer cannot do:**
+
+- It cannot relax or bypass any hard constraint.
+- It cannot learn backtracking or domain pruning.
+- It does not guarantee any specific pitch will appear — only that chord tones are tried first; if they all violate a hard constraint the solver backtracks normally.
+
+### 11.5 Key Invariants (applies to all modes)
+
+- Palindrome, 12-tone row, retrograde inversion, metric hierarchy — all enforced identically regardless of value_order.
+- Heuristic and neural scores are recomputed at every variable: there is no persistent score state that can "override" a constraint failure.
+- Disabling a hard constraint (setting `"enabled": false`) has nothing to do with heuristics — it removes the rule from the constraint check entirely.
+- `heuristic_top_k` limits how many candidates are scored by expensive heuristics. Set it to `0` (all) or a value ≥ the domain size to ensure every candidate is considered. A too-small value silently ignores high-MIDI or high-duration candidates.
+
+### 11.6 Stochastic Diversity
+
+When `value_order: "heuristic"` or `"neural"` and `random_seed: 0`:
+
+- Many candidates may score identically (especially when cross-voice context isn't yet assigned).
+- The solver randomly selects from the tied group each run.
+- This gives **different valid solutions on each run**, all satisfying all hard constraints.
 
 ```
 Heuristic: prefer perfect fifths between voices
@@ -1445,7 +1541,7 @@ Run 3 → [C D E F G A B C]   + palindrome + fifths ✓
 All different sequences. All palindromes. All prefer fifths.
 ```
 
-The heuristic guides _which solutions are found first_, not _which solutions are valid_.
+Use a fixed `random_seed > 0` for fully reproducible results.
 
 ## 12. Common Patterns
 
