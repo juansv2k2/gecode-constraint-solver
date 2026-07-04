@@ -1420,12 +1420,12 @@ At step 4, hard constraints are checked regardless of how the candidate was rank
 
 ### 11.2 Value-Order Modes
 
-| `value_order` | Behaviour |
-|---|---|
-| `"min"` | Lowest MIDI pitch / shortest duration first. Fully deterministic. |
-| `"random"` | Random permutation. Controlled by `random_seed`. |
-| `"heuristic"` | Scored by `heuristic_energy` dynamic rules. Tied candidates break randomly when `random_seed: 0`. |
-| `"neural"` | MLP neural scorer (requires `neural_weights_file`). Neural score is the **primary bucket**; symbolic soft rules are lower-priority tiebreakers. |
+| `value_order` | Behaviour                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"min"`       | Lowest MIDI pitch / shortest duration first. Fully deterministic.                                                                               |
+| `"random"`    | Random permutation. Controlled by `random_seed`.                                                                                                |
+| `"heuristic"` | Scored by `heuristic_energy` dynamic rules. Tied candidates break randomly when `random_seed: 0`.                                               |
+| `"neural"`    | MLP neural scorer (requires `neural_weights_file`). Neural score is the **primary bucket**; symbolic soft rules are lower-priority tiebreakers. |
 
 All four modes operate identically with respect to hard constraints: every proposed value goes through the full constraint check before it is accepted.
 
@@ -1483,10 +1483,10 @@ The neural scorer replaces the top-priority ranking bucket with an MLP forward p
     "neural_temperature": 0.3
   },
   "harmonic_domain": [
-    { "beat": 0, "chord": "C",  "quality": "major" },
-    { "beat": 4, "chord": "F",  "quality": "major" },
-    { "beat": 8, "chord": "G",  "quality": "dom7"  },
-    { "beat": 12,"chord": "C",  "quality": "major"  }
+    { "beat": 0, "chord": "C", "quality": "major" },
+    { "beat": 4, "chord": "F", "quality": "major" },
+    { "beat": 8, "chord": "G", "quality": "dom7" },
+    { "beat": 12, "chord": "C", "quality": "major" }
   ]
 }
 ```
