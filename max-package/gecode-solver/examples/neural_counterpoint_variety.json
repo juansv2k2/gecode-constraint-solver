@@ -18,7 +18,10 @@
       "description": "Bass — C major A2–E4",
       "rhythm": { "duration_values": ["1/4"] },
       "pitch": {
-        "midi_values": [45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+        "midi_values": [
+          45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+          62, 63, 64
+        ]
       }
     }
   ],
@@ -142,9 +145,9 @@
   ],
   "dynamic_rules": [],
   "harmonic_domain": [
-    { "beat": 0,  "chord": "C", "quality": "major"  },
-    { "beat": 4,  "chord": "F", "quality": "major"  },
-    { "beat": 8,  "chord": "G", "quality": "dom7"   },
-    { "beat": 12, "chord": "C", "quality": "major"  }
+    { "beat": 0, "chord": "C", "quality": "major" },
+    { "beat": 4, "chord": "F", "quality": "major" },
+    { "beat": 8, "chord": "G", "quality": "dom7" },
+    { "beat": 12, "chord": "C", "quality": "major" }
   ]
 }
