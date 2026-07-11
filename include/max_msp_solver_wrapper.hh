@@ -102,12 +102,25 @@ private:
 
     std::string last_config_json_;
 
-    // Neural pitch scorer params (populated when value_order == "neural")
+    // ── Neural scorer configuration ────────────────────────────────────────
+    // Legacy single-global scorer (search_options.neural_weights_file)
     std::string  neural_weights_file_;
     bool         neural_shadow_mode_ = false;
     float        neural_temperature_ = 1.0f;
     unsigned int neural_seed_        = 12345;
-    std::vector<int> neural_harmonic_state_;   // per-position chord class (from harmonic_domain)
+    std::vector<int> neural_harmonic_state_;   // tick-indexed chord class (from harmonic_domain)
+
+    // Per-voice / per-component scorers (neural_scorers array)
+    struct NeuralScorerSpec {
+        std::string id;
+        std::string target_component; // "pitch" | "rhythm" | "harmony"
+        std::vector<int> target_voices; // empty = global
+        std::string weights_file;
+        float temperature = 1.0f;
+        float weight      = 1.0f;  // blend weight when multiple scorers target the same voice
+        bool shadow_mode  = false;
+    };
+    std::vector<NeuralScorerSpec> neural_scorer_specs_;
 
     void join_worker_if_needed();
     void run_solve_job();

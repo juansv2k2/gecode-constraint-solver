@@ -80,11 +80,11 @@
         "value_order": {
           "type": "string",
           "enum": ["min", "random", "heuristic", "neural"],
-          "description": "'min' = shortest absolute duration / lowest pitch. 'random' = random order. 'heuristic' = scored by heuristic_energy rules. 'neural' = scored by a loaded MLP neural pitch scorer (requires neural_weights_file)."
+          "description": "'min' = shortest absolute duration / lowest pitch. 'random' = random order. 'heuristic' = scored by heuristic_energy rules. 'neural' = MLP neural pitch scorer. Requires neural_weights_file OR a neural_scorers section."
         },
         "neural_weights_file": {
           "type": "string",
-          "description": "Path to a JSON neural MLP weights file (e.g. datasets/weights/harmonic_weights.json). Required when value_order is 'neural'."
+          "description": "Global neural scorer: path to a JSON MLP weights file. Applies to ALL voices. Superseded by the top-level neural_scorers array when both are present. Required when value_order is 'neural' and no neural_scorers section exists."
         },
         "neural_temperature": {
           "type": "number",
@@ -178,6 +178,49 @@
           "quality": {
             "type": "string",
             "description": "Chord quality: 'major', 'minor', 'dom7', 'maj7', 'min7', 'dim', 'aug'."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "neural_scorers": {
+      "type": "array",
+      "description": "Per-voice / per-component neural scorer configuration. Replaces or augments the legacy search_options.neural_weights_file shorthand. Resolution order: specific (target_voices match) > global (no target_voices) > legacy search_options fallback.",
+      "items": {
+        "type": "object",
+        "required": ["weights_file"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Optional identifier for this scorer entry."
+          },
+          "target_component": {
+            "type": "string",
+            "enum": ["pitch", "rhythm", "harmony"],
+            "description": "Which branching variable this scorer drives. 'pitch' (default): MIDI pitch value ordering. 'rhythm': duration value ordering. 'harmony': generates the harmonic_domain chord sequence before search (future feature — parsed but not yet active)."
+          },
+          "target_voices": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 },
+            "description": "Voice indices this scorer applies to. Omit (or leave empty) for a global scorer that covers all voices not matched by a more specific entry. Ignored for target_component='harmony'."
+          },
+          "weights_file": {
+            "type": "string",
+            "description": "Path to the MLP weights JSON. Relative paths are resolved against the patch folder (Max) or the config file directory (CLI)."
+          },
+          "temperature": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Logit temperature for this scorer. Lower = more deterministic. Default 1.0."
+          },
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Blend weight when multiple scorers target the same voice. Scores are normalised-averaged by this value. Default 1.0."
+          },
+          "shadow_mode": {
+            "type": ["boolean", "integer"],
+            "description": "When true, the scorer runs but its output is not used to reorder candidates (diagnostic mode only)."
           }
         },
         "additionalProperties": false

@@ -1,0 +1,153 @@
+{
+  "name": "neural_scorers — per-voice model test",
+  "description": "Tests the neural_scorers array: soprano uses folk_melodic_weights (folk style), bass uses harmonic_weights (harmonic/chordal style). Both are full 128-class pitch classifiers with chord conditioning. The same harmonic_domain chord sequence conditions both scorers. Hard variety rules on soprano, soft on bass.",
+  "solution_length": 32,
+  "score_length": "32q",
+  "num_voices": 2,
+  "voices": [
+    {
+      "id": 0,
+      "description": "Soprano — folk model, C major C4–A5",
+      "rhythm": { "duration_values": ["1/8"] },
+      "pitch": {
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83]
+      }
+    },
+    {
+      "id": 1,
+      "description": "Bass — harmonic model, C major A2–E4",
+      "rhythm": { "duration_values": ["1/4"] },
+      "pitch": {
+        "midi_values": [45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64]
+      }
+    }
+  ],
+  "meter": {
+    "time_signatures": ["4/4"],
+    "beat_divisions": [2, 4]
+  },
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "timeout_ms": 20000,
+    "branching": "first_fail",
+    "value_order": "neural",
+    "neural_temperature": 0.4
+  },
+  "neural_scorers": [
+    {
+      "id": "soprano_folk",
+      "target_component": "pitch",
+      "target_voices": [0],
+      "weights_file": "weights/folk_melodic_weights.json",
+      "temperature": 0.35,
+      "weight": 0.6,
+      "description": "Soprano: folk melody model — stepwise motion, narrow range bias (60% weight)"
+    },
+    {
+      "id": "soprano_harmonic",
+      "target_component": "pitch",
+      "target_voices": [0],
+      "weights_file": "weights/harmonic_weights.json",
+      "temperature": 0.5,
+      "weight": 0.4,
+      "description": "Soprano: harmonic model — pulls toward chord tones (40% weight)"
+    },
+    {
+      "id": "bass_harmonic",
+      "target_component": "pitch",
+      "target_voices": [1],
+      "weights_file": "weights/harmonic_weights.json",
+      "temperature": 0.6,
+      "weight": 1.0,
+      "description": "Bass: harmonic/chordal model"
+    }
+  ],
+  "export_json": 0,
+  "export_txt": 0,
+  "export_xml": 1,
+  "file_name": "output/neural_scorers_test",
+  "rules": [
+    {
+      "id": "soprano_above_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [0, 1],
+      "description": "Hard: soprano strictly above bass"
+    },
+    {
+      "id": "max_spread",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "max_interval",
+      "parameters": [24],
+      "target_voices": [0, 1],
+      "description": "Hard: voices at most two octaves apart"
+    },
+    {
+      "id": "soprano_max_leap",
+      "rule_type": "r-melodic-step",
+      "max_step": 7,
+      "target_voices": [0],
+      "description": "Hard: soprano max leap P5 (7 semitones)"
+    },
+    {
+      "id": "soprano_no_interval_repeat",
+      "rule_type": "r-no-interval-repetition",
+      "interval_mode": "absolute",
+      "target_voices": [0],
+      "description": "Hard: soprano cannot repeat the same interval size consecutively"
+    },
+    {
+      "id": "soprano_no_adjacent_repeat",
+      "rule_type": "r-no-consecutive-equal",
+      "max_consecutive": 1,
+      "target_voices": [0],
+      "description": "Hard: soprano may not repeat the same pitch adjacently"
+    },
+    {
+      "id": "soprano_no_long_run",
+      "rule_type": "r-no-consecutive-direction",
+      "direction": "both",
+      "max_consecutive": 4,
+      "target_voices": [0],
+      "description": "Hard: soprano no 4+ consecutive ascending or descending steps"
+    },
+    {
+      "id": "bass_no_adjacent_repeat",
+      "rule_type": "r-no-consecutive-equal",
+      "max_consecutive": 2,
+      "heuristic": true,
+      "target_voices": [1],
+      "description": "Soft: bass prefers not to repeat same pitch more than twice"
+    },
+    {
+      "id": "consonance",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "interval_class",
+      "parameters": [0, 3, 4, 7, 8, 9],
+      "target_voices": [0, 1],
+      "heuristic": 1,
+      "description": "Soft: prefer consonant harmony"
+    },
+    {
+      "id": "no_parallel_fifths",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 1],
+      "heuristic": 1,
+      "description": "Soft: prefer no parallel fifths"
+    }
+  ],
+  "dynamic_rules": [],
+  "harmonic_domain": [
+    { "beat": 0, "chord": "C", "quality": "major" },
+    { "beat": 4, "chord": "A", "quality": "minor" },
+    { "beat": 8, "chord": "F", "quality": "major" },
+    { "beat": 12, "chord": "G", "quality": "dom7" },
+    { "beat": 16, "chord": "C", "quality": "major" },
+    { "beat": 20, "chord": "F", "quality": "major" },
+    { "beat": 24, "chord": "G", "quality": "dom7" },
+    { "beat": 28, "chord": "C", "quality": "major" }
+  ]
+}

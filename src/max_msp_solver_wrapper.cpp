@@ -1524,46 +1524,102 @@ void AsyncSolverWrapper::run_solve_job() {
         local_result.message = "Solve cancelled before start";
     } else {
         try {
-            // Register neural pitch scorer if configured
-            std::string neural_info;  // included in result message for diagnostics
-            if (!neural_weights_file_.empty()) {
-                // Resolve relative paths against the patch folder (same rule as export)
-                std::filesystem::path wp(neural_weights_file_);
-                if (wp.is_relative() && !patch_folder_.empty())
-                    wp = std::filesystem::path(patch_folder_) / wp;
+            // ── Neural scorer registration ───────────────────────────────────
+            // Priority: neural_scorer_specs_ (per-voice) > neural_weights_file_ (legacy global)
+            std::string neural_info;
+            {
+                // Resolver — returns ALL matching specs for (voice, component).
+                // Multiple specific entries for the same voice → they are stacked (blended).
+                // If no specific entries → fall back to global entries.
+                using SpecWeight = std::pair<const NeuralScorerSpec*, float>;
+                auto find_all_specs = [&](int voice, const std::string& comp) -> std::vector<SpecWeight> {
+                    std::vector<SpecWeight> specific, global;
+                    for (const auto& s : neural_scorer_specs_) {
+                        if (s.target_component != comp) continue;
+                        if (s.target_voices.empty())
+                            global.push_back({&s, s.weight});
+                        else if (std::find(s.target_voices.begin(), s.target_voices.end(), voice) != s.target_voices.end())
+                            specific.push_back({&s, s.weight});
+                    }
+                    return specific.empty() ? global : specific;
+                };
 
-                if (!std::filesystem::exists(wp))
-                    throw std::runtime_error(
-                        "neural_weights_file not found: " + wp.string() +
-                        " (set neural_weights_file relative to the patch folder, "
-                        "e.g. \"weights/pitch_mlp_weights.json\")");
-
-                // Resolve seed=0 to a fresh random seed (same semantics as the Gecode solver).
+                // Resolve seed
                 unsigned int effective_seed = neural_seed_;
                 if (effective_seed == 0u) {
-                    std::random_device rd;
-                    effective_seed = rd();
-                    if (effective_seed == 0u) {
-                        effective_seed = static_cast<unsigned int>(
-                            std::chrono::steady_clock::now().time_since_epoch().count());
-                        if (effective_seed == 0u) effective_seed = 1u;
+                    std::random_device rd; effective_seed = rd();
+                    if (effective_seed == 0u) effective_seed = static_cast<unsigned int>(
+                        std::chrono::steady_clock::now().time_since_epoch().count());
+                    if (effective_seed == 0u) effective_seed = 1u;
+                }
+
+                // Log harmony stubs
+                for (const auto& s : neural_scorer_specs_)
+                    if (s.target_component == "harmony")
+                        std::cerr << "[NeuralPitch] harmony scorer '" << s.id << "' stub (future feature)\n";
+
+                // Build per-voice multi-scorer map
+                using ScorerKey = std::pair<std::string, float>;
+                std::map<ScorerKey, GecodeClusterIntegration::HeuristicValueScorer> scorer_cache;
+                const int sc_nv = solver_.get_config().num_voices;
+                // voice → list of (scorer, blend_weight)
+                using ScorerWithWeight = std::pair<GecodeClusterIntegration::HeuristicValueScorer, float>;
+                std::map<int, std::vector<ScorerWithWeight>> voice_multi_scorers;
+
+                auto make_or_get = [&](const NeuralScorerSpec* spec) -> GecodeClusterIntegration::HeuristicValueScorer {
+                    ScorerKey key{spec->weights_file, spec->temperature};
+                    if (scorer_cache.count(key)) return scorer_cache.at(key);
+                    std::filesystem::path wp(spec->weights_file);
+                    if (wp.is_relative() && !patch_folder_.empty()) wp = std::filesystem::path(patch_folder_) / wp;
+                    if (!std::filesystem::exists(wp)) throw std::runtime_error("neural scorer weights not found: " + wp.string());
+                    auto s = NeuralPitch::make_scorer(wp.string(), spec->shadow_mode, effective_seed, spec->temperature, neural_harmonic_state_, {}, rhythm_base_);
+                    scorer_cache[key] = s; return s;
+                };
+
+                if (!neural_scorer_specs_.empty()) {
+                    for (int v = 0; v < sc_nv; ++v) {
+                        for (const auto& [spec, w] : find_all_specs(v, "pitch")) {
+                            if (!spec || spec->weights_file.empty()) continue;
+                            voice_multi_scorers[v].push_back({make_or_get(spec), w});
+                            std::cerr << "[NeuralPitch] voice " << v << " <- '" << spec->id
+                                      << "' T=" << spec->temperature << " w=" << w << "\n";
+                        }
                     }
                 }
 
-                auto scorer = NeuralPitch::make_scorer(
-                    wp.string(), neural_shadow_mode_,
-                    effective_seed, neural_temperature_,
-                    neural_harmonic_state_, {}, rhythm_base_);
-                GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
-                    scorer, 0, 0, false);
-
-                char nbuf[128];
-                std::snprintf(nbuf, sizeof(nbuf), "neural: loaded seed=%u temp=%.3f",
-                              effective_seed, neural_temperature_);
-                neural_info = nbuf;
-                std::cerr << "[NeuralPitch] registered — seed=" << effective_seed
-                          << " temp=" << neural_temperature_
-                          << " path=" << wp.string() << "\n";
+                if (voice_multi_scorers.empty() && !neural_weights_file_.empty()) {
+                    // Legacy global fallback
+                    std::filesystem::path wp(neural_weights_file_);
+                    if (wp.is_relative() && !patch_folder_.empty()) wp = std::filesystem::path(patch_folder_) / wp;
+                    if (!std::filesystem::exists(wp)) throw std::runtime_error("neural_weights_file not found: " + wp.string() + " (relative to patch folder)");
+                    auto scorer = NeuralPitch::make_scorer(wp.string(), neural_shadow_mode_, effective_seed, neural_temperature_, neural_harmonic_state_, {}, rhythm_base_);
+                    GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(scorer, 0, 0, false);
+                    char nbuf[128]; std::snprintf(nbuf, sizeof(nbuf), "neural: loaded seed=%u temp=%.3f", effective_seed, neural_temperature_);
+                    neural_info = nbuf;
+                    std::cerr << "[NeuralPitch] global — seed=" << effective_seed << " temp=" << neural_temperature_ << " path=" << wp.string() << "\n";
+                } else if (!voice_multi_scorers.empty()) {
+                    GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
+                        [voice_multi_scorers](const GecodeClusterIntegration::IntegratedMusicalSpace& space,
+                                              int voice, int position, int candidate)
+                            -> GecodeClusterIntegration::HeuristicValueScoreBuckets {
+                            auto it = voice_multi_scorers.find(voice);
+                            if (it == voice_multi_scorers.end()) return {};
+                            const auto& scorers = it->second;
+                            if (scorers.size() == 1) return scorers[0].first(space, voice, position, candidate);
+                            // Weighted blend
+                            float blended = 0.0f, total_w = 0.0f;
+                            for (const auto& [scorer, w] : scorers) {
+                                for (const auto& [pri, score] : scorer(space, voice, position, candidate))
+                                    blended += w * score;
+                                total_w += w;
+                            }
+                            return total_w > 0.0f
+                                ? GecodeClusterIntegration::HeuristicValueScoreBuckets{{0, blended / total_w}}
+                                : GecodeClusterIntegration::HeuristicValueScoreBuckets{};
+                        }, 0, 0, false);
+                    char nbuf[128]; std::snprintf(nbuf, sizeof(nbuf), "neural: %d voice(s) seed=%u", (int)voice_multi_scorers.size(), effective_seed);
+                    neural_info = nbuf;
+                }
             }
 
             // Use solve_multiple() to handle both single and multiple solutions.
@@ -2079,12 +2135,17 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             }
             // Neural scorer config — stored for use in run_solve_job
             if (so.value("value_order", std::string("min")) == "neural") {
-                if (!so.contains("neural_weights_file") ||
-                        !so["neural_weights_file"].is_string() ||
-                        so["neural_weights_file"].get<std::string>().empty()) {
+                // neural_weights_file is required UNLESS neural_scorers provides weights
+                const bool has_neural_scorers_section =
+                    cfg.contains("neural_scorers") && cfg["neural_scorers"].is_array() &&
+                    !cfg["neural_scorers"].empty();
+                if (!has_neural_scorers_section &&
+                        (!so.contains("neural_weights_file") ||
+                         !so["neural_weights_file"].is_string() ||
+                         so["neural_weights_file"].get<std::string>().empty())) {
                     throw std::runtime_error(
-                        "value_order=\"neural\" requires \"neural_weights_file\" "
-                        "to be set explicitly in search_options");
+                        "value_order=\"neural\" requires either \"neural_weights_file\" "
+                        "in search_options or a \"neural_scorers\" array");
                 }
                 neural_weights_file_ = so.value("neural_weights_file", std::string(""));
                 neural_shadow_mode_  = so.contains("neural_shadow_mode")
@@ -2094,6 +2155,29 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 neural_seed_         = sc.random_seed;
             } else {
                 neural_weights_file_.clear();
+            }
+        }
+
+        // ── Parse neural_scorers array (per-voice / per-component scorers) ────
+        neural_scorer_specs_.clear();
+        if (cfg.contains("neural_scorers") && cfg["neural_scorers"].is_array()) {
+            for (const auto& entry : cfg["neural_scorers"]) {
+                if (!entry.is_object()) continue;
+                NeuralScorerSpec s;
+                s.id               = entry.value("id", std::string(""));
+                s.target_component = entry.value("target_component", std::string("pitch"));
+                s.weights_file     = entry.value("weights_file", std::string(""));
+                s.temperature      = entry.value("temperature", 1.0f);
+                s.weight           = entry.value("weight", 1.0f);
+                s.shadow_mode      = json_value_to_bool_with_default(
+                    entry.contains("shadow_mode") ? entry["shadow_mode"] : nlohmann::json(false), false);
+                if (entry.contains("target_voices") && entry["target_voices"].is_array())
+                    for (const auto& v : entry["target_voices"])
+                        if (v.is_number_integer()) s.target_voices.push_back(v.get<int>());
+                if (s.target_component == "harmony") s.target_voices.clear();
+                neural_scorer_specs_.push_back(s);
+                std::cerr << "[MaxWrapper] neural_scorers: '" << s.id
+                          << "' component=" << s.target_component << " file=" << s.weights_file << "\n";
             }
         }
 

@@ -1516,7 +1516,9 @@ Here `prefer_stepwise` (priority 1) ranks candidates first; `no_unison` with `he
 
 The neural scorer replaces the top-priority ranking bucket with an MLP forward pass. It does **not** change the constraint checking step.
 
-**Required configuration:**
+#### 11.4.1 Single-model shorthand (legacy)
+
+Put the weights file directly in `search_options`. Applies to **all voices**.
 
 ```json
 {
@@ -1534,14 +1536,67 @@ The neural scorer replaces the top-priority ranking bucket with an MLP forward p
 }
 ```
 
-**How it works internally:**
+#### 11.4.2 Per-voice / per-component scorers (`neural_scorers` array)
 
-1. At solver start the MLP weights file is loaded once into memory.
-2. The `harmonic_domain` array is forward-filled into a per-position `harmonic_state` vector (one chord-class entry per note position).
-3. At each variable assignment, every candidate pitch is scored by calling the MLP with a 60-dimensional input: `[pitch_context (8), interval_context (8), mod-octave_class (12), chord_one_hot (24), voice_id (4), position_norm (4)]`.
-4. Gumbel-max sampling (`logit / T + gumbel_noise`) converts logits to a stochastic ranking. Lower `neural_temperature` = more deterministic chord-tone selection.
-5. Symbolic soft rules (`"heuristic": true`) are placed in a **lower-priority tiebreaker bucket** below the neural score. They further sort candidates that the MLP scores identically.
-6. Hard constraints (`rules`, `dynamic_rules` with `type: "basic_constraint"`) run unchanged after the neural ranking.
+The top-level `neural_scorers` array supersedes `search_options.neural_weights_file` when present. It allows assigning **different MLP models to different voices** and **stacking multiple models on the same voice**.
+
+```json
+"neural_scorers": [
+  {
+    "id": "soprano_folk",
+    "target_component": "pitch",
+    "target_voices": [0],
+    "weights_file": "weights/folk_melodic_weights.json",
+    "temperature": 0.35,
+    "weight": 0.6
+  },
+  {
+    "id": "soprano_harmonic",
+    "target_component": "pitch",
+    "target_voices": [0],
+    "weights_file": "weights/harmonic_weights.json",
+    "temperature": 0.5,
+    "weight": 0.4
+  },
+  {
+    "id": "bass",
+    "target_component": "pitch",
+    "target_voices": [1],
+    "weights_file": "weights/harmonic_weights.json",
+    "temperature": 0.6
+  }
+]
+```
+
+Voice 0 here receives a **weighted blend** of the folk model (60%) and the harmonic model (40%). Voice 1 uses the harmonic model only.
+
+| Field              | Type                                   | Default             | Description                                                                                                 |
+| ------------------ | -------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `id`               | string                                 | —                   | Optional label for diagnostics                                                                              |
+| `target_component` | `"pitch"` \| `"rhythm"` \| `"harmony"` | `"pitch"`           | Which branching variable to score                                                                           |
+| `target_voices`    | array of int                           | _(omit for global)_ | Voices this entry applies to. Omit to make a global fallback for all voices not covered by a specific entry |
+| `weights_file`     | string                                 | **required**        | Path to MLP weights JSON. Resolved from patch folder in Max, CWD in CLI                                     |
+| `temperature`      | number > 0                             | `1.0`               | Gumbel-max temperature for this model                                                                       |
+| `weight`           | number > 0                             | `1.0`               | Blend weight when multiple entries target the same voice. Scores are normalised-averaged                    |
+| `shadow_mode`      | bool                                   | `false`             | Run scorer but do not reorder candidates (diagnostic only)                                                  |
+
+**Resolution order:**
+
+1. **Specific** — entries whose `target_voices` contains the current voice
+2. **Global** — entries with no `target_voices` (fallback for unmatched voices)
+3. **Legacy** — `search_options.neural_weights_file` (if no `neural_scorers` section)
+
+**Stacking:** Multiple entries that match the same voice are all called. Their scores are blended as `Σ(weight_i × score_i) / Σ(weight_i)`. The `weight` field is optional; omit it (defaults to 1.0) for equal blending.
+
+**Harmony component** (`target_component: "harmony"`): parsed and logged but not yet active — the static `harmonic_domain` array remains in control. This will be activated in a future release for model-driven chord progression generation.
+
+**How the pitch scorer works internally:**
+
+1. At solver start each unique `(weights_file, temperature)` pair is loaded once into memory.
+2. The `harmonic_domain` array is forward-filled into a tick-indexed `harmonic_state` vector. The scorer looks up the chord by computing the note's metric onset tick from already-assigned `rhythm_vars` (rhythm is branched before pitch).
+3. At each variable assignment, every candidate pitch is scored: `[pitch_ctx (8), rhythm_ctx (8), mod-octave (12), chord_one_hot (24), voice_id (4), position_norm (4)]` → 256 ReLU → 128-class softmax.
+4. Gumbel-max sampling (`logit / T + gumbel_noise`) converts logits to a stochastic ranking.
+5. Symbolic soft rules are placed in a **lower-priority tiebreaker bucket** below the neural score.
 
 **Priority stack (highest → lowest):**
 

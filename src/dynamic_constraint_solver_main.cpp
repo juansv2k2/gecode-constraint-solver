@@ -3376,80 +3376,203 @@ int main(int argc, char* argv[]) {
         }
         std::cout << std::endl;
         
-        // Register neural pitch scorer when value_order == "neural"
+        // ── Neural scorer registration ─────────────────────────────────────────
+        // Supports two complementary mechanisms:
+        //
+        //  (A) Legacy single-scorer:
+        //        search_options.value_order = "neural"
+        //        search_options.neural_weights_file = "..."
+        //        search_options.neural_temperature  = 1.0
+        //      → one pitch scorer applied to ALL voices.
+        //
+        //  (B) Per-voice / per-component scorers (new):
+        //        "neural_scorers": [
+        //          { "id": "...", "target_component": "pitch|rhythm|harmony",
+        //            "target_voices": [0,1],   // omit for global (all voices)
+        //            "weights_file": "...",
+        //            "temperature": 1.0,
+        //            "shadow_mode": false }
+        //        ]
+        //      Resolution: specific (target_voices match) > global (no target_voices)
+        //      > legacy fallback (search_options.neural_weights_file).
+        //      "harmony" entries are always global; target_voices is ignored for them.
+        //      The harmony scorer stubs as a future feature — it is parsed and logged
+        //      but does not yet replace the static harmonic_domain chord sequence.
         {
             nlohmann::json cfg_json;
-            std::ifstream cfg_f(config_file);
-            bool neural_active = false;
-            if (cfg_f.is_open()) {
-                try { cfg_f >> cfg_json; } catch (...) {}
-                if (cfg_json.contains("search_options") &&
-                    cfg_json["search_options"].value("value_order", "") == "neural") {
-                    // neural_weights_file is mandatory — no silent fallback.
-                    if (!cfg_json["search_options"].contains("neural_weights_file")) {
-                        std::cerr << "\u274c Config error: value_order=\"neural\" requires "
-                                     "\"neural_weights_file\" to be set explicitly in "
-                                     "search_options.\n";
-                        return 1;
-                    }
-                    const std::string weights_path =
-                        cfg_json["search_options"].value("neural_weights_file", "");
-                    const bool shadow =
-                        cfg_json["search_options"].value("neural_shadow_mode", false);
-                    const float temperature =
-                        cfg_json["search_options"].value("neural_temperature", 1.0f);
-                    // Pass solver seed; resolve 0 to a fresh random seed (same as Gecode solver).
-                    unsigned int warmup_seed = solver_config.random_seed;
-                    if (warmup_seed == 0u) {
-                        std::random_device rd;
-                        warmup_seed = rd();
-                        if (warmup_seed == 0u) warmup_seed = 1u;
-                    }
+            {
+                std::ifstream cfg_f(config_file);
+                if (cfg_f.is_open()) { try { cfg_f >> cfg_json; } catch (...) {} }
+            }
 
-                    // ── Option A: pre-build rhythm_context from first voice's duration domain ──
-                    // For isorhythm configs this produces a constant vector.
-                    // beat_fraction = 4 * numerator / denominator  (quarter note = 1.0)
-                    std::vector<float> rhythm_context;
-                    {
-                        float beat_frac = 1.0f; // default: quarter note
-                        try {
-                            if (cfg_json.contains("voices") && cfg_json["voices"].is_array() &&
-                                !cfg_json["voices"].empty()) {
-                                const auto& v0 = cfg_json["voices"][0];
-                                if (v0.contains("rhythm") &&
-                                    v0["rhythm"].contains("duration_values") &&
-                                    v0["rhythm"]["duration_values"].is_array() &&
-                                    !v0["rhythm"]["duration_values"].empty()) {
-                                    std::string dv = v0["rhythm"]["duration_values"][0].get<std::string>();
-                                    auto slash = dv.find('/');
-                                    if (slash != std::string::npos) {
-                                        float num  = std::stof(dv.substr(0, slash));
-                                        float den  = std::stof(dv.substr(slash + 1));
-                                        if (den > 0.0f) beat_frac = 4.0f * num / den;
-                                    }
-                                }
-                            }
-                        } catch (...) {}
-                        const int seq_len = solver_config.sequence_length > 0
-                                            ? solver_config.sequence_length : 16;
-                        rhythm_context.assign(seq_len, beat_frac);
-                    }
+            struct NeuralScorerSpec {
+                std::string id;
+                std::string target_component; // "pitch" | "rhythm" | "harmony"
+                std::vector<int> target_voices; // empty = global for that component
+                std::string weights_file;
+                float temperature = 1.0f;
+                float weight      = 1.0f;  // blend weight when multiple scorers target the same voice
+                bool shadow_mode  = false;
+            };
 
-                    // harmonic_state: from parsed harmonic_domain (Phase 3); empty if not configured
-                    const std::vector<int>& harmonic_state =
-                        solver_config.harmonic_domain.harmonic_state;
+            std::vector<NeuralScorerSpec> specs;
 
-                    auto scorer = NeuralPitch::make_scorer(
-                        weights_path, shadow, warmup_seed, temperature,
-                        harmonic_state, rhythm_context, solver_config.rhythm_base);
-                    const int top_k = solver_config.heuristic_top_k;
-                    const bool trace = solver_config.heuristic_trace;
-                    GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
-                        scorer, 0, top_k, trace);
-                    neural_active = true;
-                    std::cout << "   🧠 Neural pitch scorer active"
-                              << (shadow ? " (shadow mode)" : "") << "\n";
+            const bool has_neural_scorers_section =
+                cfg_json.contains("neural_scorers") &&
+                cfg_json["neural_scorers"].is_array() &&
+                !cfg_json["neural_scorers"].empty();
+
+            const bool is_legacy_neural =
+                cfg_json.contains("search_options") &&
+                cfg_json["search_options"].value("value_order", "") == "neural";
+
+            // Parse "neural_scorers" array if present
+            if (has_neural_scorers_section) {
+                for (const auto& entry : cfg_json["neural_scorers"]) {
+                    if (!entry.is_object()) continue;
+                    NeuralScorerSpec s;
+                    s.id               = entry.value("id", "");
+                    s.target_component = entry.value("target_component", std::string("pitch"));
+                    s.weights_file     = entry.value("weights_file", std::string(""));
+                    s.temperature      = entry.value("temperature", 1.0f);
+                    s.weight           = entry.value("weight", 1.0f);
+                    s.shadow_mode      = entry.value("shadow_mode", false);
+                    if (entry.contains("target_voices") && entry["target_voices"].is_array())
+                        for (const auto& v : entry["target_voices"])
+                            if (v.is_number_integer()) s.target_voices.push_back(v.get<int>());
+                    // "harmony" entries are always global regardless of target_voices
+                    if (s.target_component == "harmony") s.target_voices.clear();
+                    specs.push_back(s);
                 }
+            }
+
+            // Add legacy single-global fallback from search_options if no neural_scorers
+            if (!has_neural_scorers_section && is_legacy_neural) {
+                if (!cfg_json["search_options"].contains("neural_weights_file")) {
+                    std::cerr << "❌ Config error: value_order=\"neural\" requires "
+                                 "\"neural_weights_file\" in search_options.\n";
+                    return 1;
+                }
+                NeuralScorerSpec s;
+                s.id               = "global";
+                s.target_component = "pitch";
+                s.weights_file     = cfg_json["search_options"].value("neural_weights_file", std::string(""));
+                s.temperature      = cfg_json["search_options"].value("neural_temperature", 1.0f);
+                s.shadow_mode      = cfg_json["search_options"].value("neural_shadow_mode", false);
+                // empty target_voices → global
+                specs.push_back(s);
+            }
+
+            // Resolver — returns ALL matching specs for (voice, component).
+            // Multiple specific entries for the same voice → stacked (blended by weight).
+            // If no specific entries → fall back to global entries.
+            using SpecWeight = std::pair<const NeuralScorerSpec*, float>;
+            auto find_all_specs = [&](int voice, const std::string& comp) -> std::vector<SpecWeight> {
+                std::vector<SpecWeight> specific, global;
+                for (const auto& s : specs) {
+                    if (s.target_component != comp) continue;
+                    if (s.target_voices.empty())
+                        global.push_back({&s, s.weight});
+                    else if (std::find(s.target_voices.begin(), s.target_voices.end(), voice) != s.target_voices.end())
+                        specific.push_back({&s, s.weight});
+                }
+                return specific.empty() ? global : specific;
+            };
+
+            // Shared warmup seed
+            unsigned int warmup_seed = solver_config.random_seed;
+            if (warmup_seed == 0u) {
+                std::random_device rd; warmup_seed = rd();
+                if (warmup_seed == 0u) warmup_seed = 1u;
+            }
+
+            // Build rhythm context (from voice 0's domain; used as warmup for all voices)
+            std::vector<float> rhythm_context;
+            {
+                float beat_frac = 1.0f;
+                try {
+                    if (cfg_json.contains("voices") && cfg_json["voices"].is_array() &&
+                        !cfg_json["voices"].empty()) {
+                        const auto& v0 = cfg_json["voices"][0];
+                        if (v0.contains("rhythm") && v0["rhythm"].contains("duration_values") &&
+                            v0["rhythm"]["duration_values"].is_array() &&
+                            !v0["rhythm"]["duration_values"].empty()) {
+                            std::string dv = v0["rhythm"]["duration_values"][0].get<std::string>();
+                            auto slash = dv.find('/');
+                            if (slash != std::string::npos) {
+                                float num = std::stof(dv.substr(0, slash));
+                                float den = std::stof(dv.substr(slash + 1));
+                                if (den > 0.0f) beat_frac = 4.0f * num / den;
+                            }
+                        }
+                    }
+                } catch (...) {}
+                const int seq_len = solver_config.sequence_length > 0 ? solver_config.sequence_length : 16;
+                rhythm_context.assign(seq_len, beat_frac);
+            }
+
+            const std::vector<int>& harmonic_state = solver_config.harmonic_domain.harmonic_state;
+            const int top_k  = solver_config.heuristic_top_k;
+            const bool trace = solver_config.heuristic_trace;
+
+            // ── Log any harmony entries (future feature — parsed but not yet active) ──
+            for (const auto& s : specs) {
+                if (s.target_component != "harmony") continue;
+                std::cout << "   ℹ️  neural_scorers: harmony entry '" << s.id << "' registered "
+                             "(chord-progression generation is a future feature — "
+                             "harmonic_domain static anchors remain active)\n";
+            }
+
+            // ── Build per-voice multi-scorer map ─────────────────────────────────
+            using ScorerKey = std::pair<std::string, float>;
+            std::map<ScorerKey, GecodeClusterIntegration::HeuristicValueScorer> scorer_cache;
+            // voice → list of (scorer, blend_weight)
+            using ScorerWithWeight = std::pair<GecodeClusterIntegration::HeuristicValueScorer, float>;
+            std::map<int, std::vector<ScorerWithWeight>> voice_multi_scorers;
+
+            for (int v = 0; v < solver_config.num_voices; ++v) {
+                for (const auto& [spec, w] : find_all_specs(v, "pitch")) {
+                    if (!spec || spec->weights_file.empty()) continue;
+                    ScorerKey key{spec->weights_file, spec->temperature};
+                    if (scorer_cache.find(key) == scorer_cache.end()) {
+                        scorer_cache[key] = NeuralPitch::make_scorer(
+                            spec->weights_file, spec->shadow_mode, warmup_seed, spec->temperature,
+                            harmonic_state, rhythm_context, solver_config.rhythm_base);
+                        std::cout << "   🧠 Loaded pitch scorer '" << spec->id << "' → "
+                                  << spec->weights_file << " (T=" << spec->temperature
+                                  << " w=" << w << ")\n";
+                    }
+                    voice_multi_scorers[v].push_back({scorer_cache[key], w});
+                }
+            }
+
+            bool neural_active = false;
+            if (!voice_multi_scorers.empty()) {
+                GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
+                    [voice_multi_scorers](
+                        const GecodeClusterIntegration::IntegratedMusicalSpace& space,
+                        int voice, int position, int candidate)
+                        -> GecodeClusterIntegration::HeuristicValueScoreBuckets {
+                        auto it = voice_multi_scorers.find(voice);
+                        if (it == voice_multi_scorers.end()) return {};
+                        const auto& scorers = it->second;
+                        // Fast path: single scorer
+                        if (scorers.size() == 1) return scorers[0].first(space, voice, position, candidate);
+                        // Weighted blend across all scorers for this voice
+                        float blended = 0.0f, total_w = 0.0f;
+                        for (const auto& [scorer, w] : scorers) {
+                            for (const auto& [pri, score] : scorer(space, voice, position, candidate))
+                                blended += w * score;
+                            total_w += w;
+                        }
+                        return total_w > 0.0f
+                            ? GecodeClusterIntegration::HeuristicValueScoreBuckets{{0, blended / total_w}}
+                            : GecodeClusterIntegration::HeuristicValueScoreBuckets{};
+                    },
+                    warmup_seed, top_k, trace);
+                neural_active = true;
+                std::cout << "   🧠 Neural pitch scorer active for "
+                          << voice_multi_scorers.size() << " voice(s)\n";
             }
             if (!neural_active) {
                 GecodeClusterIntegration::clear_pitch_heuristic_value_ordering();

@@ -164,9 +164,10 @@ Trained with **Apple MLX** on Apple Silicon.
 
 The scorer uses **Gumbel-max sampling**: each candidate receives
 `logit_i / T + gumbel(seed, voice, pos, cand)`, so `argmax` over candidates is
-equivalent to sampling from the learned distribution. Different `random_seed`
-values produce different but reproducible melodies; `T < 1.0` sharpens,
+equivalent to sampling from the learned distribution. `T < 1.0` sharpens,
 `T > 1.0` flattens.
+
+### Single-model shorthand
 
 ```json
 "search_options": {
@@ -204,6 +205,29 @@ see `configs/chromatic_chord_test.json`).
 | `neural_temperature`  | `1.0`                                    | Logit temperature. `0.3` for chord-following, `1.0` balanced, `>1` more adventurous |
 | `neural_shadow_mode`  | `false`                                  | Log scores to stderr without affecting search (debugging)                           |
 | `random_seed`         | `0`                                      | `0` = fresh random per solve, `N > 0` = reproducible                                |
+
+### Per-voice models (`neural_scorers` array)
+
+The top-level `neural_scorers` key assigns different MLP models to different voices and supports **blending multiple models on the same voice**. It supersedes `search_options.neural_weights_file` when present.
+
+```json
+"neural_scorers": [
+  { "id": "soprano_folk",     "target_voices": [0], "weights_file": "weights/folk_melodic_weights.json",
+    "temperature": 0.35, "weight": 0.6 },
+  { "id": "soprano_harmonic", "target_voices": [0], "weights_file": "weights/harmonic_weights.json",
+    "temperature": 0.5,  "weight": 0.4 },
+  { "id": "bass",             "target_voices": [1], "weights_file": "weights/harmonic_weights.json",
+    "temperature": 0.6 }
+]
+```
+
+Voice 0 gets a 60/40 blend of folk melodic style and harmonic chord conditioning. Voice 1 uses the harmonic model only. An entry with no `target_voices` acts as a **global fallback** for any voice not explicitly covered. Each unique `(weights_file, temperature)` pair is loaded only once even when shared across multiple entries.
+
+| Field              | Description                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------- |
+| `target_component` | `"pitch"` (default), `"rhythm"`, or `"harmony"` (future)                                                |
+| `target_voices`    | Omit for global fallback; list for per-voice                                                            |
+| `weight`           | Blend weight (default `1.0`). Scores are normalised-averaged when multiple entries match the same voice |
 
 Retrain the harmonic model (requires Apple MLX — `pip3 install mlx`):
 
