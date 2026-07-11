@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/melodic_step_test.json
+Problem: r-melodic-step smoke test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4 → C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 0

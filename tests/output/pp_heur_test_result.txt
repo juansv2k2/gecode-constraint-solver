@@ -1,0 +1,21 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: /tmp/pp_heur_test.json
+Problem: r-pitch-pitch heuristic integer test
+Description: 
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4 → C4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: C3 → C3 → C3 → C3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 4 ms
+  Rules applied: 0

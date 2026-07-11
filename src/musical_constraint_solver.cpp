@@ -2482,6 +2482,14 @@ void Solver::add_rule_config(const std::string& rule_type, const std::string& fu
         // Metric signature is handled by the metric engine extraction
         // No specific rule needed as this is built into the metric generation
         
+    } else if (rule_type == "r-melodic-step") {
+        // Handled by compiled constraint via apply_compiled_constraint; no legacy rule needed.
+
+    } else if (rule_type == "r-no-interval-repetition" ||
+               rule_type == "r-no-consecutive-equal"   ||
+               rule_type == "r-no-consecutive-direction") {
+        // Handled by compiled constraint via apply_compiled_constraint; no legacy rule needed.
+
     } else {
         // Default: add basic musical rules for unrecognized rule types
         add_rule(std::make_shared<NoRepetitionRule>());

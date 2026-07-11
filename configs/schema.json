@@ -277,6 +277,10 @@
             "r-palindrome-voice2",
             "r-twelve-tone-voice1",
             "r-metric-hierarchy",
+            "r-melodic-step",
+            "r-no-interval-repetition",
+            "r-no-consecutive-equal",
+            "r-no-consecutive-direction",
             "r-time-signature",
             "r-timepoint-relationship",
             "wildcard_constraint"
@@ -334,9 +338,14 @@
           "minimum": 0,
           "description": "Starting position for stride-based application. Default 0."
         },
+        "max_step": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "r-melodic-step only. Maximum allowed melodic interval in semitones between consecutive notes (default 2 = whole tone)."
+        },
         "heuristic": {
-          "type": "boolean",
-          "description": "r-pitch-pitch / r-rhythm-rhythm only. When true, converts the rule to a soft preference: values satisfying the rule are tried first but violations are not rejected. Default false (hard constraint)."
+          "type": ["boolean", "integer"],
+          "description": "r-pitch-pitch / r-rhythm-rhythm / r-melodic-step. When true (or 1), converts the rule to a soft preference: values satisfying the rule are tried first but violations are not rejected. Default false (hard constraint)."
         },
         "timepoints": {
           "type": "array",

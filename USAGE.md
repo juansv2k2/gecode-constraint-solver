@@ -654,6 +654,49 @@ Both `r-pitch-pitch` and `r-rhythm-rhythm` support an optional `"heuristic": tru
 
 This is useful when a musical preference should guide search without pruning any solutions. Combine with `"value_order": "heuristic"` in `search_options` for best results.
 
+### 5.3c Single-Voice Melodic Step Rule (`r-melodic-step`)
+
+`r-melodic-step` constrains or guides the melodic interval between consecutive notes within a single voice. It is **automatically targeted to pitch engines** — do not add `target_component`.
+
+| Field           | Type        | Default    | Description                                   |
+| --------------- | ----------- | ---------- | --------------------------------------------- |
+| `max_step`      | integer ≥ 0 | `2`        | Maximum allowed melodic interval in semitones |
+| `target_voices` | array       | all voices | Which voices to apply the rule to             |
+| `heuristic`     | bool / 1    | `false`    | Soft mode: rank, don't reject                 |
+
+**Hard mode** (`heuristic` absent or `false`): posts `|pitch[i+1] − pitch[i]| ≤ max_step` as a Gecode constraint for every consecutive pair `(i, i+1)`. Candidates exceeding the threshold are cut from the domain.
+
+```json
+{
+  "id": "soprano_max_step",
+  "rule_type": "r-melodic-step",
+  "max_step": 2,
+  "target_voices": [0],
+  "description": "Hard: soprano max melodic interval = whole tone"
+}
+```
+
+**Soft mode** (`"heuristic": true`): no domain pruning. Candidates are scored and sorted each branching step:
+
+| Interval                           | Score |
+| ---------------------------------- | ----- |
+| 0 – `max_step` (step)              | 1.0   |
+| `max_step+1` – `max_step+4` (skip) | 0.3   |
+| > `max_step+4` (leap)              | 0.0   |
+
+```json
+{
+  "id": "prefer_steps",
+  "rule_type": "r-melodic-step",
+  "max_step": 2,
+  "heuristic": true,
+  "target_voices": [0],
+  "description": "Soft: prefer stepwise motion, allow skips and leaps"
+}
+```
+
+> **Note**: use `"heuristic": true` (or `1`) together with `"value_order": "heuristic"` or `"value_order": "neural"`. In hard mode, the rule combines freely with other pitch constraints.
+
 ### 5.4 Metric Hierarchy Rules (`r-metric-hierarchy`)
 
 `r-metric-hierarchy` constrains rhythm values relative to the beat grid defined in `meter`. It is **automatically targeted to rhythm engines** — do not add `target_component` or `engine_type`.

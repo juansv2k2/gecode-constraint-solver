@@ -1553,7 +1553,7 @@ void AsyncSolverWrapper::run_solve_job() {
                 auto scorer = NeuralPitch::make_scorer(
                     wp.string(), neural_shadow_mode_,
                     effective_seed, neural_temperature_,
-                    neural_harmonic_state_);
+                    neural_harmonic_state_, {}, rhythm_base_);
                 GecodeClusterIntegration::configure_pitch_heuristic_value_ordering(
                     scorer, 0, 0, false);
 
@@ -2097,8 +2097,11 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             }
         }
 
-        // ── Parse harmonic_domain (same encoding as CLI solver) ────────────
+        // ── Parse harmonic_domain entries (state built after rhythm_base is known) ──
+        // {beat_pos_in_quarter_beats, chord_root_pc, chord_quality}
         neural_harmonic_state_.clear();
+        using HRawEntry = std::tuple<int,int,int>;
+        std::vector<HRawEntry> raw_hentries;
         if (cfg.contains("harmonic_domain") && cfg["harmonic_domain"].is_array() &&
                 !cfg["harmonic_domain"].empty()) {
             static const std::map<std::string,int> NOTE_MAP = {
@@ -2111,31 +2114,18 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 {"minor",1},{"min",1},{"m",1},
                 {"dom7",2},{"dominant",2},{"dominant-seventh",2},{"7",2}
             };
-            struct HEntry { int beat_pos, chord_root, chord_quality; };
-            std::vector<HEntry> entries;
             for (const auto& e : cfg["harmonic_domain"]) {
-                HEntry he{};
-                he.beat_pos     = e.value("beat", 0);
+                const int beat = e.value("beat", 0);
                 auto nit = NOTE_MAP.find(e.value("chord", std::string("C")));
-                he.chord_root   = (nit != NOTE_MAP.end()) ? nit->second : 0;
+                const int root = (nit != NOTE_MAP.end()) ? nit->second : 0;
                 auto qit = QUAL_MAP.find(e.value("quality", std::string("major")));
-                he.chord_quality = (qit != QUAL_MAP.end()) ? qit->second : 0;
-                entries.push_back(he);
+                const int qual = (qit != QUAL_MAP.end()) ? qit->second : 0;
+                raw_hentries.emplace_back(beat, root, qual);
             }
-            std::sort(entries.begin(), entries.end(),
-                      [](const HEntry& a, const HEntry& b){ return a.beat_pos < b.beat_pos; });
-            const int seq_len = sc.sequence_length > 0 ? sc.sequence_length : 64;
-            neural_harmonic_state_.assign(seq_len, -1);
-            for (int i = 0; i < (int)entries.size(); ++i) {
-                const auto& e  = entries[i];
-                int end_pos    = (i + 1 < (int)entries.size())
-                                 ? entries[i+1].beat_pos : seq_len;
-                int chord_cls  = e.chord_root * 3 + std::min(e.chord_quality, 2);
-                for (int p = e.beat_pos; p < end_pos && p < seq_len; ++p)
-                    neural_harmonic_state_[p] = chord_cls;
-            }
-            std::cerr << "[MaxWrapper] harmonic_domain: " << entries.size()
-                      << " chord entries parsed\n";
+            std::sort(raw_hentries.begin(), raw_hentries.end(),
+                      [](const HRawEntry& a, const HRawEntry& b){
+                          return std::get<0>(a) < std::get<0>(b);
+                      });
         }
 
         if (cfg.contains("timeout_ms") && cfg["timeout_ms"].is_number()) {
@@ -2233,6 +2223,31 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         }
         sc.rhythm_base = rhythm_base;
         rhythm_base_ = rhythm_base;
+
+        // ── Build tick-indexed harmonic state now that rhythm_base is known ──
+        // beat_position is in quarter-note beats; onset tick = beat * quarter_ticks.
+        // The neural scorer resolves chords by querying harm_state[onset_tick] where
+        // onset_tick is computed live from the already-assigned rhythm_vars.
+        if (!raw_hentries.empty()) {
+            const int quarter_ticks = std::max(1, rhythm_base / 4);
+            const int seq_len_h     = sc.sequence_length > 0 ? sc.sequence_length : 64;
+            const int last_bt       = std::get<0>(raw_hentries.back()) * quarter_ticks;
+            const int total_ticks   = last_bt + seq_len_h * quarter_ticks + 1;
+            neural_harmonic_state_.assign(total_ticks, -1);
+            for (int i = 0; i < (int)raw_hentries.size(); ++i) {
+                const int start_t   = std::get<0>(raw_hentries[i]) * quarter_ticks;
+                const int end_t     = (i + 1 < (int)raw_hentries.size())
+                                      ? std::get<0>(raw_hentries[i+1]) * quarter_ticks
+                                      : total_ticks;
+                const int chord_cls = std::get<1>(raw_hentries[i]) * 3
+                                    + std::min(std::get<2>(raw_hentries[i]), 2);
+                for (int t = start_t; t < end_t && t < total_ticks; ++t)
+                    neural_harmonic_state_[t] = chord_cls;
+            }
+            std::cerr << "[MaxWrapper] harmonic_domain: " << raw_hentries.size()
+                      << " entries → tick-indexed state (" << total_ticks << " ticks)\n";
+        }
+
         sc.voice_rhythm_domains.assign(sc.num_voices, {});
         for (int v = 0; v < sc.num_voices; ++v) {
             for (const auto& s : rhythm_strings[v]) {
@@ -2785,7 +2800,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                             rr_id, "r-rhythm-rhythm: " + rr_mode +
                                    " (voices " + std::to_string(rr_v1) + "," + std::to_string(rr_v2) + ")");
 
-                        const bool rr_is_heuristic = rule_json.value("heuristic", false);
+                        const bool rr_is_heuristic = json_value_to_bool_with_default(rule_json.contains("heuristic") ? rule_json["heuristic"] : nlohmann::json(false), false);
                         if (rr_is_heuristic) {
                             compiled_rr->is_heuristic = true;
                             compiled_rr->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
@@ -2947,7 +2962,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                             pp_id, "r-pitch-pitch: " + pp_mode +
                                    " (voices " + std::to_string(pp_v1) + "," + std::to_string(pp_v2) + ")");
 
-                        const bool pp_is_heuristic = rule_json.value("heuristic", false);
+                        const bool pp_is_heuristic = json_value_to_bool_with_default(rule_json.contains("heuristic") ? rule_json["heuristic"] : nlohmann::json(false), false);
                         if (pp_is_heuristic) {
                             compiled_pp->is_heuristic = true;
                             compiled_pp->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
@@ -3115,6 +3130,294 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         } // end else (not heuristic pp)
 
                         solver_.apply_compiled_constraint(std::move(compiled_pp));
+                        // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-melodic-step") {
+                        // ── R-MELODIC-STEP ────────────────────────────────────────────
+                        // Single-voice consecutive-pair constraint / heuristic.
+                        // Hard:      |pitch[i+1] - pitch[i]| <= max_step for every i.
+                        // Heuristic: step (0..max_step)→1.0, skip (+1..+4)→0.3, leap→0.0.
+                        std::vector<int> ms_voices;
+                        if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array())
+                            for (const auto& v : rule_json["target_voices"])
+                                if (v.is_number_integer()) ms_voices.push_back(v.get<int>());
+                        if (ms_voices.empty())
+                            for (int v = 0; v < sc.num_voices; ++v) ms_voices.push_back(v);
+
+                        const int ms_max = rule_json.contains("max_step") && rule_json["max_step"].is_number()
+                                           ? std::max(0, rule_json["max_step"].get<int>()) : 2;
+                        const bool ms_heur = json_value_to_bool_with_default(rule_json.contains("heuristic") ? rule_json["heuristic"] : nlohmann::json(false), false);
+                        const std::string ms_id = rule_json.value("id", "r-melodic-step");
+
+                        auto compiled_ms = std::make_unique<DynamicRules::CompiledConstraint>(
+                            ms_id, "r-melodic-step (max_step=" + std::to_string(ms_max) + ")");
+
+                        if (ms_heur) {
+                            compiled_ms->is_heuristic = true;
+                            compiled_ms->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                            compiled_ms->heuristic_variable_type = "pitch";
+                            compiled_ms->applies_to_voices = ms_voices;
+                            compiled_ms->score_candidate = [ms_voices, ms_max](
+                                    const DynamicRules::ConstraintContext& ctx,
+                                    const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                if (!ctx.pitch_vars) return 0.0;
+                                if (std::find(ms_voices.begin(), ms_voices.end(), cand.voice) == ms_voices.end()) return 0.0;
+                                if (cand.position == 0) return 0.0;
+                                const int prev_idx = cand.voice * ctx.sequence_length + (cand.position - 1);
+                                if (prev_idx < 0 || prev_idx >= (int)ctx.pitch_vars->size()) return 0.0;
+                                const Gecode::IntVar& pv = (*ctx.pitch_vars)[prev_idx];
+                                if (!pv.assigned()) return 0.0;
+                                const int interval = std::abs(cand.candidate_value - pv.val());
+                                if (interval <= ms_max)       return 1.0;   // step
+                                if (interval <= ms_max + 4)   return 0.3;   // skip
+                                return 0.0;                                  // leap
+                            };
+                        } else {
+                            compiled_ms->post_constraint = [ms_voices, ms_max, ms_id](
+                                    DynamicRules::ConstraintContext& ctx) {
+                                if (!ctx.pitch_vars || !ctx.space) return;
+                                try {
+                                    for (int v : ms_voices) {
+                                        if (v < 0 || v >= ctx.num_voices) continue;
+                                        for (int i = 0; i + 1 < ctx.sequence_length; ++i) {
+                                            const int ci = v * ctx.sequence_length + i;
+                                            const int ni = v * ctx.sequence_length + (i + 1);
+                                            if (ci >= (int)ctx.pitch_vars->size() ||
+                                                ni >= (int)ctx.pitch_vars->size()) continue;
+                                            // |p_next - p_curr| <= ms_max via two linear rels
+                                            Gecode::IntVar p_curr = (*ctx.pitch_vars)[ci];
+                                            Gecode::IntVar p_next = (*ctx.pitch_vars)[ni];
+                                            Gecode::IntVar diff_fwd = Gecode::expr(*ctx.space, p_next - p_curr);
+                                            Gecode::IntVar diff_bwd = Gecode::expr(*ctx.space, p_curr - p_next);
+                                            Gecode::rel(*ctx.space, diff_fwd, Gecode::IRT_LQ, ms_max);
+                                            Gecode::rel(*ctx.space, diff_bwd, Gecode::IRT_LQ, ms_max);
+                                        }
+                                    }
+                                } catch (const std::exception& ex) {
+                                    std::cerr << "[r-melodic-step] post_constraint threw: "
+                                              << ex.what() << "\n";
+                                    throw;
+                                }
+                            };
+                        }
+
+                        std::cerr << "[MaxWrapper] r-melodic-step: " << ms_id
+                                  << " max_step=" << ms_max
+                                  << (ms_heur ? " (heuristic)\n" : " (hard)\n");
+                        solver_.apply_compiled_constraint(std::move(compiled_ms));
+                        // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-no-interval-repetition") {
+                        // ── R-NO-INTERVAL-REPETITION ──────────────────────────────────
+                        std::vector<int> nir_voices;
+                        if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array())
+                            for (const auto& v : rule_json["target_voices"])
+                                if (v.is_number_integer()) nir_voices.push_back(v.get<int>());
+                        if (nir_voices.empty())
+                            for (int v = 0; v < sc.num_voices; ++v) nir_voices.push_back(v);
+                        const bool nir_absolute = (rule_json.value("interval_mode", std::string("up-down")) == "absolute");
+                        const bool nir_heur     = json_value_to_bool_with_default(rule_json.contains("heuristic") ? rule_json["heuristic"] : nlohmann::json(false), false);
+                        const std::string nir_id = rule_json.value("id", std::string("r-no-interval-repetition"));
+
+                        auto compiled_nir = std::make_unique<DynamicRules::CompiledConstraint>(
+                            nir_id, "r-no-interval-repetition");
+                        if (nir_heur) {
+                            compiled_nir->is_heuristic = true;
+                            compiled_nir->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                            compiled_nir->heuristic_variable_type = "pitch";
+                            compiled_nir->applies_to_voices = nir_voices;
+                            compiled_nir->score_candidate = [nir_voices, nir_absolute](
+                                    const DynamicRules::ConstraintContext& ctx,
+                                    const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                if (!ctx.pitch_vars || cand.position < 2) return 0.0;
+                                if (std::find(nir_voices.begin(), nir_voices.end(), cand.voice) == nir_voices.end()) return 0.0;
+                                const int idx1 = cand.voice * ctx.sequence_length + (cand.position - 2);
+                                const int idx2 = cand.voice * ctx.sequence_length + (cand.position - 1);
+                                if (idx1 < 0 || idx2 >= (int)ctx.pitch_vars->size()) return 0.0;
+                                const auto& v1 = (*ctx.pitch_vars)[idx1];
+                                const auto& v2 = (*ctx.pitch_vars)[idx2];
+                                if (!v1.assigned() || !v2.assigned()) return 0.0;
+                                const int prev_int = v2.val() - v1.val();
+                                const int new_int  = cand.candidate_value - v2.val();
+                                if (nir_absolute ? (std::abs(new_int) == std::abs(prev_int)) : (new_int == prev_int)) return 0.0;
+                                return 1.0;
+                            };
+                        } else {
+                            compiled_nir->post_constraint = [nir_voices, nir_absolute](
+                                    DynamicRules::ConstraintContext& ctx) {
+                                if (!ctx.pitch_vars || !ctx.space) return;
+                                for (int v : nir_voices) {
+                                    if (v < 0 || v >= ctx.num_voices) continue;
+                                    for (int i = 0; i + 2 < ctx.sequence_length; ++i) {
+                                        const int i2 = v * ctx.sequence_length + i + 2;
+                                        if (i2 >= (int)ctx.pitch_vars->size()) continue;
+                                        Gecode::IntVar p0 = (*ctx.pitch_vars)[v * ctx.sequence_length + i];
+                                        Gecode::IntVar p1 = (*ctx.pitch_vars)[v * ctx.sequence_length + i + 1];
+                                        Gecode::IntVar p2 = (*ctx.pitch_vars)[i2];
+                                        Gecode::IntVar d1 = Gecode::expr(*ctx.space, p1 - p0);
+                                        Gecode::IntVar d2 = Gecode::expr(*ctx.space, p2 - p1);
+                                        Gecode::rel(*ctx.space, d1, Gecode::IRT_NQ, d2);
+                                        if (nir_absolute) {
+                                            Gecode::IntVar neg_d2 = Gecode::expr(*ctx.space, -d2);
+                                            Gecode::rel(*ctx.space, d1, Gecode::IRT_NQ, neg_d2);
+                                        }
+                                    }
+                                }
+                            };
+                        }
+                        std::cerr << "[MaxWrapper] r-no-interval-repetition: " << nir_id
+                                  << (nir_heur ? " heuristic\n" : " hard\n");
+                        solver_.apply_compiled_constraint(std::move(compiled_nir));
+                        // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-no-consecutive-equal") {
+                        // ── R-NO-CONSECUTIVE-EQUAL ────────────────────────────────────
+                        std::vector<int> nce_voices;
+                        if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array())
+                            for (const auto& v : rule_json["target_voices"])
+                                if (v.is_number_integer()) nce_voices.push_back(v.get<int>());
+                        if (nce_voices.empty())
+                            for (int v = 0; v < sc.num_voices; ++v) nce_voices.push_back(v);
+                        const int nce_max   = rule_json.contains("max_consecutive") && rule_json["max_consecutive"].is_number()
+                                              ? std::max(1, rule_json["max_consecutive"].get<int>()) : 2;
+                        const bool nce_heur = json_value_to_bool_with_default(rule_json.contains("heuristic") ? rule_json["heuristic"] : nlohmann::json(false), false);
+                        const std::string nce_id = rule_json.value("id", std::string("r-no-consecutive-equal"));
+
+                        auto compiled_nce = std::make_unique<DynamicRules::CompiledConstraint>(
+                            nce_id, "r-no-consecutive-equal");
+                        if (nce_heur) {
+                            compiled_nce->is_heuristic = true;
+                            compiled_nce->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                            compiled_nce->heuristic_variable_type = "pitch";
+                            compiled_nce->applies_to_voices = nce_voices;
+                            compiled_nce->score_candidate = [nce_voices, nce_max](
+                                    const DynamicRules::ConstraintContext& ctx,
+                                    const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                if (!ctx.pitch_vars) return 0.0;
+                                if (std::find(nce_voices.begin(), nce_voices.end(), cand.voice) == nce_voices.end()) return 0.0;
+                                int run = 0;
+                                for (int k = 1; k <= nce_max && (cand.position - k) >= 0; ++k) {
+                                    const int idx = cand.voice * ctx.sequence_length + (cand.position - k);
+                                    if (idx < 0 || idx >= (int)ctx.pitch_vars->size()) break;
+                                    const auto& var = (*ctx.pitch_vars)[idx];
+                                    if (!var.assigned() || var.val() != cand.candidate_value) break;
+                                    ++run;
+                                }
+                                return (run >= nce_max) ? 0.0 : 1.0;
+                            };
+                        } else {
+                            compiled_nce->post_constraint = [nce_voices, nce_max](
+                                    DynamicRules::ConstraintContext& ctx) {
+                                if (!ctx.pitch_vars || !ctx.space) return;
+                                const int win = nce_max + 1;
+                                for (int v : nce_voices) {
+                                    if (v < 0 || v >= ctx.num_voices) continue;
+                                    for (int i = 0; i + win <= ctx.sequence_length; ++i) {
+                                        Gecode::BoolVarArgs b(nce_max);
+                                        bool valid = true;
+                                        for (int k = 0; k < nce_max && valid; ++k) {
+                                            const int ia = v * ctx.sequence_length + i + k;
+                                            const int ib = v * ctx.sequence_length + i + k + 1;
+                                            if (ib >= (int)ctx.pitch_vars->size()) { valid = false; break; }
+                                            Gecode::BoolVar bk(*ctx.space, 0, 1);
+                                            Gecode::rel(*ctx.space, (*ctx.pitch_vars)[ia],
+                                                        Gecode::IRT_EQ, (*ctx.pitch_vars)[ib], bk);
+                                            b[k] = bk;
+                                        }
+                                        if (valid)
+                                            Gecode::linear(*ctx.space, b, Gecode::IRT_LQ, nce_max - 1);
+                                    }
+                                }
+                            };
+                        }
+                        std::cerr << "[MaxWrapper] r-no-consecutive-equal: " << nce_id
+                                  << " max=" << nce_max << (nce_heur ? " heuristic\n" : " hard\n");
+                        solver_.apply_compiled_constraint(std::move(compiled_nce));
+                        // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-no-consecutive-direction") {
+                        // ── R-NO-CONSECUTIVE-DIRECTION ────────────────────────────────
+                        std::vector<int> ncd_voices;
+                        if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array())
+                            for (const auto& v : rule_json["target_voices"])
+                                if (v.is_number_integer()) ncd_voices.push_back(v.get<int>());
+                        if (ncd_voices.empty())
+                            for (int v = 0; v < sc.num_voices; ++v) ncd_voices.push_back(v);
+                        const int ncd_max = rule_json.contains("max_consecutive") && rule_json["max_consecutive"].is_number()
+                                            ? std::max(1, rule_json["max_consecutive"].get<int>()) : 3;
+                        const std::string ncd_dir  = rule_json.value("direction", std::string("both"));
+                        const bool ncd_heur = json_value_to_bool_with_default(rule_json.contains("heuristic") ? rule_json["heuristic"] : nlohmann::json(false), false);
+                        const std::string ncd_id = rule_json.value("id", std::string("r-no-consecutive-direction"));
+
+                        auto compiled_ncd = std::make_unique<DynamicRules::CompiledConstraint>(
+                            ncd_id, "r-no-consecutive-direction");
+                        if (ncd_heur) {
+                            compiled_ncd->is_heuristic = true;
+                            compiled_ncd->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                            compiled_ncd->heuristic_variable_type = "pitch";
+                            compiled_ncd->applies_to_voices = ncd_voices;
+                            compiled_ncd->score_candidate = [ncd_voices, ncd_max, ncd_dir](
+                                    const DynamicRules::ConstraintContext& ctx,
+                                    const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                if (!ctx.pitch_vars || cand.position == 0) return 0.0;
+                                if (std::find(ncd_voices.begin(), ncd_voices.end(), cand.voice) == ncd_voices.end()) return 0.0;
+                                const int prev_idx = cand.voice * ctx.sequence_length + (cand.position - 1);
+                                if (prev_idx >= (int)ctx.pitch_vars->size()) return 0.0;
+                                const auto& prev_var = (*ctx.pitch_vars)[prev_idx];
+                                if (!prev_var.assigned()) return 0.0;
+                                int run_asc = 0, run_desc = 0;
+                                for (int k = 1; k <= ncd_max && (cand.position - k - 1) >= 0; ++k) {
+                                    const int ia = cand.voice * ctx.sequence_length + (cand.position - k - 1);
+                                    const int ib = cand.voice * ctx.sequence_length + (cand.position - k);
+                                    if (ib >= (int)ctx.pitch_vars->size()) break;
+                                    const auto& va = (*ctx.pitch_vars)[ia]; const auto& vb = (*ctx.pitch_vars)[ib];
+                                    if (!va.assigned() || !vb.assigned()) break;
+                                    if (vb.val() - va.val() > 0) ++run_asc; else break;
+                                }
+                                for (int k = 1; k <= ncd_max && (cand.position - k - 1) >= 0; ++k) {
+                                    const int ia = cand.voice * ctx.sequence_length + (cand.position - k - 1);
+                                    const int ib = cand.voice * ctx.sequence_length + (cand.position - k);
+                                    if (ib >= (int)ctx.pitch_vars->size()) break;
+                                    const auto& va = (*ctx.pitch_vars)[ia]; const auto& vb = (*ctx.pitch_vars)[ib];
+                                    if (!va.assigned() || !vb.assigned()) break;
+                                    if (vb.val() - va.val() < 0) ++run_desc; else break;
+                                }
+                                const int new_dir = cand.candidate_value - prev_var.val();
+                                const bool bad_asc  = (ncd_dir != "descending") && (new_dir > 0) && (run_asc  >= ncd_max);
+                                const bool bad_desc = (ncd_dir != "ascending")  && (new_dir < 0) && (run_desc >= ncd_max);
+                                return (bad_asc || bad_desc) ? 0.0 : 1.0;
+                            };
+                        } else {
+                            compiled_ncd->post_constraint = [ncd_voices, ncd_max, ncd_dir](
+                                    DynamicRules::ConstraintContext& ctx) {
+                                if (!ctx.pitch_vars || !ctx.space) return;
+                                const int win = ncd_max + 1;
+                                const bool do_asc  = (ncd_dir != "descending");
+                                const bool do_desc = (ncd_dir != "ascending");
+                                for (int v : ncd_voices) {
+                                    if (v < 0 || v >= ctx.num_voices) continue;
+                                    for (int i = 0; i + win <= ctx.sequence_length; ++i) {
+                                        auto post_dir = [&](bool ascending) {
+                                            Gecode::BoolVarArgs b(ncd_max);
+                                            for (int k = 0; k < ncd_max; ++k) {
+                                                const int ia = v * ctx.sequence_length + i + k;
+                                                const int ib = v * ctx.sequence_length + i + k + 1;
+                                                if (ib >= (int)ctx.pitch_vars->size()) return;
+                                                Gecode::IntVar diff = ascending
+                                                    ? Gecode::expr(*ctx.space, (*ctx.pitch_vars)[ib] - (*ctx.pitch_vars)[ia])
+                                                    : Gecode::expr(*ctx.space, (*ctx.pitch_vars)[ia] - (*ctx.pitch_vars)[ib]);
+                                                Gecode::BoolVar bk(*ctx.space, 0, 1);
+                                                Gecode::rel(*ctx.space, diff, Gecode::IRT_GQ, 1, bk);
+                                                b[k] = bk;
+                                            }
+                                            Gecode::linear(*ctx.space, b, Gecode::IRT_LQ, ncd_max - 1);
+                                        };
+                                        if (do_asc)  post_dir(true);
+                                        if (do_desc) post_dir(false);
+                                    }
+                                }
+                            };
+                        }
+                        std::cerr << "[MaxWrapper] r-no-consecutive-direction: " << ncd_id
+                                  << " dir=" << ncd_dir << " max=" << ncd_max
+                                  << (ncd_heur ? " heuristic\n" : " hard\n");
+                        solver_.apply_compiled_constraint(std::move(compiled_ncd));
                         // ─────────────────────────────────────────────────────────────
                     } else if (rule_json.contains("id") && rule_json.contains("expression")) {
                         std::vector<nlohmann::json> single_rule = {rule_json};

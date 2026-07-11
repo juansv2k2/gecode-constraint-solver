@@ -424,7 +424,8 @@ make_scorer(const std::string& weights_path,
             unsigned int warmup_seed    = 12345,
             float        temperature    = 1.0f,
             const std::vector<int>&   harmonic_state  = {},
-            const std::vector<float>& rhythm_context  = {}) {
+            const std::vector<float>& rhythm_context  = {},
+            int          rhythm_base    = 0) {
     auto w = std::make_shared<MLPWeights>(load_weights(weights_path));
 
     if (!w->loaded) {
@@ -450,8 +451,9 @@ make_scorer(const std::string& weights_path,
         std::cerr << "[NeuralPitch] regression model (legacy) — temperature=" << temperature << "\n";
     }
 
+    const int rb = rhythm_base;
     return [w, ctx_size, shadow, warmup_seed, n_samples, temp,
-            harm_state, rhythm_ctx](
+            harm_state, rhythm_ctx, rb](
         const GecodeClusterIntegration::IntegratedMusicalSpace& space,
         int voice,
         int position,
@@ -507,11 +509,24 @@ make_scorer(const std::string& weights_path,
             std::vector<float> v_hot(mv, 0.0f);
             if (voice >= 0 && voice < mv) v_hot[voice] = 1.0f;
 
-            // Chord one-hot: only populated when harmonic conditioning was trained in
+            // Chord one-hot: only populated when harmonic conditioning was trained in.
+            // harm_state is tick-indexed; compute metric onset tick from rhythm_vars
+            // (rhythm is branched before pitch, so all rhythm vars are assigned here).
             std::vector<float> c_hot(cv, 0.0f);
-            if (w->uses_harmonic_conditioning &&
-                    !harm_state.empty() && position < (int)harm_state.size()) {
-                int cls = harm_state[position];
+            if (w->uses_harmonic_conditioning && !harm_state.empty()) {
+                int onset_tick = 0;
+                if (space.has_rhythm_vars()) {
+                    const auto& rv = space.get_rhythm_vars();
+                    for (int i = 0; i < position; ++i) {
+                        const int r = voice * seq_len + i;
+                        if (r < (int)rv.size() && rv[r].assigned())
+                            onset_tick += std::abs(rv[r].val());
+                    }
+                } else if (rb > 0) {
+                    // Pitch-only mode: assume quarter-note grid as a fallback
+                    onset_tick = position * std::max(1, rb / 4);
+                }
+                const int cls = (onset_tick < (int)harm_state.size()) ? harm_state[onset_tick] : -1;
                 if (cls >= 0 && cls < cv) c_hot[cls] = 1.0f;
             }
 
