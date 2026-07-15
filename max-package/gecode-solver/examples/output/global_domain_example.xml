@@ -36,8 +36,18 @@
       </attributes>
       <note>
         <rest/>
-        <duration>1</duration>
-        <type>eighth</type>
+        <duration>2</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <rest/>
+        <duration>2</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <rest/>
+        <duration>2</duration>
+        <type>quarter</type>
       </note>
       <note>
         <rest/>
@@ -45,27 +55,9 @@
         <type>eighth</type>
       </note>
       <note>
-        <pitch>
-          <step>A</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>1</duration>
-        <type>eighth</type>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>A</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>1</duration>
-        <type>eighth</type>
-        <beam number="1">end</beam>
-      </note>
-      <note>
         <rest/>
-        <duration>4</duration>
-        <type>half</type>
+        <duration>1</duration>
+        <type>eighth</type>
       </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>
@@ -94,27 +86,28 @@
         <type>quarter</type>
       </note>
       <note>
-        <rest/>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
         <duration>2</duration>
         <type>quarter</type>
       </note>
       <note>
         <pitch>
-          <step>G</step>
+          <step>B</step>
           <octave>4</octave>
         </pitch>
-        <duration>1</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <rest/>
         <duration>2</duration>
         <type>quarter</type>
       </note>
       <note>
-        <rest/>
-        <duration>1</duration>
-        <type>eighth</type>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>quarter</type>
       </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>
@@ -138,6 +131,16 @@
         </clef>
       </attributes>
       <note>
+        <rest/>
+        <duration>2</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <rest/>
+        <duration>1</duration>
+        <type>eighth</type>
+      </note>
+      <note>
         <pitch>
           <step>B</step>
           <octave>4</octave>
@@ -146,20 +149,10 @@
         <type>quarter</type>
       </note>
       <note>
-        <rest/>
-        <duration>2</duration>
-        <type>quarter</type>
-      </note>
-      <note>
         <pitch>
           <step>A</step>
           <octave>4</octave>
         </pitch>
-        <duration>1</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <rest/>
         <duration>1</duration>
         <type>eighth</type>
       </note>
@@ -191,27 +184,6 @@
       </attributes>
       <note>
         <pitch>
-          <step>C</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>2</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <rest/>
-        <duration>1</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <pitch>
-          <step>B</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>2</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <pitch>
           <step>B</step>
           <octave>3</octave>
         </pitch>
@@ -222,6 +194,24 @@
         <rest/>
         <duration>1</duration>
         <type>eighth</type>
+      </note>
+      <note>
+        <rest/>
+        <duration>2</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>1</duration>
+        <type>eighth</type>
+      </note>
+      <note>
+        <rest/>
+        <duration>2</duration>
+        <type>quarter</type>
       </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>

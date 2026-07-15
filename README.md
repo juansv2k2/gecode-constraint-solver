@@ -1,6 +1,6 @@
 # Gecode Musical Constraint Solver
 
-Polyphonic musical constraint solving in C++17 on top of Gecode. The engine is inspired on the logic of the musical constraint solver Cluster-Engine, developed by Örjan Sandred, in particular the use of polyphonic dynamic constraints in the form of index and wildcard rules, metric segmentation and hierarchy. The system currently has a Max/MSP integration as an Max external package.
+Polyphonic musical constraint solving in C++17 on top of Gecode. The engine is inspired on the logic of the musical constraint solver Cluster-Engine, developed by Örjan Sandred, in particular the use of polyphonic dynamic constraints in the form of local and global rules, including the domains of pitch, rhythm, harmony,and meter. The system currently has a Max/MSP integration as an Max external package.
 
 ## Front Ends
 
@@ -26,6 +26,44 @@ make max-external
 bin/dynamic-solver configs/metric_domain_example.json
 ./bin/test-max-wrapper configs/metric_domain_example.json
 ```
+
+## Max Integration
+
+Use `config_file` or `config_dict` with the `gecode.solver` object. For details, see:
+
+- [USAGE.md](USAGE.md)
+- [max-usage.md](max-usage.md)
+
+### Deploying the Max Package
+
+`scripts/max_package_smoke.sh` builds the external and installs the full package into your Max Packages folder in one step:
+
+```bash
+bash scripts/max_package_smoke.sh
+```
+
+What the script does:
+
+1. **Validates** the package structure (`max-package/gecode-solver/` — externals, help, examples, docs).
+2. **Builds** `bin/gecode.solver.mxo` via `make max-external`.
+3. **Copies** the freshly built bundle into `max-package/gecode-solver/externals/`.
+4. **Syncs neural weights** — any `datasets/weights/<name>.json` that has a counterpart in `examples/weights/` is copied across so the installed package always has the latest trained models.
+5. **Installs** the complete package to `~/Documents/Max 8/Packages/gecode-solver` and/or `~/Documents/Max 9/Packages/gecode-solver` (whichever folders exist).
+6. **Strips quarantine attributes** and **ad-hoc code-signs** the installed bundle so Gatekeeper does not block it on macOS.
+
+After the script finishes, restart Max (or use _File → Refresh Max's File System_) and the `gecode.solver` external will be available.
+
+> **Note:** If `bin/gecode.solver.mxo` does not exist yet, build it first with `make max-external MAX_SDK_PATH=<path-to-max-sdk>`, then re-run the script.
+
+## Documentation
+
+- [Usage Guide](USAGE.md)
+- [Max Usage](max-usage.md)
+- [JSON Schema](configs/schema.json)
+- [Harmonic Consonance Example](configs/harmonic_consonance_4voice.json)
+- [Twelve-Tone Usage](docs/TWELVE_TONE_USAGE.md)
+- [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
+- [Neural Pitch Scorer Test Results](tests/NEURAL_TEST_RESULTS.md)
 
 ## Current Config Shape
 
@@ -245,23 +283,6 @@ python3 tests/test_neural_influence.py       # runs 30 seeds, checks 4 propertie
 ```
 
 See [tests/NEURAL_TEST_RESULTS.md](tests/NEURAL_TEST_RESULTS.md) for baseline results.
-
-## Max Integration
-
-Use `config_file` or `config_dict` with the `gecode.solver` object. For details, see:
-
-- [USAGE.md](USAGE.md)
-- [max-usage.md](max-usage.md)
-
-## Documentation
-
-- [Usage Guide](USAGE.md)
-- [Max Usage](max-usage.md)
-- [JSON Schema](configs/schema.json)
-- [Harmonic Consonance Example](configs/harmonic_consonance_4voice.json)
-- [Twelve-Tone Usage](docs/TWELVE_TONE_USAGE.md)
-- [XML Export Guide](docs/XML_EXPORT_GUIDE.md)
-- [Neural Pitch Scorer Test Results](tests/NEURAL_TEST_RESULTS.md)
 
 ## What Is Current
 
