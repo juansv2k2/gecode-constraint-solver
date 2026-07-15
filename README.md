@@ -55,7 +55,7 @@ After the script finishes, restart Max (or use _File → Refresh Max's File Syst
 
 > **Note:** If `bin/gecode.solver.mxo` does not exist yet, build it first with `make max-external MAX_SDK_PATH=<path-to-max-sdk>`, then re-run the script.
 
-## Max dependencies
+## Max dependencies (Only works on Max 9)
 
 - MaxScore
 - Bach
