@@ -1,0 +1,64 @@
+BEETHOVEN AI - ONE-PAGE BUDGET PROPOSAL (NOK)
+
+Project:
+Beethoven Block #1 to Production (NeuralConstraints / Gecode-based system)
+
+Period:
+1 August 2026 - 1 May 2027
+
+Workload:
+Part-time, approximately 10-20% FTE
+
+Hourly rate:
+NOK 600
+
+PURPOSE
+This budget covers only the remaining commercial work needed to bring the Beethoven Block #1 system from
+its current research/prototype status to a production-ready, performance-stable implementation.
+Previously completed R&D (already funded by university resources) is explicitly excluded.
+
+INCLUDED SCOPE
+1) Block #1 production hardening (Melody-Harmony-Bassline procedural realization)
+2) Runtime reliability and latency stabilization for live use
+3) Integration polishing (JSON block specification, solver pipeline, control parameters)
+4) Testing, rehearsal support, and iterative bug fixing
+5) Staging/deployment setup, documentation, handover, and limited post-launch stabilization
+
+EXCLUDED SCOPE
+1) Prior foundational research and already-delivered solver/neural architecture work
+2) Development of additional Beethoven blocks beyond Block #1
+3) Long-term maintenance after stabilization period
+
+BUDGET SUMMARY (NOK)
+- Labor (268 h x 600 NOK).................................... 160,800
+- Cloud compute/storage......................................  72,000
+- Copilot Pro subscription...................................   2,700
+- Ops/tools (CI, monitoring, backups, artifacts).............  20,000
+  Subtotal................................................... 255,500
+- Contingency (10%)..........................................  25,550
+TOTAL........................................................ 281,050
+Recommended proposal amount (rounded)......................... 280,000
+
+TIME AND EFFORT PLAN (10-20% profile)
+- August:    24 h (technical planning, acceptance criteria, roadmap lock)
+- September: 32 h (Block #1 production implementation)
+- October:   32 h (integration and runtime controls)
+- November:  30 h (test harness, performance and quality tuning)
+- December:  20 h (light maintenance/fix sprint)
+- January:   32 h (reliability hardening, rehearsal adjustments)
+- February:  32 h (staging, observability, deployment workflows)
+- March:     34 h (acceptance testing, bug burn-down)
+- April:     32 h (go-live prep, documentation, handover)
+Total........................................................ 268 h
+
+MILESTONE-BASED PAYMENT PLAN
+1) 20% at project kickoff
+2) 25% at Block #1 production-ready completion
+3) 25% at integration + staging validation
+4) 20% at production go-live readiness
+5) 10% after stabilization period
+
+RISK POSITION
+This is a lean and conservative budget made possible by substantial pre-existing work.
+Primary residual risk is live-performance robustness under real rehearsal/venue conditions;
+this is covered by contingency and phased acceptance gates.

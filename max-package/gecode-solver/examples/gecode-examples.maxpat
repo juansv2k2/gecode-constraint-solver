@@ -9,7 +9,7 @@
             "modernui": 1
         },
         "classnamespace": "box",
-        "rect": [ 1762.0, 62.0, 2099.0, 1344.0 ],
+        "rect": [ 33.0, 94.0, 1260.0, 989.0 ],
         "boxes": [
             {
                 "box": {
@@ -595,13 +595,13 @@
             {
                 "box": {
                     "id": "obj-23",
-                    "linecount": 6,
+                    "linecount": 2,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 512.0, 1266.0, 117.0, 89.0 ],
-                    "text": "4 -72 72 75 14 -75 63 75 5 68 4 0 0 -61 63 17 0 61 66 5 -60 78 75 0 72 15 72 72 8 66 72 14 -56 72 75"
+                    "patching_rect": [ 512.0, 1266.0, 119.0, 35.0 ],
+                    "text": "7 2 -2 2 -7 -5 -10 -7 11 5 18 14 20"
                 }
             },
             {
@@ -618,13 +618,13 @@
             {
                 "box": {
                     "id": "obj-21",
-                    "linecount": 5,
+                    "linecount": 2,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 430.0, 1221.0, 143.0, 76.0 ],
-                    "text": "67 71 -1 -1 65 74 -1 -1 71 -1 65 72 69 60 -1 55 -1 -1 -1 69 59 -1 -1 -1 -1 57 -1 -1 59 -1 -1 65 55 -1 -1"
+                    "patching_rect": [ 430.0, 1221.0, 145.0, 35.0 ],
+                    "text": "65 74 71 72 74 67 74 67 60 60 59 65 59"
                 }
             },
             {
@@ -658,13 +658,13 @@
             {
                 "box": {
                     "id": "obj-12",
-                    "linecount": 5,
+                    "linecount": 2,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 324.0, 1184.0, 143.0, 76.0 ],
-                    "text": "71 -1 71 74 79 -1 62 74 76 67 69 72 69 -1 62 72 -1 60 65 74 -1 77 74 -1 71 72 71 71 67 65 71 79 -1 71 74"
+                    "patching_rect": [ 324.0, 1184.0, 143.0, 35.0 ],
+                    "text": "72 76 69 74 67 62 64 60 71 65 77 79 79"
                 }
             },
             {
@@ -771,7 +771,7 @@
             },
             {
                 "box": {
-                    "code": "{\n    \"name\": \"Metric Domain Complex - Hierarchy Examples\",\n    \"description\": \"Example pack for r-metric-hierarchy modes. Includes active defaults and optional examples (enabled=false) for quick A/B testing.\",\n    \"solution_length\": 35,\n    \"num_voices\": 2,\n    \"metric_engine_enabled\": 1,\n    \"voices\": [\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/12\", \"-1/12\", \"1/16\", \"1/8\", \"-1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79 ]\n            }\n        },band\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/12\", \"-1/12\", \"1/16\", \"1/8\", \"-1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        }\n    ],\n    \"meter\": {\n        \"time_signatures\": [ \"4/4\", \"3/4\" ],\n        \"tuplets\": [ 3, 6 ],\n        \"beat_divisions\": [ 2, 4 ]\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/metric_domain_complex\",\n    \"rules\": [\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"tuplet_on_beat_start\",\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 1,\n            \"description\": \"explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"min_grid\",\n            \"parameters\": [ \"min-grid\", \"1/8\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"Example B: stricter grid variant (1/8)\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"hierarchical_voices\",\n            \"parameters\": [ \"0<-1\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"Example D: partial-index hierarchy (first half of sequence only)\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"equal\",\n            \"parameters\": [ \"durations\", \"no-tuplets\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"Example E: legacy no-tuplets filtering\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"no-syncopation\",\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"No syncopation (beat-level): no note may span across any beat boundary. Subdivisions are free as long as they fit within one beat.\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"no-syncopation\",\n            \"parameters\": [ \"beats:1,3\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"No syncopation at beats 1 and 3 (half-note grid, stp=2 beats). Notes can start anywhere but must not cross beat 1 or beat 3. Quarter notes, 8ths, 16ths all allowed; only a note that ties ACROSS beat 3 is rejected.\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"no-syncopation\",\n            \"parameters\": [ \"beats:1\" ],\n            \"target_voices\": [ 0 ],\n            \"enabled\": 1,\n            \"description\": \"No cross-barline notes for voice 0: stp = minimum measure length. Any note must fit entirely within a single bar.\"\n        },\n        {\n            \"rule_type\": \"r-time-signature\",\n            \"target_component\": \"metric\",\n            \"description\": \"Bar-pattern time signature (fixed)\",\n            \"bar_pattern_type\": \"repeating\",\n            \"bar_pattern\": [ \"4/4\", \"3/4\" ],\n            \"bar_pattern_repetitions\": 5,\n            \"allow_cross_barline\": 0,\n            \"enabled\": 1\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 1,\n        \"random_seed\": 0,\n        \"timeout_ms\": 10000,\n        \"max_solutions\": 1,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"random\",\n        \"restart_policy\": \"none\"\n    }\n}",
+                    "code": "{\n    \"name\": \"Metric Domain Simple\",\n    \"description\": \"Voice-first metric example with timepoint segmentation.\",\n    \"solution_length\": 13,\n    \"score_length\": \"13q\",\n    \"num_voices\": 4,\n    \"voices\": [\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        }\n    ],\n    \"meter\": {\n        \"time_signatures\": [ \"4/4\", \"3/4\", \"2/4\" ],\n        \"tuplets\": [ 3 ],\n        \"beat_divisions\": [ 2, 3 ]\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/metric_domain_simple\",\n    \"rules\": [\n        {\n            \"rule_type\": \"r-pitches-one-engine\",\n            \"constraint\": \"all_different\",\n            \"indices\": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],\n            \"target_voice\": 0,\n            \"target_component\": \"pitch\",\n            \"description\": \"Voice 0 first 12 pitches are all different\"\n        },\n        {\n            \"rule_type\": \"r-cross-voice-no-unisons\",\n            \"constraint\": \"no_unisons_between_engines\",\n            \"indices\": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],\n            \"target_voices\": [ 0, 1, 2, 3 ],\n            \"target_component\": \"pitch\"\n        },\n        {\n            \"rule_type\": \"r-time-signature\",\n            \"constraint\": \"equal_values\",\n            \"parameters\": [ \"4/4\", \"2/4\", \"3/4\" ],\n            \"timepoints\": [ \"0q\", \"4q\", \"6q\" ]\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 1,\n        \"require_exact_score_length\": 1,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"random\",\n        \"restart_policy\": \"none\",\n        \"max_solutions\": 1,\n        \"timeout_ms\": 20000,\n        \"random_seed\": 0\n    }\n}",
                     "editlocked": 1,
                     "fontface": 0,
                     "fontname": "<Monospaced>",
