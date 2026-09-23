@@ -697,6 +697,128 @@ This is useful when a musical preference should guide search without pruning any
 
 > **Note**: use `"heuristic": true` (or `1`) together with `"value_order": "heuristic"` or `"value_order": "neural"`. In hard mode, the rule combines freely with other pitch constraints.
 
+### 5.3d Cadence Rule (`r-cadence`)
+
+`r-cadence` places a definitional cadence at a pair of positions. It is deliberately thin: it
+encodes only what makes a cadence _that_ cadence — bass motion, root position, where the
+soprano lands — not general voice leading (parallel fifths/octaves, spacing, etc.), which
+already lives in `r-pitch-pitch` and applies everywhere, not just at cadences.
+
+It requires a key to be declared in `harmonic_domain` at both cadence positions (via
+`degree`+`key`+`mode`, or `chord`+`quality` alongside a `key`) — see
+[§8.6.1 Harmonic Domain Conditioning](#861-harmonic-domain-conditioning). By convention
+(matching standard SATB voicing), `target_voices.front()` is treated as soprano and
+`target_voices.back()` as bass.
+
+| Field                   | Type    | Required | Description                                                                                           |
+| ----------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `cadence_type`          | string  | yes      | `PAC`, `IAC`, `HC` (or `half`), `deceptive`, `plagal`. Sets defaults for the fields below.            |
+| `positions`             | array   | yes      | Exactly two solver positions: `[pre-cadence chord, resolution chord]`.                                |
+| `target_voices`         | array   | yes      | Voices participating in the cadence, e.g. `[0, 1, 2, 3]` (soprano, alto, tenor, bass).                |
+| `require_root_position` | boolean | no       | Overrides the `cadence_type` default. Constrains the bass to the chord root at both positions.        |
+| `soprano_target_degree` | int 1-7 | no       | Overrides the default. Constrains the soprano to this scale degree at the resolution position.        |
+| `end_degree_required`   | int 1-7 | no       | Used by `HC`/`half`: the resolution chord's `harmonic_domain` entry must be this scale degree.        |
+| `bass_motion`           | array   | no       | `[from_degree, to_degree]` the underlying harmony must match at the two positions. Overrides default. |
+| `metric_strength`       | string  | no       | Accepted and logged at compile time; **not yet enforced** in v1 (requires the metric engine).         |
+
+**Cadence type defaults:**
+
+| `cadence_type` | `bass_motion`                            | `require_root_position` | `soprano_target_degree` |
+| -------------- | ---------------------------------------- | ----------------------- | ----------------------- |
+| `PAC`          | `[5, 1]`                                 | `true`                  | `1`                     |
+| `IAC`          | `[5, 1]`                                 | `false`                 | none                    |
+| `HC` / `half`  | (uses `end_degree_required = 5` instead) | `false`                 | none                    |
+| `deceptive`    | `[5, 6]`                                 | `false`                 | none                    |
+| `plagal`       | `[4, 1]`                                 | `false`                 | none                    |
+
+```json
+{
+  "id": "pac_cadence",
+  "rule_type": "r-cadence",
+  "cadence_type": "PAC",
+  "positions": [14, 15],
+  "target_voices": [0, 1, 2, 3],
+  "description": "V7-I authentic cadence, root position, soprano on tonic"
+}
+```
+
+Bass motion and `end_degree_required` are checked once against `harmonic_domain` at compile
+time (they're a fact about the harmony plan, not about which voice ends up where); a mismatch
+throws a clear error rather than silently posting a constraint that can never be satisfied.
+Root position and soprano target degree **are** posted as Gecode constraints.
+
+**Known v1 limitations** (documented, not oversights): `metric_strength` is accepted but not
+enforced. Leading-tone and chordal-7th resolution are not enforced — they require knowing
+which voice holds those tones, not just soprano/bass. See
+[configs/cadence_pac_test.json](../configs/cadence_pac_test.json) for a minimal working
+example, and [max-package/gecode-solver/examples/period_phrase_cadence_repetition.json](../max-package/gecode-solver/examples/period_phrase_cadence_repetition.json)
+for `r-cadence` combined with `r-repetition` in a classical period (antecedent ending in a
+half cadence, consequent ending in a PAC).
+
+### 5.3e Repetition / Sequence Rule (`r-repetition`)
+
+`r-repetition` relates a source position range to a target range within one or more voices —
+covering sentence-style repetition, harmonic sequence, antecedent/consequent parallelism, and
+"same tune, different harmony" as one rule with different `relation` modes.
+
+| Field                 | Type    | Required                     | Description                                                                                      |
+| --------------------- | ------- | ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| `relation`            | string  | yes                          | `exact`, `transposed`, `contour_preserving`, `rhythm_preserving`, `diatonic_sequence`.           |
+| `source_positions`    | array   | yes                          | The "A" range. Must be the same length as `target_positions`.                                    |
+| `target_positions`    | array   | yes                          | The "B" range, related to `source_positions` by `relation`.                                      |
+| `target_voices`       | array   | yes                          | Voices the relation applies to (checked independently per voice).                                |
+| `transpose_semitones` | int     | only for `transposed`        | Fixed semitone offset: `target[i] == source[i] + transpose_semitones`.                           |
+| `sequence_step`       | int     | only for `diatonic_sequence` | Diatonic scale-degree shift (not semitones). Requires a key in `harmonic_domain` at both ranges. |
+| `heuristic`           | boolean | no                           | Soft mode — see below. Not available for `rhythm_preserving` or `diatonic_sequence` in v1.       |
+
+| `relation`           | Meaning                                                                                      | Hard | Heuristic |
+| -------------------- | -------------------------------------------------------------------------------------------- | :--: | :-------: |
+| `exact`              | `target[i] == source[i]`                                                                     |  ✅  |    ✅     |
+| `transposed`         | `target[i] == source[i] + transpose_semitones`                                               |  ✅  |    ✅     |
+| `contour_preserving` | Each consecutive step in `target` moves the same direction (up/down/same) as in `source`     |  ✅  |    ✅     |
+| `rhythm_preserving`  | `target`'s rhythm matches `source`'s rhythm (pitch is free)                                  |  ✅  |  v1: no   |
+| `diatonic_sequence`  | `target[i]` is `source[i]` shifted by `sequence_step` diatonic scale steps in the shared key |  ✅  |  v1: no   |
+
+```json
+{
+  "id": "seq_transposed",
+  "rule_type": "r-repetition",
+  "relation": "transposed",
+  "transpose_semitones": 2,
+  "source_positions": [0, 1, 2, 3],
+  "target_positions": [4, 5, 6, 7],
+  "target_voices": [0],
+  "description": "Bar 2 is bar 1 transposed up a whole step"
+}
+```
+
+Per the design doc's own guidance, phrase and motivic relations default to _soft_ — use
+`"heuristic": true` for `exact`/`transposed`/`contour_preserving` so the constraint guides
+rather than forces the search, matching the default recommendation for cadences (hard) vs.
+phrase/motivic relations (soft):
+
+```json
+{
+  "id": "prefer_sequence",
+  "rule_type": "r-repetition",
+  "relation": "contour_preserving",
+  "source_positions": [0, 1, 2, 3],
+  "target_positions": [4, 5, 6, 7],
+  "target_voices": [0],
+  "heuristic": true,
+  "description": "Soft: prefer bar 2 to trace the same melodic shape as bar 1"
+}
+```
+
+`diatonic_sequence` needs a key declared in `harmonic_domain` at both the source and target
+positions (see [§8.6.1](#861-harmonic-domain-conditioning)); it's posted as a Gecode
+`extensional`/table constraint built from the source voice's actual pitch domain, not a
+sentinel-based approximation, so it's exact rather than a semitone-based estimate. See
+[configs/repetition_transposed_test.json](../configs/repetition_transposed_test.json),
+[configs/repetition_contour_test.json](../configs/repetition_contour_test.json), and
+[configs/repetition_diatonic_seq_test.json](../configs/repetition_diatonic_seq_test.json)
+for minimal working examples of each relation.
+
 ### 5.4 Metric Hierarchy Rules (`r-metric-hierarchy`)
 
 `r-metric-hierarchy` constrains rhythm values relative to the beat grid defined in `meter`. It is **automatically targeted to rhythm engines** — do not add `target_component` or `engine_type`.
@@ -1402,28 +1524,28 @@ If the patch has not been saved yet, the external falls back to Max's current de
 
 ### Rule Object
 
-| Field                      | Type    | Description                                                                                                                                                                                                                                                                      |
-| -------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rule_type`                | string  | `r-one-voice`, `r-uniformity`, `r-metric-hierarchy`, `r-time-signature`, `r-rhythm-rhythm`, `r-pitch-pitch`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `wildcard_constraint` |
-| `constraint`               | string  | Shorthand built-in name: `all_different`, `equal_values`, `palindrome_of_engine`, `isorhythm`, `augmentation`, `no_unison`, `voice_above`, `interval_class`, `no_consecutive_fifths`, `contrary_motion`, etc.                                                                    |
-| `parameters`               | array   | Constraint-specific params (rhythm values, time signatures, semitone counts, ratios)                                                                                                                                                                                             |
-| `target_voices`            | array   | Voice indices: `[0]` or `[0, 1]`                                                                                                                                                                                                                                                 |
-| `target_component`         | string  | `"pitch"`, `"rhythm"`, or `"metric"` — omit for `r-rhythm-rhythm` / `r-pitch-pitch` (auto-targeted)                                                                                                                                                                              |
-| `indices`                  | array   | Explicit position list — omit to apply to all positions                                                                                                                                                                                                                          |
-| `stride`                   | int     | Apply every N positions starting from `offset` (takes precedence over `indices`)                                                                                                                                                                                                 |
-| `offset`                   | int     | Starting position for stride-based application (default `0`)                                                                                                                                                                                                                     |
-| `heuristic`                | boolean | **`r-pitch-pitch` / `r-rhythm-rhythm` only.** When `true`, converts the rule to a soft preference: values satisfying the rule are tried first, but violations are not rejected. Default `false` (hard constraint).                                                               |
-| `timepoints`               | array   | Quarter-note positions for metric rules: `["0q", "4q"]`                                                                                                                                                                                                                          |
-| `bar_pattern_type`         | string  | Metric pattern mode: `fixed`, `repeating`, `random`, `weighted`                                                                                                                                                                                                                  |
-| `bar_pattern`              | array   | Time-signature list, e.g. `["4/4", "3/4"]`                                                                                                                                                                                                                                       |
-| `bar_pattern_count`        | int     | Number of bars generated in `random`/`weighted` modes                                                                                                                                                                                                                            |
-| `bar_pattern_repetitions`  | int     | Repetition count in `repeating` mode                                                                                                                                                                                                                                             |
-| `bar_pattern_distribution` | object  | Weights for `weighted` mode (signature → probability)                                                                                                                                                                                                                            |
-| `allow_cross_barline`      | boolean | For `r-time-signature` bar patterns: allow duration carry over barlines                                                                                                                                                                                                          |
-| `enabled`                  | boolean | Enable/disable rule (default `true`). Accepts `true`/`false` and `1`/`0`/`"yes"`/`"on"`.                                                                                                                                                                                         |
-| `priority`                 | int     | Higher = tried first                                                                                                                                                                                                                                                             |
-| `id`                       | string  | Optional label                                                                                                                                                                                                                                                                   |
-| `description`              | string  | Optional documentation                                                                                                                                                                                                                                                           |
+| Field                      | Type    | Description                                                                                                                                                                                                                                                                                                                     |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rule_type`                | string  | `r-one-voice`, `r-uniformity`, `r-metric-hierarchy`, `r-time-signature`, `r-rhythm-rhythm`, `r-pitch-pitch`, `r-cadence`, `r-repetition`, `r-twelve-tone-voice1`, `r-palindrome-voice2`, `r-cross-voice-no-unisons`, `r-perfect-fifth-intervals`, `r-cross-voice-retrograde-inversion`, `wildcard_constraint`                   |
+| `constraint`               | string  | Shorthand built-in name: `all_different`, `equal_values`, `palindrome_of_engine`, `isorhythm`, `augmentation`, `no_unison`, `voice_above`, `interval_class`, `no_consecutive_fifths`, `contrary_motion`, etc.                                                                                                                   |
+| `parameters`               | array   | Constraint-specific params (rhythm values, time signatures, semitone counts, ratios)                                                                                                                                                                                                                                            |
+| `target_voices`            | array   | Voice indices: `[0]` or `[0, 1]`                                                                                                                                                                                                                                                                                                |
+| `target_component`         | string  | `"pitch"`, `"rhythm"`, or `"metric"` — omit for `r-rhythm-rhythm` / `r-pitch-pitch` (auto-targeted)                                                                                                                                                                                                                             |
+| `indices`                  | array   | Explicit position list — omit to apply to all positions                                                                                                                                                                                                                                                                         |
+| `stride`                   | int     | Apply every N positions starting from `offset` (takes precedence over `indices`)                                                                                                                                                                                                                                                |
+| `offset`                   | int     | Starting position for stride-based application (default `0`)                                                                                                                                                                                                                                                                    |
+| `heuristic`                | boolean | **`r-pitch-pitch` / `r-rhythm-rhythm` / `r-repetition` only.** When `true`, converts the rule to a soft preference: values satisfying the rule are tried first, but violations are not rejected. Default `false` (hard constraint). Not available for `r-repetition`'s `rhythm_preserving`/`diatonic_sequence` relations in v1. |
+| `timepoints`               | array   | Quarter-note positions for metric rules: `["0q", "4q"]`                                                                                                                                                                                                                                                                         |
+| `bar_pattern_type`         | string  | Metric pattern mode: `fixed`, `repeating`, `random`, `weighted`                                                                                                                                                                                                                                                                 |
+| `bar_pattern`              | array   | Time-signature list, e.g. `["4/4", "3/4"]`                                                                                                                                                                                                                                                                                      |
+| `bar_pattern_count`        | int     | Number of bars generated in `random`/`weighted` modes                                                                                                                                                                                                                                                                           |
+| `bar_pattern_repetitions`  | int     | Repetition count in `repeating` mode                                                                                                                                                                                                                                                                                            |
+| `bar_pattern_distribution` | object  | Weights for `weighted` mode (signature → probability)                                                                                                                                                                                                                                                                           |
+| `allow_cross_barline`      | boolean | For `r-time-signature` bar patterns: allow duration carry over barlines                                                                                                                                                                                                                                                         |
+| `enabled`                  | boolean | Enable/disable rule (default `true`). Accepts `true`/`false` and `1`/`0`/`"yes"`/`"on"`.                                                                                                                                                                                                                                        |
+| `priority`                 | int     | Higher = tried first                                                                                                                                                                                                                                                                                                            |
+| `id`                       | string  | Optional label                                                                                                                                                                                                                                                                                                                  |
+| `description`              | string  | Optional documentation                                                                                                                                                                                                                                                                                                          |
 
 ### Dynamic Rule Object
 

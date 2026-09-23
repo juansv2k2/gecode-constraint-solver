@@ -421,10 +421,14 @@ nlohmann::json atoms_to_json_value(long argc, t_atom* argv) {
     if (argc <= 0 || !argv) {
         return nlohmann::json::array();
     }
-    if (argc == 1) {
-        return atom_to_json_value(argv[0]);
-    }
 
+    // Every call site reaches this function only after Max has already told us
+    // (via dictionary_entryisatomarray, or the multi-atom getatoms fallback)
+    // that this entry IS a list — so a single-element list must stay an array
+    // here, never collapse to a bare scalar. Collapsing silently turned e.g.
+    // "target_voices": [0] into "target_voices": 0 for any single-voice rule,
+    // which the downstream rule parsers then read as "no target_voices" and
+    // skipped the rule entirely with no error.
     nlohmann::json arr = nlohmann::json::array();
     for (long i = 0; i < argc; ++i) {
         arr.push_back(atom_to_json_value(argv[i]));

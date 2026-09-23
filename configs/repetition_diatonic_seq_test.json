@@ -1,0 +1,52 @@
+{
+  "name": "r-repetition test — diatonic_sequence (descending 5-6 in C major)",
+  "description": "Position 0 is source, position 1 is source shifted down 1 diatonic scale step (sequence_step=-1). Both positions are in C major.",
+  "solution_length": 2,
+  "num_voices": 1,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "timeout_ms": 10000,
+    "branching": "first_fail",
+    "value_order": "min"
+  },
+  "export_json": false,
+  "export_txt": true,
+  "export_xml": false,
+  "file_name": "output/repetition_diatonic_seq_test",
+  "voices": [
+    {
+      "name": "Melody",
+      "pitch": { "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69] },
+      "rhythm": { "duration_values": ["1/4"] }
+    }
+  ],
+  "rules": [
+    {
+      "id": "fix_source",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[0] == 67",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Fix source note to G4 (67, scale degree 5) for a deterministic test"
+    },
+    {
+      "id": "diatonic_seq",
+      "rule_type": "r-repetition",
+      "relation": "diatonic_sequence",
+      "sequence_step": -1,
+      "source_positions": [0],
+      "target_positions": [1],
+      "target_voices": [0],
+      "enabled": true,
+      "description": "Descending stepwise diatonic sequence: target is source shifted down 1 scale step"
+    }
+  ],
+  "harmonic_domain": [
+    { "beat": 0, "degree": "V", "key": "C", "mode": "major" },
+    { "beat": 1, "degree": "IV" }
+  ]
+}

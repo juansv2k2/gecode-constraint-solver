@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: repetition_diatonic_seq_test.json
+Problem: Melody
+Description: Position 0 is source, position 1 is source shifted down 1 diatonic scale step (sequence_step=-1). Both positions are in C major.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: G4 → F4
+  Rhythm:  1/4 + 1/4
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 2

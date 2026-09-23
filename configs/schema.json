@@ -161,10 +161,10 @@
     },
     "harmonic_domain": {
       "type": "array",
-      "description": "Chord progression for neural harmonic conditioning. Each entry specifies a beat-aligned chord that the neural scorer uses to bias pitch selection toward chord tones. Entries are forward-filled to cover all positions.",
+      "description": "Chord progression for neural harmonic conditioning and rule modules (e.g. r-cadence). Each entry specifies a beat-aligned chord, either as an absolute root+quality or as a Roman-numeral degree resolved against a declared key. Entries are forward-filled to cover all positions; 'key'/'mode' forward-fill independently of the chord itself, so a key persists across entries until a later one changes it.",
       "items": {
         "type": "object",
-        "required": ["beat", "chord"],
+        "required": ["beat"],
         "properties": {
           "beat": {
             "type": "integer",
@@ -173,11 +173,24 @@
           },
           "chord": {
             "type": "string",
-            "description": "Root note name, e.g. 'C', 'F', 'G', 'Bb', 'F#'."
+            "description": "Root note name, e.g. 'C', 'F', 'G', 'Bb', 'F#'. Mutually exclusive with 'degree'."
           },
           "quality": {
             "type": "string",
-            "description": "Chord quality: 'major', 'minor', 'dom7', 'maj7', 'min7', 'dim', 'aug'."
+            "description": "Chord quality: 'major', 'minor', 'dom7', 'maj7', 'min7', 'dim', 'aug'. With 'degree', overrides the quality inferred from Roman-numeral case/7."
+          },
+          "degree": {
+            "type": "string",
+            "description": "Roman-numeral scale degree, e.g. 'I', 'ii', 'IV', 'V7', 'vii'. Case sets the default triad quality (upper=major, lower=minor); a trailing '7' forces dom7. Requires a 'key' to be declared on this or an earlier entry. Mutually exclusive with 'chord'."
+          },
+          "key": {
+            "type": "string",
+            "description": "Key tonic note name, e.g. 'C', 'Bb'. Forward-fills across entries. Required before any entry uses 'degree'."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["major", "minor"],
+            "description": "Key mode. Forward-fills across entries. Default 'major'."
           }
         },
         "additionalProperties": false
@@ -313,6 +326,9 @@
             "r-uniformity",
             "r-rhythm-rhythm",
             "r-pitch-pitch",
+            "r-cadence",
+            "r-repetition",
+            "r-tendency-tone",
             "r-cross-voice-no-unisons",
             "r-cross-voice-retrograde-inversion",
             "r-perfect-fifth-intervals",
@@ -445,6 +461,79 @@
         "priority": {
           "type": "integer",
           "description": "Evaluation priority. Higher = applied first."
+        },
+        "cadence_type": {
+          "type": "string",
+          "enum": ["PAC", "IAC", "HC", "half", "deceptive", "plagal"],
+          "description": "r-cadence only. Sets defaults for bass_motion/require_root_position/soprano_target_degree, all of which can be overridden by the fields below."
+        },
+        "positions": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "r-cadence only. Exactly two solver positions: [pre-cadence chord, resolution chord]."
+        },
+        "require_root_position": {
+          "type": "boolean",
+          "description": "r-cadence only. Overrides the cadence_type default. Constrains the bass voice (target_voices.back()) to the chord root at both positions."
+        },
+        "soprano_target_degree": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7,
+          "description": "r-cadence only. Overrides the cadence_type default. Constrains the soprano voice (target_voices.front()) to this diatonic scale degree at the resolution position. 0/omitted = not required."
+        },
+        "end_degree_required": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7,
+          "description": "r-cadence only (used by HC/half). The resolution chord's harmonic_domain entry must be this scale degree."
+        },
+        "bass_motion": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1, "maximum": 7 },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "r-cadence only. [from_degree, to_degree] the underlying harmonic_domain progression must match at the two cadence positions. Overrides the cadence_type default."
+        },
+        "metric_strength": {
+          "type": "string",
+          "description": "r-cadence only. Accepted and logged at compile time; not yet enforced as a constraint in v1 (requires the metric engine)."
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "exact",
+            "transposed",
+            "contour_preserving",
+            "rhythm_preserving",
+            "diatonic_sequence"
+          ],
+          "description": "r-repetition only. How target_positions relates to source_positions."
+        },
+        "source_positions": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "r-repetition only. The 'A' range. Must be the same length as target_positions."
+        },
+        "target_positions": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "r-repetition only. The 'B' range, related to source_positions by 'relation'."
+        },
+        "transpose_semitones": {
+          "type": "integer",
+          "description": "r-repetition only. Required when relation is 'transposed'."
+        },
+        "sequence_step": {
+          "type": "integer",
+          "description": "r-repetition only. Diatonic scale-degree shift (not semitones) for relation 'diatonic_sequence'. Requires a key declared in harmonic_domain at both source and target positions."
+        },
+        "tendency": {
+          "type": "string",
+          "enum": ["chordal_seventh", "leading_tone"],
+          "description": "r-tendency-tone only. 'chordal_seventh': the 7th of a dom7 chord at positions[0] resolves down a diatonic step. 'leading_tone': scale degree 7 at positions[0] resolves up a diatonic step to the tonic. Applies to whichever voice in target_voices actually holds the tone — others are unaffected."
         },
         "description": { "type": "string" }
       },

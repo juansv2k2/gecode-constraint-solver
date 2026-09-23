@@ -1,0 +1,232 @@
+{
+  "name": "r-cadence PAC test — minimal 4-voice",
+  "description": "4 voices, 2 chords (V7-I in C major), r-cadence PAC constraint at positions 0,1, plus explicit chord-tone-membership rules for every voice and no-parallel-fifths/octaves between all pairs — without these, r-cadence alone only constrains soprano+bass, leaving alto/tenor free to pick arbitrary domain values. Known simplification: chord-tone rules check each voice individually, not collective coverage, so the V7's 3rd/7th (B/F) may be omitted in favor of doubled root/5th.",
+  "solution_length": 2,
+  "num_voices": 4,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "timeout_ms": 10000,
+    "branching": "first_fail",
+    "value_order": "min"
+  },
+  "export_json": false,
+  "export_txt": false,
+  "export_xml": true,
+  "file_name": "output/cadence_pac_test",
+  "voices": [
+    {
+      "name": "Soprano",
+      "pitch": {
+        "midi_values": [
+          60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+          77, 78, 79
+        ]
+      },
+      "rhythm": { "duration_values": ["1/4"] }
+    },
+    {
+      "name": "Alto",
+      "pitch": {
+        "midi_values": [
+          55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72
+        ]
+      },
+      "rhythm": { "duration_values": ["1/4"] }
+    },
+    {
+      "name": "Tenor",
+      "pitch": {
+        "midi_values": [
+          48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65
+        ]
+      },
+      "rhythm": { "duration_values": ["1/4"] }
+    },
+    {
+      "name": "Bass",
+      "pitch": {
+        "midi_values": [
+          36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53
+        ]
+      },
+      "rhythm": { "duration_values": ["1/4"] }
+    }
+  ],
+  "rules": [
+    {
+      "id": "pac_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "positions": [0, 1],
+      "target_voices": [0, 1, 2, 3],
+      "enabled": true,
+      "description": "V7-I authentic cadence, root position, soprano on tonic"
+    },
+    {
+      "id": "soprano_v7_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[0] in [62, 65, 67, 71, 74, 77, 79]",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Soprano must be a V7 chord tone (G,B,D,F) at position 0 — r-cadence only constrains soprano at the resolution, not the pre-cadence chord"
+    },
+    {
+      "id": "soprano_i_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[1] in [60, 64, 67, 72, 76, 79]",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Redundant with r-cadence's soprano_target_degree=1 at position 1 (already the tonic), kept for symmetry with position 0"
+    },
+    {
+      "id": "alto_v7_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[0] in [55, 59, 62, 65, 67, 71]",
+      "target_voices": [1],
+      "target_component": "pitch",
+      "description": "Alto must be a V7 chord tone at position 0"
+    },
+    {
+      "id": "alto_i_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[1] in [55, 60, 64, 67, 72]",
+      "target_voices": [1],
+      "target_component": "pitch",
+      "description": "Alto must be an I chord tone at position 1"
+    },
+    {
+      "id": "tenor_v7_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[2].pitch[0] in [50, 53, 55, 59, 62, 65]",
+      "target_voices": [2],
+      "target_component": "pitch",
+      "description": "Tenor must be a V7 chord tone at position 0"
+    },
+    {
+      "id": "tenor_i_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[2].pitch[1] in [48, 52, 55, 60, 64]",
+      "target_voices": [2],
+      "target_component": "pitch",
+      "description": "Tenor must be an I chord tone at position 1 (root position bass already fixes the bass; this fixes the inner voice)"
+    },
+    {
+      "id": "no_parallel_fifths_octaves",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 3],
+      "description": "Soprano-bass: no parallel fifths across the cadence"
+    },
+    {
+      "id": "no_parallel_octaves_sb",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0, 3],
+      "description": "Soprano-bass: no parallel octaves across the cadence"
+    },
+    {
+      "id": "no_parallel_fifths_at",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [1, 2],
+      "description": "Alto-tenor: no parallel fifths across the cadence"
+    },
+    {
+      "id": "no_parallel_octaves_at",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [1, 2],
+      "description": "Alto-tenor: no parallel octaves across the cadence"
+    },
+    {
+      "id": "no_parallel_fifths_sa",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 1],
+      "description": "Soprano-alto: no parallel fifths across the cadence"
+    },
+    {
+      "id": "no_parallel_octaves_sa",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0, 1],
+      "description": "Soprano-alto: no parallel octaves across the cadence"
+    },
+    {
+      "id": "no_parallel_fifths_st",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 2],
+      "description": "Soprano-tenor: no parallel fifths across the cadence"
+    },
+    {
+      "id": "no_parallel_octaves_st",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0, 2],
+      "description": "Soprano-tenor: no parallel octaves across the cadence"
+    },
+    {
+      "id": "no_parallel_fifths_ab",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [1, 3],
+      "description": "Alto-bass: no parallel fifths across the cadence"
+    },
+    {
+      "id": "no_parallel_octaves_ab",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [1, 3],
+      "description": "Alto-bass: no parallel octaves across the cadence"
+    },
+    {
+      "id": "no_parallel_fifths_tb",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [2, 3],
+      "description": "Tenor-bass: no parallel fifths across the cadence"
+    },
+    {
+      "id": "no_parallel_octaves_tb",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [2, 3],
+      "description": "Tenor-bass: no parallel octaves across the cadence"
+    },
+    {
+      "id": "seventh_resolves_down",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "positions": [0, 1],
+      "target_voices": [0, 1, 2, 3],
+      "description": "Whichever voice holds the V7's 7th (F) at position 0 must resolve it down by step (to E) at position 1"
+    },
+    {
+      "id": "leading_tone_resolves_up",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "positions": [0, 1],
+      "target_voices": [0, 1, 2, 3],
+      "description": "Whichever voice holds the leading tone (B) at position 0 must resolve it up by step (to C) at position 1"
+    }
+  ],
+  "harmonic_domain": [
+    { "beat": 0, "degree": "V7", "key": "C", "mode": "major" },
+    { "beat": 1, "degree": "I" }
+  ]
+}

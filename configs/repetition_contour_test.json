@@ -1,0 +1,47 @@
+{
+  "name": "r-repetition test — contour_preserving",
+  "description": "Bar 2 must move in the same up/down/same direction as bar 1 at each step, without requiring the same intervals.",
+  "solution_length": 8,
+  "num_voices": 1,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "timeout_ms": 10000,
+    "branching": "first_fail",
+    "value_order": "min"
+  },
+  "export_json": false,
+  "export_txt": true,
+  "export_xml": false,
+  "file_name": "output/repetition_contour_test",
+  "voices": [
+    {
+      "name": "Melody",
+      "pitch": { "midi_values": [60, 62, 63, 65, 67, 69, 70, 72, 74, 76] },
+      "rhythm": { "duration_values": ["1/4"] }
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_adjacent_repeat",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Hard: no immediately repeated pitch"
+    },
+    {
+      "id": "seq_contour",
+      "rule_type": "r-repetition",
+      "relation": "contour_preserving",
+      "source_positions": [0, 1, 2, 3],
+      "target_positions": [4, 5, 6, 7],
+      "target_voices": [0],
+      "enabled": true,
+      "description": "Bar 2 traces the same up/down shape as bar 1"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
   "config_file": "configs/all_solutions_test.json",
   "problem_name": "All Solutions Test",
   "solutions_found": 24,
-  "solve_time_ms": 6,
+  "solve_time_ms": 0,
   "rules_applied": 1,
   "solutions": [
     {

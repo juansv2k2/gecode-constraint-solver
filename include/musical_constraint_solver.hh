@@ -106,11 +106,47 @@ struct SolverConfig {
     // chord_tones : MIDI pitch-classes consistent with this chord (mod 12)
     //               derived at parse time from root + quality
     // beat_position : solver position index (0-based) at which this entry starts
+    //
+    // key_tonic/key_mode are optional (-1 = no key declared for this entry, in
+    // which case the entry carries only absolute pitch-class information, as
+    // before). When a key is known, scale_degree() gives the entry's Roman
+    // numeral degree (1-7), or 0 for a chromatic chord outside the diatonic set.
+    // This is a one-way derivation: root+quality is always authoritative;
+    // degree is a computed view for rules (e.g. r-cadence) that need function
+    // rather than pitch class.
     struct HarmonicEntry {
         int beat_position  = 0;
         int chord_root     = 0;   // 0-11
         int chord_quality  = 0;   // 0=major 1=minor 2=dom7
         std::vector<int> chord_tones;  // MIDI pitch-classes (0-11) in chord
+        int key_tonic = -1;  // 0-11, -1 = no key declared
+        int key_mode  = 0;   // 0=major 1=minor
+
+        // Diatonic scale-degree of chord_root within (key_tonic, key_mode).
+        // Returns 1-7 for a diatonic match, 0 if chromatic or no key declared.
+        int scale_degree() const {
+            if (key_tonic < 0) return 0;
+            static const int MAJOR_STEPS[7] = {0, 2, 4, 5, 7, 9, 11};
+            static const int MINOR_STEPS[7] = {0, 2, 3, 5, 7, 8, 10};
+            const int* steps = (key_mode == 0) ? MAJOR_STEPS : MINOR_STEPS;
+            const int rel = ((chord_root - key_tonic) % 12 + 12) % 12;
+            for (int d = 0; d < 7; ++d)
+                if (steps[d] == rel) return d + 1;
+            return 0;  // chromatic (secondary dominant, Neapolitan, etc.)
+        }
+
+        // Inverse of scale_degree(): pitch class (0-11) of a given diatonic
+        // degree (1-7) within (key_tonic, key_mode). Shared by anything that
+        // needs "what note is scale degree N in this key" — e.g. r-cadence
+        // checking a soprano target degree, or degree-notation harmonic_domain
+        // parsing. Returns -1 if no key is declared or degree is out of range.
+        static int degree_to_pitch_class(int key_tonic, int key_mode, int degree) {
+            if (key_tonic < 0 || degree < 1 || degree > 7) return -1;
+            static const int MAJOR_STEPS[7] = {0, 2, 4, 5, 7, 9, 11};
+            static const int MINOR_STEPS[7] = {0, 2, 3, 5, 7, 8, 10};
+            const int* steps = (key_mode == 0) ? MAJOR_STEPS : MINOR_STEPS;
+            return (key_tonic + steps[degree - 1]) % 12;
+        }
     };
 
     struct HarmonicConfig {
@@ -120,6 +156,7 @@ struct SolverConfig {
         // Derived from entries at parse time; length == sequence_length.
         std::vector<int> harmonic_state;
     } harmonic_domain;
+
 
     // Random search seed semantics:
     // - std::numeric_limits<unsigned int>::max(): deterministic search order

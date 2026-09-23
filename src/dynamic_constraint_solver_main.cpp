@@ -11,6 +11,10 @@
 #include "wildcard_rule_extension.hh"
 #include "rule_expression_parser.hh"
 #include "neural_pitch_scorer.hh"
+#include "harmonic_domain_parser.hh"
+#include "cadence_rules.hh"
+#include "repetition_rules.hh"
+#include "tendency_tone_rules.hh"
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <fstream>
@@ -554,12 +558,16 @@ public:
         bool in_rule_object = false;
         bool in_constraint_function = false;
         bool in_parameters_array = false;
+        bool in_indices_array = false;
+        bool in_target_voices_array = false;
         bool in_domains_section = false;
         bool in_domain_object = false;
         
         RuleConfig current_rule;
         DomainConfig current_domain;
         std::string parameters_content;
+        std::string indices_content;
+        std::string target_voices_content;
         
         while (std::getline(file, line)) {
             line = trim(line);
@@ -567,11 +575,14 @@ public:
             
             // Check for rules section
             if (line.find("\"rules\"") != std::string::npos) {
-                in_rules_section = true;
+                // "rules": [] closed on the same line — never a real rules
+                // section, so don't wait for a later section keyword to exit.
+                in_rules_section = (line.find(']') == std::string::npos);
                 continue;
             }
             
-            // Exit rules section when we hit another top-level section
+            // Exit rules section when we hit another top-level section (belt
+            // and suspenders for configs that still use these legacy keys)...
             if (in_rules_section && (line.find("\"domains\"") != std::string::npos ||
                                      line.find("\"search_options\"") != std::string::npos ||
                                      line.find("\"search_strategy\"") != std::string::npos ||
@@ -582,6 +593,19 @@ public:
                     in_domains_section = true;
                     std::cout << "DEBUG: Entering domains section" << std::endl;
                 }
+                continue;
+            }
+
+            // ...but the reliable signal is the rules array's own closing
+            // bracket: once the last rule object has closed (in_rule_object
+            // is false again), a standalone "]"/"]," line is that array
+            // ending, regardless of which key follows it in the file. This
+            // is what actually stops harmonic_domain/voices/dynamic_rules
+            // content — whatever order or line-wrapping they use — from
+            // being misread as more rule objects.
+            if (in_rules_section && !in_rule_object &&
+                    (line == "]" || line == "],")) {
+                in_rules_section = false;
                 continue;
             }
             
@@ -725,6 +749,28 @@ public:
                         }
                         continue;
                     }
+
+                    // Handle indices array continuation (same reasoning as parameters above)
+                    if (in_indices_array) {
+                        indices_content += " " + line;
+                        if (line.find("]") != std::string::npos) {
+                            current_rule.indices = parseIntArray(indices_content);
+                            in_indices_array = false;
+                            indices_content.clear();
+                        }
+                        continue;
+                    }
+
+                    // Handle target_voices array continuation
+                    if (in_target_voices_array) {
+                        target_voices_content += " " + line;
+                        if (line.find("]") != std::string::npos) {
+                            current_rule.target_voices = parseIntArray(target_voices_content);
+                            in_target_voices_array = false;
+                            target_voices_content.clear();
+                        }
+                        continue;
+                    }
                     
                     // Parse rule properties
                     if (line.find("\"rule_type\"") != std::string::npos) {
@@ -734,8 +780,12 @@ public:
                         }
                     }
                     else if (line.find("\"indices\"") != std::string::npos) {
-                        current_rule.indices = parseIntArray(line);
-                        std::cout << "DEBUG: Parsed " << current_rule.indices.size() << " indices from line: " << line << std::endl;
+                        if (line.find("[") != std::string::npos && line.find("]") != std::string::npos) {
+                            current_rule.indices = parseIntArray(line);
+                        } else {
+                            in_indices_array = true;
+                            indices_content = line;
+                        }
                     }
                     else if (line.find("\"timepoints\"") != std::string::npos) {
                         current_rule.timepoints = parseStringArray(line);
@@ -807,7 +857,12 @@ public:
                         }
                     }
                     else if (line.find("\"target_voices\"") != std::string::npos) {
-                        current_rule.target_voices = parseIntArray(line);
+                        if (line.find("[") != std::string::npos && line.find("]") != std::string::npos) {
+                            current_rule.target_voices = parseIntArray(line);
+                        } else {
+                            in_target_voices_array = true;
+                            target_voices_content = line;
+                        }
                     }
                     else if (line.find("\"target_component\"") != std::string::npos) {
                         size_t pos = line.find(":");
@@ -2040,93 +2095,21 @@ int main(int argc, char* argv[]) {
         solver_config.restart_policy = parser.getRestartPolicy(config_file);
 
         // ── Parse harmonic_domain (Phase 3) ────────────────────────────────
-        // Expected JSON shape:
-        //   "harmonic_domain": [
-        //     {"beat": 0, "chord": "C",  "quality": "major"},
-        //     {"beat": 4, "chord": "F",  "quality": "major"},
-        //     {"beat": 8, "chord": "G",  "quality": "dom7"},
-        //     ...
-        //   ]
+        // Supports absolute (chord+quality) and functional (degree+key+mode)
+        // notation — see include/harmonic_domain_parser.hh. Shared with the
+        // Max wrapper so r-cadence/r-repetition see identical harmony data in
+        // both binaries.
         {
             nlohmann::json hcfg;
             {
                 std::ifstream hf(config_file);
                 if (hf.is_open()) { try { hf >> hcfg; } catch (...) {} }
             }
-            if (hcfg.contains("harmonic_domain") && hcfg["harmonic_domain"].is_array() &&
-                !hcfg["harmonic_domain"].empty()) {
-
-                // Map note name -> pitch class (C=0)
-                static const std::map<std::string, int> NOTE_MAP = {
-                    {"C",0},{"C#",1},{"Db",1},{"D",2},{"D#",3},{"Eb",3},
-                    {"E",4},{"F",5},{"F#",6},{"Gb",6},{"G",7},{"G#",8},
-                    {"Ab",8},{"A",9},{"A#",10},{"Bb",10},{"B",11}
-                };
-                static const std::map<std::string, int> QUAL_MAP = {
-                    {"major",0},{"maj",0},{"M",0},
-                    {"minor",1},{"min",1},{"m",1},
-                    {"dom7",2},{"dominant",2},{"dominant-seventh",2},{"7",2}
-                };
-                // Chord tones (pitch classes) per quality
-                static const std::vector<std::vector<int>> CHORD_TONES = {
-                    {0, 4, 7},        // major:  root, M3, P5
-                    {0, 3, 7},        // minor:  root, m3, P5
-                    {0, 4, 7, 10}     // dom7:   root, M3, P5, m7
-                };
-
-                auto& hd = solver_config.harmonic_domain;
-                hd.enabled = true;
-
-                for (const auto& entry : hcfg["harmonic_domain"]) {
-                    MusicalConstraintSolver::SolverConfig::HarmonicEntry he;
-                    he.beat_position = entry.value("beat", 0);
-
-                    std::string chord_name = entry.value("chord", "C");
-                    auto nit = NOTE_MAP.find(chord_name);
-                    he.chord_root = (nit != NOTE_MAP.end()) ? nit->second : 0;
-
-                    std::string qual_name = entry.value("quality", "major");
-                    auto qit = QUAL_MAP.find(qual_name);
-                    he.chord_quality = (qit != QUAL_MAP.end()) ? qit->second : 0;
-
-                    // Derive chord tones from root + quality
-                    const auto& tones = CHORD_TONES[std::min(he.chord_quality, 2)];
-                    for (int t : tones)
-                        he.chord_tones.push_back((he.chord_root + t) % 12);
-
-                    hd.entries.push_back(he);
-                }
-
-                // Build tick-indexed harmonic_state so the neural scorer can resolve
-                // chord by metric onset tick (computed live from rhythm_vars at score time).
-                // beat_position is in quarter-note beats → convert to ticks via rhythm_base.
-                const int seq_len       = solver_config.sequence_length;
-                const int rb            = solver_config.rhythm_base;
-                const int quarter_ticks = std::max(1, rb / 4);
-                // Sort entries by beat_position ascending
-                std::sort(hd.entries.begin(), hd.entries.end(),
-                          [](const auto& a, const auto& b){
-                              return a.beat_position < b.beat_position;
-                          });
-                // Total tick span: cover all chord entries plus seq_len quarter-note slots
-                const int last_beat_tick = hd.entries.empty() ? 0
-                                         : hd.entries.back().beat_position * quarter_ticks;
-                const int total_ticks    = last_beat_tick + seq_len * quarter_ticks + 1;
-                hd.harmonic_state.assign(total_ticks, -1);
-                for (int i = 0; i < (int)hd.entries.size(); ++i) {
-                    const auto& e       = hd.entries[i];
-                    const int start_t   = e.beat_position * quarter_ticks;
-                    const int end_t     = (i + 1 < (int)hd.entries.size())
-                                          ? hd.entries[i+1].beat_position * quarter_ticks
-                                          : total_ticks;
-                    const int chord_cls = e.chord_root * 3 + std::min(e.chord_quality, 2);
-                    for (int t = start_t; t < end_t && t < total_ticks; ++t)
-                        hd.harmonic_state[t] = chord_cls;
-                }
-
-                std::cout << "   Harmonic domain: " << hd.entries.size()
+            HarmonicDomainParser::parse(hcfg, solver_config.harmonic_domain,
+                                         solver_config.sequence_length, solver_config.rhythm_base);
+            if (solver_config.harmonic_domain.enabled)
+                std::cout << "   Harmonic domain: " << solver_config.harmonic_domain.entries.size()
                           << " chord entries parsed\n";
-            }
         }
 
         solver_config.num_voices = parser.getNumVoices();
@@ -2744,6 +2727,98 @@ int main(int argc, char* argv[]) {
                                           << " (mode=" << rr_mode
                                           << ", voices " << rr_v1 << " and " << rr_v2 << ")" << std::endl;
                                 solver.apply_compiled_constraint(std::move(compiled));
+                                // ─────────────────────────────────────────────────────────────
+                            } else if (rule_type == "r-cadence") {
+                                // ── R-CADENCE ──────────────────────────────────────────────────
+                                // Thin, definitional cadence rule: bass-motion/end-degree checked
+                                // once against harmonic_domain (config-time, no Gecode), root
+                                // position and soprano target degree posted as constraints.
+                                // See include/cadence_rules.hh for the full field reference and
+                                // documented v1 limitations (metric_strength, leading-tone
+                                // resolution — both explicitly deferred, not oversights).
+                                CadenceRules::CadenceParams cad_params =
+                                    CadenceRules::resolve_params(rule_json);
+
+                                auto compiled_cad = std::make_unique<DynamicRules::CompiledConstraint>(
+                                    cad_params.id, "r-cadence: " + cad_params.cadence_type +
+                                                   " at positions " + std::to_string(cad_params.positions[0]) +
+                                                   "," + std::to_string(cad_params.positions[1]));
+
+                                const auto& harmonic_domain_ref = solver_config.harmonic_domain;
+                                compiled_cad->post_constraint = [cad_params, harmonic_domain_ref]
+                                        (DynamicRules::ConstraintContext& ctx) {
+                                    CadenceRules::post_cadence_constraint(ctx, cad_params, harmonic_domain_ref);
+                                };
+
+                                ++regular_count;
+                                std::cout << "     ✅ Compiled r-cadence: " << cad_params.id
+                                          << " (" << cad_params.cadence_type
+                                          << ", root_position=" << (cad_params.require_root_position ? "yes" : "no")
+                                          << ", soprano_degree=" << cad_params.soprano_target_degree << ")";
+                                if (!cad_params.metric_strength.empty())
+                                    std::cout << " [metric_strength='" << cad_params.metric_strength
+                                              << "' accepted but not yet enforced in v1]";
+                                std::cout << std::endl;
+                                solver.apply_compiled_constraint(std::move(compiled_cad));
+                                // ─────────────────────────────────────────────────────────────
+                            } else if (rule_type == "r-repetition") {
+                                // ── R-REPETITION ──────────────────────────────────────────────
+                                // Relates a source position range to a target range within one
+                                // (or more) voices: exact, transposed, contour_preserving,
+                                // rhythm_preserving, or diatonic_sequence. See
+                                // include/repetition_rules.hh for the full field reference.
+                                RepetitionRules::RepetitionParams rep_params =
+                                    RepetitionRules::resolve_params(rule_json);
+
+                                auto compiled_rep = std::make_unique<DynamicRules::CompiledConstraint>(
+                                    rep_params.id, "r-repetition: " + rep_params.relation);
+
+                                if (rep_params.heuristic) {
+                                    compiled_rep->is_heuristic = true;
+                                    compiled_rep->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                                    compiled_rep->heuristic_variable_type = "pitch";
+                                    compiled_rep->applies_to_voices = rep_params.target_voices;
+                                    compiled_rep->score_candidate = [rep_params]
+                                            (const DynamicRules::ConstraintContext& ctx,
+                                             const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                        return RepetitionRules::score_candidate(rep_params, ctx, cand);
+                                    };
+                                } else {
+                                    const auto& harmonic_domain_ref = solver_config.harmonic_domain;
+                                    compiled_rep->post_constraint = [rep_params, harmonic_domain_ref]
+                                            (DynamicRules::ConstraintContext& ctx) {
+                                        RepetitionRules::post_repetition_constraint(ctx, rep_params, harmonic_domain_ref);
+                                    };
+                                    ++regular_count;
+                                }
+
+                                std::cout << "     ✅ Compiled r-repetition: " << rep_params.id
+                                          << " (relation=" << rep_params.relation
+                                          << (rep_params.heuristic ? ", heuristic" : ", hard")
+                                          << ")" << std::endl;
+                                solver.apply_compiled_constraint(std::move(compiled_rep));
+                                // ─────────────────────────────────────────────────────────────
+                            } else if (rule_type == "r-tendency-tone") {
+                                // ── R-TENDENCY-TONE ───────────────────────────────────────────
+                                // See include/tendency_tone_rules.hh. Whichever voice holds the
+                                // tendency tone at positions[0] must resolve it correctly at
+                                // positions[1]; other voices are unaffected.
+                                TendencyToneRules::TendencyParams tt_params =
+                                    TendencyToneRules::resolve_params(rule_json);
+
+                                auto compiled_tt = std::make_unique<DynamicRules::CompiledConstraint>(
+                                    tt_params.id, "r-tendency-tone: " + tt_params.tendency);
+
+                                const auto& harmonic_domain_ref2 = solver_config.harmonic_domain;
+                                compiled_tt->post_constraint = [tt_params, harmonic_domain_ref2]
+                                        (DynamicRules::ConstraintContext& ctx) {
+                                    TendencyToneRules::post_tendency_constraint(ctx, tt_params, harmonic_domain_ref2);
+                                };
+
+                                ++regular_count;
+                                std::cout << "     ✅ Compiled r-tendency-tone: " << tt_params.id
+                                          << " (" << tt_params.tendency << ")" << std::endl;
+                                solver.apply_compiled_constraint(std::move(compiled_tt));
                                 // ─────────────────────────────────────────────────────────────
                             } else if (rule_type == "r-pitch-pitch") {
                                 // ── R-PITCH-PITCH ─────────────────────────────────────────────

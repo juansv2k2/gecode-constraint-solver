@@ -1,64 +1,208 @@
-BEETHOVEN AI - ONE-PAGE BUDGET PROPOSAL (NOK)
+TECHNICAL CONSULTANCY PROPOSAL AND FINANCIAL QUOTATION
 
 Project:
-Beethoven Block #1 to Production (NeuralConstraints / Gecode-based system)
+Beethoven AI - Production-Ready Orchestral Score Generation with
+NeuralConstraints/Gecode
 
-Period:
-1 August 2026 - 1 May 2027
+Consultant:
+Dr. Juan S. Vassallo
+
+Contact:
+personal@juanvassallo.com
++47 413 994 78
+
+Client:
+imec and Ghent University (IPEM, MICT), Beethoven AI project
+
+Proposed period:
+15 September 2026 - 1 May 2027
 
 Workload:
-Part-time, approximately 10-20% FTE
+Part-time, approximately 20% FTE (estimated total: 268 hours), focused mainly
+on technical advice, supervision, code review, and specialist solver work
 
-Hourly rate:
-NOK 600
+Quotation validity:
+Valid through 14 September 2026, 12:00 CET
 
-PURPOSE
-This budget covers only the remaining commercial work needed to bring the Beethoven Block #1 system from
-its current research/prototype status to a production-ready, performance-stable implementation.
-Previously completed R&D (already funded by university resources) is explicitly excluded.
 
-INCLUDED SCOPE
-1) Block #1 production hardening (Melody-Harmony-Bassline procedural realization)
-2) Runtime reliability and latency stabilization for live use
-3) Integration polishing (JSON block specification, solver pipeline, control parameters)
-4) Testing, rehearsal support, and iterative bug fixing
-5) Staging/deployment setup, documentation, handover, and limited post-launch stabilization
+1. PURPOSE AND OBJECTIVE
 
-EXCLUDED SCOPE
-1) Prior foundational research and already-delivered solver/neural architecture work
-2) Development of additional Beethoven blocks beyond Block #1
-3) Long-term maintenance after stabilization period
+This proposal covers technical consultancy for bringing the existing
+NeuralConstraints/Gecode solver core to a stable form for use in Beethoven AI.
+Dr. Vassallo will act primarily as technical advisor and solver specialist to
+the project's graduate developer and software team. He will also implement or
+correct parts of the core where his specialist knowledge is required.
 
-BUDGET SUMMARY (NOK)
-- Labor (268 h x 600 NOK).................................... 160,800
-- Cloud compute/storage......................................  72,000
-- Copilot Pro subscription...................................   2,700
-- Ops/tools (CI, monitoring, backups, artifacts).............  20,000
-  Subtotal................................................... 255,500
-- Contingency (10%)..........................................  25,550
-TOTAL........................................................ 281,050
-Recommended proposal amount (rounded)......................... 280,000
+The main output is a documented, compiled C++ solver core with a stable input
+and output interface. The imec/project software team will embed this core in the
+larger Beethoven AI system. Previously completed and university-funded research,
+architecture, and prototype work are not charged under this proposal.
 
-TIME AND EFFORT PLAN (10-20% profile)
-- August:    24 h (technical planning, acceptance criteria, roadmap lock)
-- September: 32 h (Block #1 production implementation)
-- October:   32 h (integration and runtime controls)
-- November:  30 h (test harness, performance and quality tuning)
-- December:  20 h (light maintenance/fix sprint)
-- January:   32 h (reliability hardening, rehearsal adjustments)
-- February:  32 h (staging, observability, deployment workflows)
-- March:     34 h (acceptance testing, bug burn-down)
-- April:     32 h (go-live prep, documentation, handover)
-Total........................................................ 268 h
 
-MILESTONE-BASED PAYMENT PLAN
-1) 20% at project kickoff
-2) 25% at Block #1 production-ready completion
-3) 25% at integration + staging validation
-4) 20% at production go-live readiness
-5) 10% after stabilization period
+2. EXISTING FRAMEWORK
 
-RISK POSITION
-This is a lean and conservative budget made possible by substantial pre-existing work.
-Primary residual risk is live-performance robustness under real rehearsal/venue conditions;
-this is covered by contingency and phased acceptance gates.
+NeuralConstraints/Gecode is a C++17 polyphonic music-generation framework built
+on Gecode and informed by the rule-based, multi-voice approach of Cluster
+Engine. It represents pitch, rhythm, meter, harmony, and voice relationships as
+musical constraints. Gecode guarantees that returned solutions satisfy the hard
+rules, while heuristic and neural components can guide the search toward more
+appropriate musical results without overriding those rules.
+
+The existing core accepts structured JSON specifications, supports configurable
+search limits and deterministic seeds, and returns score data for downstream
+use. This assignment therefore concerns advice, focused development, and
+production hardening of an existing system rather than a new implementation.
+
+
+3. SCOPE OF WORK AND DELIVERABLES
+
+Dr. Vassallo's role will combine regular technical guidance with focused work on
+the parts of the solver that require his knowledge of its architecture and
+musical constraint model.
+
+3.1 Music generation and orchestration
+
+- Advise the graduate developer on translating the artistic requirements into
+  pitch, rhythm, harmony, meter, voice-leading, and orchestration constraints.
+- Review production configurations and implement difficult core constraints or
+  search behavior where necessary.
+- Support the initial workflow in which Theme 1, Theme 2, and Filler material is
+  selected from the sketch archive and reused across the concert.
+
+3.2 Runtime reliability
+
+- Review and improve solver behavior for repeated generation, unsatisfiable
+  inputs, timeouts, deterministic reproduction, and error reporting.
+- Profile and optimize the core where tests identify a material bottleneck.
+- Advise on practical fallback behavior for rehearsals and performance.
+
+3.3 Integration support and intermediate releases
+
+- Agree a small, versioned JSON input/output contract with the imec software
+  team and provide example requests and results.
+- Deliver intermediate compiled core builds so integration can proceed before
+  the complete musical rule set is finalized.
+- Support generation of several selected blocks in one preparation cycle. Each
+  block will carry stable identity and ordering metadata so the surrounding
+  system can stitch the results before sending the score to the orchestra.
+- Diagnose solver-side integration issues and advise the software team during
+  embedding.
+
+3.4 Testing and rehearsals
+
+- Review tests written by the graduate developer and add focused regression
+  tests for critical solver behavior.
+- Evaluate musical and technical results with IPEM, Kit Armstrong, Jan Caeyers,
+  and the software team as appropriate.
+- Provide remote support around the planned 27 September and 15-17 October 2026
+  test opportunities, subject to confirmation and availability.
+- Refine the core in response to agreed rehearsal findings throughout the
+  consultancy period.
+
+3.5 Final delivery and documentation
+
+- Deliver the agreed compiled solver core for embedding by the software team.
+- Provide concise interface, build, configuration, and troubleshooting notes.
+- Conduct a technical handover with the graduate developer and software team.
+
+The imec/project software team remains responsible for embedding the compiled
+core into the broader system, application-level score stitching, user
+interfaces, networking, deployment of that broader system, and delivery of
+scores to the orchestra.
+
+
+4. ACCEPTANCE BASIS
+
+Acceptance will use test cases agreed with the software and musical teams. The
+compiled core must satisfy enabled hard constraints, handle agreed error and
+timeout cases safely, support Theme 1, Theme 2, Filler, and ordered multi-block
+requests, and be invokable by the software team using the supplied examples.
+Runtime targets will be agreed once the target hardware and integration method
+are known.
+
+
+5. EXCLUDED SCOPE
+
+The following are not included unless separately agreed in writing:
+
+- Foundational research and system architecture already completed and funded
+  through university resources.
+- Embedding the core into the complete Beethoven AI application, including its
+  service layer, networking, user interfaces, score stitching, distribution,
+  rendering, and application deployment.
+- Music-information-retrieval systems for biofeedback, gesture capture, or other
+  sensor modalities.
+- Composition or inference of complete high-level musical form beyond the
+  structural inputs and interfaces agreed for this assignment.
+- Hardware, commercial software, travel, and mobility costs.
+- Long-term maintenance or major new requirements beyond the agreed core.
+
+Material scope changes require written approval and a separate estimate.
+
+
+6. TIME AND EFFORT PLAN
+
+September 2026   24 h   Interface agreement, first integration build, test support
+October 2026     32 h   Theme/Filler workflow, multi-block prototype, test support
+November 2026    32 h   Rule guidance, code review, integration corrections
+December 2026    30 h   Reliability review and focused optimization
+January 2027     28 h   Musical refinement and specialist core development
+February 2027    34 h   Intermediate release, testing, rehearsal preparation
+March 2027       44 h   Rehearsal review, regression work, integration advice
+April 2027       44 h   Final core release, documentation, and handover
+                   ---
+Total            268 h
+
+The monthly allocation is indicative. Hours may be reallocated across months by
+mutual agreement to follow integration and rehearsal needs without changing the
+maximum contract value.
+
+
+7. FINANCIAL QUOTATION (EUR, TAX INCLUDED)
+
+Professional consultancy fee
+(estimated effort: 268 hours)............................ EUR 20,000
+                                                          ----------
+TOTAL AMOUNT PAYABLE, TAX INCLUDED........................ EUR 20,000
+
+The total amount payable under this quotation will not exceed EUR 20,000,
+inclusive of any applicable tax. No tax or project-resource charge will be added
+to this amount. The applicable VAT treatment, if any, will be determined by the
+parties' finance departments and reflected on the invoices accordingly.
+
+The client will provide the project resources required for the assignment,
+including compute, storage, development infrastructure, and relevant software
+access. The 268-hour allocation is an effort estimate used for planning. The fee
+will be invoiced against the milestones below. Work outside the agreed scope
+requires written approval.
+
+
+8. PROPOSED INVOICING SCHEDULE
+
+- 20% (EUR 4,000, tax included) following kickoff and interface agreement.
+- 25% (EUR 5,000, tax included) following the first compiled integration release.
+- 25% (EUR 5,000, tax included) following multi-block generation review.
+- 20% (EUR 4,000, tax included) following the final compiled core release.
+- 10% (EUR 2,000, tax included) following documentation, handover, and final acceptance.
+
+Each invoice will include a brief activity and cost summary. Payment terms and
+tax treatment will follow the final consultancy agreement. In all cases, the
+combined invoiced amount will not exceed EUR 20,000.
+
+
+9. CLIENT DEPENDENCIES AND WORKING ASSUMPTIONS
+
+The project team will provide the designated developer, representative Beethoven
+materials, musical specifications, target integration method and hardware,
+rehearsal schedules, and access to technical and artistic decision-makers. The
+designated developer will carry out most day-to-day implementation and testing,
+with Dr. Vassallo providing guidance, reviews, and specialist code contributions.
+Work will normally be remote and depends on timely access and feedback. Rights
+to pre-existing and newly commissioned work will be governed by the final
+consultancy agreement.
+
+
+Submitted by:
+
+Dr. Juan S. Vassallo
+8 September 2026

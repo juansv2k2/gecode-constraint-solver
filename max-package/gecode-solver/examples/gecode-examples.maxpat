@@ -9,8 +9,19 @@
             "modernui": 1
         },
         "classnamespace": "box",
-        "rect": [ 33.0, 94.0, 1260.0, 989.0 ],
+        "rect": [ 34.0, 94.0, 1260.0, 989.0 ],
         "boxes": [
+            {
+                "box": {
+                    "id": "obj-34",
+                    "maxclass": "message",
+                    "numinlets": 2,
+                    "numoutlets": 1,
+                    "outlettype": [ "" ],
+                    "patching_rect": [ 767.5, 271.0, 192.0, 22.0 ],
+                    "text": "read cadence_pac_test.json, bang"
+                }
+            },
             {
                 "box": {
                     "id": "obj-14",
@@ -595,13 +606,12 @@
             {
                 "box": {
                     "id": "obj-23",
-                    "linecount": 2,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 512.0, 1266.0, 119.0, 35.0 ],
-                    "text": "7 2 -2 2 -7 -5 -10 -7 11 5 18 14 20"
+                    "patching_rect": [ 512.0, 1266.0, 119.0, 22.0 ],
+                    "text": "7 5"
                 }
             },
             {
@@ -618,13 +628,12 @@
             {
                 "box": {
                     "id": "obj-21",
-                    "linecount": 2,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 430.0, 1221.0, 145.0, 35.0 ],
-                    "text": "65 74 71 72 74 67 74 67 60 60 59 65 59"
+                    "patching_rect": [ 430.0, 1221.0, 145.0, 22.0 ],
+                    "text": "55 55"
                 }
             },
             {
@@ -658,13 +667,12 @@
             {
                 "box": {
                     "id": "obj-12",
-                    "linecount": 2,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 324.0, 1184.0, 143.0, 35.0 ],
-                    "text": "72 76 69 74 67 62 64 60 71 65 77 79 79"
+                    "patching_rect": [ 324.0, 1184.0, 143.0, 22.0 ],
+                    "text": "62 60"
                 }
             },
             {
@@ -771,7 +779,7 @@
             },
             {
                 "box": {
-                    "code": "{\n    \"name\": \"Metric Domain Simple\",\n    \"description\": \"Voice-first metric example with timepoint segmentation.\",\n    \"solution_length\": 13,\n    \"score_length\": \"13q\",\n    \"num_voices\": 4,\n    \"voices\": [\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        }\n    ],\n    \"meter\": {\n        \"time_signatures\": [ \"4/4\", \"3/4\", \"2/4\" ],\n        \"tuplets\": [ 3 ],\n        \"beat_divisions\": [ 2, 3 ]\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/metric_domain_simple\",\n    \"rules\": [\n        {\n            \"rule_type\": \"r-pitches-one-engine\",\n            \"constraint\": \"all_different\",\n            \"indices\": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],\n            \"target_voice\": 0,\n            \"target_component\": \"pitch\",\n            \"description\": \"Voice 0 first 12 pitches are all different\"\n        },\n        {\n            \"rule_type\": \"r-cross-voice-no-unisons\",\n            \"constraint\": \"no_unisons_between_engines\",\n            \"indices\": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],\n            \"target_voices\": [ 0, 1, 2, 3 ],\n            \"target_component\": \"pitch\"\n        },\n        {\n            \"rule_type\": \"r-time-signature\",\n            \"constraint\": \"equal_values\",\n            \"parameters\": [ \"4/4\", \"2/4\", \"3/4\" ],\n            \"timepoints\": [ \"0q\", \"4q\", \"6q\" ]\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 1,\n        \"require_exact_score_length\": 1,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"random\",\n        \"restart_policy\": \"none\",\n        \"max_solutions\": 1,\n        \"timeout_ms\": 20000,\n        \"random_seed\": 0\n    }\n}",
+                    "code": "{\n    \"name\": \"r-cadence PAC test — minimal 4-voice\",\n    \"description\": \"4 voices, 2 chords (V7-I in C major), r-cadence PAC constraint at positions 0,1, plus explicit chord-tone-membership rules for every voice and no-parallel-fifths/octaves between all pairs — without these, r-cadence alone only constrains soprano+bass, leaving alto/tenor free to pick arbitrary domain values. Known simplification: chord-tone rules check each voice individually, not collective coverage, so the V7's 3rd/7th (B/F) may be omitted in favor of doubled root/5th.\",\n    \"solution_length\": 2,\n    \"num_voices\": 4,\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 0,\n        \"random_seed\": 0,\n        \"timeout_ms\": 10000,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"min\"\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/cadence_pac_test\",\n    \"voices\": [\n        {\n            \"name\": \"Soprano\",\n            \"pitch\": {\n                \"midi_values\": [ 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79 ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            }\n        },\n        {\n            \"name\": \"Alto\",\n            \"pitch\": {\n                \"midi_values\": [ 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72 ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            }\n        },\n        {\n            \"name\": \"Tenor\",\n            \"pitch\": {\n                \"midi_values\": [ 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65 ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            }\n        },\n        {\n            \"name\": \"Bass\",\n            \"pitch\": {\n                \"midi_values\": [ 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53 ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            }\n        }\n    ],\n    \"rules\": [\n        {\n            \"id\": \"pac_cadence\",\n            \"rule_type\": \"r-cadence\",\n            \"cadence_type\": \"PAC\",\n            \"positions\": [ 0, 1 ],\n            \"target_voices\": [ 0, 1, 2, 3 ],\n            \"enabled\": 1,\n            \"description\": \"V7-I authentic cadence, root position, soprano on tonic\"\n        },\n        {\n            \"id\": \"soprano_v7_tone\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_positions\",\n            \"pattern_offsets\": [ 0 ],\n            \"constraint\": \"voice[0].pitch[0] in [62, 65, 67, 71, 74, 77, 79]\",\n            \"target_voices\": [ 0 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Soprano must be a V7 chord tone (G,B,D,F) at position 0 — r-cadence only constrains soprano at the resolution, not the pre-cadence chord\"\n        },\n        {\n            \"id\": \"soprano_i_tone\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_positions\",\n            \"pattern_offsets\": [ 0 ],\n            \"constraint\": \"voice[0].pitch[1] in [60, 64, 67, 72, 76, 79]\",\n            \"target_voices\": [ 0 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Redundant with r-cadence's soprano_target_degree=1 at position 1 (already the tonic), kept for symmetry with position 0\"\n        },\n        {\n            \"id\": \"alto_v7_tone\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_positions\",\n            \"pattern_offsets\": [ 0 ],\n            \"constraint\": \"voice[1].pitch[0] in [55, 59, 62, 65, 67, 71]\",\n            \"target_voices\": [ 1 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Alto must be a V7 chord tone at position 0\"\n        },\n        {\n            \"id\": \"alto_i_tone\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_positions\",\n            \"pattern_offsets\": [ 0 ],\n            \"constraint\": \"voice[1].pitch[1] in [55, 60, 64, 67, 72]\",\n            \"target_voices\": [ 1 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Alto must be an I chord tone at position 1\"\n        },\n        {\n            \"id\": \"tenor_v7_tone\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_positions\",\n            \"pattern_offsets\": [ 0 ],\n            \"constraint\": \"voice[2].pitch[0] in [50, 53, 55, 59, 62, 65]\",\n            \"target_voices\": [ 2 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Tenor must be a V7 chord tone at position 0\"\n        },\n        {\n            \"id\": \"tenor_i_tone\",\n            \"rule_type\": \"wildcard_constraint\",\n            \"wildcard_type\": \"for_all_positions\",\n            \"pattern_offsets\": [ 0 ],\n            \"constraint\": \"voice[2].pitch[1] in [48, 52, 55, 60, 64]\",\n            \"target_voices\": [ 2 ],\n            \"target_component\": \"pitch\",\n            \"description\": \"Tenor must be an I chord tone at position 1 (root position bass already fixes the bass; this fixes the inner voice)\"\n        },\n        {\n            \"id\": \"no_parallel_fifths_octaves\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_fifths\",\n            \"target_voices\": [ 0, 3 ],\n            \"description\": \"Soprano-bass: no parallel fifths across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_octaves_sb\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_octaves\",\n            \"target_voices\": [ 0, 3 ],\n            \"description\": \"Soprano-bass: no parallel octaves across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_fifths_at\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_fifths\",\n            \"target_voices\": [ 1, 2 ],\n            \"description\": \"Alto-tenor: no parallel fifths across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_octaves_at\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_octaves\",\n            \"target_voices\": [ 1, 2 ],\n            \"description\": \"Alto-tenor: no parallel octaves across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_fifths_sa\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_fifths\",\n            \"target_voices\": [ 0, 1 ],\n            \"description\": \"Soprano-alto: no parallel fifths across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_octaves_sa\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_octaves\",\n            \"target_voices\": [ 0, 1 ],\n            \"description\": \"Soprano-alto: no parallel octaves across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_fifths_st\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_fifths\",\n            \"target_voices\": [ 0, 2 ],\n            \"description\": \"Soprano-tenor: no parallel fifths across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_octaves_st\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_octaves\",\n            \"target_voices\": [ 0, 2 ],\n            \"description\": \"Soprano-tenor: no parallel octaves across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_fifths_ab\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_fifths\",\n            \"target_voices\": [ 1, 3 ],\n            \"description\": \"Alto-bass: no parallel fifths across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_octaves_ab\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_octaves\",\n            \"target_voices\": [ 1, 3 ],\n            \"description\": \"Alto-bass: no parallel octaves across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_fifths_tb\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_fifths\",\n            \"target_voices\": [ 2, 3 ],\n            \"description\": \"Tenor-bass: no parallel fifths across the cadence\"\n        },\n        {\n            \"id\": \"no_parallel_octaves_tb\",\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"no_consecutive_octaves\",\n            \"target_voices\": [ 2, 3 ],\n            \"description\": \"Tenor-bass: no parallel octaves across the cadence\"\n        }\n    ],\n    \"harmonic_domain\": [\n        {\n            \"beat\": 0,\n            \"degree\": \"V7\",\n            \"key\": \"C\",\n            \"mode\": \"major\"\n        },\n        {\n            \"beat\": 1,\n            \"degree\": \"I\"\n        }\n    ]\n}",
                     "editlocked": 1,
                     "fontface": 0,
                     "fontname": "<Monospaced>",
@@ -1028,6 +1036,13 @@
                     "destination": [ "obj-1", 0 ],
                     "midpoints": [ 760.0, 276.52734375, 79.5, 276.52734375 ],
                     "source": [ "obj-33", 0 ]
+                }
+            },
+            {
+                "patchline": {
+                    "destination": [ "obj-1", 0 ],
+                    "midpoints": [ 777.0, 301.0, 79.5, 301.0 ],
+                    "source": [ "obj-34", 0 ]
                 }
             },
             {

@@ -2,7 +2,7 @@
   "config_file": "configs/simple_twelve_tone_test.json",
   "problem_name": "Simple 12-Tone Test",
   "solutions_found": 1,
-  "solve_time_ms": 1,
+  "solve_time_ms": 0,
   "rules_applied": 1,
   "solutions": [
     {

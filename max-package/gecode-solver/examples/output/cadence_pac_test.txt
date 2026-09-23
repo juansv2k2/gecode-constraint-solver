@@ -1,0 +1,15 @@
+🎼 Musical Solution
+==================
+Notes (MIDI): 62 → 60
+Note names:   D4 → C4
+Intervals:    -2
+
+📊 Solution Statistics
+Solve time: 0.01 ms
+Rules checked: 28
+Backjumps performed: 0
+Average interval: 2.0
+Direction changes: 1
+
+🎯 Applied Rules:
+  ✅ Gecode constraint propagation completed successfully

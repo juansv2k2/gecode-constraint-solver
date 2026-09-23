@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: repetition_transposed_test.json
+Problem: Melody
+Description: Minimal repro: single voice, 8 notes. Bar 1 (pos 0-3) is a motif; bar 2 (pos 4-7) is the same motif transposed up 2 semitones. Verifies the 'transposed' relation as a hard constraint.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C#4 → C4 → C#4 → D4 → D#4 → D4 → D#4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 2

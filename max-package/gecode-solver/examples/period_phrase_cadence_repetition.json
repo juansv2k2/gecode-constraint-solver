@@ -1,0 +1,482 @@
+{
+  "name": "Period phrase \u2014 antecedent (HC) + consequent (PAC), 4-voice",
+  "description": "Demonstrates r-cadence and r-repetition together on a classical period, PLUS the chord-tone-membership and no-parallel-fifths/octaves rules every real 4-part config needs alongside them — r-cadence and r-repetition only constrain the specific voices/positions they're asked to, so without these accompanying rules the other voices are free to produce arbitrary, musically incoherent results. Antecedent (0-7) ends in a half cadence (ii-V); consequent (8-15) echoes the antecedent's soprano contour (soft) and ends in a full authentic cadence (hard: root position, soprano on tonic). Known simplification: chord-tone rules check each voice individually, not collective chord coverage, so e.g. the final V7 may omit its 3rd/7th in favor of doubled root/5th.",
+  "solution_length": 16,
+  "num_voices": 4,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 0,
+    "timeout_ms": 20000,
+    "branching": "first_fail",
+    "value_order": "min"
+  },
+  "export_json": false,
+  "export_txt": true,
+  "export_xml": true,
+  "file_name": "output/period_phrase_cadence_repetition",
+  "voices": [
+    {
+      "name": "Soprano",
+      "pitch": {
+        "midi_values": [60, 62, 64, 65, 67, 69, 71, 72, 74, 76]
+      },
+      "rhythm": {
+        "duration_values": ["1/4"]
+      }
+    },
+    {
+      "name": "Alto",
+      "pitch": {
+        "midi_values": [55, 57, 59, 60, 62, 64, 65, 67, 69]
+      },
+      "rhythm": {
+        "duration_values": ["1/4"]
+      }
+    },
+    {
+      "name": "Tenor",
+      "pitch": {
+        "midi_values": [48, 50, 52, 53, 55, 57, 59, 60, 62, 64]
+      },
+      "rhythm": {
+        "duration_values": ["1/4"]
+      }
+    },
+    {
+      "name": "Bass",
+      "pitch": {
+        "midi_values": [36, 38, 40, 41, 43, 45, 47, 48, 50, 52]
+      },
+      "rhythm": {
+        "duration_values": ["1/4"]
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_adjacent_repeat_soprano",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_voices",
+      "pattern_offsets": [0, 1],
+      "constraint": "voice[v].pitch[i] != voice[v].pitch[i+1]",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Hard: soprano no immediately repeated pitch, so the contour has real steps to compare"
+    },
+    {
+      "id": "half_cadence_antecedent",
+      "rule_type": "r-cadence",
+      "cadence_type": "HC",
+      "positions": [6, 7],
+      "target_voices": [0, 1, 2, 3],
+      "description": "Antecedent ends on V (ii-V half cadence) at position 7"
+    },
+    {
+      "id": "authentic_cadence_consequent",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "positions": [14, 15],
+      "target_voices": [0, 1, 2, 3],
+      "description": "Consequent ends in a full authentic cadence (V7-I, root position, soprano on tonic)"
+    },
+    {
+      "id": "final_seventh_resolves_down",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "positions": [14, 15],
+      "target_voices": [0, 1, 2, 3],
+      "description": "Whichever voice holds the final V7's 7th at position 14 must resolve it down by step at position 15"
+    },
+    {
+      "id": "final_leading_tone_resolves_up",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "positions": [14, 15],
+      "target_voices": [0, 1, 2, 3],
+      "description": "Whichever voice holds the leading tone at position 14 must resolve it up by step to the tonic at position 15"
+    },
+    {
+      "id": "consequent_echoes_antecedent_contour",
+      "rule_type": "r-repetition",
+      "relation": "contour_preserving",
+      "source_positions": [0, 1, 2, 3, 4, 5],
+      "target_positions": [8, 9, 10, 11, 12, 13],
+      "target_voices": [0],
+      "heuristic": true,
+      "description": "Soft: consequent soprano traces the same melodic shape as the antecedent's opening (classical period parallelism)"
+    },
+    {
+      "id": "soprano_I_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[i] in [60, 64, 67, 72, 76]",
+      "indices": [0, 1, 8, 9, 15],
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Soprano must be a I chord tone at these positions"
+    },
+    {
+      "id": "alto_I_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[i] in [55, 60, 64, 67]",
+      "indices": [0, 1, 8, 9, 15],
+      "target_voices": [1],
+      "target_component": "pitch",
+      "description": "Alto must be a I chord tone at these positions"
+    },
+    {
+      "id": "tenor_I_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[2].pitch[i] in [48, 52, 55, 60, 64]",
+      "indices": [0, 1, 8, 9, 15],
+      "target_voices": [2],
+      "target_component": "pitch",
+      "description": "Tenor must be a I chord tone at these positions"
+    },
+    {
+      "id": "bass_I_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[3].pitch[i] in [36, 40, 43, 48, 52]",
+      "indices": [0, 1, 8, 9, 15],
+      "target_voices": [3],
+      "target_component": "pitch",
+      "description": "Bass must be a I chord tone at these positions"
+    },
+    {
+      "id": "soprano_IV_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[i] in [60, 65, 69, 72]",
+      "indices": [2, 3, 10, 11],
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Soprano must be a IV chord tone at these positions"
+    },
+    {
+      "id": "alto_IV_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[i] in [57, 60, 65, 69]",
+      "indices": [2, 3, 10, 11],
+      "target_voices": [1],
+      "target_component": "pitch",
+      "description": "Alto must be a IV chord tone at these positions"
+    },
+    {
+      "id": "tenor_IV_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[2].pitch[i] in [48, 53, 57, 60]",
+      "indices": [2, 3, 10, 11],
+      "target_voices": [2],
+      "target_component": "pitch",
+      "description": "Tenor must be a IV chord tone at these positions"
+    },
+    {
+      "id": "bass_IV_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[3].pitch[i] in [36, 41, 45, 48]",
+      "indices": [2, 3, 10, 11],
+      "target_voices": [3],
+      "target_component": "pitch",
+      "description": "Bass must be a IV chord tone at these positions"
+    },
+    {
+      "id": "soprano_ii_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[i] in [62, 65, 69, 74]",
+      "indices": [4, 5, 6, 12, 13],
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Soprano must be a ii chord tone at these positions"
+    },
+    {
+      "id": "alto_ii_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[i] in [57, 62, 65, 69]",
+      "indices": [4, 5, 6, 12, 13],
+      "target_voices": [1],
+      "target_component": "pitch",
+      "description": "Alto must be a ii chord tone at these positions"
+    },
+    {
+      "id": "tenor_ii_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[2].pitch[i] in [50, 53, 57, 62]",
+      "indices": [4, 5, 6, 12, 13],
+      "target_voices": [2],
+      "target_component": "pitch",
+      "description": "Tenor must be a ii chord tone at these positions"
+    },
+    {
+      "id": "bass_ii_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[3].pitch[i] in [38, 41, 45, 50]",
+      "indices": [4, 5, 6, 12, 13],
+      "target_voices": [3],
+      "target_component": "pitch",
+      "description": "Bass must be a ii chord tone at these positions"
+    },
+    {
+      "id": "soprano_V_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[i] in [62, 67, 71, 74]",
+      "indices": [7],
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Soprano must be a V chord tone at these positions"
+    },
+    {
+      "id": "alto_V_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[i] in [55, 59, 62, 67]",
+      "indices": [7],
+      "target_voices": [1],
+      "target_component": "pitch",
+      "description": "Alto must be a V chord tone at these positions"
+    },
+    {
+      "id": "tenor_V_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[2].pitch[i] in [50, 55, 59, 62]",
+      "indices": [7],
+      "target_voices": [2],
+      "target_component": "pitch",
+      "description": "Tenor must be a V chord tone at these positions"
+    },
+    {
+      "id": "bass_V_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[3].pitch[i] in [38, 43, 47, 50]",
+      "indices": [7],
+      "target_voices": [3],
+      "target_component": "pitch",
+      "description": "Bass must be a V chord tone at these positions"
+    },
+    {
+      "id": "soprano_V7_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[i] in [62, 65, 67, 71, 74]",
+      "indices": [14],
+      "target_voices": [0],
+      "target_component": "pitch",
+      "description": "Soprano must be a V7 chord tone at these positions"
+    },
+    {
+      "id": "alto_V7_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[1].pitch[i] in [55, 59, 62, 65, 67]",
+      "indices": [14],
+      "target_voices": [1],
+      "target_component": "pitch",
+      "description": "Alto must be a V7 chord tone at these positions"
+    },
+    {
+      "id": "tenor_V7_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[2].pitch[i] in [50, 53, 55, 59, 62]",
+      "indices": [14],
+      "target_voices": [2],
+      "target_component": "pitch",
+      "description": "Tenor must be a V7 chord tone at these positions"
+    },
+    {
+      "id": "bass_V7_tone",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[3].pitch[i] in [38, 41, 43, 47, 50]",
+      "indices": [14],
+      "target_voices": [3],
+      "target_component": "pitch",
+      "description": "Bass must be a V7 chord tone at these positions"
+    },
+    {
+      "id": "no_parallel_fifths_soprano_alto",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 1],
+      "description": "No parallel fifths between soprano alto"
+    },
+    {
+      "id": "no_parallel_octaves_soprano_alto",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0, 1],
+      "description": "No parallel octaves between soprano alto"
+    },
+    {
+      "id": "no_parallel_fifths_alto_tenor",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [1, 2],
+      "description": "No parallel fifths between alto tenor"
+    },
+    {
+      "id": "no_parallel_octaves_alto_tenor",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [1, 2],
+      "description": "No parallel octaves between alto tenor"
+    },
+    {
+      "id": "no_parallel_fifths_tenor_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [2, 3],
+      "description": "No parallel fifths between tenor bass"
+    },
+    {
+      "id": "no_parallel_octaves_tenor_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [2, 3],
+      "description": "No parallel octaves between tenor bass"
+    },
+    {
+      "id": "no_parallel_fifths_soprano_tenor",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 2],
+      "description": "No parallel fifths between soprano tenor"
+    },
+    {
+      "id": "no_parallel_octaves_soprano_tenor",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0, 2],
+      "description": "No parallel octaves between soprano tenor"
+    },
+    {
+      "id": "no_parallel_fifths_alto_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [1, 3],
+      "description": "No parallel fifths between alto bass"
+    },
+    {
+      "id": "no_parallel_octaves_alto_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [1, 3],
+      "description": "No parallel octaves between alto bass"
+    },
+    {
+      "id": "no_parallel_fifths_soprano_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0, 3],
+      "description": "No parallel fifths between soprano bass"
+    },
+    {
+      "id": "no_parallel_octaves_soprano_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0, 3],
+      "description": "No parallel octaves between soprano bass"
+    }
+  ],
+  "harmonic_domain": [
+    {
+      "beat": 0,
+      "degree": "I",
+      "key": "C",
+      "mode": "major"
+    },
+    {
+      "beat": 1,
+      "degree": "I"
+    },
+    {
+      "beat": 2,
+      "degree": "IV"
+    },
+    {
+      "beat": 3,
+      "degree": "IV"
+    },
+    {
+      "beat": 4,
+      "degree": "ii"
+    },
+    {
+      "beat": 5,
+      "degree": "ii"
+    },
+    {
+      "beat": 6,
+      "degree": "ii"
+    },
+    {
+      "beat": 7,
+      "degree": "V"
+    },
+    {
+      "beat": 8,
+      "degree": "I"
+    },
+    {
+      "beat": 9,
+      "degree": "I"
+    },
+    {
+      "beat": 10,
+      "degree": "IV"
+    },
+    {
+      "beat": 11,
+      "degree": "IV"
+    },
+    {
+      "beat": 12,
+      "degree": "ii"
+    },
+    {
+      "beat": 13,
+      "degree": "ii"
+    },
+    {
+      "beat": 14,
+      "degree": "V7"
+    },
+    {
+      "beat": 15,
+      "degree": "I"
+    }
+  ]
+}

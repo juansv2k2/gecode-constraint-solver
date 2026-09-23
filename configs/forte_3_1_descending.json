@@ -1,0 +1,46 @@
+{
+  "name": "Forte 3-1 Descending Melody",
+  "description": "One voice with eight descending chromatic trichords in Forte set class 3-1, prime form [0,1,2], within MIDI range 60-80.",
+  "solution_length": 24,
+  "num_voices": 1,
+  "search_options": {
+    "engine": "dfs",
+    "branching": "first_fail",
+    "value_order": "min",
+    "timeout_ms": 10000,
+    "max_solutions": 1,
+    "random_seed": 42
+  },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "file_name": "output/forte_3_1_descending",
+  "rules": [
+    {
+      "id": "forte_3_1_descending_cells",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "constraint": "voice[0].pitch[1] == voice[0].pitch[0] - 1 && voice[0].pitch[2] == voice[0].pitch[1] - 1 && voice[0].pitch[4] == voice[0].pitch[3] - 1 && voice[0].pitch[5] == voice[0].pitch[4] - 1 && voice[0].pitch[7] == voice[0].pitch[6] - 1 && voice[0].pitch[8] == voice[0].pitch[7] - 1 && voice[0].pitch[10] == voice[0].pitch[9] - 1 && voice[0].pitch[11] == voice[0].pitch[10] - 1 && voice[0].pitch[13] == voice[0].pitch[12] - 1 && voice[0].pitch[14] == voice[0].pitch[13] - 1 && voice[0].pitch[16] == voice[0].pitch[15] - 1 && voice[0].pitch[17] == voice[0].pitch[16] - 1 && voice[0].pitch[19] == voice[0].pitch[18] - 1 && voice[0].pitch[20] == voice[0].pitch[19] - 1 && voice[0].pitch[22] == voice[0].pitch[21] - 1 && voice[0].pitch[23] == voice[0].pitch[22] - 1",
+      "target_voices": [0],
+      "target_component": "pitch",
+      "enabled": true,
+      "description": "Each three-note cell descends by semitone and forms Forte set class 3-1."
+    }
+  ],
+  "voices": [
+    {
+      "rhythm": {
+        "duration_values": ["1/4"],
+        "description": "Quarter notes only"
+      },
+      "pitch": {
+        "midi_values": [
+          60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+          77, 78, 79, 80
+        ],
+        "description": "Chromatic MIDI range 60-80"
+      }
+    }
+  ]
+}

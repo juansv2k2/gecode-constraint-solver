@@ -1,0 +1,17 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: repetition_contour_test.json
+Problem: Melody
+Description: Bar 2 must move in the same up/down/same direction as bar 1 at each step, without requiring the same intervals.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → D4 → C4 → D4 → C4 → D4 → C4 → D4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 2

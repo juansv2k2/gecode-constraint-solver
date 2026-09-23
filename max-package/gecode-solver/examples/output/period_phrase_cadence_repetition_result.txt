@@ -1,0 +1,29 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: period_phrase_cadence_repetition.json
+Problem: Bass
+Description: Demonstrates r-cadence and r-repetition working together on a classical period structure. Antecedent (positions 0-7) ends in a half cadence (ii-V). Consequent (positions 8-15) restates the antecedent's melodic contour (r-repetition, contour_preserving, soft) and ends in a perfect authentic cadence (r-cadence, PAC, hard). Root position + soprano-on-tonic are enforced at the final cadence; the antecedent's half cadence only requires the resolution chord to actually be V.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: D4 → C4 → D4 → C4 → D4 → C4 → D4 → C4 → D4 → C4 → D4 → C4 → D4 → C4 → D4 → C4
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 1:
+  Pitches: G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3 → G3 → A3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 2:
+  Pitches: C3 → D3 → C3 → D3 → C3 → D3 → C3 → D3 → C3 → D3 → C3 → D3 → C3 → D3 → C3 → D3
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Voice 3:
+  Pitches: D2 → C2 → D2 → C2 → D2 → C2 → D2 → C2 → D2 → C2 → D2 → C2 → D2 → C2 → G2 → C2
+  Rhythm:  1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4 + 1/4
+
+Performance:
+  Total solve time: 1 ms
+  Rules applied: 4

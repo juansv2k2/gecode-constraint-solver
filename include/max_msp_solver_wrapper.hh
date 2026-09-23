@@ -109,6 +109,10 @@ private:
     float        neural_temperature_ = 1.0f;
     unsigned int neural_seed_        = 12345;
     std::vector<int> neural_harmonic_state_;   // tick-indexed chord class (from harmonic_domain)
+    // Key/degree-aware harmonic_domain, used by r-cadence/r-repetition (separate
+    // from neural_harmonic_state_ above, which only carries chord class per tick
+    // with no key information — see include/harmonic_domain_parser.hh).
+    MusicalConstraintSolver::SolverConfig::HarmonicConfig harmonic_domain_;
 
     // Per-voice / per-component scorers (neural_scorers array)
     struct NeuralScorerSpec {

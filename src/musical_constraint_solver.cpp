@@ -1788,6 +1788,15 @@ std::string MusicalSolution::to_musicxml() const {
         for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
             xml << "  <part id=\"P" << (voice + 1) << "\">\n";
 
+            // Clef choice: bass clef when this voice's notes sit mostly below
+            // middle C, otherwise treble — avoids the ledger-line pileup a fixed
+            // treble clef causes for tenor/bass-register voices.
+            long pitch_sum = 0; int pitch_count = 0;
+            for (const auto& rm : render_measures)
+                for (const auto& ev : rm.events)
+                    if (ev.voice == static_cast<int>(voice) && !ev.is_rest) { pitch_sum += ev.pitch; ++pitch_count; }
+            const bool use_bass_clef = pitch_count > 0 && (static_cast<double>(pitch_sum) / pitch_count) < 60.0;
+
             for (size_t m = 0; m < render_measures.size(); ++m) {
                 const auto& measure = render_measures[m];
                 xml << "    <measure number=\"" << (m + 1) << "\">\n";
@@ -1803,8 +1812,13 @@ std::string MusicalSolution::to_musicxml() const {
                     xml << "          <beat-type>" << measure.denominator << "</beat-type>\n";
                     xml << "        </time>\n";
                     xml << "        <clef>\n";
-                    xml << "          <sign>G</sign>\n";
-                    xml << "          <line>2</line>\n";
+                    if (use_bass_clef) {
+                        xml << "          <sign>F</sign>\n";
+                        xml << "          <line>4</line>\n";
+                    } else {
+                        xml << "          <sign>G</sign>\n";
+                        xml << "          <line>2</line>\n";
+                    }
                     xml << "        </clef>\n";
                     xml << "      </attributes>\n";
                 } else {
@@ -1990,6 +2004,13 @@ std::string MusicalSolution::to_musicxml() const {
     } else if (!voice_solutions.empty()) {
         for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
             xml << "  <part id=\"P" << (voice + 1) << "\">\n";
+
+            // Same register-aware clef choice as the metric-export path above.
+            long pitch_sum = 0; int pitch_count = 0;
+            for (int midi_note : voice_solutions[voice])
+                if (midi_note >= 0) { pitch_sum += midi_note; ++pitch_count; }
+            const bool use_bass_clef = pitch_count > 0 && (static_cast<double>(pitch_sum) / pitch_count) < 60.0;
+
             xml << "    <measure number=\"1\">\n";
             xml << "      <attributes>\n";
             xml << "        <divisions>1</divisions>\n";
@@ -2001,8 +2022,13 @@ std::string MusicalSolution::to_musicxml() const {
             xml << "          <beat-type>4</beat-type>\n";
             xml << "        </time>\n";
             xml << "        <clef>\n";
-            xml << "          <sign>G</sign>\n";
-            xml << "          <line>2</line>\n";
+            if (use_bass_clef) {
+                xml << "          <sign>F</sign>\n";
+                xml << "          <line>4</line>\n";
+            } else {
+                xml << "          <sign>G</sign>\n";
+                xml << "          <line>2</line>\n";
+            }
             xml << "        </clef>\n";
             xml << "      </attributes>\n";
             

@@ -1,0 +1,29 @@
+DYNAMIC CONSTRAINT SOLVER RESULTS
+==================================
+
+Configuration: cadence_pac_test.json
+Problem: Bass
+Description: Minimal repro: 4 voices, 2 chords (V-I in C major), r-cadence PAC constraint at positions 0,1. No other rules — isolates r-cadence behavior.
+Solutions found: 1
+
+--- Solution 1 ---
+
+Voice 0:
+  Pitches: C4 → C4
+  Rhythm:  1/4 + 1/4
+
+Voice 1:
+  Pitches: G3 → G3
+  Rhythm:  1/4 + 1/4
+
+Voice 2:
+  Pitches: C3 → C3
+  Rhythm:  1/4 + 1/4
+
+Voice 3:
+  Pitches: G2 → C2
+  Rhythm:  1/4 + 1/4
+
+Performance:
+  Total solve time: 0 ms
+  Rules applied: 1

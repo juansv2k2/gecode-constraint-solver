@@ -1,6 +1,10 @@
 #include "max_msp_solver_wrapper.hh"
 #include "neural_pitch_scorer.hh"
 #include "wildcard_rule_extension.hh"
+#include "harmonic_domain_parser.hh"
+#include "cadence_rules.hh"
+#include "repetition_rules.hh"
+#include "tendency_tone_rules.hh"
 
 #include <algorithm>
 #include <chrono>
@@ -2308,6 +2312,11 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         sc.rhythm_base = rhythm_base;
         rhythm_base_ = rhythm_base;
 
+        // Key/degree-aware harmonic_domain for r-cadence/r-repetition (separate
+        // from the neural_harmonic_state_ tick array built just below, which
+        // predates key/degree support and only carries chord class per tick).
+        HarmonicDomainParser::parse(cfg, harmonic_domain_, sc.sequence_length, rhythm_base);
+
         // ── Build tick-indexed harmonic state now that rhythm_base is known ──
         // beat_position is in quarter-note beats; onset tick = beat * quarter_ticks.
         // The neural scorer resolves chords by querying harm_state[onset_tick] where
@@ -2992,6 +3001,74 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         } // end else (not heuristic rr)
 
                         solver_.apply_compiled_constraint(std::move(compiled_rr));
+                        // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-cadence") {
+                        // ── R-CADENCE ──────────────────────────────────────────────────
+                        // See include/cadence_rules.hh for the field reference and v1
+                        // limitations (metric_strength, leading-tone resolution).
+                        CadenceRules::CadenceParams cad_params = CadenceRules::resolve_params(rule_json);
+
+                        auto compiled_cad = std::make_unique<DynamicRules::CompiledConstraint>(
+                            cad_params.id, "r-cadence: " + cad_params.cadence_type);
+
+                        compiled_cad->post_constraint = [cad_params, this]
+                                (DynamicRules::ConstraintContext& ctx) {
+                            CadenceRules::post_cadence_constraint(ctx, cad_params, harmonic_domain_);
+                        };
+
+                        std::cerr << "[MaxWrapper] r-cadence: " << cad_params.id
+                                  << " (" << cad_params.cadence_type
+                                  << ", root_position=" << (cad_params.require_root_position ? "yes" : "no")
+                                  << ", soprano_degree=" << cad_params.soprano_target_degree << ")\n";
+                        solver_.apply_compiled_constraint(std::move(compiled_cad));
+                        // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-repetition") {
+                        // ── R-REPETITION ───────────────────────────────────────────────
+                        // See include/repetition_rules.hh for the relation reference.
+                        RepetitionRules::RepetitionParams rep_params = RepetitionRules::resolve_params(rule_json);
+
+                        auto compiled_rep = std::make_unique<DynamicRules::CompiledConstraint>(
+                            rep_params.id, "r-repetition: " + rep_params.relation);
+
+                        if (rep_params.heuristic) {
+                            compiled_rep->is_heuristic = true;
+                            compiled_rep->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
+                            compiled_rep->heuristic_variable_type = "pitch";
+                            compiled_rep->applies_to_voices = rep_params.target_voices;
+                            compiled_rep->score_candidate = [rep_params]
+                                    (const DynamicRules::ConstraintContext& ctx,
+                                     const DynamicRules::HeuristicCandidateContext& cand) -> double {
+                                return RepetitionRules::score_candidate(rep_params, ctx, cand);
+                            };
+                        } else {
+                            compiled_rep->post_constraint = [rep_params, this]
+                                    (DynamicRules::ConstraintContext& ctx) {
+                                RepetitionRules::post_repetition_constraint(ctx, rep_params, harmonic_domain_);
+                            };
+                        }
+
+                        std::cerr << "[MaxWrapper] r-repetition: " << rep_params.id
+                                  << " (relation=" << rep_params.relation
+                                  << (rep_params.heuristic ? ", heuristic)" : ", hard)") << "\n";
+                        solver_.apply_compiled_constraint(std::move(compiled_rep));
+                        // ─────────────────────────────────────────────────────────────
+                    } else if (rule_type == "r-tendency-tone") {
+                        // ── R-TENDENCY-TONE ──────────────────────────────────────────────
+                        // See include/tendency_tone_rules.hh.
+                        TendencyToneRules::TendencyParams tt_params =
+                            TendencyToneRules::resolve_params(rule_json);
+
+                        auto compiled_tt = std::make_unique<DynamicRules::CompiledConstraint>(
+                            tt_params.id, "r-tendency-tone: " + tt_params.tendency);
+
+                        compiled_tt->post_constraint = [tt_params, this]
+                                (DynamicRules::ConstraintContext& ctx) {
+                            TendencyToneRules::post_tendency_constraint(ctx, tt_params, harmonic_domain_);
+                        };
+
+                        std::cerr << "[MaxWrapper] r-tendency-tone: " << tt_params.id
+                                  << " (" << tt_params.tendency << ")\n";
+                        solver_.apply_compiled_constraint(std::move(compiled_tt));
                         // ─────────────────────────────────────────────────────────────
                     } else if (rule_type == "r-pitch-pitch") {
                         // ── R-PITCH-PITCH ─────────────────────────────────────────────
