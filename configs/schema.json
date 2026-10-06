@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Gecode Musical Constraint Solver Config",
-  "description": "JSON configuration for the Gecode Musical Constraint Solver. Export keys (export_json, export_txt, export_xml, export_path) must appear before the rules key.",
+  "description": "JSON configuration for the Gecode Musical Constraint Solver. Export keys (export_json, export_txt, export_xml, export_svg, export_path, file_name) should appear before the rules key.",
   "type": "object",
   "required": ["solution_length", "num_voices"],
   "properties": {
@@ -140,6 +140,18 @@
     "export_xml": {
       "$ref": "#/definitions/booleanOrInt",
       "description": "Save as MusicXML. Default false. MUST appear before 'rules' in the file."
+    },
+    "export_svg": {
+      "$ref": "#/definitions/booleanOrInt",
+      "description": "Render the score to SVG with Verovio. Default false. If enabled without export_xml, MusicXML is generated temporarily and removed after rendering. Verovio must be installed or configured via verovio_path / VEROVIO_PATH."
+    },
+    "verovio_path": {
+      "type": "string",
+      "description": "Optional Verovio executable path or command. Defaults to VEROVIO_PATH, PATH lookup, then common Homebrew/Linux locations."
+    },
+    "export_png": {
+      "$ref": "#/definitions/booleanOrInt",
+      "description": "Render a real PNG using Verovio plus an SVG rasterizer (rsvg-convert or ImageMagick). Default false; failure is reported as an export warning, not a solve failure. Set SVG_TO_PNG_PATH to select a nonstandard rasterizer."
     },
     "export_path": {
       "type": "string",
@@ -477,6 +489,10 @@
         "require_root_position": {
           "type": "boolean",
           "description": "r-cadence only. Overrides the cadence_type default. Constrains the bass voice (target_voices.back()) to the chord root at both positions."
+        },
+        "require_chord_tones": {
+          "type": "boolean",
+          "description": "r-cadence only. When true, restrict every target voice to chord tones at both cadence positions. Defaults false so passing/suspension tones remain possible."
         },
         "soprano_target_degree": {
           "type": "integer",

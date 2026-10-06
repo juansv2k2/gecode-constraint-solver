@@ -75,6 +75,7 @@ struct SolverConfig {
     
     // Per-voice pitch domains. Required — voice_domains[v] defines allowed MIDI values for voice v.
     std::vector<std::vector<int>> voice_domains;
+    std::vector<std::string> voice_names;  // Optional MusicXML part labels, indexed by voice
 
     // Per-voice rhythm domains. voice_rhythm_domains[v] = allowed duration values
     // for voice v, expressed as multiples of one tick (tick = 1/rhythm_base of a whole note).
@@ -121,6 +122,7 @@ struct SolverConfig {
         std::vector<int> chord_tones;  // MIDI pitch-classes (0-11) in chord
         int key_tonic = -1;  // 0-11, -1 = no key declared
         int key_mode  = 0;   // 0=major 1=minor
+        int key_fifths = 0; // MusicXML key signature, -7 flats to +7 sharps
 
         // Diatonic scale-degree of chord_root within (key_tonic, key_mode).
         // Returns 1-7 for a diatonic match, 0 if chromatic or no key declared.
@@ -236,8 +238,11 @@ struct MusicalSolution {
     // Multi-voice solution data
     std::vector<std::vector<int>> voice_solutions;  // All voices - each vector is one voice
                                                     // -1 (REST_PITCH_SENTINEL) means rest at that position
+    std::vector<std::string> voice_names;            // Optional MusicXML part labels
     std::vector<std::vector<int>> voice_rhythms;    // Rhythm data for each voice; negative = rest duration
     std::vector<int> metric_signature;              // Metric/time signature data
+    int key_fifths = 0;                              // Key signature for MusicXML rendering
+    int key_mode = 0;                                // 0=major, 1=minor
 
     // Canonical score-level solved representation (phase-1 scaffold).
     // When available, this is the single source of truth and legacy arrays are projections.
@@ -259,7 +264,7 @@ struct MusicalSolution {
     void print_solution(std::ostream& os = std::cout) const;
     void export_to_midi(const std::string& filename) const;
     void export_to_xml(const std::string& filename) const;
-    void export_to_png(const std::string& filename) const;
+    void export_to_png(const std::string& filename, const std::string& verovio_path = {}) const;
     std::string to_json() const;
     std::string to_xml() const;
     std::string to_musicxml() const;
@@ -604,7 +609,8 @@ public:
     /**
      * @brief Export solution to PNG image file
      */
-    bool export_solution_to_png(const MusicalSolution& solution, const std::string& filename) const;
+    bool export_solution_to_png(const MusicalSolution& solution, const std::string& filename,
+                                const std::string& verovio_path = {}) const;
 
     /**
      * @brief Solve and immediately export to XML

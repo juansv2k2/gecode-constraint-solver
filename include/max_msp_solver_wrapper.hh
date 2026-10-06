@@ -88,8 +88,10 @@ private:
     bool export_json_ = false;
     bool export_txt_ = false;
     bool export_xml_ = false;
+    bool export_svg_ = false;
     bool export_png_ = false;
     bool export_midi_ = false;
+    std::string verovio_path_;
 
     mutable std::mutex mutex_;
     std::thread worker_thread_;

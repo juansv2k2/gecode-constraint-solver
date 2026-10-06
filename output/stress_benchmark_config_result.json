@@ -2,7 +2,7 @@
   "config_file": "configs/stress_benchmark_config.json",
   "problem_name": "Stress Benchmark",
   "solutions_found": 1,
-  "solve_time_ms": 0,
+  "solve_time_ms": 1,
   "rules_applied": 2,
   "solutions": [
     {

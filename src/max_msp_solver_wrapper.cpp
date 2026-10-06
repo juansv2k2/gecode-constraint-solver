@@ -5,6 +5,7 @@
 #include "cadence_rules.hh"
 #include "repetition_rules.hh"
 #include "tendency_tone_rules.hh"
+#include "musicxml_svg_renderer.hh"
 
 #include <algorithm>
 #include <chrono>
@@ -1817,7 +1818,7 @@ void AsyncSolverWrapper::run_solve_job() {
                     
                     local_result.result_json = j.dump();
 
-                    if (export_json_ || export_txt_ || export_xml_ || export_png_ || export_midi_) {
+                    if (export_json_ || export_txt_ || export_xml_ || export_svg_ || export_png_ || export_midi_) {
                         try {
                             // Path resolution:
                             //   1. Empty / "."      → folder of the owning .maxpat file
@@ -1860,13 +1861,37 @@ void AsyncSolverWrapper::run_solve_job() {
                                 solution.print_solution(txt_out);
                                 written_files.push_back(base_path.string() + ".txt");
                             }
-                            if (export_xml_) {
-                                solution.export_to_xml(base_path.string() + ".xml");
-                                written_files.push_back(base_path.string() + ".xml");
+                            if (export_xml_ || export_svg_) {
+                                const std::string xml_file = base_path.string() + ".xml";
+                                const bool keep_xml = export_xml_;
+                                const std::string render_input = keep_xml
+                                    ? xml_file
+                                    : base_path.string() + "_render_input.tmp.xml";
+                                solution.export_to_xml(render_input);
+                                if (keep_xml)
+                                    written_files.push_back(xml_file);
+                                if (export_svg_) {
+                                    const std::string svg_file = base_path.string() + ".svg";
+                                    std::string render_error;
+                                    if (MusicXMLSvgRenderer::render_file(render_input, svg_file,
+                                                                          verovio_path_, render_error)) {
+                                        written_files.push_back(svg_file);
+                                    } else {
+                                        local_result.message += " (SVG export warning: " + render_error + ")";
+                                    }
+                                }
+                                if (!keep_xml) {
+                                    std::error_code remove_error;
+                                    std::filesystem::remove(render_input, remove_error);
+                                }
                             }
                             if (export_png_) {
-                                solution.export_to_png(base_path.string() + ".png");
-                                written_files.push_back(base_path.string() + ".png");
+                                const std::string png_file = base_path.string() + ".png";
+                                solution.export_to_png(png_file, verovio_path_);
+                                if (std::filesystem::is_regular_file(png_file) && std::filesystem::file_size(png_file) > 0)
+                                    written_files.push_back(png_file);
+                                else
+                                    local_result.message += " (PNG export failed; verify Verovio and SVG_TO_PNG_PATH/ImageMagick/librsvg are installed)";
                             }
                             if (export_midi_) {
                                 solution.export_to_midi(base_path.string() + ".mid");
@@ -1926,8 +1951,10 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         export_json_ = false;
         export_txt_ = false;
         export_xml_ = false;
+        export_svg_ = false;
         export_png_ = false;
         export_midi_ = false;
+        verovio_path_.clear();
         max_solutions_ = 1;         // default: stop after the first solution
         timeout_ms_    = 30000.0;   // default: 30-second wall-clock limit
 
@@ -1953,6 +1980,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
             if (oo.contains("export_json")) export_json_ = json_value_to_bool_with_default(oo["export_json"], false);
             if (oo.contains("export_txt")) export_txt_ = json_value_to_bool_with_default(oo["export_txt"], false);
             if (oo.contains("export_xml")) export_xml_ = json_value_to_bool_with_default(oo["export_xml"], false);
+            if (oo.contains("export_svg")) export_svg_ = json_value_to_bool_with_default(oo["export_svg"], false);
+            if (oo.contains("verovio_path") && oo["verovio_path"].is_string()) verovio_path_ = oo["verovio_path"].get<std::string>();
             if (oo.contains("export_png")) export_png_ = json_value_to_bool_with_default(oo["export_png"], false);
             if (oo.contains("export_midi")) export_midi_ = json_value_to_bool_with_default(oo["export_midi"], false);
         }
@@ -1987,8 +2016,11 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         if (cfg.contains("export_json")) export_json_ = json_value_to_bool_with_default(cfg["export_json"], false);
         if (cfg.contains("export_txt"))  export_txt_  = json_value_to_bool_with_default(cfg["export_txt"],  false);
         if (cfg.contains("export_xml"))  export_xml_  = json_value_to_bool_with_default(cfg["export_xml"],  false);
+        if (cfg.contains("export_svg"))  export_svg_  = json_value_to_bool_with_default(cfg["export_svg"],  false);
         if (cfg.contains("export_png"))  export_png_  = json_value_to_bool_with_default(cfg["export_png"],  false);
         if (cfg.contains("export_midi")) export_midi_ = json_value_to_bool_with_default(cfg["export_midi"], false);
+        if (cfg.contains("verovio_path") && cfg["verovio_path"].is_string())
+            verovio_path_ = cfg["verovio_path"].get<std::string>();
 
         // Expand and reorder voices array using global_domain before normalization.
         // Entries with an explicit "voice": N key are placed at position N regardless of
@@ -2053,6 +2085,26 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         std::to_string(cfg["num_voices"].get<int>()));
                 }
                 sc.num_voices = normalized_voice_count;
+            }
+        }
+
+        sc.voice_names.resize(sc.num_voices);
+        for (int voice = 0; voice < sc.num_voices; ++voice)
+            sc.voice_names[voice] = "Voice " + std::to_string(voice + 1);
+        if (cfg.contains("voices") && cfg["voices"].is_array()) {
+            for (size_t i = 0; i < cfg["voices"].size() && i < sc.voice_names.size(); ++i) {
+                const auto& voice = cfg["voices"][i];
+                if (voice.is_object() && voice.contains("name") && voice["name"].is_string())
+                    sc.voice_names[i] = voice["name"].get<std::string>();
+            }
+        } else if (cfg.contains("voices") && cfg["voices"].is_object()) {
+            for (auto it = cfg["voices"].begin(); it != cfg["voices"].end(); ++it) {
+                if (!it.value().is_object() || !it.value().contains("name") || !it.value()["name"].is_string()) continue;
+                try {
+                    const int voice = std::stoi(it.key());
+                    if (voice >= 0 && voice < sc.num_voices)
+                        sc.voice_names[voice] = it.value()["name"].get<std::string>();
+                } catch (...) {}
             }
         }
 
@@ -2316,6 +2368,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         // from the neural_harmonic_state_ tick array built just below, which
         // predates key/degree support and only carries chord class per tick).
         HarmonicDomainParser::parse(cfg, harmonic_domain_, sc.sequence_length, rhythm_base);
+        sc.harmonic_domain = harmonic_domain_;
 
         // ── Build tick-indexed harmonic state now that rhythm_base is known ──
         // beat_position is in quarter-note beats; onset tick = beat * quarter_ticks.

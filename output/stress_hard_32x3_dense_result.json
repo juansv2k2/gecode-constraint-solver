@@ -2,7 +2,7 @@
   "config_file": "configs/stress_hard_32x3_dense.json",
   "problem_name": "Stress Hard 32x3 Dense",
   "solutions_found": 1,
-  "solve_time_ms": 4,
+  "solve_time_ms": 6,
   "rules_applied": 0,
   "solutions": [
     {

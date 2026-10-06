@@ -28,6 +28,7 @@
 #include "dynamic_rule_compiler.hh"
 #include "musical_constraint_solver.hh"
 #include <nlohmann/json.hpp>
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -43,6 +44,7 @@ struct CadenceParams {
     std::vector<int> positions;    // exactly 2: [pre-cadence, resolution]
     std::vector<int> target_voices;
     bool require_root_position = false;
+    bool require_chord_tones = false;
     int  soprano_target_degree = 0;  // 1-7, 0 = not required
     int  end_degree_required   = 0;  // 1-7, 0 = not required (used by HC)
     int  bass_from_degree      = 0;  // 0 = not required
@@ -101,6 +103,8 @@ inline CadenceParams resolve_params(const nlohmann::json& rule_json) {
     // Explicit overrides
     if (rule_json.contains("require_root_position"))
         p.require_root_position = rule_json.value("require_root_position", p.require_root_position);
+    if (rule_json.contains("require_chord_tones"))
+        p.require_chord_tones = rule_json.value("require_chord_tones", false);
     if (rule_json.contains("soprano_target_degree"))
         p.soprano_target_degree = rule_json.value("soprano_target_degree", p.soprano_target_degree);
     if (rule_json.contains("end_degree_required"))
@@ -189,6 +193,28 @@ inline void post_cadence_constraint(DynamicRules::ConstraintContext& ctx,
         Gecode::mod(*ctx.space, var, twelve, pc);
         Gecode::rel(*ctx.space, pc, Gecode::IRT_EQ, target_pc);
     };
+
+    if (p.require_chord_tones) {
+        for (int pos : p.positions) {
+            const HarmonicEntry* entry = find_active_entry(hd, pos);
+            if (!entry)
+                throw std::runtime_error("r-cadence '" + p.id + "': no chord covers position " + std::to_string(pos));
+            for (int voice : p.target_voices) {
+                Gecode::IntVar& var = pitch_var_at(voice, pos);
+                Gecode::IntArgs allowed;
+                for (Gecode::IntVarValues value(var); value(); ++value) {
+                    const int pc = ((value.val() % 12) + 12) % 12;
+                    if (std::find(entry->chord_tones.begin(), entry->chord_tones.end(), pc) != entry->chord_tones.end())
+                        allowed << value.val();
+                }
+                if (allowed.size() == 0)
+                    throw std::runtime_error(
+                        "r-cadence '" + p.id + "': voice " + std::to_string(voice) +
+                        " has no pitch-domain chord tone at position " + std::to_string(pos));
+                Gecode::dom(*ctx.space, var, Gecode::IntSet(allowed));
+            }
+        }
+    }
 
     if (p.require_root_position) {
         const HarmonicEntry* e0 = find_active_entry(hd, p.positions[0]);

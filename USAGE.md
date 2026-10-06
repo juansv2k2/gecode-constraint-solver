@@ -59,6 +59,7 @@ Wrapper path (same as used by Max):
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
+  "export_svg": false,
   "file_name": "output/my_piece",
   "rules": [ ... ],
   "dynamic_rules": [ ... ]
@@ -1460,16 +1461,23 @@ Export keys are **top-level** fields in the config — not nested under an `outp
 }
 ```
 
-| Key           | Type    | Default | Description                                                      |
-| ------------- | ------- | ------- | ---------------------------------------------------------------- |
-| `file_name`   | string  |         | Output path + base name. Directory part is optional (see below). |
-| `export_json` | boolean | `false` | Save raw solution data as JSON                                   |
-| `export_txt`  | boolean | `false` | Save human-readable text summary                                 |
-| `export_xml`  | boolean | `false` | Save as MusicXML (viewable in notation software)                 |
+| Key            | Type    | Default     | Description                                                                                                                                                  |
+| -------------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `file_name`    | string  |             | Output path + base name. Directory part is optional (see below).                                                                                             |
+| `export_json`  | boolean | `false`     | Save raw solution data as JSON                                                                                                                               |
+| `export_txt`   | boolean | `false`     | Save human-readable text summary                                                                                                                             |
+| `export_xml`   | boolean | `false`     | Save as MusicXML (viewable in notation software)                                                                                                             |
+| `export_svg`   | boolean | `false`     | Render a score preview as SVG using Verovio. Generates MusicXML internally if `export_xml` is false. Missing Verovio produces a warning, not a failed solve. |
+| `export_png`   | boolean | `false`     | Render a real PNG using Verovio and `rsvg-convert` or ImageMagick. Missing renderers produce a warning, not a fake PNG.                                      |
+| `verovio_path` | string  | auto-detect | Optional Verovio executable path/name; alternatively set `VEROVIO_PATH`.                                                                                     |
 
 ### `file_name` path resolution (Max external)
 
-`file_name` is the single key that controls both the output folder and the base filename. The file extension is always appended automatically per format (`.xml`, `.json`, `.txt`).
+`file_name` is the single key that controls both the output folder and the base filename. The file extension is always appended automatically per format (`.xml`, `.svg`, `.json`, `.txt`).
+
+For SVG previews, install Verovio (`brew install verovio` on macOS) and set `"export_svg": true`. The solver runs Verovio after producing MusicXML; when `export_xml` is false, its intermediate XML file is removed after rendering. The SVG opens directly in VS Code's image preview. The same flag works in the CLI and Max wrapper. The CLI names the file `<file_name>_result.svg`; Max uses `<file_name>.svg`. If Verovio cannot be found, the solve and other exports still succeed and the result reports an SVG export warning. Set `"verovio_path": "/full/path/to/verovio"` when Max's environment does not inherit the executable's directory. If `harmonic_domain` declares a key, exported MusicXML uses that key signature. Accidentals are tracked per staff pitch/octave within each measure: a note altered earlier in the bar gets a repeated accidental when it changes back, and the state resets at the barline.
+
+For PNG output, set `"export_png": true`. It uses the same MusicXML/Verovio rendering path, then rasterizes the SVG with `rsvg-convert`, ImageMagick `magick`/`convert`, or the executable named by `SVG_TO_PNG_PATH`. On macOS, `brew install verovio imagemagick` provides the tested setup. PNG export failures are reported; no text file is written with a `.png` extension.
 
 | `file_name` value           | Where files are written                   |
 | --------------------------- | ----------------------------------------- |
@@ -1501,6 +1509,9 @@ If the patch has not been saved yet, the external falls back to Max's current de
 | `export_json`     | boolean |          | Save JSON result                                                             |
 | `export_txt`      | boolean |          | Save text summary                                                            |
 | `export_xml`      | boolean |          | Save MusicXML                                                                |
+| `export_svg`      | boolean |          | Render a MusicXML score image as SVG via Verovio                             |
+| `export_png`      | boolean |          | Render a real PNG via Verovio and SVG rasterizer                             |
+| `verovio_path`    | string  |          | Optional Verovio executable path/name; otherwise use `VEROVIO_PATH` or PATH  |
 | `file_name`       | string  |          | Output path + base name — directory part optional (e.g. `"output/my_piece"`) |
 | `rules`           | array   |          | Built-in constraints                                                         |
 | `dynamic_rules`   | array   |          | Expression-based constraints and heuristics                                  |

@@ -87,17 +87,27 @@ inline void parse(const nlohmann::json& cfg, HarmonicConfig& hd,
     };
     static const int MAJOR_STEPS[7] = {0, 2, 4, 5, 7, 9, 11};
     static const int MINOR_STEPS[7] = {0, 2, 3, 5, 7, 8, 10};
+    static const std::map<std::string, int> MAJOR_FIFTHS = {
+        {"C",0},{"G",1},{"D",2},{"A",3},{"E",4},{"B",5},{"F#",6},{"C#",7},
+        {"F",-1},{"Bb",-2},{"Eb",-3},{"Ab",-4},{"Db",-5},{"Gb",-6},{"Cb",-7}
+    };
+    static const std::map<std::string, int> MINOR_FIFTHS = {
+        {"A",0},{"E",1},{"B",2},{"F#",3},{"C#",4},{"G#",5},{"D#",6},{"A#",7},
+        {"D",-1},{"G",-2},{"C",-3},{"F",-4},{"Bb",-5},{"Eb",-6},{"Ab",-7}
+    };
 
     hd.enabled = true;
     int current_key_tonic = -1;  // -1 = no key declared yet
     int current_key_mode  = 0;   // 0=major 1=minor
+    std::string current_key_name;
 
     for (const auto& entry : cfg["harmonic_domain"]) {
         HarmonicEntry he;
         he.beat_position = entry.value("beat", 0);
 
         if (entry.contains("key")) {
-            auto kit = NOTE_MAP.find(entry.value("key", std::string("C")));
+            current_key_name = entry.value("key", std::string("C"));
+            auto kit = NOTE_MAP.find(current_key_name);
             current_key_tonic = (kit != NOTE_MAP.end()) ? kit->second : 0;
         }
         if (entry.contains("mode")) {
@@ -106,6 +116,19 @@ inline void parse(const nlohmann::json& cfg, HarmonicConfig& hd,
         }
         he.key_tonic = current_key_tonic;
         he.key_mode  = current_key_mode;
+        if (current_key_tonic >= 0) {
+            const auto& fifths_map = current_key_mode == 0 ? MAJOR_FIFTHS : MINOR_FIFTHS;
+            const auto fifths_it = fifths_map.find(current_key_name);
+            if (fifths_it != fifths_map.end()) {
+                he.key_fifths = fifths_it->second;
+            } else {
+                static const int MAJOR_BY_PC[12] = {0, 7, 2, -3, 4, -1, 6, 1, -4, 3, -2, 5};
+                static const int MINOR_BY_PC[12] = {-3, 4, -1, 6, 1, -4, 3, 0, 7, -2, 5, 2};
+                he.key_fifths = current_key_mode == 0
+                    ? MAJOR_BY_PC[current_key_tonic]
+                    : MINOR_BY_PC[current_key_tonic];
+            }
+        }
 
         if (entry.contains("degree")) {
             if (current_key_tonic < 0)

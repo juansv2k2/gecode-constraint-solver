@@ -1,0 +1,242 @@
+{
+  "name": "Four Cadence Types in G Major — SATB",
+  "description": "Four named SATB parts, 16 quarter notes in G major, random value ordering. Demonstrates PAC (positions 3-4), IAC (7-8), deceptive cadence (11-12), and plagal cadence (14-15). All four voices must use the active cadence chord's tones at cadence positions; tendency tones and voice-leading constraints apply. Bar 1 opens on tonic because no pre-score beat exists for a cadence at its first downbeat.",
+  "solution_length": 16,
+  "num_voices": 4,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "random_seed": 42,
+    "timeout_ms": 20000,
+    "max_solutions": 1,
+    "branching": "first_fail",
+    "value_order": "random"
+  },
+  "export_json": false,
+  "export_txt": true,
+  "export_xml": true,
+  "file_name": "output/g_major_varied_cadences_named_satb",
+  "voices": [
+    {
+      "name": "Soprano",
+      "pitch": { "midi_values": [60,62,64,66,67,69,71,72,74,76,78,79,81] },
+      "rhythm": { "duration_values": ["1/4"] }
+    },
+    {
+      "name": "Alto",
+      "pitch": { "midi_values": [55,57,59,60,62,64,66,67,69,71,72,74] },
+      "rhythm": { "duration_values": ["1/4"] }
+    },
+    {
+      "name": "Tenor",
+      "pitch": { "midi_values": [48,50,52,54,55,57,59,60,62,64,66,67] },
+      "rhythm": { "duration_values": ["1/4"] }
+    },
+    {
+      "name": "Bass",
+      "pitch": { "midi_values": [40,42,43,45,47,48,50,52,54,55,57,59,60] },
+      "rhythm": { "duration_values": ["1/4"] }
+    }
+  ],
+  "rules": [
+    {
+      "id": "pac_bar_2",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "positions": [3,4],
+      "target_voices": [0,1,2,3],
+      "require_chord_tones": true,
+      "description": "Perfect authentic cadence from D7 to G at the bar 2 downbeat"
+    },
+    {
+      "id": "iac_bar_3",
+      "rule_type": "r-cadence",
+      "cadence_type": "IAC",
+      "positions": [7,8],
+      "target_voices": [0,1,2,3],
+      "require_chord_tones": true,
+      "require_root_position": true,
+      "soprano_target_degree": 3,
+      "description": "Imperfect authentic cadence from D to G at the bar 3 downbeat"
+    },
+    {
+      "id": "deceptive_bar_4",
+      "rule_type": "r-cadence",
+      "cadence_type": "deceptive",
+      "positions": [11,12],
+      "target_voices": [0,1,2,3],
+      "require_chord_tones": true,
+      "require_root_position": true,
+      "soprano_target_degree": 6,
+      "description": "Deceptive cadence from D7 to vi (E minor)"
+    },
+    {
+      "id": "plagal_final",
+      "rule_type": "r-cadence",
+      "cadence_type": "plagal",
+      "positions": [14,15],
+      "target_voices": [0,1,2,3],
+      "require_chord_tones": true,
+      "require_root_position": true,
+      "soprano_target_degree": 1,
+      "description": "Plagal cadence from IV (C) to I (G) at the end"
+    },
+    {
+      "id": "v7_seventh_pac_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "positions": [3,4],
+      "target_voices": [0,1,2,3]
+    },
+    {
+      "id": "leading_tone_pac_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "positions": [3,4],
+      "target_voices": [0,1,2,3]
+    },
+    {
+      "id": "leading_tone_iac_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "positions": [7,8],
+      "target_voices": [0,1,2,3]
+    },
+    {
+      "id": "v7_seventh_deceptive_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "positions": [11,12],
+      "target_voices": [0,1,2,3]
+    },
+    {
+      "id": "leading_tone_deceptive_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "positions": [11,12],
+      "target_voices": [0,1,2,3]
+    },
+    {
+      "id": "soprano_above_alto",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [0,1]
+    },
+    {
+      "id": "alto_above_tenor",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [1,2]
+    },
+    {
+      "id": "tenor_above_bass",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [2,3]
+    },
+    {
+      "id": "soprano_alto_spacing",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "max_interval",
+      "parameters": [12],
+      "target_voices": [0,1]
+    },
+    {
+      "id": "alto_tenor_spacing",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "max_interval",
+      "parameters": [12],
+      "target_voices": [1,2]
+    },
+    {
+      "id": "no_parallel_fifths_sa",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0,1]
+    },
+    {
+      "id": "no_parallel_octaves_sa",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0,1]
+    },
+    {
+      "id": "no_parallel_fifths_st",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0,2]
+    },
+    {
+      "id": "no_parallel_octaves_st",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0,2]
+    },
+    {
+      "id": "no_parallel_fifths_sb",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [0,3]
+    },
+    {
+      "id": "no_parallel_octaves_sb",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [0,3]
+    },
+    {
+      "id": "no_parallel_fifths_at",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [1,2]
+    },
+    {
+      "id": "no_parallel_octaves_at",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [1,2]
+    },
+    {
+      "id": "no_parallel_fifths_ab",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [1,3]
+    },
+    {
+      "id": "no_parallel_octaves_ab",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [1,3]
+    },
+    {
+      "id": "no_parallel_fifths_tb",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_fifths",
+      "target_voices": [2,3]
+    },
+    {
+      "id": "no_parallel_octaves_tb",
+      "rule_type": "r-pitch-pitch",
+      "constraint": "no_consecutive_octaves",
+      "target_voices": [2,3]
+    }
+  ],
+  "harmonic_domain": [
+    { "beat": 0, "degree": "I",  "key": "G", "mode": "major" },
+    { "beat": 1, "degree": "vi" },
+    { "beat": 2, "degree": "ii" },
+    { "beat": 3, "degree": "V7" },
+    { "beat": 4, "degree": "I" },
+    { "beat": 5, "degree": "IV" },
+    { "beat": 6, "degree": "ii" },
+    { "beat": 7, "degree": "V" },
+    { "beat": 8, "degree": "I" },
+    { "beat": 9, "degree": "IV" },
+    { "beat": 10, "degree": "ii" },
+    { "beat": 11, "degree": "V7" },
+    { "beat": 12, "degree": "vi" },
+    { "beat": 13, "degree": "I" },
+    { "beat": 14, "degree": "IV" },
+    { "beat": 15, "degree": "I" }
+  ]
+}

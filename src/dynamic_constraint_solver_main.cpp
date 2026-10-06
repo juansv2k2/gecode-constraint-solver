@@ -15,6 +15,7 @@
 #include "cadence_rules.hh"
 #include "repetition_rules.hh"
 #include "tendency_tone_rules.hh"
+#include "musicxml_svg_renderer.hh"
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <fstream>
@@ -283,11 +284,13 @@ private:
     bool export_json_;
     bool export_txt_;
     bool export_xml_;
+    bool export_svg_;
     bool export_png_;
     bool export_midi_;
     bool show_statistics_;
     bool include_analysis_;
     std::string export_filename_;
+    std::string verovio_path_;
     
     std::string trim(const std::string& str) {
         size_t first = str.find_first_not_of(" \t\n\r");
@@ -466,6 +469,16 @@ private:
                 std::string value = removeQuotesAndComma(line.substr(pos + 1));
                 export_xml_ = (value == "true");
             }
+        } else if (line.find("\"export_svg\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos) {
+                std::string value = removeQuotesAndComma(line.substr(pos + 1));
+                export_svg_ = (value == "true" || value == "1");
+            }
+        } else if (line.find("\"verovio_path\"") != std::string::npos) {
+            size_t pos = line.find(":");
+            if (pos != std::string::npos)
+                verovio_path_ = removeQuotesAndComma(line.substr(pos + 1));
         } else if (line.find("\"export_png\"") != std::string::npos) {
             size_t pos = line.find(":");
             if (pos != std::string::npos) {
@@ -503,7 +516,7 @@ private:
 public:
     ConstraintSolverJSONParser() 
         : solution_length_(12), num_voices_(2), export_path_("tests/output"),
-                    export_json_(true), export_txt_(true), export_xml_(false), export_png_(false), export_midi_(false), show_statistics_(true), include_analysis_(true) {}
+                    export_json_(true), export_txt_(true), export_xml_(false), export_svg_(false), export_png_(false), export_midi_(false), show_statistics_(true), include_analysis_(true) {}
     
     bool parse(const std::string& filename) {
         // Strict frontend schema checks before the legacy line parser runs.
@@ -1087,6 +1100,8 @@ public:
     bool getExportJSON() const { return export_json_; }
     bool getExportTXT() const { return export_txt_; }
     bool getExportXML() const { return export_xml_; }
+    bool getExportSVG() const { return export_svg_; }
+    const std::string& getVerovioPath() const { return verovio_path_; }
     bool getExportPNG() const { return export_png_; }
     bool getExportMIDI() const { return export_midi_; }
     bool getShowStatistics() const { return show_statistics_; }
@@ -1286,6 +1301,38 @@ public:
         }
 
         return result;
+    }
+
+    std::vector<std::string> getVoiceNames(const std::string& config_file) const {
+        std::vector<std::string> names(num_voices_);
+        for (int v = 0; v < num_voices_; ++v)
+            names[v] = "Voice " + std::to_string(v + 1);
+
+        std::ifstream f(config_file);
+        if (!f.is_open()) return names;
+        nlohmann::json cfg;
+        try { f >> cfg; } catch (...) { return names; }
+        if (!cfg.contains("voices")) return names;
+
+        if (cfg["voices"].is_array()) {
+            for (size_t i = 0; i < cfg["voices"].size(); ++i) {
+                const auto& voice = cfg["voices"][i];
+                if (!voice.is_object() || !voice.contains("name") || !voice["name"].is_string()) continue;
+                int index = static_cast<int>(i);
+                if (voice.contains("voice") && voice["voice"].is_number_integer())
+                    index = voice["voice"].get<int>();
+                if (index >= 0 && index < num_voices_) names[index] = voice["name"].get<std::string>();
+            }
+        } else if (cfg["voices"].is_object()) {
+            for (auto it = cfg["voices"].begin(); it != cfg["voices"].end(); ++it) {
+                if (!it.value().is_object() || !it.value().contains("name") || !it.value()["name"].is_string()) continue;
+                try {
+                    const int index = std::stoi(it.key());
+                    if (index >= 0 && index < num_voices_) names[index] = it.value()["name"].get<std::string>();
+                } catch (...) {}
+            }
+        }
+        return names;
     }
 
     // Returns per-voice rhythm domains from voices section.
@@ -1728,6 +1775,7 @@ public:
         std::cout << "   Export Options: JSON=" << (export_json_ ? "✅" : "❌")
                   << ", TXT=" << (export_txt_ ? "✅" : "❌")
                   << ", XML=" << (export_xml_ ? "✅" : "❌")
+                  << ", SVG=" << (export_svg_ ? "✅" : "❌")
                   << ", PNG=" << (export_png_ ? "✅" : "❌")
                   << ", MIDI=" << (export_midi_ ? "✅" : "❌") << std::endl;
         if (!export_filename_.empty()) {
@@ -2080,6 +2128,7 @@ int main(int argc, char* argv[]) {
         
         // Load per-voice pitch domains from voices[*].pitch.midi_values
         solver_config.voice_domains = parser.getVoicePitchDomains(config_file);
+        solver_config.voice_names = parser.getVoiceNames(config_file);
 
         // Load per-voice rhythm domains from voices[*].rhythm.duration_values
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
@@ -3950,20 +3999,40 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // ---- XML / PNG / MIDI (per solution) ----
+        // ---- XML / SVG / PNG / MIDI (per solution) ----
         for (size_t si = 0; si < found_solutions.size(); ++si) {
             const auto& solution = found_solutions[si];
             std::string suffix = (found_solutions.size() > 1) ? "_sol" + std::to_string(si + 1) : "";
-            if (parser.getExportXML()) {
-                std::string xml_file = export_dir + "/" + base_name + suffix + "_result.xml";
-                if (solver.export_solution_to_xml(solution, xml_file))
-                    std::cout << "✅ XML: " << xml_file << std::endl;
-                else
-                    std::cout << "❌ XML export failed for solution " << (si + 1) << std::endl;
+            if (parser.getExportXML() || parser.getExportSVG()) {
+                const std::string xml_file = export_dir + "/" + base_name + suffix + "_result.xml";
+                const bool keep_xml = parser.getExportXML();
+                const std::string render_input = keep_xml
+                    ? xml_file
+                    : export_dir + "/" + base_name + suffix + "_render_input.tmp.xml";
+                if (solver.export_solution_to_xml(solution, render_input)) {
+                    if (keep_xml)
+                        std::cout << "✅ XML: " << xml_file << std::endl;
+                    if (parser.getExportSVG()) {
+                        const std::string svg_file = export_dir + "/" + base_name + suffix + "_result.svg";
+                        std::string render_error;
+                        if (MusicXMLSvgRenderer::render_file(render_input, svg_file,
+                                                              parser.getVerovioPath(), render_error)) {
+                            std::cout << "✅ SVG: " << svg_file << std::endl;
+                        } else {
+                            std::cerr << "⚠️ SVG export skipped: " << render_error << std::endl;
+                        }
+                    }
+                    if (!keep_xml) {
+                        std::error_code remove_error;
+                        std::filesystem::remove(render_input, remove_error);
+                    }
+                } else {
+                    std::cout << "❌ XML render source failed for solution " << (si + 1) << std::endl;
+                }
             }
             if (parser.getExportPNG()) {
                 std::string png_file = export_dir + "/" + base_name + suffix + "_result.png";
-                if (solver.export_solution_to_png(solution, png_file))
+                if (solver.export_solution_to_png(solution, png_file, parser.getVerovioPath()))
                     std::cout << "✅ PNG: " << png_file << std::endl;
                 else
                     std::cout << "❌ PNG export failed for solution " << (si + 1) << std::endl;

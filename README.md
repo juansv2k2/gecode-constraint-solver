@@ -103,6 +103,7 @@ After the script finishes, restart Max (or use _File → Refresh Max's File Syst
   "export_json": true,
   "export_txt": true,
   "export_xml": true,
+  "export_svg": false,
   "file_name": "output/my_piece",
   "rules": [
     {
@@ -294,6 +295,9 @@ See [tests/NEURAL_TEST_RESULTS.md](tests/NEURAL_TEST_RESULTS.md) for baseline re
 - User-facing configs are voice-first: `voices` + optional `meter`.
 - Built-in rule targeting is voice-based: `target_voices` with `target_component`.
 - Export settings are **top-level keys** (`export_json`, `export_txt`, `export_xml`, `file_name`) — not nested inside an `output_options` block. `file_name` carries both the subdirectory and base name: `"output/my_piece"` writes to `<patch-folder>/output/my_piece.xml`. A plain name like `"my_piece"` writes to the patch folder directly.
+- Set `"export_svg": true` to render MusicXML as a score image with Verovio. The CLI writes `<file_name>_result.svg`; Max writes `<file_name>.svg`. Install with `brew install verovio` on macOS, or set `verovio_path` / `VEROVIO_PATH` if it is not on Max's PATH. SVG export is optional and never fails the solve; a missing renderer is reported as an export warning.
+- `"export_png": true` renders a genuine PNG via Verovio and an SVG rasterizer (`rsvg-convert` or ImageMagick); install `brew install verovio imagemagick` on macOS. It no longer writes a text fallback disguised as PNG.
+- When `harmonic_domain` declares a key, MusicXML exports include its key signature and use that signature for ordinary sharp/flat spelling; notes that deviate from it receive explicit accidental elements.
 - Search strategy is configured via `search_options`.
 - Dynamic expression parsing supports logical operators (`&&`, `||`, `!`, `not`), membership (`in`, `not_in`), and integer array literals (`[0, 5, 7, 12]`).
 - `wildcard_constraint` rules now honor `indices` directly in wildcard expansion.

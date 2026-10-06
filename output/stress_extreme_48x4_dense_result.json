@@ -2,7 +2,7 @@
   "config_file": "configs/stress_extreme_48x4_dense.json",
   "problem_name": "Stress Extreme 48x4 Dense",
   "solutions_found": 1,
-  "solve_time_ms": 11,
+  "solve_time_ms": 12,
   "rules_applied": 1,
   "solutions": [
     {

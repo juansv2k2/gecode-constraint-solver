@@ -7,6 +7,7 @@
  */
 
 #include "musical_constraint_solver.hh"
+#include "musicxml_svg_renderer.hh"
 #include "gecode_cluster_integration.hh"
 #include "dynamic_rule_compiler.hh"
 #include "rule_expression_parser.hh"
@@ -20,6 +21,7 @@
 #include <sstream>
 #include <iomanip>
 #include <limits>
+#include <map>
 #include <fstream>
 #include <random>
 #include <regex>
@@ -918,14 +920,101 @@ std::vector<int> metric_denominators_for_solution(const MusicalSolution& solutio
     return std::vector<int>(solution.metric_signature.size(), 4);
 }
 
-std::string musicxml_step_for_pitch_class(int pitch_class) {
-    static const char* steps[] = {"C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"};
-    return steps[pitch_class % 12];
+int musicxml_key_alter_for_step(int fifths, int step_index) {
+    static const int SHARP_ORDER[7] = {3, 0, 4, 1, 5, 2, 6};  // F C G D A E B
+    static const int FLAT_ORDER[7] = {6, 2, 5, 1, 4, 0, 3};   // B E A D G C F
+    if (fifths > 0) {
+        for (int i = 0; i < std::min(fifths, 7); ++i)
+            if (SHARP_ORDER[i] == step_index) return 1;
+    } else if (fifths < 0) {
+        for (int i = 0; i < std::min(-fifths, 7); ++i)
+            if (FLAT_ORDER[i] == step_index) return -1;
+    }
+    return 0;
 }
 
-int musicxml_alter_for_pitch_class(int pitch_class) {
-    static const int alters[] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
-    return alters[pitch_class % 12];
+struct MusicXmlPitchSpelling {
+    int step_index = 0;  // C D E F G A B
+    int alter = 0;
+};
+
+MusicXmlPitchSpelling musicxml_spelling_for_pitch_class(int pitch_class, int key_fifths) {
+    static const int NATURAL_PCS[7] = {0, 2, 4, 5, 7, 9, 11};
+    static const int SHARP_PREFERRED_STEP[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
+    static const int SHARP_PREFERRED_ALTER[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+    const int pc = ((pitch_class % 12) + 12) % 12;
+
+    MusicXmlPitchSpelling best;
+    int best_key_distance = std::numeric_limits<int>::max();
+    int best_preference_penalty = std::numeric_limits<int>::max();
+    int best_alter_magnitude = std::numeric_limits<int>::max();
+
+    for (int step = 0; step < 7; ++step) {
+        for (int alter = -2; alter <= 2; ++alter) {
+            if (((NATURAL_PCS[step] + alter) % 12 + 12) % 12 != pc) continue;
+            const int key_alter = musicxml_key_alter_for_step(key_fifths, step);
+            const int key_distance = std::abs(alter - key_alter);
+            const int preference_penalty =
+                (step == SHARP_PREFERRED_STEP[pc] && alter == SHARP_PREFERRED_ALTER[pc]) ? 0 : 1;
+            const int alter_magnitude = std::abs(alter);
+            if (key_distance < best_key_distance ||
+                (key_distance == best_key_distance && preference_penalty < best_preference_penalty) ||
+                (key_distance == best_key_distance && preference_penalty == best_preference_penalty &&
+                 alter_magnitude < best_alter_magnitude)) {
+                best = {step, alter};
+                best_key_distance = key_distance;
+                best_preference_penalty = preference_penalty;
+                best_alter_magnitude = alter_magnitude;
+            }
+        }
+    }
+    return best;
+}
+
+const char* musicxml_step_name(int step_index) {
+    static const char* STEPS[7] = {"C", "D", "E", "F", "G", "A", "B"};
+    return STEPS[step_index];
+}
+
+std::string xml_escape_text(const std::string& text) {
+    std::string escaped;
+    escaped.reserve(text.size());
+    for (char c : text) {
+        switch (c) {
+            case '&': escaped += "&amp;"; break;
+            case '<': escaped += "&lt;"; break;
+            case '>': escaped += "&gt;"; break;
+            case '"': escaped += "&quot;"; break;
+            case '\'': escaped += "&apos;"; break;
+            default: escaped += c; break;
+        }
+    }
+    return escaped;
+}
+
+const char* musicxml_accidental_name(int alter) {
+    switch (alter) {
+        case -2: return "flat-flat";
+        case -1: return "flat";
+        case 0:  return "natural";
+        case 1:  return "sharp";
+        case 2:  return "double-sharp";
+        default: return "natural";
+    }
+}
+
+bool musicxml_should_show_accidental(const MusicXmlPitchSpelling& spelling,
+                                     int octave,
+                                     int key_fifths,
+                                     std::map<std::pair<int, int>, int>& measure_state) {
+    const auto staff_pitch = std::make_pair(spelling.step_index, octave);
+    const auto found = measure_state.find(staff_pitch);
+    const int current_alter = found == measure_state.end()
+        ? musicxml_key_alter_for_step(key_fifths, spelling.step_index)
+        : found->second;
+    if (spelling.alter == current_alter) return false;
+    measure_state[staff_pitch] = spelling.alter;
+    return true;
 }
 
 int gcd_int_local(int a, int b) {
@@ -1402,111 +1491,14 @@ void MusicalSolution::export_to_xml(const std::string& filename) const {
     xml_out.close();
 }
 
-void MusicalSolution::export_to_png(const std::string& filename) const {
+void MusicalSolution::export_to_png(const std::string& filename, const std::string& verovio_path) const {
     if (!found_solution) {
         std::cerr << "Cannot export PNG: No solution found (" << failure_reason << ")" << std::endl;
         return;
     }
-    
-    // Step 1: Generate temporary MusicXML file
-    std::string temp_xml = filename + ".tmp.xml";
-    std::ofstream xml_out(temp_xml);
-    if (xml_out.is_open()) {
-        xml_out << to_musicxml();
-        xml_out.close();
-    } else {
-        std::cerr << "Error: Could not create temporary XML file " << temp_xml << std::endl;
-        return;
-    }
-    
-    // Step 2: Try MuseScore command-line export
-    std::string musescore_cmd = "mscore -o \"" + filename + "\" \"" + temp_xml + "\" 2>/dev/null";
-    int result = std::system(musescore_cmd.c_str());
-    
-    if (result != 0) {
-        // Try alternative MuseScore command
-        musescore_cmd = "musescore -o \"" + filename + "\" \"" + temp_xml + "\" 2>/dev/null";
-        result = std::system(musescore_cmd.c_str());
-    }
-    
-    if (result != 0) {
-        // Try MuseScore 4 command
-        musescore_cmd = "MuseScore4 -o \"" + filename + "\" \"" + temp_xml + "\" 2>/dev/null";
-        result = std::system(musescore_cmd.c_str());
-    }
-    
-    if (result != 0) {
-        // Fallback: Create a visual text representation with musical staff
-        std::string fallback_file = filename.substr(0, filename.find_last_of('.')) + "_notation.txt";
-        std::ofstream png_out(fallback_file);
-        if (png_out.is_open()) {
-            png_out << "♫ MUSICAL NOTATION ♫" << std::endl;
-            png_out << "═══════════════════════════════════════════════════════════" << std::endl;
-            png_out << std::endl;
-            
-            // Create a simple staff representation
-            std::vector<std::string> note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-            
-            // Draw treble clef staff with notes positioned
-            png_out << "Treble Clef Staff:" << std::endl;
-            png_out << " ♪                                                      " << std::endl;
-            png_out << " ═══════════════════════════════════════════════════════  F5" << std::endl;
-            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
-            png_out << " ═══════════════════════════════════════════════════════  D5" << std::endl;
-            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
-            png_out << " ═══════════════════════════════════════════════════════  B4" << std::endl;
-            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
-            png_out << " ═══════════════════════════════════════════════════════  G4" << std::endl;
-            png_out << " ───────────────────────────────────────────────────────  " << std::endl;
-            png_out << " ═══════════════════════════════════════════════════════  E4" << std::endl;
-            png_out << std::endl;
-            
-            // Add note sequence
-            png_out << "Complete Note Sequence:" << std::endl;
-            for (size_t i = 0; i < absolute_notes.size(); ++i) {
-                if (i > 0 && i % 8 == 0) png_out << std::endl;
-                int octave = (absolute_notes[i] / 12) - 1;
-                int note = absolute_notes[i] % 12;
-                png_out << note_names[note] << octave;
-                if (i < absolute_notes.size() - 1 && (i + 1) % 8 != 0) png_out << " → ";
-            }
-            png_out << std::endl << std::endl;
-            
-            // Add voice information if available
-            if (!voice_solutions.empty()) {
-                png_out << "Multi-Voice Breakdown:" << std::endl;
-                for (size_t v = 0; v < voice_solutions.size(); ++v) {
-                    png_out << "Voice " << (v + 1) << ": ";
-                    for (size_t i = 0; i < voice_solutions[v].size(); ++i) {
-                        if (i > 0) png_out << " → ";
-                        int octave = (voice_solutions[v][i] / 12) - 1;
-                        int note = voice_solutions[v][i] % 12;
-                        png_out << note_names[note] << octave;
-                        if (i >= 12) { // Limit display length
-                            png_out << " ...";
-                            break;
-                        }
-                    }
-                    png_out << std::endl;
-                }
-                png_out << std::endl;
-            }
-            
-            // Performance statistics
-            png_out << "♪ Performance Statistics ♪" << std::endl;
-            png_out << "Solve Time: " << solve_time_ms << " ms" << std::endl;
-            png_out << "Rules Checked: " << total_rules_checked << std::endl;
-            png_out << "Backjumps: " << backjumps_performed << std::endl;
-            png_out << "Average Interval: " << std::fixed << std::setprecision(1) << average_interval_size << " semitones" << std::endl;
-            
-            png_out.close();
-            
-            std::cerr << "MuseScore not available. Created text notation: " << fallback_file << std::endl;
-        }
-    }
-    
-    // Step 3: Clean up temporary XML file
-    std::remove(temp_xml.c_str());
+    std::string error;
+    if (!MusicXMLSvgRenderer::render_png_from_musicxml(to_musicxml(), filename, verovio_path, error))
+        std::cerr << "PNG export failed: " << error << std::endl;
 }
 
 std::string MusicalSolution::to_xml() const {
@@ -1669,7 +1661,9 @@ std::string MusicalSolution::to_musicxml() const {
     if (!voice_solutions.empty()) {
         for (size_t voice = 0; voice < voice_solutions.size(); ++voice) {
             xml << "    <score-part id=\"P" << (voice + 1) << "\">\n";
-            xml << "      <part-name>Voice " << (voice + 1) << "</part-name>\n";
+            const std::string part_name = voice < voice_names.size() && !voice_names[voice].empty()
+                ? voice_names[voice] : "Voice " + std::to_string(voice + 1);
+            xml << "      <part-name>" << xml_escape_text(part_name) << "</part-name>\n";
             xml << "    </score-part>\n";
         }
     } else {
@@ -1799,13 +1793,15 @@ std::string MusicalSolution::to_musicxml() const {
 
             for (size_t m = 0; m < render_measures.size(); ++m) {
                 const auto& measure = render_measures[m];
+                std::map<std::pair<int, int>, int> accidental_state;
                 xml << "    <measure number=\"" << (m + 1) << "\">\n";
 
                 if (m == 0) {
                     xml << "      <attributes>\n";
                     xml << "        <divisions>" << divisions << "</divisions>\n";
                     xml << "        <key>\n";
-                    xml << "          <fifths>0</fifths>\n";
+                    xml << "          <fifths>" << key_fifths << "</fifths>\n";
+                    if (key_mode == 1) xml << "          <mode>minor</mode>\n";
                     xml << "        </key>\n";
                     xml << "        <time>\n";
                     xml << "          <beats>" << measure.numerator << "</beats>\n";
@@ -1947,13 +1943,17 @@ std::string MusicalSolution::to_musicxml() const {
                             const int pitch_class = ((ev.pitch % 12) + 12) % 12;
                             const int octave = (ev.pitch / 12) - 1;
                             xml << "        <pitch>\n";
-                            xml << "          <step>" << musicxml_step_for_pitch_class(pitch_class) << "</step>\n";
-                            const int alter = musicxml_alter_for_pitch_class(pitch_class);
-                            if (alter != 0) {
-                                xml << "          <alter>" << alter << "</alter>\n";
+                            const auto spelling = musicxml_spelling_for_pitch_class(pitch_class, key_fifths);
+                            const bool show_accidental = musicxml_should_show_accidental(
+                                spelling, octave, key_fifths, accidental_state);
+                            xml << "          <step>" << musicxml_step_name(spelling.step_index) << "</step>\n";
+                            if (show_accidental) {
+                                xml << "          <alter>" << spelling.alter << "</alter>\n";
                             }
                             xml << "          <octave>" << octave << "</octave>\n";
                             xml << "        </pitch>\n";
+                            if (show_accidental)
+                                xml << "        <accidental>" << musicxml_accidental_name(spelling.alter) << "</accidental>\n";
                             if (ev.tie_stop) {
                                 xml << "        <tie type=\"stop\"/>\n";
                             }
@@ -2015,7 +2015,8 @@ std::string MusicalSolution::to_musicxml() const {
             xml << "      <attributes>\n";
             xml << "        <divisions>1</divisions>\n";
             xml << "        <key>\n";
-            xml << "          <fifths>0</fifths>\n";
+            xml << "          <fifths>" << key_fifths << "</fifths>\n";
+            if (key_mode == 1) xml << "          <mode>minor</mode>\n";
             xml << "        </key>\n";
             xml << "        <time>\n";
             xml << "          <beats>4</beats>\n";
@@ -2033,21 +2034,25 @@ std::string MusicalSolution::to_musicxml() const {
             xml << "      </attributes>\n";
             
             // Convert MIDI numbers to notes
+            std::map<std::pair<int, int>, int> accidental_state;
             for (size_t i = 0; i < voice_solutions[voice].size() && i < 16; ++i) {
                 int midi_note = voice_solutions[voice][i];
                 int octave = (midi_note / 12) - 1;
                 int pitch_class = midi_note % 12;
-                std::vector<std::string> pitch_names = {"C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"};
-                std::vector<int> alterations = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+                const auto spelling = musicxml_spelling_for_pitch_class(pitch_class, key_fifths);
+                const bool show_accidental = musicxml_should_show_accidental(
+                    spelling, octave, key_fifths, accidental_state);
                 
                 xml << "      <note>\n";
                 xml << "        <pitch>\n";
-                xml << "          <step>" << pitch_names[pitch_class] << "</step>\n";
-                if (alterations[pitch_class] != 0) {
-                    xml << "          <alter>" << alterations[pitch_class] << "</alter>\n";
+                xml << "          <step>" << musicxml_step_name(spelling.step_index) << "</step>\n";
+                if (show_accidental) {
+                    xml << "          <alter>" << spelling.alter << "</alter>\n";
                 }
                 xml << "          <octave>" << octave << "</octave>\n";
                 xml << "        </pitch>\n";
+                if (show_accidental)
+                    xml << "        <accidental>" << musicxml_accidental_name(spelling.alter) << "</accidental>\n";
                 xml << "        <duration>1</duration>\n";
                 xml << "        <type>quarter</type>\n";
                 xml << "      </note>\n";
@@ -2075,7 +2080,8 @@ std::string MusicalSolution::to_musicxml() const {
         xml << "      <attributes>\n";
         xml << "        <divisions>1</divisions>\n";
         xml << "        <key>\n";
-        xml << "          <fifths>0</fifths>\n";
+        xml << "          <fifths>" << key_fifths << "</fifths>\n";
+        if (key_mode == 1) xml << "          <mode>minor</mode>\n";
         xml << "        </key>\n";
         xml << "        <time>\n";
         xml << "          <beats>4</beats>\n";
@@ -2088,21 +2094,25 @@ std::string MusicalSolution::to_musicxml() const {
         xml << "      </attributes>\n";
         
         // Convert MIDI numbers to notes
+        std::map<std::pair<int, int>, int> accidental_state;
         for (size_t i = 0; i < absolute_notes.size() && i < 16; ++i) {
             int midi_note = absolute_notes[i];
             int octave = (midi_note / 12) - 1;
             int pitch_class = midi_note % 12;
-            std::vector<std::string> pitch_names = {"C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"};
-            std::vector<int> alterations = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+            const auto spelling = musicxml_spelling_for_pitch_class(pitch_class, key_fifths);
+            const bool show_accidental = musicxml_should_show_accidental(
+                spelling, octave, key_fifths, accidental_state);
             
             xml << "      <note>\n";
             xml << "        <pitch>\n";
-            xml << "          <step>" << pitch_names[pitch_class] << "</step>\n";
-            if (alterations[pitch_class] != 0) {
-                xml << "          <alter>" << alterations[pitch_class] << "</alter>\n";
+            xml << "          <step>" << musicxml_step_name(spelling.step_index) << "</step>\n";
+            if (show_accidental) {
+                xml << "          <alter>" << spelling.alter << "</alter>\n";
             }
             xml << "          <octave>" << octave << "</octave>\n";
             xml << "        </pitch>\n";
+            if (show_accidental)
+                xml << "        <accidental>" << musicxml_accidental_name(spelling.alter) << "</accidental>\n";
             xml << "        <duration>1</duration>\n";
             xml << "        <type>quarter</type>\n";
             xml << "      </note>\n";
@@ -3936,6 +3946,20 @@ MusicalSolution Solver::extract_solution_from_space_(
     auto start_time = std::chrono::high_resolution_clock::now();
 
     MusicalSolution solution;
+    solution.voice_names = config_.voice_names;
+    if (solution.voice_names.size() < static_cast<size_t>(config_.num_voices)) {
+        const size_t previous_size = solution.voice_names.size();
+        solution.voice_names.resize(config_.num_voices);
+        for (size_t voice = previous_size; voice < solution.voice_names.size(); ++voice)
+            solution.voice_names[voice] = "Voice " + std::to_string(voice + 1);
+    }
+    for (const auto& harmonic_entry : config_.harmonic_domain.entries) {
+        if (harmonic_entry.key_tonic >= 0) {
+            solution.key_fifths = harmonic_entry.key_fifths;
+            solution.key_mode = harmonic_entry.key_mode;
+            break;
+        }
+    }
     int rules_checked = 0;
     bool success = (solved_space != nullptr);
 
@@ -4193,10 +4217,11 @@ bool Solver::export_solution_to_xml(const MusicalSolution& solution, const std::
     }
 }
 
-bool Solver::export_solution_to_png(const MusicalSolution& solution, const std::string& filename) const {
+bool Solver::export_solution_to_png(const MusicalSolution& solution, const std::string& filename,
+                                    const std::string& verovio_path) const {
     try {
-        solution.export_to_png(filename);
-        return true;
+        solution.export_to_png(filename, verovio_path);
+        return std::filesystem::is_regular_file(filename) && std::filesystem::file_size(filename) > 0;
     } catch (const std::exception& e) {
         std::cerr << "Error exporting solution to PNG: " << e.what() << std::endl;
         return false;

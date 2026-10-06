@@ -178,11 +178,11 @@ MAX_EXTERNAL_LDFLAGS = -bundle -undefined dynamic_lookup
 all: $(TARGET) $(PHASE1_TARGET) $(PHASE2_TARGET) $(PHASE3_TARGET) $(PHASE4_TARGET) $(PHASE5_TARGET) $(CLUSTER_ENGINE_TARGET) $(CLUSTER_ENGINE_SIMPLE_TARGET) $(CLUSTER_ENGINE_STOP_TARGET) $(CLUSTER_ENGINE_BACKJUMP_TARGET) $(PRODUCTION_TEST_TARGET) $(SIMPLE_VALIDATION_TARGET) $(MAIN_INTERFACE_TEST_EXECUTABLE) $(WORKING_DEMO_TARGET) $(JSON_INTERFACE_TEST_TARGET) $(CUSTOM_CONSENSUS_TEST_TARGET) $(CLUSTER_MAIN_INTERFACE_TARGET) $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET) $(TWELVE_TONE_TARGET) $(MULTI_TWELVE_TONE_TARGET) $(CONSTRAINT_SOLVER_MAIN_TARGET) $(DYNAMIC_SOLVER_TARGET) $(WILDCARD_TEST_TARGET)
 
 # Production system - main interface
-$(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
+$(PRODUCTION_SOLVER_TARGET): $(PRODUCTION_SOLVER_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(PRODUCTION_SOLVER_CXXFLAGS) $(GECODE_INC) -o $@ $(PRODUCTION_SOLVER_SOURCE) $(GECODE_LIB) $(PRODUCTION_SOLVER_LIBS)
 
 # Production test suite
-$(PRODUCTION_TEST_TARGET): $(PRODUCTION_TEST_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh
+$(PRODUCTION_TEST_TARGET): $(PRODUCTION_TEST_SOURCE) include/musical_constraint_solver.hh include/gecode_cluster_integration.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(PRODUCTION_TEST_CXXFLAGS) $(GECODE_INC) -o $@ $(PRODUCTION_TEST_SOURCE) $(GECODE_LIB)
 
 # Simple validation system
@@ -190,11 +190,11 @@ $(SIMPLE_VALIDATION_TARGET): $(SIMPLE_VALIDATION_SOURCE) include/gecode_cluster_
 	$(CXX) $(SIMPLE_VALIDATION_CXXFLAGS) $(GECODE_INC) -o $@ $(SIMPLE_VALIDATION_SOURCE) $(GECODE_LIB)
 
 # Main interface test (lightweight)
-$(MAIN_INTERFACE_TEST_EXECUTABLE): $(MAIN_INTERFACE_TEST_SOURCE) include/musical_constraint_solver.hh
+$(MAIN_INTERFACE_TEST_EXECUTABLE): $(MAIN_INTERFACE_TEST_SOURCE) include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(MAIN_INTERFACE_TEST_CXXFLAGS) $(GECODE_INC) -o $@ $(MAIN_INTERFACE_TEST_SOURCE) $(GECODE_LIB)
 
 # Working Gecode demo (full demonstration)
-$(WORKING_DEMO_TARGET): $(WORKING_DEMO_SOURCE) include/musical_constraint_solver.hh
+$(WORKING_DEMO_TARGET): $(WORKING_DEMO_SOURCE) include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(WORKING_DEMO_CXXFLAGS) $(GECODE_INC) -o $@ $(WORKING_DEMO_SOURCE) $(GECODE_LIB)
 
 # JSON interface test
@@ -214,35 +214,35 @@ $(CLUSTER_MAIN_INTERFACE_FIXED_TARGET): $(CLUSTER_MAIN_INTERFACE_FIXED_SOURCE) i
 	$(CXX) $(CLUSTER_MAIN_INTERFACE_FIXED_CXXFLAGS) $(GECODE_INC) -o $@ $(CLUSTER_MAIN_INTERFACE_FIXED_SOURCE) $(GECODE_LIB)
 
 # 12-Tone Row Generator (Serial Composition System)
-$(TWELVE_TONE_TARGET): $(TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh
+$(TWELVE_TONE_TARGET): $(TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(TWELVE_TONE_CXXFLAGS) $(GECODE_INC) -o $@ $(TWELVE_TONE_SOURCE) $(GECODE_LIB)
 
 # Multiple 12-Tone Rows Generator (Variety Demonstration)
-$(MULTI_TWELVE_TONE_TARGET): $(MULTI_TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh
+$(MULTI_TWELVE_TONE_TARGET): $(MULTI_TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(MULTI_TWELVE_TONE_CXXFLAGS) $(GECODE_INC) -o $@ $(MULTI_TWELVE_TONE_SOURCE) $(GECODE_LIB)
 
 # 12-Tone System Demo (Complete Demonstration)
-$(DEMO_TWELVE_TONE_TARGET): $(DEMO_TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh
+$(DEMO_TWELVE_TONE_TARGET): $(DEMO_TWELVE_TONE_SOURCE) include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(DEMO_TWELVE_TONE_CXXFLAGS) $(GECODE_INC) -o $@ $(DEMO_TWELVE_TONE_SOURCE) $(GECODE_LIB)
 
 # Dynamic Constraint Solver Main Interface (Command-Line JSON Config)
-$(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/musical_constraint_solver.hh
+$(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(CONSTRAINT_SOLVER_MAIN_CXXFLAGS) $(GECODE_INC) -o $@ $(CONSTRAINT_SOLVER_MAIN_SOURCE) $(GECODE_LIB)
 
 # Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
-$(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh include/neural_pitch_scorer.hh include/cadence_rules.hh include/repetition_rules.hh include/harmonic_domain_parser.hh include/tendency_tone_rules.hh
+$(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh include/neural_pitch_scorer.hh include/cadence_rules.hh include/repetition_rules.hh include/harmonic_domain_parser.hh include/tendency_tone_rules.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
 
 # Max/MSP async wrapper smoke test (SDK-independent wrapper layer)
-$(MAX_WRAPPER_TEST_TARGET): $(MAX_WRAPPER_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh include/harmonic_domain_parser.hh include/cadence_rules.hh include/repetition_rules.hh include/tendency_tone_rules.hh
+$(MAX_WRAPPER_TEST_TARGET): $(MAX_WRAPPER_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh include/harmonic_domain_parser.hh include/cadence_rules.hh include/repetition_rules.hh include/tendency_tone_rules.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(MAX_WRAPPER_TEST_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(MAX_WRAPPER_TEST_SOURCE) $(GECODE_LIB)
 
 # Metric timepoint regression test
-$(METRIC_TIMEPOINT_TEST_TARGET): $(METRIC_TIMEPOINT_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh
+$(METRIC_TIMEPOINT_TEST_TARGET): $(METRIC_TIMEPOINT_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(METRIC_TIMEPOINT_TEST_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(METRIC_TIMEPOINT_TEST_SOURCE) $(GECODE_LIB)
 
 # Native Max external (.mxo)
-$(MAX_EXTERNAL_TARGET): $(MAX_EXTERNAL_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh include/harmonic_domain_parser.hh include/cadence_rules.hh include/repetition_rules.hh include/tendency_tone_rules.hh
+$(MAX_EXTERNAL_TARGET): $(MAX_EXTERNAL_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh include/harmonic_domain_parser.hh include/cadence_rules.hh include/repetition_rules.hh include/tendency_tone_rules.hh include/musicxml_svg_renderer.hh
 	@if [ ! -d "$(MAX_SDK_C74SUPPORT)/max-includes" ]; then \
 		echo "❌ Max SDK not found at $(MAX_SDK_PATH)"; \
 		echo "   Expected c74support at: $(MAX_SDK_C74SUPPORT)"; \
@@ -307,7 +307,7 @@ ENHANCED_SOLVER_TARGET = enhanced-dynamic-solver
 ENHANCED_SOLVER_SOURCE = legacy/src-unused/enhanced_dynamic_solver.cpp src/wildcard_rule_extension.cpp src/dynamic_rule_compiler.cpp src/rule_expression_parser.cpp src/gecode_cluster_integration.cpp src/musical_constraint_solver.cpp
 ENHANCED_SOLVER_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
-$(ENHANCED_SOLVER_TARGET): $(ENHANCED_SOLVER_SOURCE) include/wildcard_rule_extension.hh include/dynamic_rule_compiler.hh include/musical_constraint_solver.hh
+$(ENHANCED_SOLVER_TARGET): $(ENHANCED_SOLVER_SOURCE) include/wildcard_rule_extension.hh include/dynamic_rule_compiler.hh include/musical_constraint_solver.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(ENHANCED_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(ENHANCED_SOLVER_SOURCE) $(GECODE_LIB)
 
 $(TARGET): $(SOURCE)
