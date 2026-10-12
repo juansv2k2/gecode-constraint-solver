@@ -173,6 +173,34 @@ Voices 1–6 are not listed and fall back to `global_domain`. The entries can ap
 
 Both `rhythm` and `pitch` are resolved independently — a voice entry that specifies only one component falls back to `global_domain` for the other.
 
+### 3.2 Whole-Motive Domains
+
+Use `motives` instead of `midi_values` or `duration_values` to make an ordered list one complete domain element:
+
+```json
+"voices": [
+  {
+    "name": "Melody",
+    "pitch": {"motives": [[60,61,62], [67,64]]},
+    "rhythm": {"motives": [["1/4","1/8","1/8"], ["1/2"]]}
+  }
+]
+```
+
+Each component selects complete motives and concatenates them to exactly `solution_length` event slots. Motives may have different lengths; the solver never truncates, pads, or interleaves them. For example, a five-event pitch stream can select lengths 3+2 or 2+3. If the supplied lengths cannot fill the event count, configuration fails before search.
+
+Pitch and rhythm choices are independent: a rhythm motive can accompany any allowed pitches, and a pitch motive can accompany any allowed rhythmic values. Both components may use motives in the same voice, with different boundaries. Alternatively, use motives on just one component and keep the other component scalar. `global_domain` supports the same syntax and per-voice override priority.
+
+Within one component, `motives` and the scalar key are mutually exclusive. To mix a single-value alternative with a longer motive, write singleton motives, e.g. `[[60], [60,62,64]]`. Pitch motives contain absolute MIDI integers 0-127; rhythm motives accept nonzero fraction strings or numeric durations. Numeric durations (including Max dictionary atoms such as `0.25`) are normalized to a fraction with denominator at most 1024. Negative durations are rests, and all motive denominators participate in the shared tick-grid calculation.
+
+A rest consumes an event slot, including the underlying pitch-motive slot. The flattened pitch output marks that event as a rest (`-1`); it does not shift subsequent motive pitches. This preserves the current solver's event-slot semantics, rather than Cluster's separate sounded-note counting. Motive event counts do not imply equal total duration across voices: use the existing score-length/timing constraints when duration alignment is required.
+
+Existing rules and neural/heuristic ordering continue to operate on flattened events. Motive integrity is enforced as a hard domain constraint; this version does not add transposition, transformations, or a whole-motive neural scorer. Choices are not uniformly sampled from the motive dictionary: `value_order` still ranks event values, subject to valid whole-motive concatenation.
+
+JSON results add `selected_motives` per solution. Each entry contains `voice`, `component`, the zero-based input-list `motive_id`, `start_event`, exclusive `end_event`, `values`, `onset_ticks`, and `duration_ticks`. Rhythm values in this metadata are integer ticks, not fraction strings. Pitch-motive metadata retains its original values even at rested slots. Existing flat output arrays, Max solution lists, and MusicXML exports remain unchanged in shape.
+
+See [configs/motive_domains_satb.json](configs/motive_domains_satb.json) for the four-voice showcase. Run the focused regression suite with `make test-motive-domains`. In Max, use `config_file` or a dictionary retaining the nested array structure; `config_dict_debug` lets you inspect the conversion. Malformed or flattened motive lists are rejected, not guessed into a new shape.
+
 ## 4. Meter Configuration
 
 ```json

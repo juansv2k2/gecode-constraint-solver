@@ -7,6 +7,7 @@
  */
 
 #include "musical_constraint_solver.hh"
+#include "motive_domain_parser.hh"
 #include "dynamic_rule_compiler.hh"
 #include "wildcard_rule_extension.hh"
 #include "rule_expression_parser.hh"
@@ -1227,6 +1228,7 @@ public:
             throw std::runtime_error("Cannot open config file: " + config_file);
         nlohmann::json cfg;
         f >> cfg;
+        MotiveDomains::normalize_domains(cfg);
 
         if (cfg.contains("engine_domains")) {
             throw std::runtime_error(
@@ -1517,6 +1519,7 @@ public:
             throw std::runtime_error("Cannot open config file: " + config_file);
         nlohmann::json cfg;
         f >> cfg;
+        MotiveDomains::normalize_domains(cfg);
 
         if (cfg.contains("engine_domains")) {
             throw std::runtime_error(
@@ -2156,6 +2159,8 @@ int main(int argc, char* argv[]) {
             }
             HarmonicDomainParser::parse(hcfg, solver_config.harmonic_domain,
                                          solver_config.sequence_length, solver_config.rhythm_base);
+            solver_config.motive_domains = MotiveDomains::parse_domains(
+                hcfg, parser.getNumVoices(), solver_config.sequence_length, solver_config.rhythm_base);
             if (solver_config.harmonic_domain.enabled)
                 std::cout << "   Harmonic domain: " << solver_config.harmonic_domain.entries.size()
                           << " chord entries parsed\n";
@@ -3812,6 +3817,8 @@ int main(int argc, char* argv[]) {
                 if (si > 0) json_out << ",\n";
                 json_out << "    {\n";
                 json_out << "      \"solution_index\": " << si << ",\n";
+                if (!solution.selected_motives.empty())
+                    json_out << "      \"selected_motives\": " << MotiveDomains::to_json(solution.selected_motives).dump() << ",\n";
                 std::vector<int> metric_denominators(solution.metric_signature.size(), 4);
                 if (solution.has_canonical_score) {
                     for (const auto& seg : solution.canonical_score.metric_timeline) {

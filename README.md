@@ -293,6 +293,7 @@ See [tests/NEURAL_TEST_RESULTS.md](tests/NEURAL_TEST_RESULTS.md) for baseline re
 ## What Is Current
 
 - User-facing configs are voice-first: `voices` + optional `meter`.
+- Pitch/rhythm components support whole-motive domains: `"pitch": {"motives": [[60,61,62],[67,64]]}` or `"rhythm": {"motives": [["1/4","1/8","1/8"],["1/2"]]}`. Motives of mixed lengths concatenate completely to `solution_length`; components have independent choices and boundaries. Use either motives or scalar values within each component. See [the four-voice example](configs/motive_domains_satb.json) and [usage details](USAGE.md#32-whole-motive-domains).
 - Built-in rule targeting is voice-based: `target_voices` with `target_component`.
 - Export settings are **top-level keys** (`export_json`, `export_txt`, `export_xml`, `file_name`) — not nested inside an `output_options` block. `file_name` carries both the subdirectory and base name: `"output/my_piece"` writes to `<patch-folder>/output/my_piece.xml`. A plain name like `"my_piece"` writes to the patch folder directly.
 - Set `"export_svg": true` to render MusicXML as a score image with Verovio. The CLI writes `<file_name>_result.svg`; Max writes `<file_name>.svg`. Install with `brew install verovio` on macOS, or set `verovio_path` / `VEROVIO_PATH` if it is not on Max's PATH. SVG export is optional and never fails the solve; a missing renderer is reported as an export warning.

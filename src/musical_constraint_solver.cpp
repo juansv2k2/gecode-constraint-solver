@@ -1478,6 +1478,7 @@ std::string MusicalSolution::to_json() const {
         j["score"] = score_j;
     }
 
+    if (!selected_motives.empty()) j["selected_motives"] = MotiveDomains::to_json(selected_motives);
     return j.dump(2);
 }
 
@@ -2959,6 +2960,8 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         }
     }
 
+    if (!config_.motive_domains.empty()) gecode_space->post_motive_domains(config_.motive_domains);
+
     // ADD MUSICAL RULES
     if (!rules_.empty()) {
         gecode_space->add_musical_rules(rules_);
@@ -4062,6 +4065,14 @@ MusicalSolution Solver::extract_solution_from_space_(
                     config_, solution.voice_solutions, solution.voice_rhythms, raw_metric_signature);
             }
             solution.has_canonical_score = true;
+            solution.selected_motives = solved_space->get_selected_motives();
+            for (auto& selection : solution.selected_motives) {
+                const auto& rhythms = solution.voice_rhythms[selection.voice];
+                for (int event = 0; event < selection.start_event; ++event)
+                    selection.onset_ticks += std::abs(rhythms[event]);
+                for (int event = selection.start_event; event < selection.end_event; ++event)
+                    selection.duration_ticks += std::abs(rhythms[event]);
+            }
 
             // Backward-compatible projection from canonical model.
             solution.metric_signature = project_metric_signature_from_canonical(

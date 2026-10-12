@@ -11,6 +11,8 @@ extern "C" {
 #include "ext.h"
 #include "ext_obex.h"
 #include "ext_dictobj.h"
+#include "ext_atomarray.h"
+#include "ext_obstring.h"
 #include "ext_path.h"
 #include "jpatcher_api.h"
 }
@@ -309,6 +311,7 @@ bool configure_from_json_payload(t_maxsolver* x, const std::string& json_text, c
 }
 
 nlohmann::json max_dictionary_to_json(t_dictionary* d);
+nlohmann::json atoms_to_json_value(long argc, t_atom* argv);
 
 void normalize_array_schema_fields(nlohmann::json& value) {
     static const std::set<std::string> array_keys = {
@@ -409,10 +412,24 @@ nlohmann::json atom_to_json_value(const t_atom& a) {
         void* obj = atom_getobj(const_cast<t_atom*>(&a));
         if (obj) {
             t_symbol* class_name = object_classname(obj);
+            if (atomisstring(&a) || (class_name && class_name == gensym("string"))) {
+                const char* text = string_getptr(reinterpret_cast<t_string*>(obj));
+                if (text) return nlohmann::json(std::string(text));
+            }
             if (class_name && class_name == gensym("dictionary")) {
                 return max_dictionary_to_json(reinterpret_cast<t_dictionary*>(obj));
             }
+            if (class_name && class_name == gensym("atomarray")) {
+                long count = 0;
+                t_atom* atoms = nullptr;
+                if (atomarray_getatoms(reinterpret_cast<t_atomarray*>(obj), &count, &atoms) == MAX_ERR_NONE)
+                    return atoms_to_json_value(count, atoms);
+            }
+            post("[gecode.solver] Unsupported config atom object: class=%s atomisstring=%ld",
+                 class_name && class_name->s_name ? class_name->s_name : "(unknown)", atomisstring(&a));
         }
+    } else {
+        post("[gecode.solver] Unsupported config atom type=%ld", type);
     }
     return nullptr;
 }

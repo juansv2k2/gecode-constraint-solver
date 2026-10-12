@@ -76,6 +76,7 @@ struct SolverConfig {
     // Per-voice pitch domains. Required — voice_domains[v] defines allowed MIDI values for voice v.
     std::vector<std::vector<int>> voice_domains;
     std::vector<std::string> voice_names;  // Optional MusicXML part labels, indexed by voice
+    std::vector<MotiveDomains::Domain> motive_domains;
 
     // Per-voice rhythm domains. voice_rhythm_domains[v] = allowed duration values
     // for voice v, expressed as multiples of one tick (tick = 1/rhythm_base of a whole note).
@@ -239,6 +240,7 @@ struct MusicalSolution {
     std::vector<std::vector<int>> voice_solutions;  // All voices - each vector is one voice
                                                     // -1 (REST_PITCH_SENTINEL) means rest at that position
     std::vector<std::string> voice_names;            // Optional MusicXML part labels
+    std::vector<MotiveDomains::Selection> selected_motives;
     std::vector<std::vector<int>> voice_rhythms;    // Rhythm data for each voice; negative = rest duration
     std::vector<int> metric_signature;              // Metric/time signature data
     int key_fifths = 0;                              // Key signature for MusicXML rendering

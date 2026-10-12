@@ -1,4 +1,5 @@
 #include "max_msp_solver_wrapper.hh"
+#include "motive_domain_parser.hh"
 #include "neural_pitch_scorer.hh"
 #include "wildcard_rule_extension.hh"
 #include "harmonic_domain_parser.hh"
@@ -1765,6 +1766,8 @@ void AsyncSolverWrapper::run_solve_job() {
                         }
                         sol_j["metric_signature"] = metric_signature;
                         sol_j["metric_signature_numerators"] = sol.metric_signature;
+                        if (!sol.selected_motives.empty())
+                            sol_j["selected_motives"] = MotiveDomains::to_json(sol.selected_motives);
 
                         if (sol.has_canonical_score) {
                             nlohmann::json score_j;
@@ -1936,6 +1939,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         nlohmann::json cfg = nlohmann::json::parse(config_json);
         reconstruct_flattened_max_dict_paths(cfg);
         coerce_scalar_array_schema_fields(cfg);
+        MotiveDomains::normalize_domains(cfg);
         preprocess_legacy_config(cfg);
 
         if (cfg.contains("engine_domains")) {
@@ -2363,6 +2367,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         }
         sc.rhythm_base = rhythm_base;
         rhythm_base_ = rhythm_base;
+        sc.motive_domains = MotiveDomains::parse_domains(cfg, sc.num_voices, sc.sequence_length, rhythm_base);
 
         // Key/degree-aware harmonic_domain for r-cadence/r-repetition (separate
         // from the neural_harmonic_state_ tick array built just below, which

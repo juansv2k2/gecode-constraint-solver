@@ -687,6 +687,8 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)
     interval_vars_.update(*this, space.interval_vars_);
     rhythm_vars_.update(*this, space.rhythm_vars_);
     metric_vars_.update(*this, space.metric_vars_);
+    motive_vars_.update(*this, space.motive_vars_);
+    motive_edges_ = space.motive_edges_;
     
     // Copy musical rules
     for (const auto& rule : space.musical_rules_) {
@@ -699,6 +701,86 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)
 
 Space* IntegratedMusicalSpace::copy() {
     return new IntegratedMusicalSpace(*this);
+}
+
+void IntegratedMusicalSpace::post_motive_domains(const std::vector<MotiveDomains::Domain>& domains) {
+    std::vector<BoolVar> choices;
+    for (const auto& domain : domains) {
+        if (domain.voice < 0 || domain.voice >= num_voices_ || domain.candidates.empty())
+            throw std::runtime_error("Invalid motive domain voice or empty candidates");
+        auto& variables = domain.rhythm ? rhythm_vars_ : absolute_vars_;
+        std::vector<std::vector<BoolVar>> incoming(sequence_length_ + 1), outgoing(sequence_length_ + 1);
+        std::vector<bool> reachable(sequence_length_ + 1, false), finishable(sequence_length_ + 1, false);
+        reachable[0] = true;
+        finishable[sequence_length_] = true;
+        for (int start = 0; start <= sequence_length_; ++start)
+            if (reachable[start])
+                for (const auto& motive : domain.candidates)
+                    if (!motive.empty() && motive.size() <= static_cast<size_t>(sequence_length_ - start))
+                        reachable[start + motive.size()] = true;
+        for (int start = sequence_length_ - 1; start >= 0; --start)
+            for (const auto& motive : domain.candidates)
+                if (!motive.empty() && motive.size() <= static_cast<size_t>(sequence_length_ - start) && finishable[start + motive.size()])
+                    finishable[start] = true;
+        for (int start = 0; start < sequence_length_; ++start) {
+            if (!reachable[start]) continue;
+            for (size_t motive_id = 0; motive_id < domain.candidates.size(); ++motive_id) {
+                const auto& motive = domain.candidates[motive_id];
+                if (motive.empty() || motive.size() > static_cast<size_t>(sequence_length_ - start)) continue;
+                const int end = start + static_cast<int>(motive.size());
+                if (!finishable[end]) continue;
+                bool compatible = true;
+                for (size_t offset = 0; offset < motive.size(); ++offset)
+                    if (!variables[domain.voice * sequence_length_ + start + offset].in(motive[offset])) compatible = false;
+                if (!compatible) continue;
+                BoolVar selected(*this, 0, 1);
+                for (size_t offset = 0; offset < motive.size(); ++offset)
+                    rel(*this, variables[domain.voice * sequence_length_ + start + offset], IRT_EQ,
+                        motive[offset], Reify(selected, RM_IMP));
+                incoming[end].push_back(selected);
+                outgoing[start].push_back(selected);
+                choices.push_back(selected);
+                MotiveDomains::Selection edge;
+                edge.voice = domain.voice;
+                edge.rhythm = domain.rhythm;
+                edge.motive_id = static_cast<int>(motive_id);
+                edge.start_event = start;
+                edge.end_event = end;
+                edge.values = motive;
+                motive_edges_.push_back(std::move(edge));
+            }
+        }
+        for (int node = 0; node <= sequence_length_; ++node) {
+            BoolVarArgs incident;
+            IntArgs coefficients;
+            BoolVarArgs entering;
+            for (const auto& choice : incoming[node]) {
+                incident << choice;
+                entering << choice;
+                coefficients << 1;
+            }
+            for (const auto& choice : outgoing[node]) {
+                incident << choice;
+                coefficients << -1;
+            }
+            if (entering.size() > 0) linear(*this, entering, IRT_LQ, 1);
+            const int balance = node == 0 ? -1 : (node == sequence_length_ ? 1 : 0);
+            if (incident.size() == 0) {
+                if (balance != 0) { fail(); return; }
+            } else linear(*this, coefficients, incident, IRT_EQ, balance);
+        }
+    }
+    motive_vars_ = BoolVarArray(*this, static_cast<int>(choices.size()));
+    for (size_t index = 0; index < choices.size(); ++index) motive_vars_[index] = choices[index];
+    if (motive_vars_.size() > 0) branch(*this, motive_vars_, BOOL_VAR_NONE(), BOOL_VAL_MAX());
+}
+
+std::vector<MotiveDomains::Selection> IntegratedMusicalSpace::get_selected_motives() const {
+    std::vector<MotiveDomains::Selection> selections;
+    for (int index = 0; index < motive_vars_.size(); ++index)
+        if (motive_vars_[index].assigned() && motive_vars_[index].val() == 1)
+            selections.push_back(motive_edges_[index]);
+    return selections;
 }
 
 void IntegratedMusicalSpace::constrain(const Space& best) {

@@ -1,0 +1,46 @@
+{
+  "name": "Independent pitch and rhythm motives - four voices",
+  "description": "Whole list-valued domains concatenate to 12 event slots. Soprano uses rhythm motives with free pitches; Alto uses pitch motives with free rhythms; Tenor uses both with independent boundaries and a rhythmic rest; Bass uses ordinary scalar domains. Different voices can have different total durations.",
+  "solution_length": 12,
+  "num_voices": 4,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "value_order": "random",
+    "branching": "first_fail",
+    "random_seed": 42,
+    "timeout_ms": 10000,
+    "max_solutions": 1
+  },
+  "export_json": true,
+  "export_txt": true,
+  "export_xml": true,
+  "file_name": "output/motive_domains_satb",
+  "voices": [
+    {
+      "name": "Soprano - rhythm motives",
+      "pitch": {"midi_values": [72,74,76,77,79]},
+      "rhythm": {"motives": [["1/4","1/8","1/8"],["1/2"]]}
+    },
+    {
+      "name": "Alto - pitch motives",
+      "pitch": {"motives": [[60,61,62],[67,64]]},
+      "rhythm": {"duration_values": ["1/4","1/8"]}
+    },
+    {
+      "name": "Tenor - independent motives",
+      "pitch": {"motives": [[55,57],[59,55,52]]},
+      "rhythm": {"motives": [["1/4","1/8","-1/8"],["1/2"]]}
+    },
+    {
+      "name": "Bass - scalar domains",
+      "pitch": {"midi_values": [43,45,47,48,50]},
+      "rhythm": {"duration_values": ["1/4"]}
+    }
+  ],
+  "rules": [
+    {"rule_type": "r-pitch-pitch", "constraint": "voice_above", "target_voices": [0,1]},
+    {"rule_type": "r-pitch-pitch", "constraint": "voice_above", "target_voices": [1,2]},
+    {"rule_type": "r-pitch-pitch", "constraint": "voice_above", "target_voices": [2,3]}
+  ]
+}

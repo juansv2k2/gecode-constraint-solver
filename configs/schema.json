@@ -291,12 +291,22 @@
     },
     "pitchDomainObject": {
       "type": "object",
-      "required": ["midi_values"],
+      "oneOf": [{"required": ["midi_values"]}, {"required": ["motives"]}],
       "properties": {
         "midi_values": {
           "type": "array",
           "minItems": 1,
           "items": { "type": "integer", "minimum": 0, "maximum": 127 }
+        },
+        "motives": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "integer", "minimum": 0, "maximum": 127}
+          },
+          "description": "Whole ordered pitch motives. Select complete lists whose lengths exactly fill solution_length; replaces midi_values. Other component remains independent."
         },
         "midi_min": { "type": "integer", "minimum": 0, "maximum": 127 },
         "midi_max": { "type": "integer", "minimum": 0, "maximum": 127 },
@@ -305,13 +315,28 @@
     },
     "rhythmDomainObject": {
       "type": "object",
-      "required": ["duration_values"],
+      "oneOf": [{"required": ["duration_values"]}, {"required": ["motives"]}],
       "properties": {
         "duration_values": {
           "type": "array",
           "minItems": 1,
           "items": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
           "description": "Duration strings: '1/4', '1/8', '-1/4' (rest), '1/12' (triplet eighth), etc."
+        },
+        "motives": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "oneOf": [
+                {"type": "string", "pattern": "^-?[1-9][0-9]*/[1-9][0-9]*$"},
+                {"type": "number", "not": {"const": 0}}
+              ]
+            }
+          },
+          "description": "Whole ordered rhythm motives. Values may be fraction strings or nonzero numeric durations (negative for rests); numbers are converted to fractions with denominator at most 1024. Replaces duration_values. Mixed lengths and independent pitch/rhythm motive boundaries supported."
         },
         "description": { "type": "string" }
       },

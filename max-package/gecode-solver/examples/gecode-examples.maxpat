@@ -9,8 +9,54 @@
             "modernui": 1
         },
         "classnamespace": "box",
-        "rect": [ 33.0, 94.0, 1260.0, 989.0 ],
+        "rect": [ 34.0, 94.0, 1260.0, 989.0 ],
         "boxes": [
+            {
+                "box": {
+                    "id": "obj-46",
+                    "maxclass": "comment",
+                    "numinlets": 1,
+                    "numoutlets": 0,
+                    "patching_rect": [ 1021.0, 300.0, 50.0, 20.0 ],
+                    "text": "motives"
+                }
+            },
+            {
+                "box": {
+                    "id": "obj-44",
+                    "maxclass": "comment",
+                    "numinlets": 1,
+                    "numoutlets": 0,
+                    "patching_rect": [ 965.5, 272.0, 60.0, 20.0 ],
+                    "text": "cadences"
+                }
+            },
+            {
+                "box": {
+                    "id": "obj-42",
+                    "maxclass": "newobj",
+                    "numinlets": 2,
+                    "numoutlets": 1,
+                    "outlettype": [ "" ],
+                    "patching_rect": [ 53.66666666666667, 1181.0, 55.0, 22.0 ],
+                    "saved_object_attributes": {
+                        "embed": 0,
+                        "versionnumber": 80300
+                    },
+                    "text": "bach.reg"
+                }
+            },
+            {
+                "box": {
+                    "id": "obj-41",
+                    "maxclass": "message",
+                    "numinlets": 2,
+                    "numoutlets": 1,
+                    "outlettype": [ "" ],
+                    "patching_rect": [ 801.0, 299.0, 211.0, 22.0 ],
+                    "text": "read motive_domains_satb.json, bang"
+                }
+            },
             {
                 "box": {
                     "id": "obj-34",
@@ -29,7 +75,7 @@
                     "numinlets": 1,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 167.0, 1215.0, 115.0, 22.0 ],
+                    "patching_rect": [ 167.0, 1261.0, 115.0, 22.0 ],
                     "saved_object_attributes": {
                         "versionnumber": 80300
                     },
@@ -168,7 +214,7 @@
                     "numinlets": 1,
                     "numoutlets": 1,
                     "outlettype": [ "bang" ],
-                    "patching_rect": [ 176.0, 1135.0, 58.0, 22.0 ],
+                    "patching_rect": [ 176.0, 1181.0, 58.0, 22.0 ],
                     "text": "loadbang"
                 }
             },
@@ -181,7 +227,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 176.0, 1172.0, 90.0, 23.0 ],
+                    "patching_rect": [ 176.0, 1218.0, 90.0, 23.0 ],
                     "text": "openWindow"
                 }
             },
@@ -515,7 +561,7 @@
                             }
                         ]
                     },
-                    "patching_rect": [ 46.0, 1266.0, 95.0, 22.0 ],
+                    "patching_rect": [ 46.0, 1312.0, 95.0, 22.0 ],
                     "text": "p canvas"
                 }
             },
@@ -527,7 +573,7 @@
                     "numoutlets": 1,
                     "outlettype": [ "int" ],
                     "parameter_enable": 0,
-                    "patching_rect": [ 46.0, 1171.0, 24.0, 24.0 ]
+                    "patching_rect": [ 46.0, 1217.0, 24.0, 24.0 ]
                 }
             },
             {
@@ -537,7 +583,7 @@
                     "numinlets": 2,
                     "numoutlets": 2,
                     "outlettype": [ "", "" ],
-                    "patching_rect": [ 84.0, 1172.0, 73.0, 22.0 ],
+                    "patching_rect": [ 84.0, 1218.0, 73.0, 22.0 ],
                     "text": "route export"
                 }
             },
@@ -599,7 +645,7 @@
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 502.0, 1360.0, 246.0, 20.0 ],
+                    "patching_rect": [ 502.0, 1406.0, 246.0, 20.0 ],
                     "text": "harmonic interval (for heuristic_all_positions)"
                 }
             },
@@ -610,7 +656,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 512.0, 1266.0, 119.0, 22.0 ],
+                    "patching_rect": [ 512.0, 1312.0, 119.0, 22.0 ],
                     "text": "7 5"
                 }
             },
@@ -621,7 +667,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 610.0, 1184.0, 87.0, 22.0 ],
+                    "patching_rect": [ 610.0, 1230.0, 87.0, 22.0 ],
                     "text": "bach.- @out m"
                 }
             },
@@ -632,7 +678,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 430.0, 1221.0, 145.0, 22.0 ],
+                    "patching_rect": [ 430.0, 1267.0, 145.0, 22.0 ],
                     "text": "55 55"
                 }
             },
@@ -643,7 +689,7 @@
                     "numinlets": 1,
                     "numoutlets": 2,
                     "outlettype": [ "", "" ],
-                    "patching_rect": [ 444.0, 1148.0, 125.0, 22.0 ],
+                    "patching_rect": [ 444.0, 1194.0, 125.0, 22.0 ],
                     "saved_object_attributes": {
                         "versionnumber": 80300
                     },
@@ -657,7 +703,7 @@
                     "numinlets": 1,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 444.0, 1120.0, 74.0, 22.0 ],
+                    "patching_rect": [ 444.0, 1166.0, 74.0, 22.0 ],
                     "saved_object_attributes": {
                         "versionnumber": 80300
                     },
@@ -671,7 +717,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 324.0, 1184.0, 143.0, 22.0 ],
+                    "patching_rect": [ 324.0, 1230.0, 143.0, 22.0 ],
                     "text": "62 60"
                 }
             },
@@ -702,7 +748,7 @@
                     "maxclass": "newobj",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 24.0, 1106.0, 83.0, 22.0 ],
+                    "patching_rect": [ 24.0, 1152.0, 83.0, 22.0 ],
                     "text": "print solutions"
                 }
             },
@@ -713,7 +759,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 94.0, 1029.0, 165.0, 22.0 ],
+                    "patching_rect": [ 94.0, 1075.0, 165.0, 22.0 ],
                     "text": "config_dict_debug demo_dict"
                 }
             },
@@ -757,7 +803,7 @@
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 70.0, 996.0, 125.0, 22.0 ],
+                    "patching_rect": [ 70.0, 1042.0, 125.0, 22.0 ],
                     "text": "config_dict demo_dict"
                 }
             },
@@ -768,7 +814,7 @@
                     "numinlets": 2,
                     "numoutlets": 5,
                     "outlettype": [ "dictionary", "", "", "", "" ],
-                    "patching_rect": [ 70.0, 967.0, 86.0, 22.0 ],
+                    "patching_rect": [ 70.0, 1012.0, 86.0, 22.0 ],
                     "saved_object_attributes": {
                         "legacy": 0,
                         "parameter_enable": 0,
@@ -779,7 +825,7 @@
             },
             {
                 "box": {
-                    "code": "{\n    \"name\": \"Metric Domain Complex - Hierarchy Examples\",\n    \"description\": \"Example pack for r-metric-hierarchy modes. Includes active defaults and optional examples (enabled=false) for quick A/B testing.\",\n    \"solution_length\": 35,\n    \"num_voices\": 2,\n    \"metric_engine_enabled\": 1,\n    \"voices\": [\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/12\", \"-1/12\", \"1/16\", \"1/8\", \"-1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79 ]\n            }\n        },\n        {\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/12\", \"-1/12\", \"1/16\", \"1/8\", \"-1/8\" ]\n            },\n            \"pitch\": {\n                \"midi_values\": [ 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74 ]\n            }\n        }\n    ],\n    \"meter\": {\n        \"time_signatures\": [ \"4/4\", \"3/4\" ],\n        \"tuplets\": [ 3, 6 ],\n        \"beat_divisions\": [ 2, 4 ]\n    },\n    \"export_json\": 0,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/metric_domain_complex\",\n    \"rules\": [\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"tuplet_on_beat_start\",\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 1,\n            \"description\": \"explicit tuplet aligned to tuplet grid (e.g. triplet starting on beat)\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"min_grid\",\n            \"parameters\": [ \"min-grid\", \"1/8\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"Example B: stricter grid variant (1/8)\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"hierarchical_voices\",\n            \"parameters\": [ \"0<-1\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"Example D: partial-index hierarchy (first half of sequence only)\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"equal\",\n            \"parameters\": [ \"durations\", \"no-tuplets\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"Example E: legacy no-tuplets filtering\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"no-syncopation\",\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 1,\n            \"description\": \"No syncopation (beat-level): no note may span across any beat boundary. Subdivisions are free as long as they fit within one beat.\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"no-syncopation\",\n            \"parameters\": [ \"beats:1,3\" ],\n            \"target_voices\": [ 0, 1 ],\n            \"enabled\": 0,\n            \"description\": \"No syncopation at beats 1 and 3 (half-note grid, stp=2 beats). Notes can start anywhere but must not cross beat 1 or beat 3. Quarter notes, 8ths, 16ths all allowed; only a note that ties ACROSS beat 3 is rejected.\"\n        },\n        {\n            \"rule_type\": \"r-metric-hierarchy\",\n            \"constraint\": \"no-syncopation\",\n            \"parameters\": [ \"beats:1\" ],\n            \"target_voices\": [ 0 ],\n            \"enabled\": 0,\n            \"description\": \"No cross-barline notes for voice 0: stp = minimum measure length. Any note must fit entirely within a single bar.\"\n        },\n        {\n            \"rule_type\": \"r-time-signature\",\n            \"target_component\": \"metric\",\n            \"description\": \"Bar-pattern time signature (fixed)\",\n            \"bar_pattern_type\": \"repeating\",\n            \"bar_pattern\": [ \"4/4\", \"3/4\" ],\n            \"bar_pattern_repetitions\": 10,\n            \"allow_cross_barline\": 0,\n            \"enabled\": 1\n        }\n    ],\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 1,\n        \"random_seed\": 0,\n        \"timeout_ms\": 10000,\n        \"max_solutions\": 1,\n        \"branching\": \"first_fail\",\n        \"value_order\": \"random\",\n        \"restart_policy\": \"none\"\n    }\n}",
+                    "code": "{\n    \"name\": \"Independent pitch and rhythm motives - four voices\",\n    \"description\": \"Whole list-valued domains concatenate to 12 event slots. Soprano uses rhythm motives with free pitches; Alto uses pitch motives with free rhythms; Tenor uses both with independent boundaries and a rhythmic rest; Bass uses ordinary scalar domains. Different voices can have different total durations.\",\n    \"solution_length\": 12,\n    \"num_voices\": 4,\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 0,\n        \"value_order\": \"random\",\n        \"branching\": \"first_fail\",\n        \"random_seed\": 42,\n        \"timeout_ms\": 10000,\n        \"max_solutions\": 1\n    },\n    \"export_json\": 1,\n    \"export_txt\": 1,\n    \"export_xml\": 1,\n    \"file_name\": \"output/motive_domains_satb\",\n    \"voices\": [\n        {\n            \"name\": \"Soprano - rhythm motives\",\n            \"pitch\": {\n                \"midi_values\": [ 72, 74, 76, 77, 79 ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/4\", \"1/8\", \"1/8\" ],\n                    [ \"1/2\" ]\n                ]\n            }\n        },\n        {\n            \"name\": \"Alto - pitch motives\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 60, 61, 62 ],\n                    [ 67, 64 ]\n                ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/8\" ]\n            }\n        },\n        {\n            \"name\": \"Tenor - independent motives\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 55, 57 ],\n                    [ 59, 55, 52 ]\n                ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/4\", \"1/8\", \"-1/8\" ],\n                    [ \"1/2\" ]\n                ]\n            }\n        },\n        {\n            \"name\": \"Bass - scalar domains\",\n            \"pitch\": {\n                \"midi_values\": [ 43, 45, 47, 48, 50 ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            }\n        }\n    ],\n    \"rules\": [\n        {\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"voice_above\",\n            \"target_voices\": [ 0, 1 ]\n        },\n        {\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"voice_above\",\n            \"target_voices\": [ 1, 2 ]\n        },\n        {\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"voice_above\",\n            \"target_voices\": [ 2, 3 ]\n        }\n    ]\n}",
                     "editlocked": 1,
                     "fontface": 0,
                     "fontname": "<Monospaced>",
@@ -789,7 +835,7 @@
                     "numinlets": 2,
                     "numoutlets": 5,
                     "outlettype": [ "dictionary", "", "", "", "" ],
-                    "patching_rect": [ 70.0, 309.0, 963.0, 651.0 ],
+                    "patching_rect": [ 70.0, 338.0, 963.0, 651.0 ],
                     "saved_object_attributes": {
                         "legacy": 0,
                         "parameter_enable": 0,
@@ -890,7 +936,7 @@
                     "numinlets": 1,
                     "numoutlets": 4,
                     "outlettype": [ "", "", "", "" ],
-                    "patching_rect": [ 24.0, 1071.0, 108.0, 22.0 ],
+                    "patching_rect": [ 24.0, 1117.0, 108.0, 22.0 ],
                     "text": "gecode.solver"
                 }
             },
@@ -900,7 +946,7 @@
                     "maxclass": "newobj",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 113.0, 1106.0, 106.0, 22.0 ],
+                    "patching_rect": [ 113.0, 1152.0, 106.0, 22.0 ],
                     "text": "print solver_status"
                 }
             }
@@ -915,7 +961,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-solver", 0 ],
-                    "midpoints": [ 103.5, 1064.5, 33.5, 1064.5 ],
+                    "midpoints": [ 103.5, 1110.5, 33.5, 1110.5 ],
                     "source": [ "obj-11", 0 ]
                 }
             },
@@ -956,7 +1002,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-22", 1 ],
-                    "midpoints": [ 559.5, 1177.0, 687.5, 1177.0 ],
+                    "midpoints": [ 559.5, 1223.0, 687.5, 1223.0 ],
                     "order": 0,
                     "source": [ "obj-19", 1 ]
                 }
@@ -964,7 +1010,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-22", 0 ],
-                    "midpoints": [ 453.5, 1177.0, 619.5, 1177.0 ],
+                    "midpoints": [ 453.5, 1223.0, 619.5, 1223.0 ],
                     "order": 0,
                     "source": [ "obj-19", 0 ]
                 }
@@ -1005,7 +1051,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-60", 0 ],
-                    "midpoints": [ 185.5, 1167.25, 55.5, 1167.25 ],
+                    "midpoints": [ 185.5, 1213.25, 55.5, 1213.25 ],
                     "order": 1,
                     "source": [ "obj-25", 0 ]
                 }
@@ -1013,7 +1059,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-31", 2 ],
-                    "midpoints": [ 185.5, 1201.875, 131.5, 1201.875 ],
+                    "midpoints": [ 185.5, 1247.875, 131.5, 1247.875 ],
                     "source": [ "obj-26", 0 ]
                 }
             },
@@ -1050,6 +1096,13 @@
                     "destination": [ "obj-1", 0 ],
                     "midpoints": [ 553.5, 151.50390625, 79.5, 151.50390625 ],
                     "source": [ "obj-4", 0 ]
+                }
+            },
+            {
+                "patchline": {
+                    "destination": [ "obj-1", 0 ],
+                    "midpoints": [ 810.5, 329.5, 79.5, 329.5 ],
+                    "source": [ "obj-41", 0 ]
                 }
             },
             {
@@ -1099,7 +1152,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-solver", 0 ],
-                    "midpoints": [ 79.5, 1046.5, 33.5, 1046.5 ],
+                    "midpoints": [ 79.5, 1092.5, 33.5, 1092.5 ],
                     "source": [ "obj-9", 0 ]
                 }
             },
@@ -1126,7 +1179,7 @@
             {
                 "patchline": {
                     "destination": [ "obj-18", 0 ],
-                    "midpoints": [ 33.5, 1099.5, 453.5, 1099.5 ],
+                    "midpoints": [ 33.5, 1145.5, 453.5, 1145.5 ],
                     "order": 0,
                     "source": [ "obj-solver", 0 ]
                 }
@@ -1142,6 +1195,12 @@
                     "destination": [ "obj-28", 0 ],
                     "order": 1,
                     "source": [ "obj-solver", 0 ]
+                }
+            },
+            {
+                "patchline": {
+                    "destination": [ "obj-42", 0 ],
+                    "source": [ "obj-solver", 1 ]
                 }
             },
             {

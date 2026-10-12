@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "motive_domains.hh"
 
 #include <gecode/int.hh>
 #include <gecode/minimodel.hh>
@@ -138,6 +139,8 @@ private:
     IntVarArray interval_vars_;
     IntVarArray rhythm_vars_;  // Per-voice duration variables (empty if not configured)
     IntVarArray metric_vars_;  // Metric engine variables (phase-1 scaffold)
+    BoolVarArray motive_vars_;
+    std::vector<MotiveDomains::Selection> motive_edges_;
     
     // Per-voice state
     int num_voices_;
@@ -211,6 +214,8 @@ public:
     bool has_metric_vars() const { return metric_vars_.size() > 0; }
     int get_sequence_length() const { return sequence_length_; }
     int get_num_voices() const { return num_voices_; }
+    void post_motive_domains(const std::vector<MotiveDomains::Domain>& domains);
+    std::vector<MotiveDomains::Selection> get_selected_motives() const;
 
     // ---- Rule system ----
     void add_musical_rules(const std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>>& rules);

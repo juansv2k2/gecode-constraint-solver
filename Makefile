@@ -230,10 +230,19 @@ $(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/music
 	$(CXX) $(CONSTRAINT_SOLVER_MAIN_CXXFLAGS) $(GECODE_INC) -o $@ $(CONSTRAINT_SOLVER_MAIN_SOURCE) $(GECODE_LIB)
 
 # Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
+$(DYNAMIC_SOLVER_TARGET) $(MAX_WRAPPER_TEST_TARGET) $(MAX_EXTERNAL_TARGET) $(METRIC_TIMEPOINT_TEST_TARGET): include/motive_domains.hh include/motive_domain_parser.hh include/gecode_cluster_integration.hh
+
+.PHONY: test-motive-domains
+test-motive-domains: bin/test-motive-domains
+	./bin/test-motive-domains
+
 $(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh include/neural_pitch_scorer.hh include/cadence_rules.hh include/repetition_rules.hh include/harmonic_domain_parser.hh include/tendency_tone_rules.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
 
 # Max/MSP async wrapper smoke test (SDK-independent wrapper layer)
+bin/test-motive-domains: tests/test_motive_domains.cpp $(filter-out tests/test_max_msp_wrapper.cpp,$(MAX_WRAPPER_TEST_SOURCE)) include/motive_domains.hh include/motive_domain_parser.hh include/gecode_cluster_integration.hh include/musical_constraint_solver.hh
+	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -o $@ tests/test_motive_domains.cpp $(filter-out tests/test_max_msp_wrapper.cpp,$(MAX_WRAPPER_TEST_SOURCE)) $(GECODE_LIB)
+
 $(MAX_WRAPPER_TEST_TARGET): $(MAX_WRAPPER_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh include/harmonic_domain_parser.hh include/cadence_rules.hh include/repetition_rules.hh include/tendency_tone_rules.hh include/musicxml_svg_renderer.hh
 	$(CXX) $(MAX_WRAPPER_TEST_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(MAX_WRAPPER_TEST_SOURCE) $(GECODE_LIB)
 
