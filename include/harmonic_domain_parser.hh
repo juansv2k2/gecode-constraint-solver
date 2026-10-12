@@ -66,6 +66,7 @@ inline bool parse_roman_degree(const std::string& s, int& degree_out, int& quali
 // has no harmonic_domain key.
 inline void parse(const nlohmann::json& cfg, HarmonicConfig& hd,
                    int sequence_length, int rhythm_base) {
+    hd = HarmonicConfig{};
     if (!cfg.contains("harmonic_domain") || !cfg["harmonic_domain"].is_array() ||
             cfg["harmonic_domain"].empty())
         return;

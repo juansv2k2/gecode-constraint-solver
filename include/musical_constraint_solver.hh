@@ -14,6 +14,7 @@
 #include "gecode_cluster_integration.hh"
 #include "dynamic_rule_compiler.hh"
 #include "rule_expression_parser.hh"
+#include "measure_count_plan.hh"
 #include <nlohmann/json.hpp>
 #include <memory>
 #include <vector>
@@ -40,6 +41,9 @@ struct SolverConfig {
     // Basic sequence parameters
     int sequence_length = 8;
     int num_voices = 1;
+    bool measure_count_mode = false;
+    MeasureCountPlan::Spec measure_count_plan;
+    int measure_horizon_ticks = 0;
 
     // Search configuration aligned to Gecode search concepts.
     enum class SearchEngine {
@@ -159,6 +163,7 @@ struct SolverConfig {
         // Derived from entries at parse time; length == sequence_length.
         std::vector<int> harmonic_state;
     } harmonic_domain;
+    bool require_harmonic_chord_tones = false;
 
 
     // Random search seed semantics:

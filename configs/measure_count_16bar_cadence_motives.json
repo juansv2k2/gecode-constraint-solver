@@ -1,0 +1,194 @@
+{
+  "name": "16-bar measure-count periods with motives and cadences",
+  "description": "Two 8-bar periods with contrasting 4-bar semiperiods. All sounding notes follow the Roman-function harmony; HC ends bars 4/12 and PAC ends bars 8/16. Seeded choices vary tonal motives without breaking whole-motive boundaries.",
+  "solution_length": "measure_count",
+  "measure_count": 16,
+  "measure_plan": [{ "bars": 16, "time_signature": "4/4" }],
+  "measure_fill_policy": "exact",
+  "require_harmonic_chord_tones": true,
+  "num_voices": 4,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "value_order": "random",
+    "branching": "first_fail",
+    "random_seed": 42,
+    "timeout_ms": 20000,
+    "max_solutions": 1
+  },
+  "export_json": true,
+  "export_txt": false,
+  "export_xml": true,
+  "file_name": "output/measure_count_16bar_cadence_motives",
+  "voices": [
+    {
+      "name": "Soprano",
+      "pitch": {
+        "motives": [
+          [72, 76, 79],
+          [79, 76, 72],
+          [77, 81, 72],
+          [74, 77, 81],
+          [71, 74, 79],
+          [72, 76],
+          [71, 72],
+          [72],
+          [76],
+          [79],
+          [77],
+          [81],
+          [74],
+          [71]
+        ]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/2", "1/4", "1/4"],
+          ["1/4", "1/4", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Alto",
+      "pitch": {
+        "motives": [
+          [60, 64, 67],
+          [67, 64, 60],
+          [65, 69, 72],
+          [62, 65, 69],
+          [59, 62, 67],
+          [60, 64],
+          [62, 59],
+          [64, 67, 64],
+          [60],
+          [64],
+          [67],
+          [65],
+          [69],
+          [62],
+          [59]
+        ]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/2", "1/4", "1/4"],
+          ["1/4", "1/4", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Tenor",
+      "pitch": {
+        "motives": [
+          [55, 60, 64],
+          [64, 60, 55],
+          [53, 57, 60],
+          [57, 60, 64],
+          [50, 53, 57],
+          [55, 59, 62],
+          [59, 60],
+          [55],
+          [60],
+          [64],
+          [53],
+          [57],
+          [50],
+          [59],
+          [62]
+        ]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/2", "1/4", "1/4"],
+          ["1/4", "1/4", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Bass",
+      "pitch": {
+        "motives": [
+          [36, 43, 48],
+          [48, 43, 36],
+          [41, 48, 53],
+          [45, 52, 57],
+          [50, 53, 57],
+          [43, 47, 50],
+          [43, 36],
+          [50, 43],
+          [36],
+          [43],
+          [48],
+          [41],
+          [45],
+          [50],
+          [47]
+        ]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/2", "1/4", "1/4"],
+          ["1/4", "1/4", "1/2"]
+        ]
+      }
+    }
+  ],
+  "harmonic_domain": [
+    { "beat": 0, "degree": "I", "key": "C", "mode": "major" },
+    { "beat": 4, "degree": "vi" },
+    { "beat": 8, "degree": "IV" },
+    { "beat": 12, "degree": "ii" },
+    { "beat": 15, "degree": "V" },
+    { "beat": 16, "degree": "I" },
+    { "beat": 20, "degree": "IV" },
+    { "beat": 24, "degree": "ii" },
+    { "beat": 28, "degree": "V7" },
+    { "beat": 31, "degree": "I" },
+    { "beat": 32, "degree": "I" },
+    { "beat": 36, "degree": "vi" },
+    { "beat": 40, "degree": "IV" },
+    { "beat": 44, "degree": "ii" },
+    { "beat": 47, "degree": "V" },
+    { "beat": 48, "degree": "I" },
+    { "beat": 52, "degree": "IV" },
+    { "beat": 56, "degree": "ii" },
+    { "beat": 60, "degree": "V7" },
+    { "beat": 63, "degree": "I" }
+  ],
+  "rules": [
+    {
+      "id": "semiperiod_1_half_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "HC",
+      "require_root_position": true,
+      "require_chord_tones": true,
+      "beat_positions": [14, 15],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "period_1_pac",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "require_chord_tones": true,
+      "beat_positions": [30, 31],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "semiperiod_2_half_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "HC",
+      "require_root_position": true,
+      "require_chord_tones": true,
+      "beat_positions": [46, 47],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "period_2_pac",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "require_chord_tones": true,
+      "beat_positions": [62, 63],
+      "target_voices": [0, 1, 2, 3]
+    }
+  ]
+}

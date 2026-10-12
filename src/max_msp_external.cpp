@@ -318,12 +318,14 @@ void normalize_array_schema_fields(nlohmann::json& value) {
         "dynamic_rules",
         "rules",
         "voices",
+        "measure_plan",
         "duration_values",
         "midi_values",
         "time_signatures",
         "tuplets",
         "beat_divisions",
         "indices",
+        "beat_positions",
         "timepoints",
         "parameters",
         "bar_pattern",
@@ -336,7 +338,8 @@ void normalize_array_schema_fields(nlohmann::json& value) {
     static const std::set<std::string> numeric_keyed_object_to_array_keys = {
         "voices",
         "rules",
-        "dynamic_rules"
+        "dynamic_rules",
+        "measure_plan"
     };
 
     if (value.is_object()) {

@@ -83,6 +83,25 @@ Wrapper path (same as used by Max):
 - `rules`: Built-in constraints
 - `dynamic_rules`: Expression-based constraints and heuristics
 
+### Measure-count Solution Length
+
+Integer `solution_length` remains the fixed event-slot count. To derive event counts from a fixed bar plan, use `solution_length: "measure_count"` with `measure_count` and grouped `measure_plan` entries. Shorter voices may be padded with score-level rests (`measure_fill_policy: "pad"`, the default); `"exact"` requires each voice to reach the final barline. Events may not overrun the plan.
+
+```json
+{
+  "solution_length": "measure_count",
+  "measure_count": 16,
+  "measure_plan": [{ "bars": 16, "time_signature": "4/4" }],
+  "measure_fill_policy": "exact"
+}
+```
+
+The current implementation requires an explicit fixed `measure_plan`; per-bar meter selection from `meter.time_signatures` is not implemented yet. Measures are independent of the event-indexed metric engine. `r-cadence.positions` continues to mean event indices; use `beat_positions` for absolute quarter-note offsets and the event sounding at those offsets, including a note that began earlier. In this initial mode, only `r-cadence` with `beat_positions` is active-aware; fixed-index, dynamic, heuristic, and other built-in rule families are rejected until their active-event behavior is implemented.
+
+See [the 16-bar measure-count cadence and motive example](configs/measure_count_16bar_cadence_motives.json).
+
+`harmonic_domain` alone is a chord plan, not automatic pitch membership for all voices. Set top-level `require_harmonic_chord_tones: true` to enforce chord tones for every sounding event across every harmonic segment it overlaps. Harmony must start at beat 0. Sustained notes crossing chord changes must be common tones; rests and inactive event capacity are excluded. This strict option intentionally excludes non-chord passing tones and dissonant suspensions. It defaults to false for compatibility. Separately, `r-cadence.require_chord_tones: true` checks all target voices at the two cadence times only; PAC defaults otherwise constrain the bass and soprano, not Alto or Tenor.
+
 ## 3. Voices & Domains
 
 Voices define the pitch and rhythm domains for each voice.

@@ -19,28 +19,50 @@
   "voices": [
     {
       "name": "Soprano - rhythm motives",
-      "pitch": {"midi_values": [72,74,76,77,79]},
-      "rhythm": {"motives": [["1/4","1/8","1/8"],["1/2"]]}
+      "pitch": { "midi_values": [72, 74, 76, 77, 79] },
+      "rhythm": { "motives": [["1/4", "1/8", "1/8"], ["1/2"]] }
     },
     {
       "name": "Alto - pitch motives",
-      "pitch": {"motives": [[60,61,62],[67,64]]},
-      "rhythm": {"duration_values": ["1/4","1/8"]}
+      "pitch": {
+        "motives": [
+          [60, 61, 62],
+          [67, 64]
+        ]
+      },
+      "rhythm": { "duration_values": ["1/4", "1/8"] }
     },
     {
       "name": "Tenor - independent motives",
-      "pitch": {"motives": [[55,57],[59,55,52]]},
-      "rhythm": {"motives": [["1/4","1/8","-1/8"],["1/2"]]}
+      "pitch": {
+        "motives": [
+          [55, 57],
+          [59, 55, 52]
+        ]
+      },
+      "rhythm": { "motives": [["1/4", "1/8", "-1/8"], ["1/2"]] }
     },
     {
       "name": "Bass - scalar domains",
-      "pitch": {"midi_values": [43,45,47,48,50]},
-      "rhythm": {"duration_values": ["1/4"]}
+      "pitch": { "midi_values": [43, 45, 47, 48, 50] },
+      "rhythm": { "duration_values": ["1/4"] }
     }
   ],
   "rules": [
-    {"rule_type": "r-pitch-pitch", "constraint": "voice_above", "target_voices": [0,1]},
-    {"rule_type": "r-pitch-pitch", "constraint": "voice_above", "target_voices": [1,2]},
-    {"rule_type": "r-pitch-pitch", "constraint": "voice_above", "target_voices": [2,3]}
+    {
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [0, 1]
+    },
+    {
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [1, 2]
+    },
+    {
+      "rule_type": "r-pitch-pitch",
+      "constraint": "voice_above",
+      "target_voices": [2, 3]
+    }
   ]
 }

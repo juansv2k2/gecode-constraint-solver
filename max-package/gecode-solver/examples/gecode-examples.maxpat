@@ -13,6 +13,31 @@
         "boxes": [
             {
                 "box": {
+                    "id": "obj-49",
+                    "maxclass": "message",
+                    "numinlets": 2,
+                    "numoutlets": 1,
+                    "outlettype": [ "" ],
+                    "patching_rect": [ 1078.0, 299.0, 315.0, 22.0 ],
+                    "text": "read measure_count_16bar_cadence_motives.json, bang"
+                }
+            },
+            {
+                "box": {
+                    "id": "obj-40",
+                    "maxclass": "newobj",
+                    "numinlets": 1,
+                    "numoutlets": 1,
+                    "outlettype": [ "" ],
+                    "patching_rect": [ 84.0, 1253.0, 119.0, 22.0 ],
+                    "saved_object_attributes": {
+                        "versionnumber": 80300
+                    },
+                    "text": "bach.pick -1 @out m"
+                }
+            },
+            {
+                "box": {
                     "id": "obj-46",
                     "maxclass": "comment",
                     "numinlets": 1,
@@ -66,20 +91,6 @@
                     "outlettype": [ "" ],
                     "patching_rect": [ 767.5, 271.0, 192.0, 22.0 ],
                     "text": "read cadence_pac_test.json, bang"
-                }
-            },
-            {
-                "box": {
-                    "id": "obj-14",
-                    "maxclass": "newobj",
-                    "numinlets": 1,
-                    "numoutlets": 1,
-                    "outlettype": [ "" ],
-                    "patching_rect": [ 167.0, 1261.0, 115.0, 22.0 ],
-                    "saved_object_attributes": {
-                        "versionnumber": 80300
-                    },
-                    "text": "bach.pick 3 @out m"
                 }
             },
             {
@@ -652,12 +663,13 @@
             {
                 "box": {
                     "id": "obj-23",
+                    "linecount": 26,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 512.0, 1312.0, 119.0, 22.0 ],
-                    "text": "7 5"
+                    "patching_rect": [ 512.0, 1312.0, 119.0, 357.0 ],
+                    "text": "7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 12 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 7 11 12 12"
                 }
             },
             {
@@ -674,12 +686,13 @@
             {
                 "box": {
                     "id": "obj-21",
+                    "linecount": 24,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 430.0, 1267.0, 145.0, 22.0 ],
-                    "text": "55 55"
+                    "patching_rect": [ 430.0, 1267.0, 145.0, 330.0 ],
+                    "text": "60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60 60"
                 }
             },
             {
@@ -713,12 +726,13 @@
             {
                 "box": {
                     "id": "obj-12",
+                    "linecount": 24,
                     "maxclass": "message",
                     "numinlets": 2,
                     "numoutlets": 1,
                     "outlettype": [ "" ],
-                    "patching_rect": [ 324.0, 1230.0, 143.0, 22.0 ],
-                    "text": "62 60"
+                    "patching_rect": [ 324.0, 1230.0, 143.0, 330.0 ],
+                    "text": "67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 72 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 67 71 72 72"
                 }
             },
             {
@@ -825,7 +839,7 @@
             },
             {
                 "box": {
-                    "code": "{\n    \"name\": \"Independent pitch and rhythm motives - four voices\",\n    \"description\": \"Whole list-valued domains concatenate to 12 event slots. Soprano uses rhythm motives with free pitches; Alto uses pitch motives with free rhythms; Tenor uses both with independent boundaries and a rhythmic rest; Bass uses ordinary scalar domains. Different voices can have different total durations.\",\n    \"solution_length\": 12,\n    \"num_voices\": 4,\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 0,\n        \"value_order\": \"random\",\n        \"branching\": \"first_fail\",\n        \"random_seed\": 42,\n        \"timeout_ms\": 10000,\n        \"max_solutions\": 1\n    },\n    \"export_json\": 1,\n    \"export_txt\": 1,\n    \"export_xml\": 1,\n    \"file_name\": \"output/motive_domains_satb\",\n    \"voices\": [\n        {\n            \"name\": \"Soprano - rhythm motives\",\n            \"pitch\": {\n                \"midi_values\": [ 72, 74, 76, 77, 79 ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/4\", \"1/8\", \"1/8\" ],\n                    [ \"1/2\" ]\n                ]\n            }\n        },\n        {\n            \"name\": \"Alto - pitch motives\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 60, 61, 62 ],\n                    [ 67, 64 ]\n                ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\", \"1/8\" ]\n            }\n        },\n        {\n            \"name\": \"Tenor - independent motives\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 55, 57 ],\n                    [ 59, 55, 52 ]\n                ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/4\", \"1/8\", \"-1/8\" ],\n                    [ \"1/2\" ]\n                ]\n            }\n        },\n        {\n            \"name\": \"Bass - scalar domains\",\n            \"pitch\": {\n                \"midi_values\": [ 43, 45, 47, 48, 50 ]\n            },\n            \"rhythm\": {\n                \"duration_values\": [ \"1/4\" ]\n            }\n        }\n    ],\n    \"rules\": [\n        {\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"voice_above\",\n            \"target_voices\": [ 0, 1 ]\n        },\n        {\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"voice_above\",\n            \"target_voices\": [ 1, 2 ]\n        },\n        {\n            \"rule_type\": \"r-pitch-pitch\",\n            \"constraint\": \"voice_above\",\n            \"target_voices\": [ 2, 3 ]\n        }\n    ]\n}",
+                    "code": "{\n    \"name\": \"16-bar measure-count periods with motives and cadences\",\n    \"description\": \"Two 8-bar periods with contrasting 4-bar semiperiods. All sounding notes follow the Roman-function harmony; HC ends bars 4/12 and PAC ends bars 8/16. Seeded choices vary tonal motives without breaking whole-motive boundaries.\",\n    \"solution_length\": \"measure_count\",\n    \"measure_count\": 16,\n    \"measure_plan\": [\n        {\n            \"bars\": 16,\n            \"time_signature\": \"4/4\"\n        }\n    ],\n    \"measure_fill_policy\": \"exact\",\n    \"require_harmonic_chord_tones\": 1,\n    \"num_voices\": 4,\n    \"search_options\": {\n        \"engine\": \"dfs\",\n        \"enable_metric_engine\": 0,\n        \"value_order\": \"random\",\n        \"branching\": \"first_fail\",\n        \"random_seed\": 42,\n        \"timeout_ms\": 20000,\n        \"max_solutions\": 1\n    },\n    \"export_json\": 1,\n    \"export_txt\": 0,\n    \"export_xml\": 1,\n    \"file_name\": \"output/measure_count_16bar_cadence_motives\",\n    \"voices\": [\n        {\n            \"name\": \"Soprano\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 72, 76, 79 ],\n                    [ 79, 76, 72 ],\n                    [ 77, 81, 72 ],\n                    [ 74, 77, 81 ],\n                    [ 71, 74, 79 ],\n                    [ 72, 76 ],\n                    [ 71, 72 ],\n                    [ 72 ],\n                    [ 76 ],\n                    [ 79 ],\n                    [ 77 ],\n                    [ 81 ],\n                    [ 74 ],\n                    [ 71 ]\n                ],\n                \"midi_notes\": [ 72, 73, 74, 75, 76, 77, 78, 79, 80 ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/4\", \"1/8\", \"1/8\" ],\n                    [ \"1/16\", \"1/16\", \"1/16\", \"1/16\", \"1/8\", \"1/8\" ]\n                ]\n            }\n        },\n        {\n            \"name\": \"Alto\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 60, 64, 67 ],\n                    [ 67, 64, 60 ],\n                    [ 65, 69, 72 ],\n                    [ 62, 65, 69 ],\n                    [ 59, 62, 67 ],\n                    [ 60, 64 ],\n                    [ 62, 59 ],\n                    [ 64, 67, 64 ],\n                    [ 60 ],\n                    [ 64 ],\n                    [ 67 ],\n                    [ 65 ],\n                    [ 69 ],\n                    [ 62 ],\n                    [ 59 ]\n                ],\n                \"midi_notes\": [ 72, 73, 74, 75, 76, 77, 78, 79, 80 ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/4\", \"1/8\", \"1/8\" ],\n                    [ \"1/16\", \"1/16\", \"1/16\", \"1/16\", \"1/8\", \"1/8\" ]\n                ]\n            }\n        },\n        {\n            \"name\": \"Tenor\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 55, 60, 64 ],\n                    [ 64, 60, 55 ],\n                    [ 53, 57, 60 ],\n                    [ 57, 60, 64 ],\n                    [ 50, 53, 57 ],\n                    [ 55, 59, 62 ],\n                    [ 59, 60 ],\n                    [ 55 ],\n                    [ 60 ],\n                    [ 64 ],\n                    [ 53 ],\n                    [ 57 ],\n                    [ 50 ],\n                    [ 59 ],\n                    [ 62 ]\n                ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/2\", \"1/4\", \"1/4\" ],\n                    [ \"1/8\", \"1/8\", \"1/4\" ]\n                ]\n            }\n        },\n        {\n            \"name\": \"Bass\",\n            \"pitch\": {\n                \"motives\": [\n                    [ 36, 43, 48 ],\n                    [ 48, 43, 36 ],\n                    [ 41, 48, 53 ],\n                    [ 45, 52, 57 ],\n                    [ 50, 53, 57 ],\n                    [ 43, 47, 50 ],\n                    [ 43, 36 ],\n                    [ 50, 43 ],\n                    [ 36 ],\n                    [ 43 ],\n                    [ 48 ],\n                    [ 41 ],\n                    [ 45 ],\n                    [ 50 ],\n                    [ 47 ]\n                ]\n            },\n            \"rhythm\": {\n                \"motives\": [\n                    [ \"1/2\", \"1/4\", \"1/4\" ],\n                    [ \"1/8\", \"1/8\", \"1/4\" ]\n                ]\n            }\n        }\n    ],\n    \"harmonic_domain\": [\n        {\n            \"beat\": 0,\n            \"degree\": \"I\",\n            \"key\": \"C\",\n            \"mode\": \"major\"\n        },\n        {\n            \"beat\": 4,\n            \"degree\": \"vi\"\n        },\n        {\n            \"beat\": 8,\n            \"degree\": \"IV\"\n        },\n        {\n            \"beat\": 12,\n            \"degree\": \"ii\"\n        },\n        {\n            \"beat\": 15,\n            \"degree\": \"V\"\n        },\n        {\n            \"beat\": 16,\n            \"degree\": \"I\"\n        },\n        {\n            \"beat\": 20,\n            \"degree\": \"IV\"\n        },\n        {\n            \"beat\": 24,\n            \"degree\": \"ii\"\n        },\n        {\n            \"beat\": 28,\n            \"degree\": \"V7\"\n        },\n        {\n            \"beat\": 31,\n            \"degree\": \"I\"\n        },\n        {\n            \"beat\": 32,\n            \"degree\": \"I\"\n        },\n        {\n            \"beat\": 36,\n            \"degree\": \"vi\"\n        },\n        {\n            \"beat\": 40,\n            \"degree\": \"IV\"\n        },\n        {\n            \"beat\": 44,\n            \"degree\": \"ii\"\n        },\n        {\n            \"beat\": 47,\n            \"degree\": \"V\"\n        },\n        {\n            \"beat\": 48,\n            \"degree\": \"I\"\n        },\n        {\n            \"beat\": 52,\n            \"degree\": \"IV\"\n        },\n        {\n            \"beat\": 56,\n            \"degree\": \"ii\"\n        },\n        {\n            \"beat\": 60,\n            \"degree\": \"V7\"\n        },\n        {\n            \"beat\": 63,\n            \"degree\": \"I\"\n        }\n    ],\n    \"rules\": [\n        {\n            \"id\": \"semiperiod_1_half_cadence\",\n            \"rule_type\": \"r-cadence\",\n            \"cadence_type\": \"HC\",\n            \"require_root_position\": 1,\n            \"require_chord_tones\": 1,\n            \"beat_positions\": [ 14, 15 ],\n            \"target_voices\": [ 0, 1, 2, 3 ]\n        },\n        {\n            \"id\": \"period_1_pac\",\n            \"rule_type\": \"r-cadence\",\n            \"cadence_type\": \"PAC\",\n            \"require_chord_tones\": 1,\n            \"beat_positions\": [ 30, 31 ],\n            \"target_voices\": [ 0, 1, 2, 3 ]\n        },\n        {\n            \"id\": \"semiperiod_2_half_cadence\",\n            \"rule_type\": \"r-cadence\",\n            \"cadence_type\": \"HC\",\n            \"require_root_position\": 1,\n            \"require_chord_tones\": 1,\n            \"beat_positions\": [ 46, 47 ],\n            \"target_voices\": [ 0, 1, 2, 3 ]\n        },\n        {\n            \"id\": \"period_2_pac\",\n            \"rule_type\": \"r-cadence\",\n            \"cadence_type\": \"PAC\",\n            \"require_chord_tones\": 1,\n            \"beat_positions\": [ 62, 63 ],\n            \"target_voices\": [ 0, 1, 2, 3 ]\n        }\n    ]\n}",
                     "editlocked": 1,
                     "fontface": 0,
                     "fontname": "<Monospaced>",
@@ -1037,7 +1051,7 @@
             },
             {
                 "patchline": {
-                    "destination": [ "obj-31", 1 ],
+                    "destination": [ "obj-40", 0 ],
                     "source": [ "obj-24", 0 ]
                 }
             },
@@ -1100,6 +1114,12 @@
             },
             {
                 "patchline": {
+                    "destination": [ "obj-31", 1 ],
+                    "source": [ "obj-40", 0 ]
+                }
+            },
+            {
+                "patchline": {
                     "destination": [ "obj-1", 0 ],
                     "midpoints": [ 810.5, 329.5, 79.5, 329.5 ],
                     "source": [ "obj-41", 0 ]
@@ -1121,6 +1141,13 @@
                 "patchline": {
                     "destination": [ "obj-47", 0 ],
                     "source": [ "obj-48", 0 ]
+                }
+            },
+            {
+                "patchline": {
+                    "destination": [ "obj-1", 0 ],
+                    "midpoints": [ 1087.5, 329.5, 79.5, 329.5 ],
+                    "source": [ "obj-49", 0 ]
                 }
             },
             {

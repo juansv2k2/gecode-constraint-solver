@@ -596,6 +596,88 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
     branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
 }
 
+IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
+                                              VariableBranchingStrategy variable_branching,
+                                              ValueSelectionStrategy value_selection,
+                                              const std::vector<std::vector<int>>& voice_domains,
+                                              const std::vector<std::vector<int>>& voice_rhythm_domains,
+                                              int measure_horizon_ticks, bool exact_measure_fill,
+                                              unsigned int random_seed)
+    : Space(),
+      sequence_length_(length),
+      absolute_vars_(*this, length * voices, IntSet(-1, 127)),
+      interval_vars_(*this, (length * voices) - voices, -12, 12),
+      rhythm_vars_(*this, length * voices, -100000, 100000),
+      metric_vars_(*this, 0, 0, 0),
+      active_vars_(*this, length * voices, 0, 1),
+      measure_count_mode_(true),
+      measure_horizon_ticks_(measure_horizon_ticks),
+      exact_measure_fill_(exact_measure_fill),
+      num_voices_(voices),
+      variable_branching_(variable_branching),
+      value_selection_(value_selection),
+      solution_storage_(std::make_unique<MusicalConstraints::DualSolutionStorage>(length)),
+      vocal_space_configured_(false) {
+    if (length <= 0 || voices <= 0 || measure_horizon_ticks <= 0 || measure_horizon_ticks > length)
+        throw std::runtime_error("Invalid measure-count event capacity or horizon");
+
+    for (int voice = 0; voice < voices; ++voice) {
+        if (voice >= static_cast<int>(voice_domains.size()) || voice_domains[voice].empty())
+            throw std::runtime_error("Measure-count mode requires a pitch domain for every voice");
+        if (voice >= static_cast<int>(voice_rhythm_domains.size()) || voice_rhythm_domains[voice].empty())
+            throw std::runtime_error("Measure-count mode requires a rhythm domain for every voice");
+
+        std::vector<int> pitch_values{-1};
+        pitch_values.insert(pitch_values.end(), voice_domains[voice].begin(), voice_domains[voice].end());
+        IntSet pitch_domain(pitch_values.data(), pitch_values.size());
+        std::vector<int> rhythm_values{0};
+        rhythm_values.insert(rhythm_values.end(), voice_rhythm_domains[voice].begin(), voice_rhythm_domains[voice].end());
+        IntSet rhythm_domain(rhythm_values.data(), rhythm_values.size());
+        int max_abs_duration = 0;
+        for (int duration : voice_rhythm_domains[voice]) {
+            if (duration == 0) throw std::runtime_error("Zero duration is reserved for inactive measure-mode slots");
+            max_abs_duration = std::max(max_abs_duration, std::abs(duration));
+        }
+        IntVarArgs absolute_durations;
+        BoolVarArgs voice_active;
+        for (int event = 0; event < length; ++event) {
+            const int index = voice * length + event;
+            dom(*this, absolute_vars_[index], pitch_domain);
+            dom(*this, rhythm_vars_[index], rhythm_domain);
+            rel(*this, absolute_vars_[index], IRT_NQ, -1, Reify(active_vars_[index], RM_EQV));
+            rel(*this, rhythm_vars_[index], IRT_NQ, 0, Reify(active_vars_[index], RM_EQV));
+            voice_active << active_vars_[index];
+
+            if (event == 0) {
+                rel(*this, active_vars_[index], IRT_EQ, 1);
+            } else {
+                rel(*this, active_vars_[index - 1], IRT_GQ, active_vars_[index]);
+            }
+
+            IntVar absolute_duration(*this, 0, max_abs_duration);
+            abs(*this, rhythm_vars_[index], absolute_duration);
+            absolute_durations << absolute_duration;
+
+            if (event > 0) {
+                const int previous = index - 1;
+                const int interval_index = voice * (length - 1) + event - 1;
+                BoolVar current_note = expr(*this, rhythm_vars_[index] > 0);
+                BoolVar previous_note = expr(*this, rhythm_vars_[previous] > 0);
+                BoolVar both_notes = expr(*this, current_note && previous_note);
+                IntVar difference = expr(*this, absolute_vars_[index] - absolute_vars_[previous]);
+                rel(*this, interval_vars_[interval_index], IRT_EQ, difference, Reify(both_notes, RM_IMP));
+            }
+        }
+        linear(*this, voice_active, IRT_GQ, 1);
+        linear(*this, absolute_durations,
+               exact_measure_fill_ ? IRT_EQ : IRT_LQ, measure_horizon_ticks_);
+    }
+
+    post_musical_constraints();
+    branch_rhythm_with_search_strategy(*this, rhythm_vars_, variable_branching_, value_selection_, random_seed);
+    branch_with_search_strategy(*this, absolute_vars_, variable_branching_, value_selection_, random_seed, true);
+}
+
 // Per-voice pitch/rhythm domains + metric domain constructor
 IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
                                               VariableBranchingStrategy variable_branching,
@@ -677,6 +759,9 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(int length, int voices,
 IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)
     : Space(space),
       sequence_length_(space.sequence_length_),
+    measure_count_mode_(space.measure_count_mode_),
+    measure_horizon_ticks_(space.measure_horizon_ticks_),
+    exact_measure_fill_(space.exact_measure_fill_),
       num_voices_(space.num_voices_),
     variable_branching_(space.variable_branching_),
     value_selection_(space.value_selection_),
@@ -687,6 +772,7 @@ IntegratedMusicalSpace::IntegratedMusicalSpace(IntegratedMusicalSpace& space)
     interval_vars_.update(*this, space.interval_vars_);
     rhythm_vars_.update(*this, space.rhythm_vars_);
     metric_vars_.update(*this, space.metric_vars_);
+    active_vars_.update(*this, space.active_vars_);
     motive_vars_.update(*this, space.motive_vars_);
     motive_edges_ = space.motive_edges_;
     
@@ -703,6 +789,21 @@ Space* IntegratedMusicalSpace::copy() {
     return new IntegratedMusicalSpace(*this);
 }
 
+bool IntegratedMusicalSpace::event_is_active(int voice, int pos) const {
+    if (!measure_count_mode_) return voice >= 0 && voice < num_voices_ && pos >= 0 && pos < sequence_length_;
+    const int index = voice * sequence_length_ + pos;
+    return index >= 0 && index < active_vars_.size() && active_vars_[index].assigned() && active_vars_[index].val() == 1;
+}
+
+int IntegratedMusicalSpace::get_active_event_count(int voice) const {
+    if (voice < 0 || voice >= num_voices_) return 0;
+    if (!measure_count_mode_) return sequence_length_;
+    int count = 0;
+    for (int pos = 0; pos < sequence_length_; ++pos)
+        if (event_is_active(voice, pos)) ++count;
+    return count;
+}
+
 void IntegratedMusicalSpace::post_motive_domains(const std::vector<MotiveDomains::Domain>& domains) {
     std::vector<BoolVar> choices;
     for (const auto& domain : domains) {
@@ -711,6 +812,7 @@ void IntegratedMusicalSpace::post_motive_domains(const std::vector<MotiveDomains
         auto& variables = domain.rhythm ? rhythm_vars_ : absolute_vars_;
         std::vector<std::vector<BoolVar>> incoming(sequence_length_ + 1), outgoing(sequence_length_ + 1);
         std::vector<bool> reachable(sequence_length_ + 1, false), finishable(sequence_length_ + 1, false);
+        BoolVarArray stops(*this, measure_count_mode_ ? sequence_length_ + 1 : 0, 0, 1);
         reachable[0] = true;
         finishable[sequence_length_] = true;
         for (int start = 0; start <= sequence_length_; ++start)
@@ -728,7 +830,7 @@ void IntegratedMusicalSpace::post_motive_domains(const std::vector<MotiveDomains
                 const auto& motive = domain.candidates[motive_id];
                 if (motive.empty() || motive.size() > static_cast<size_t>(sequence_length_ - start)) continue;
                 const int end = start + static_cast<int>(motive.size());
-                if (!finishable[end]) continue;
+                if (!measure_count_mode_ && !finishable[end]) continue;
                 bool compatible = true;
                 for (size_t offset = 0; offset < motive.size(); ++offset)
                     if (!variables[domain.voice * sequence_length_ + start + offset].in(motive[offset])) compatible = false;
@@ -737,6 +839,10 @@ void IntegratedMusicalSpace::post_motive_domains(const std::vector<MotiveDomains
                 for (size_t offset = 0; offset < motive.size(); ++offset)
                     rel(*this, variables[domain.voice * sequence_length_ + start + offset], IRT_EQ,
                         motive[offset], Reify(selected, RM_IMP));
+                if (measure_count_mode_)
+                    for (size_t offset = 0; offset < motive.size(); ++offset)
+                        rel(*this, active_vars_[domain.voice * sequence_length_ + start + offset],
+                            IRT_EQ, 1, Reify(selected, RM_IMP));
                 incoming[end].push_back(selected);
                 outgoing[start].push_back(selected);
                 choices.push_back(selected);
@@ -749,6 +855,11 @@ void IntegratedMusicalSpace::post_motive_domains(const std::vector<MotiveDomains
                 edge.values = motive;
                 motive_edges_.push_back(std::move(edge));
             }
+        }
+        if (measure_count_mode_) {
+            for (int node = 0; node < sequence_length_; ++node)
+                rel(*this, active_vars_[domain.voice * sequence_length_ + node],
+                    IRT_EQ, 0, Reify(stops[node], RM_IMP));
         }
         for (int node = 0; node <= sequence_length_; ++node) {
             BoolVarArgs incident;
@@ -763,8 +874,12 @@ void IntegratedMusicalSpace::post_motive_domains(const std::vector<MotiveDomains
                 incident << choice;
                 coefficients << -1;
             }
+            if (measure_count_mode_) {
+                incident << stops[node];
+                coefficients << -1;
+            }
             if (entering.size() > 0) linear(*this, entering, IRT_LQ, 1);
-            const int balance = node == 0 ? -1 : (node == sequence_length_ ? 1 : 0);
+            const int balance = node == 0 ? -1 : (measure_count_mode_ ? 0 : (node == sequence_length_ ? 1 : 0));
             if (incident.size() == 0) {
                 if (balance != 0) { fail(); return; }
             } else linear(*this, coefficients, incident, IRT_EQ, balance);
@@ -985,6 +1100,7 @@ std::vector<int> IntegratedMusicalSpace::get_pitch_sequence(int voice) const {
     for (int i = start_idx; i < end_idx; ++i) {
         int pos = i - start_idx;
         int r_idx = voice * sequence_length_ + pos;
+        if (measure_count_mode_ && !event_is_active(voice, pos)) continue;
         if (has_rhythm && r_idx < (int)rhythm_vars_.size() &&
                 rhythm_vars_[r_idx].assigned() && rhythm_vars_[r_idx].val() < 0) {
             sequence.push_back(REST_PITCH_SENTINEL);
@@ -1006,6 +1122,7 @@ std::vector<int> IntegratedMusicalSpace::get_rhythm_sequence_from_vars(int voice
     int end_idx = std::min(start_idx + sequence_length_, (int)rhythm_vars_.size());
 
     for (int i = start_idx; i < end_idx; ++i) {
+        if (measure_count_mode_ && !event_is_active(voice, i - start_idx)) continue;
         if (rhythm_vars_[i].assigned()) {
             sequence.push_back(rhythm_vars_[i].val());
         } else {

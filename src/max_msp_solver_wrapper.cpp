@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -1345,8 +1344,8 @@ void reconstruct_flattened_max_dict_paths(nlohmann::json& cfg) {
 
 void coerce_scalar_array_schema_fields(nlohmann::json& value) {
     static const std::set<std::string> array_keys = {
-        "dynamic_rules", "rules", "voices", "duration_values", "midi_values", "time_signatures",
-        "tuplets", "beat_divisions", "indices", "target_voices", "timepoints", "parameters"
+        "dynamic_rules", "rules", "voices", "measure_plan", "duration_values", "midi_values", "time_signatures",
+        "tuplets", "beat_divisions", "indices", "target_voices", "beat_positions", "timepoints", "parameters"
     };
 
     if (value.is_object()) {
@@ -1941,6 +1940,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         coerce_scalar_array_schema_fields(cfg);
         MotiveDomains::normalize_domains(cfg);
         preprocess_legacy_config(cfg);
+        MeasureCountPlan::validate_rule_support(cfg);
 
         if (cfg.contains("engine_domains")) {
             throw std::runtime_error(
@@ -1963,7 +1963,11 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         timeout_ms_    = 30000.0;   // default: 30-second wall-clock limit
 
         MusicalConstraintSolver::SolverConfig sc;
-        sc.sequence_length = cfg.value("solution_length", 12);
+        const bool measure_count_mode = MeasureCountPlan::enabled(cfg);
+        const auto measure_count_plan = measure_count_mode ? MeasureCountPlan::parse(cfg) : MeasureCountPlan::Spec{};
+        sc.measure_count_mode = measure_count_mode;
+        if (measure_count_mode) sc.measure_count_plan = measure_count_plan;
+        sc.sequence_length = measure_count_mode ? 1 : cfg.value("solution_length", 12);
         sc.num_voices = cfg.value("num_voices", 2);
         sc.search_engine = parse_search_engine(cfg);
         sc.variable_branching = parse_variable_branching(cfg);
@@ -2365,15 +2369,27 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 }
             }
         }
+        if (measure_count_mode) {
+            if (measure_count_plan.solver_selects_meter)
+                throw std::runtime_error("measure-count mode currently requires an explicit fixed measure_plan");
+            rhythm_base = MeasureCountPlan::required_rhythm_base(measure_count_plan, rhythm_base);
+            sc.measure_horizon_ticks = MeasureCountPlan::fixed_horizon_ticks(measure_count_plan, rhythm_base);
+            sc.sequence_length = sc.measure_horizon_ticks;
+            if (sc.sequence_length > 1000)
+                throw std::runtime_error("measure-count event capacity exceeds 1000 tick slots");
+        }
         sc.rhythm_base = rhythm_base;
         rhythm_base_ = rhythm_base;
-        sc.motive_domains = MotiveDomains::parse_domains(cfg, sc.num_voices, sc.sequence_length, rhythm_base);
+        sc.motive_domains = MotiveDomains::parse_domains(
+            cfg, sc.num_voices, sc.sequence_length, rhythm_base, measure_count_mode);
 
         // Key/degree-aware harmonic_domain for r-cadence/r-repetition (separate
         // from the neural_harmonic_state_ tick array built just below, which
         // predates key/degree support and only carries chord class per tick).
         HarmonicDomainParser::parse(cfg, harmonic_domain_, sc.sequence_length, rhythm_base);
         sc.harmonic_domain = harmonic_domain_;
+        sc.require_harmonic_chord_tones = cfg.contains("require_harmonic_chord_tones") &&
+            json_value_to_bool_with_default(cfg["require_harmonic_chord_tones"], false);
 
         // ── Build tick-indexed harmonic state now that rhythm_base is known ──
         // beat_position is in quarter-note beats; onset tick = beat * quarter_ticks.
@@ -2417,6 +2433,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         } else if (cfg.contains("enable_metric_engine")) {
             sc.enable_metric_engine = json_value_to_bool_with_default(cfg["enable_metric_engine"], false);
         }
+        if (measure_count_mode && sc.enable_metric_engine)
+            throw std::runtime_error("measure-count mode uses its bar plan instead of the event-indexed metric engine");
 
         solver_.configure(sc);
         solver_.clear_rules();

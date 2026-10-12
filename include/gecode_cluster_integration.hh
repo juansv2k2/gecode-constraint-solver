@@ -139,8 +139,12 @@ private:
     IntVarArray interval_vars_;
     IntVarArray rhythm_vars_;  // Per-voice duration variables (empty if not configured)
     IntVarArray metric_vars_;  // Metric engine variables (phase-1 scaffold)
+    BoolVarArray active_vars_;
     BoolVarArray motive_vars_;
     std::vector<MotiveDomains::Selection> motive_edges_;
+    bool measure_count_mode_ = false;
+    int measure_horizon_ticks_ = 0;
+    bool exact_measure_fill_ = false;
     
     // Per-voice state
     int num_voices_;
@@ -183,6 +187,15 @@ public:
                            const std::vector<std::vector<int>>& voice_rhythm_domains,
                            unsigned int random_seed = 0);
 
+    // Variable active-event prefixes constrained to a fixed bar-plan horizon.
+    IntegratedMusicalSpace(int event_capacity, int voices,
+                           VariableBranchingStrategy variable_branching,
+                           ValueSelectionStrategy value_selection,
+                           const std::vector<std::vector<int>>& voice_domains,
+                           const std::vector<std::vector<int>>& voice_rhythm_domains,
+                           int measure_horizon_ticks, bool exact_measure_fill,
+                           unsigned int random_seed = 0);
+
     // Constructor with per-voice pitch/rhythm domains and metric engine domain
     IntegratedMusicalSpace(int length, int voices,
                            VariableBranchingStrategy variable_branching,
@@ -212,6 +225,11 @@ public:
     const IntVarArray& get_metric_vars() const { return metric_vars_; }
     bool has_rhythm_vars() const { return rhythm_vars_.size() > 0; }
     bool has_metric_vars() const { return metric_vars_.size() > 0; }
+    bool is_measure_count_mode() const { return measure_count_mode_; }
+    BoolVarArray& get_active_vars() { return active_vars_; }
+    const BoolVarArray& get_active_vars() const { return active_vars_; }
+    bool event_is_active(int voice, int pos) const;
+    int get_active_event_count(int voice) const;
     int get_sequence_length() const { return sequence_length_; }
     int get_num_voices() const { return num_voices_; }
     void post_motive_domains(const std::vector<MotiveDomains::Domain>& domains);

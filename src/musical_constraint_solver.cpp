@@ -2885,6 +2885,8 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     }
 
     const bool metric_active = (config_.enable_metric_engine || has_metric_targeted_rule) && !has_explicit_metric_timepoint_rule;
+    if (config_.measure_count_mode && metric_active)
+        throw std::runtime_error("measure-count mode uses the bar plan instead of event-indexed metric variables");
     GecodeClusterIntegration::ValueSelectionStrategy effective_value_selection = config_.value_selection;
 
     // Rhythm domains are used exactly as configured — the bar-pattern constraint
@@ -2924,6 +2926,13 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
             config_.variable_branching, effective_value_selection,
             all_voice_domains, effective_voice_rhythm_domains, metric_domain_numerators,
             effective_random_seed);
+    } else if (config_.measure_count_mode) {
+        gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
+            config_.sequence_length, config_.num_voices,
+            config_.variable_branching, effective_value_selection,
+            all_voice_domains, effective_voice_rhythm_domains,
+            config_.measure_horizon_ticks, config_.measure_count_plan.exact_fill,
+            effective_random_seed);
     } else {
         gecode_space = std::make_unique<GecodeClusterIntegration::IntegratedMusicalSpace>(
             config_.sequence_length, config_.num_voices,
@@ -2961,6 +2970,45 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     }
 
     if (!config_.motive_domains.empty()) gecode_space->post_motive_domains(config_.motive_domains);
+
+    if (config_.require_harmonic_chord_tones) {
+        const auto& harmonies = config_.harmonic_domain.entries;
+        if (!config_.harmonic_domain.enabled || harmonies.empty() || harmonies.front().beat_position != 0)
+            throw std::runtime_error("Hard harmonic chord tones require harmonic_domain starting at beat 0");
+        if (config_.rhythm_base < 4 || config_.rhythm_base % 4 != 0)
+            throw std::runtime_error("Hard harmonic chord tones require quarter-note tick alignment");
+        const int quarter_ticks = config_.rhythm_base / 4;
+        for (int voice = 0; voice < config_.num_voices; ++voice) {
+            Gecode::IntVar onset(*gecode_space, 0, 0);
+            for (int event = 0; event < config_.sequence_length; ++event) {
+                const int index = voice * config_.sequence_length + event;
+                Gecode::IntVar rhythm = gecode_space->get_rhythm_vars()[index];
+                Gecode::IntVar duration = Gecode::expr(*gecode_space, Gecode::abs(rhythm));
+                Gecode::IntVar end = Gecode::expr(*gecode_space, onset + duration);
+                for (size_t segment = 0; segment < harmonies.size(); ++segment) {
+                    const auto& harmony = harmonies[segment];
+                    const long long start_tick = static_cast<long long>(harmony.beat_position) * quarter_ticks;
+                    if (start_tick < 0 || start_tick > Gecode::Int::Limits::max)
+                        throw std::runtime_error("Harmonic beat is outside the supported tick range");
+                    Gecode::BoolExpr overlaps = (rhythm > 0) && (end > static_cast<int>(start_tick));
+                    if (segment + 1 < harmonies.size()) {
+                        const long long next_tick = static_cast<long long>(harmonies[segment + 1].beat_position) * quarter_ticks;
+                        if (next_tick <= start_tick || next_tick > Gecode::Int::Limits::max)
+                            throw std::runtime_error("Hard harmonic chord tones require strictly increasing harmonic beats");
+                        overlaps = overlaps && (onset < static_cast<int>(next_tick));
+                    }
+                    Gecode::BoolVar selected = Gecode::expr(*gecode_space, overlaps);
+                    Gecode::IntArgs allowed;
+                    for (int pitch = 0; pitch <= 127; ++pitch)
+                        if (std::find(harmony.chord_tones.begin(), harmony.chord_tones.end(), pitch % 12) != harmony.chord_tones.end())
+                            allowed << pitch;
+                    Gecode::dom(*gecode_space, gecode_space->get_absolute_vars()[index], Gecode::IntSet(allowed),
+                                Gecode::Reify(selected, Gecode::RM_IMP));
+                }
+                onset = end;
+            }
+        }
+    }
 
     // ADD MUSICAL RULES
     if (!rules_.empty()) {
@@ -3522,7 +3570,8 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         std::cout << "🎯 Applying " << compiled_rules_->total_count() << " dynamic rules" << std::endl;
         DynamicRules::ConstraintContext ctx(gecode_space.get(), &gecode_space->get_absolute_vars(),
                                            &gecode_space->get_rhythm_vars(), config_.num_voices,
-                                           config_.sequence_length, &gecode_space->get_metric_vars());
+                                           config_.sequence_length, &gecode_space->get_metric_vars(),
+                                           config_.rhythm_base);
         if (compiled_rules_->constraint_count() > 0) {
             compiled_rules_->post_all_constraints(ctx);
         }
@@ -3970,13 +4019,28 @@ MusicalSolution Solver::extract_solution_from_space_(
         auto absolute_sequence = solved_space->get_absolute_sequence();
 
         bool fully_assigned = true;
-        for (int note : absolute_sequence) {
-            if (note == -1) { fully_assigned = false; break; }
+        if (config_.measure_count_mode) {
+            for (int voice = 0; voice < config_.num_voices && fully_assigned; ++voice) {
+                for (int event = 0; event < config_.sequence_length; ++event) {
+                    if (solved_space->event_is_active(voice, event) &&
+                        (solved_space->get_absolute_vars()[voice * config_.sequence_length + event].assigned() == false ||
+                         solved_space->get_rhythm_vars()[voice * config_.sequence_length + event].assigned() == false)) {
+                        fully_assigned = false;
+                        break;
+                    }
+                }
+            }
+        } else {
+            for (int note : absolute_sequence) {
+                if (note == -1) { fully_assigned = false; break; }
+            }
         }
 
         if (fully_assigned) {
-            for (size_t i = 0; i < absolute_sequence.size(); ++i)
-                solution_storage_->write_absolute(absolute_sequence[i], static_cast<int>(i));
+            if (!config_.measure_count_mode) {
+                for (size_t i = 0; i < absolute_sequence.size(); ++i)
+                    solution_storage_->write_absolute(absolute_sequence[i], static_cast<int>(i));
+            }
 
             solution.voice_solutions.clear();
             solution.voice_rhythms.clear();
@@ -4009,7 +4073,18 @@ MusicalSolution Solver::extract_solution_from_space_(
                 }
             }
 
-            if (explicit_metric_rule != nullptr) {
+            if (config_.measure_count_mode) {
+                std::vector<int> segment_starts_ticks;
+                std::vector<std::pair<int, int>> desired_signatures;
+                for (const auto& bar : MeasureCountPlan::expand_fixed_schedule(
+                         config_.measure_count_plan, config_.rhythm_base)) {
+                    segment_starts_ticks.push_back(bar.start_tick);
+                    desired_signatures.push_back({bar.signature.numerator, bar.signature.denominator});
+                }
+                solution.canonical_score = build_canonical_score_from_timepoints(
+                    config_, solution.voice_solutions, solution.voice_rhythms,
+                    segment_starts_ticks, desired_signatures);
+            } else if (explicit_metric_rule != nullptr) {
                 std::vector<int> segment_starts_ticks;
                 std::vector<std::pair<int, int>> desired_signatures;
 
@@ -4098,11 +4173,27 @@ MusicalSolution Solver::extract_solution_from_space_(
     solution.found_solution = success;
 
     if (success) {
-        for (int i = 0; i < config_.sequence_length; ++i) {
-            solution.absolute_notes.push_back(solution_storage_->absolute(i));
-            solution.note_names.push_back(midi_to_note_name(solution_storage_->absolute(i)));
-            if (i > 0) {
-                solution.intervals.push_back(solution_storage_->interval(i));
+        if (config_.measure_count_mode) {
+            if (!solution.voice_solutions.empty()) {
+                const auto& first_voice = solution.voice_solutions.front();
+                for (int note : first_voice) {
+                    solution.absolute_notes.push_back(note);
+                    solution.note_names.push_back(note == GecodeClusterIntegration::IntegratedMusicalSpace::REST_PITCH_SENTINEL
+                        ? "Rest" : midi_to_note_name(note));
+                }
+                for (size_t index = 1; index < first_voice.size(); ++index) {
+                    const int previous = first_voice[index - 1];
+                    const int current = first_voice[index];
+                    solution.intervals.push_back(previous < 0 || current < 0 ? 0 : current - previous);
+                }
+            }
+        } else {
+            for (int i = 0; i < config_.sequence_length; ++i) {
+                solution.absolute_notes.push_back(solution_storage_->absolute(i));
+                solution.note_names.push_back(midi_to_note_name(solution_storage_->absolute(i)));
+                if (i > 0) {
+                    solution.intervals.push_back(solution_storage_->interval(i));
+                }
             }
         }
 

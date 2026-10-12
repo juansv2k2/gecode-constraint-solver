@@ -4,6 +4,15 @@
   "description": "JSON configuration for the Gecode Musical Constraint Solver. Export keys (export_json, export_txt, export_xml, export_svg, export_path, file_name) should appear before the rules key.",
   "type": "object",
   "required": ["solution_length", "num_voices"],
+  "allOf": [
+    {
+      "if": {
+        "properties": { "solution_length": { "const": "measure_count" } },
+        "required": ["solution_length"]
+      },
+      "then": { "required": ["measure_count", "measure_plan"] }
+    }
+  ],
   "properties": {
     "name": {
       "type": "string",
@@ -14,10 +23,45 @@
       "description": "Optional description of what this configuration does."
     },
     "solution_length": {
+      "oneOf": [
+        { "type": "integer", "minimum": 1, "maximum": 1000 },
+        { "const": "measure_count" }
+      ],
+      "description": "Integer: fixed event slots per voice. 'measure_count': infer each voice's active event count from the finite bar schedule."
+    },
+    "measure_count": {
       "type": "integer",
       "minimum": 1,
       "maximum": 1000,
-      "description": "Number of event slots (notes/rests) per voice."
+      "description": "Number of bars when solution_length is 'measure_count'."
+    },
+    "measure_plan": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["bars", "time_signature"],
+        "properties": {
+          "bars": { "type": "integer", "minimum": 1 },
+          "time_signature": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Required grouped fixed meter plan in the current implementation; bar counts must sum to measure_count. Solver-selected meter per bar is a future extension."
+    },
+    "measure_fill_policy": {
+      "type": "string",
+      "enum": ["pad", "exact"],
+      "default": "pad",
+      "description": "pad allows shorter voices to receive score-level trailing rests; exact requires each voice to fill the bar horizon. Voices may not exceed it."
+    },
+    "require_harmonic_chord_tones": {
+      "$ref": "#/definitions/booleanOrInt",
+      "default": false,
+      "description": "Hard constraint: every sounding note in every voice must belong to every harmonic_domain chord it overlaps. Requires harmony from beat 0; notes sustained over chord changes must be common tones. Rests and inactive slots are excluded. Off by default so passing tones and suspensions remain possible."
     },
     "num_voices": {
       "type": "integer",
@@ -291,7 +335,7 @@
     },
     "pitchDomainObject": {
       "type": "object",
-      "oneOf": [{"required": ["midi_values"]}, {"required": ["motives"]}],
+      "oneOf": [{ "required": ["midi_values"] }, { "required": ["motives"] }],
       "properties": {
         "midi_values": {
           "type": "array",
@@ -304,7 +348,7 @@
           "items": {
             "type": "array",
             "minItems": 1,
-            "items": {"type": "integer", "minimum": 0, "maximum": 127}
+            "items": { "type": "integer", "minimum": 0, "maximum": 127 }
           },
           "description": "Whole ordered pitch motives. Select complete lists whose lengths exactly fill solution_length; replaces midi_values. Other component remains independent."
         },
@@ -315,7 +359,10 @@
     },
     "rhythmDomainObject": {
       "type": "object",
-      "oneOf": [{"required": ["duration_values"]}, {"required": ["motives"]}],
+      "oneOf": [
+        { "required": ["duration_values"] },
+        { "required": ["motives"] }
+      ],
       "properties": {
         "duration_values": {
           "type": "array",
@@ -331,8 +378,8 @@
             "minItems": 1,
             "items": {
               "oneOf": [
-                {"type": "string", "pattern": "^-?[1-9][0-9]*/[1-9][0-9]*$"},
-                {"type": "number", "not": {"const": 0}}
+                { "type": "string", "pattern": "^-?[1-9][0-9]*/[1-9][0-9]*$" },
+                { "type": "number", "not": { "const": 0 } }
               ]
             }
           },
@@ -509,7 +556,14 @@
           "items": { "type": "integer", "minimum": 0 },
           "minItems": 2,
           "maxItems": 2,
-          "description": "r-cadence only. Exactly two solver positions: [pre-cadence chord, resolution chord]."
+          "description": "r-cadence only. Exactly two event indices: [pre-cadence chord, resolution chord]. Mutually exclusive with beat_positions."
+        },
+        "beat_positions": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "r-cadence only. Exactly two absolute quarter-note offsets from score start. Constrains the sounding event at each beat, including notes begun earlier; mutually exclusive with positions."
         },
         "require_root_position": {
           "type": "boolean",

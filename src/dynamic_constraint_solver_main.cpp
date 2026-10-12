@@ -265,6 +265,8 @@ private:
     std::string description_;
     int solution_length_;
     int num_voices_;
+    bool measure_count_mode_ = false;
+    MeasureCountPlan::Spec measure_count_plan_;
     std::string export_path_;
     std::vector<RuleConfig> rules_;
     mutable int rhythm_base_ = 1;  // LCM of all duration denominators, set by getVoiceRhythmDomains()
@@ -409,7 +411,12 @@ private:
             if (pos != std::string::npos) {
                 std::string value = removeQuotesAndComma(line.substr(pos + 1));
                 try {
-                    solution_length_ = std::stoi(value);
+                    if (value == "measure_count") {
+                        measure_count_mode_ = true;
+                        solution_length_ = 1000;
+                    } else {
+                        solution_length_ = std::stoi(value);
+                    }
                 } catch (...) {
                     solution_length_ = 12; // default
                 }
@@ -527,6 +534,13 @@ public:
                 try {
                     nlohmann::json strict_cfg;
                     strict_file >> strict_cfg;
+
+                    if (MeasureCountPlan::enabled(strict_cfg)) {
+                        measure_count_mode_ = true;
+                        measure_count_plan_ = MeasureCountPlan::parse(strict_cfg);
+                        solution_length_ = 1000;
+                        num_voices_ = strict_cfg.value("num_voices", 2);
+                    }
 
                     if (strict_cfg.contains("engine_domains")) {
                         std::cout << "❌ Config validation error: 'engine_domains' is deprecated. "
@@ -1004,6 +1018,8 @@ public:
     std::string getDescription() const { return description_; }
     int getSolutionLength() const { return solution_length_; }
     int getNumVoices() const { return num_voices_; }
+    bool isMeasureCountMode() const { return measure_count_mode_; }
+    const MeasureCountPlan::Spec& getMeasureCountPlan() const { return measure_count_plan_; }
     MusicalConstraintSolver::SolverConfig::SearchEngine getSearchEngine(const std::string& config_file) const {
         std::ifstream f(config_file);
         if (!f.is_open()) return MusicalConstraintSolver::SolverConfig::SearchEngine::DFS;
@@ -1659,6 +1675,10 @@ public:
                 }
             }
         }
+        if (MeasureCountPlan::enabled(cfg)) {
+            const auto plan = MeasureCountPlan::parse(cfg);
+            base = MeasureCountPlan::required_rhythm_base(plan, base);
+        }
 
         rhythm_base_ = base;  // stored for display
 
@@ -2136,8 +2156,22 @@ int main(int argc, char* argv[]) {
         // Load per-voice rhythm domains from voices[*].rhythm.duration_values
         solver_config.voice_rhythm_domains = parser.getVoiceRhythmDomains(config_file);
         solver_config.rhythm_base = parser.getVoiceRhythmBase();
+        if (parser.isMeasureCountMode()) {
+            const auto& measure_plan = parser.getMeasureCountPlan();
+            if (measure_plan.solver_selects_meter)
+                throw std::runtime_error("measure-count mode currently requires an explicit fixed measure_plan");
+            solver_config.measure_count_mode = true;
+            solver_config.measure_count_plan = measure_plan;
+            solver_config.measure_horizon_ticks = MeasureCountPlan::fixed_horizon_ticks(
+                measure_plan, solver_config.rhythm_base);
+            solver_config.sequence_length = solver_config.measure_horizon_ticks;
+            if (solver_config.sequence_length > 1000)
+                throw std::runtime_error("measure-count event capacity exceeds 1000 tick slots");
+        }
         solver_config.metric_domain = parser.getMetricDomain(config_file);
         solver_config.enable_metric_engine = parser.getEnableMetricEngine(config_file);
+        if (parser.isMeasureCountMode() && solver_config.enable_metric_engine)
+            throw std::runtime_error("measure-count mode uses its bar plan instead of the event-indexed metric engine");
         solver_config.random_seed = parser.getRandomSeed(config_file);
         solver_config.heuristic_top_k = parser.getHeuristicTopK(config_file);
         solver_config.heuristic_trace = parser.getHeuristicTrace(config_file);
@@ -2157,10 +2191,19 @@ int main(int argc, char* argv[]) {
                 std::ifstream hf(config_file);
                 if (hf.is_open()) { try { hf >> hcfg; } catch (...) {} }
             }
+            MeasureCountPlan::validate_rule_support(hcfg);
             HarmonicDomainParser::parse(hcfg, solver_config.harmonic_domain,
                                          solver_config.sequence_length, solver_config.rhythm_base);
+            if (hcfg.contains("require_harmonic_chord_tones")) {
+                const auto& enabled = hcfg["require_harmonic_chord_tones"];
+                if (!enabled.is_boolean() && !enabled.is_number_integer())
+                    throw std::runtime_error("require_harmonic_chord_tones must be boolean or 0/1");
+                solver_config.require_harmonic_chord_tones = enabled.is_boolean()
+                    ? enabled.get<bool>() : enabled.get<int>() != 0;
+            }
             solver_config.motive_domains = MotiveDomains::parse_domains(
-                hcfg, parser.getNumVoices(), solver_config.sequence_length, solver_config.rhythm_base);
+                hcfg, parser.getNumVoices(), solver_config.sequence_length, solver_config.rhythm_base,
+                parser.isMeasureCountMode());
             if (solver_config.harmonic_domain.enabled)
                 std::cout << "   Harmonic domain: " << solver_config.harmonic_domain.entries.size()
                           << " chord entries parsed\n";

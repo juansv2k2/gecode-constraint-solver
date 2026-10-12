@@ -1,7 +1,10 @@
 #include "gecode_cluster_integration.hh"
 #include "motive_domain_parser.hh"
+#include "measure_count_plan.hh"
+#include "harmonic_domain_parser.hh"
 #include "max_msp_solver_wrapper.hh"
 #include <chrono>
+#include <fstream>
 #include <thread>
 #include <iostream>
 #include <stdexcept>
@@ -52,7 +55,7 @@ void check_metadata(const nlohmann::json& solution, int event_count) {
 }
 
 MaxMSPWrapper::SolveResult solve_wrapper(MaxMSPWrapper::AsyncSolverWrapper& wrapper,
-                                       const nlohmann::json& cfg) {
+                                       const nlohmann::json& cfg, bool expect_solution = true) {
     std::string error;
     require(wrapper.configure_from_json(cfg.dump(), error), "Wrapper configure: " + error);
     require(wrapper.solve_async(error), "Wrapper solve: " + error);
@@ -65,12 +68,52 @@ MaxMSPWrapper::SolveResult solve_wrapper(MaxMSPWrapper::AsyncSolverWrapper& wrap
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    require(result.found_solution, "Wrapper must find a solution: " + result.message);
+    require(result.found_solution == expect_solution, "Unexpected wrapper satisfiability: " + result.message);
     return result;
 }
 
 int main() {
     try {
+        const auto sixteen_bar_plan = MeasureCountPlan::parse(nlohmann::json::parse(
+            R"({"solution_length":"measure_count","measure_count":16,"measure_fill_policy":"exact","measure_plan":[{"bars":16,"time_signature":"4/4"}]})"));
+        require(MeasureCountPlan::fixed_horizon_ticks(sixteen_bar_plan,
+                    MeasureCountPlan::required_rhythm_base(sixteen_bar_plan, 8)) == 128,
+                "Sixteen 4/4 bars produce 128 eighth-note ticks");
+        const auto mixed_meter_plan = MeasureCountPlan::parse(nlohmann::json::parse(
+            R"({"solution_length":"measure_count","measure_count":7,"measure_plan":[{"bars":4,"time_signature":"4/4"},{"bars":3,"time_signature":"3/4"}]})"));
+        require(MeasureCountPlan::fixed_horizon_ticks(mixed_meter_plan,
+                    MeasureCountPlan::required_rhythm_base(mixed_meter_plan, 8)) == 50,
+                "Grouped mixed meters produce an exact 50-tick horizon");
+        const auto meter_domain_plan = MeasureCountPlan::parse(nlohmann::json::parse(
+            R"({"solution_length":"measure_count","measure_count":8,"meter":{"time_signatures":["3/4","4/4"]}})"));
+        require(meter_domain_plan.solver_selects_meter && meter_domain_plan.meter_domain.size() == 2,
+                "Missing fixed plan selects meter independently for each bar");
+        auto allowed_measure_rules = nlohmann::json::parse(
+            R"({"solution_length":"measure_count","rules":[{"rule_type":"r-cadence","beat_positions":[2,3]}]})");
+        MeasureCountPlan::validate_rule_support(allowed_measure_rules);
+        auto fixed_index_measure_rule = allowed_measure_rules;
+        fixed_index_measure_rule["rules"][0].erase("beat_positions");
+        fixed_index_measure_rule["rules"][0]["positions"] = {2, 3};
+        bool fixed_index_rejected = false;
+        try { MeasureCountPlan::validate_rule_support(fixed_index_measure_rule); }
+        catch (const std::exception&) { fixed_index_rejected = true; }
+        require(fixed_index_rejected, "Measure mode rejects event-index cadence rules");
+        auto dynamic_measure_rule = allowed_measure_rules;
+        dynamic_measure_rule["dynamic_rules"] = nlohmann::json::array({nlohmann::json::object()});
+        bool dynamic_rejected = false;
+        try { MeasureCountPlan::validate_rule_support(dynamic_measure_rule); }
+        catch (const std::exception&) { dynamic_rejected = true; }
+        require(dynamic_rejected, "Measure mode rejects non-active-aware dynamic rules");
+        for (const auto& invalid_plan : {
+                R"({"solution_length":"measure_count","measure_count":8})",
+                R"({"solution_length":"measure_count","measure_count":8,"measure_plan":[{"bars":7,"time_signature":"4/4"}]})",
+                R"({"solution_length":"measure_count","measure_count":8,"measure_fill_policy":"sometimes","measure_plan":[{"bars":8,"time_signature":"4/4"}]})"}) {
+            bool invalid_rejected = false;
+            try { MeasureCountPlan::parse(nlohmann::json::parse(invalid_plan)); }
+            catch (const std::exception&) { invalid_rejected = true; }
+            require(invalid_rejected, "Invalid measure-count plan must be rejected");
+        }
+
         auto cfg = nlohmann::json::parse(R"({"solution_length":5,"voices":[{"pitch":{"motives":[[60,61],[67,64,62]]},"rhythm":{"motives":[["1/2","1/8","-1/8"],["1/4","1/4"]]}}]})");
         MotiveDomains::normalize_domains(cfg);
         const auto domains = MotiveDomains::parse_domains(cfg, 1, 5, 8);
@@ -159,7 +202,110 @@ int main() {
         require(cadenced_solution["voice_solutions"][0][1].get<int>() % 12 == 0, "PAC soprano target");
         const auto cadenced_tenor = cadenced_solution["voice_solutions"][2].get<std::vector<int>>();
         require(cadenced_tenor == std::vector<int>({53,52}) || cadenced_tenor == std::vector<int>({59,60}), "Tendency-tone motive compatibility");
-        std::cout << "PASS: motive parser, DAG integrity, rests, cloning, UNSAT, Max wrapper, tuplets, metadata, reset\n";
+
+        std::ifstream measure_config_file("configs/measure_count_16bar_cadence_motives.json");
+        require(bool(measure_config_file), "16-bar measure-count test config exists");
+        nlohmann::json measure_config;
+        measure_config_file >> measure_config;
+        const auto measure_result = nlohmann::json::parse(solve_wrapper(wrapper, measure_config).result_json);
+        const auto& measure_solution = measure_result["solutions"][0];
+        const auto& measure_rhythms = measure_solution["voice_rhythm_ticks"];
+        const auto& measure_pitches = measure_solution["voice_solutions"];
+        MusicalConstraintSolver::SolverConfig::HarmonicConfig measure_harmony;
+        HarmonicDomainParser::parse(measure_config, measure_harmony, 64, 4);
+        require(measure_solution["score"]["measures"].size() == 16, "Measure mode exports all 16 bars");
+        require(measure_solution["score"]["rhythm_base"] == 4, "Measure mode uses quarter-note tick grid");
+        require(measure_solution["selected_motives"].size() > 0, "Measure mode exports selected motives");
+        for (int voice = 0; voice < 4; ++voice) {
+            const auto rhythm = measure_rhythms[voice].get<std::vector<int>>();
+            require(rhythm.size() == 48, "Motive paths select 48 events for the 64-quarter horizon");
+            int total_ticks = 0;
+            for (size_t event = 0; event < rhythm.size(); ++event) {
+                const int duration = rhythm[event];
+                const int end_tick = total_ticks + std::abs(duration);
+                for (size_t segment = 0; segment < measure_harmony.entries.size(); ++segment) {
+                    const auto& chord = measure_harmony.entries[segment];
+                    const int segment_end = segment + 1 < measure_harmony.entries.size()
+                        ? measure_harmony.entries[segment + 1].beat_position : 64;
+                    if (duration > 0 && total_ticks < segment_end && end_tick > chord.beat_position) {
+                        const int pitch_class = measure_pitches[voice][event].get<int>() % 12;
+                        require(std::find(chord.chord_tones.begin(), chord.chord_tones.end(), pitch_class) != chord.chord_tones.end(),
+                                "Every sounding note belongs to every overlapping harmonic segment");
+                    }
+                }
+                total_ticks = end_tick;
+            }
+            require(total_ticks == 64, "Each voice exactly fills the 16-bar horizon");
+            for (const std::string component : {"pitch", "rhythm"}) {
+                int boundary = 0;
+                for (const auto& selected : measure_solution["selected_motives"])
+                    if (selected["voice"] == voice && selected["component"] == component) {
+                        require(selected["start_event"] == boundary, "Measure motive boundaries are contiguous");
+                        boundary = selected["end_event"].get<int>();
+                    }
+                require(boundary == static_cast<int>(rhythm.size()), "Measure motive path covers active events only");
+            }
+        }
+        auto sounding_pitch = [&](int voice, int beat) {
+            int onset = 0;
+            for (size_t event = 0; event < measure_rhythms[voice].size(); ++event) {
+                const int duration = measure_rhythms[voice][event].get<int>();
+                if (onset <= beat && beat < onset + std::abs(duration)) {
+                    require(duration > 0, "Cadence target beat must have a sounding note");
+                    return measure_pitches[voice][event].get<int>();
+                }
+                onset += std::abs(duration);
+            }
+            throw std::runtime_error("No active event sounds at cadence beat " + std::to_string(beat));
+        };
+        for (int beat : {15, 47}) require(sounding_pitch(3, beat) % 12 == 7, "HC bass ends on dominant");
+        for (int beat : {30, 62}) require(sounding_pitch(3, beat) % 12 == 7, "PAC bass is dominant at pre-resolution beat");
+        for (int beat : {31, 63}) {
+            require(sounding_pitch(3, beat) % 12 == 0, "PAC bass resolves to tonic");
+            require(sounding_pitch(0, beat) % 12 == 0, "PAC soprano resolves to tonic");
+        }
+        auto alto_values = measure_pitches[1].get<std::vector<int>>();
+        std::sort(alto_values.begin(), alto_values.end());
+        alto_values.erase(std::unique(alto_values.begin(), alto_values.end()), alto_values.end());
+        require(alto_values.size() >= 4, "Harmonic Alto uses varied pitches rather than repeated C");
+
+        const auto padded_config = nlohmann::json::parse(
+            R"({"solution_length":"measure_count","measure_count":1,"measure_plan":[{"bars":1,"time_signature":"4/4"}],"measure_fill_policy":"pad","num_voices":1,"export_json":false,"export_txt":false,"export_xml":false,"voices":[{"pitch":{"midi_values":[60]},"rhythm":{"motives":[["1/2"]]}}],"rules":[]})");
+        const auto padded_result = nlohmann::json::parse(solve_wrapper(wrapper, padded_config).result_json);
+        const auto& padded_solution = padded_result["solutions"][0];
+        require(padded_solution["voice_rhythm_ticks"][0] == nlohmann::json::parse("[2]"),
+            "Score padding is excluded from the solver event sequence");
+        require(padded_solution["selected_motives"].size() == 1 &&
+            padded_solution["selected_motives"][0]["end_event"] == 1,
+            "Score padding is excluded from motive coverage");
+        const auto& padded_events = padded_solution["score"]["measures"][0]["events"];
+        require(padded_events.size() == 2 && padded_events[1]["index"] == -1 &&
+            padded_events[1]["is_rest"] == true && padded_events[1]["duration_ticks"] == 2,
+            "Short voice receives a two-tick score-level trailing rest");
+
+        auto hard_harmony = nlohmann::json::parse(
+            R"({"solution_length":"measure_count","measure_count":1,"measure_plan":[{"bars":1,"time_signature":"4/4"}],"measure_fill_policy":"exact","require_harmonic_chord_tones":true,"num_voices":1,"voices":[{"pitch":{"motives":[[60]]},"rhythm":{"motives":[["1/1"]]}}],"harmonic_domain":[{"beat":0,"degree":"I","key":"C","mode":"major"},{"beat":2,"degree":"V7"}],"rules":[],"export_json":false,"export_xml":false,"export_txt":false})");
+        solve_wrapper(wrapper, hard_harmony, false);
+        hard_harmony["voices"][0]["pitch"]["motives"] = {{67}};
+        const auto common_tone = nlohmann::json::parse(solve_wrapper(wrapper, hard_harmony).result_json);
+        require(common_tone["solutions"][0]["voice_solutions"][0] == nlohmann::json::parse("[67]"),
+            "A sustained common chord tone is valid across a harmony change");
+        hard_harmony["voices"][0]["pitch"]["motives"] = {{60}};
+        hard_harmony["require_harmonic_chord_tones"] = false;
+        solve_wrapper(wrapper, hard_harmony);
+        hard_harmony["require_harmonic_chord_tones"] = true;
+        hard_harmony["voices"][0]["pitch"]["motives"] = {{67, 60}};
+        hard_harmony["voices"][0]["rhythm"]["motives"] = nlohmann::json::parse(R"([["1/2","1/2"]])");
+        hard_harmony["harmonic_domain"] = nlohmann::json::parse(
+            R"([{"beat":0,"degree":"V7","key":"C","mode":"major"},{"beat":2,"degree":"I"}])");
+        hard_harmony["rules"] = nlohmann::json::parse(
+            R"([{"rule_type":"r-cadence","cadence_type":"PAC","beat_positions":[1,3],"target_voices":[0],"require_chord_tones":true}])");
+        const auto sustained_cadence = nlohmann::json::parse(solve_wrapper(wrapper, hard_harmony).result_json);
+        require(sustained_cadence["solutions"][0]["voice_rhythm_ticks"][0] == nlohmann::json::parse("[2,2]") &&
+                sustained_cadence["solutions"][0]["voice_solutions"][0] == nlohmann::json::parse("[67,60]"),
+                "Cadence at beat 3 constrains tonic that began at beat 2 and is still sounding");
+
+        std::cout << "PASS: motive parser, DAG integrity, rests, cloning, UNSAT, Max wrapper, tuplets, metadata, reset, 16-bar measure mode, beat cadences, score padding\n";
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;

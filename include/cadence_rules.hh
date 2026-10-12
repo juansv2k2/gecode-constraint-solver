@@ -29,6 +29,7 @@
 #include "musical_constraint_solver.hh"
 #include <nlohmann/json.hpp>
 #include <algorithm>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -42,6 +43,7 @@ struct CadenceParams {
     std::string id;
     std::string cadence_type;      // "PAC","IAC","HC","half","deceptive","plagal"
     std::vector<int> positions;    // exactly 2: [pre-cadence, resolution]
+    std::vector<int> beat_positions; // exactly 2 quarter-note beat offsets: [pre-cadence, resolution]
     std::vector<int> target_voices;
     bool require_root_position = false;
     bool require_chord_tones = false;
@@ -63,6 +65,10 @@ inline const HarmonicEntry* find_active_entry(const HarmonicConfig& hd, int posi
         }
     }
     return active;
+}
+
+inline const std::vector<int>& harmony_positions(const CadenceParams& params) {
+    return params.beat_positions.empty() ? params.positions : params.beat_positions;
 }
 
 // Applies cadence_type defaults, then lets any explicit top-level field on the
@@ -119,10 +125,15 @@ inline CadenceParams resolve_params(const nlohmann::json& rule_json) {
     if (rule_json.contains("positions") && rule_json["positions"].is_array())
         for (const auto& v : rule_json["positions"])
             if (v.is_number_integer()) p.positions.push_back(v.get<int>());
-    if (p.positions.size() != 2)
+    if (rule_json.contains("beat_positions") && rule_json["beat_positions"].is_array())
+        for (const auto& v : rule_json["beat_positions"])
+            if (v.is_number_integer()) p.beat_positions.push_back(v.get<int>());
+    if ((!p.positions.empty() && !p.beat_positions.empty()) ||
+        (p.positions.size() != 2 && p.beat_positions.size() != 2))
         throw std::runtime_error(
-            "r-cadence '" + p.id + "': 'positions' must have exactly 2 entries "
-            "[pre-cadence chord, resolution chord]");
+            "r-cadence '" + p.id + "': provide exactly two 'positions' event indices or "
+            "two 'beat_positions' quarter-note offsets, but not both");
+    if (p.positions.empty()) p.positions = p.beat_positions;
 
     if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array())
         for (const auto& v : rule_json["target_voices"])
@@ -139,12 +150,13 @@ inline CadenceParams resolve_params(const nlohmann::json& rule_json) {
 // of which voice ends up on which pitch, so it's checked once here rather
 // than posted as a solver constraint.
 inline void validate_harmony(const CadenceParams& p, const HarmonicConfig& hd) {
-    const HarmonicEntry* e0 = find_active_entry(hd, p.positions[0]);
-    const HarmonicEntry* e1 = find_active_entry(hd, p.positions[1]);
+    const auto& positions = harmony_positions(p);
+    const HarmonicEntry* e0 = find_active_entry(hd, positions[0]);
+    const HarmonicEntry* e1 = find_active_entry(hd, positions[1]);
     if (!e0 || !e1)
         throw std::runtime_error(
             "r-cadence '" + p.id + "': no harmonic_domain entry covers position " +
-            std::to_string(!e0 ? p.positions[0] : p.positions[1]));
+            std::to_string(!e0 ? positions[0] : positions[1]));
     if (e0->key_tonic < 0 || e1->key_tonic < 0)
         throw std::runtime_error(
             "r-cadence '" + p.id + "': harmonic_domain entries at the cadence "
@@ -155,6 +167,8 @@ inline void validate_harmony(const CadenceParams& p, const HarmonicConfig& hd) {
         throw std::runtime_error(
             "r-cadence '" + p.id + "': expected the resolution chord (position " +
             std::to_string(p.positions[1]) + ") to be scale degree " +
+                        std::to_string(positions[1]) + ") to be scale degree " +
+                        std::to_string(p.bass_to_degree) +
             std::to_string(p.end_degree_required) + ", but harmonic_domain has degree " +
             std::to_string(e1->scale_degree()));
 
@@ -171,11 +185,98 @@ inline void validate_harmony(const CadenceParams& p, const HarmonicConfig& hd) {
 // (bass pitch-class == chord root) and soprano target degree. By convention
 // (matching standard SATB voicing) target_voices.front() is soprano and
 // target_voices.back() is bass.
+inline Gecode::BoolVarArgs note_selectors_at_beat(DynamicRules::ConstraintContext& ctx,
+                                                   int voice, int beat_position) {
+    if (!ctx.space || !ctx.rhythm_vars || ctx.rhythm_base < 4 || ctx.rhythm_base % 4 != 0)
+        throw std::runtime_error("r-cadence beat_positions requires rhythm variables and quarter-note tick alignment");
+    const int beat_tick = beat_position * (ctx.rhythm_base / 4);
+    Gecode::BoolVarArgs selectors;
+    Gecode::IntVar onset(*ctx.space, 0, 0);
+    for (int event = 0; event < ctx.sequence_length; ++event) {
+        const int index = voice * ctx.sequence_length + event;
+        if (index < 0 || index >= ctx.rhythm_vars->size() || index >= ctx.pitch_vars->size())
+            throw std::runtime_error("r-cadence '" + std::to_string(voice) + "': beat target voice is out of range");
+        Gecode::IntVar rhythm = (*ctx.rhythm_vars)[index];
+        const int max_duration = std::max(std::abs(rhythm.min()), std::abs(rhythm.max()));
+        Gecode::IntVar duration(*ctx.space, 0, max_duration);
+        Gecode::abs(*ctx.space, rhythm, duration);
+        Gecode::IntVar end(*ctx.space, 0, std::numeric_limits<int>::max() / 4);
+        Gecode::linear(*ctx.space, Gecode::IntArgs({1, -1, -1}),
+                       Gecode::IntVarArgs({end, onset, duration}), Gecode::IRT_EQ, 0);
+
+        Gecode::BoolVar starts_before_or_at(*ctx.space, 0, 1);
+        Gecode::BoolVar ends_after(*ctx.space, 0, 1);
+        Gecode::BoolVar is_sounding_note(*ctx.space, 0, 1);
+        Gecode::rel(*ctx.space, onset, Gecode::IRT_LQ, beat_tick,
+                    Gecode::Reify(starts_before_or_at, Gecode::RM_EQV));
+        Gecode::rel(*ctx.space, end, Gecode::IRT_GR, beat_tick,
+                    Gecode::Reify(ends_after, Gecode::RM_EQV));
+        Gecode::rel(*ctx.space, rhythm, Gecode::IRT_GR, 0,
+                    Gecode::Reify(is_sounding_note, Gecode::RM_EQV));
+        selectors << Gecode::expr(*ctx.space, starts_before_or_at && ends_after && is_sounding_note);
+        onset = end;
+    }
+    Gecode::linear(*ctx.space, selectors, Gecode::IRT_EQ, 1);
+    return selectors;
+}
+
+inline void constrain_pitch_class_at_beat(DynamicRules::ConstraintContext& ctx,
+                                          int voice, int beat_position,
+                                          int pitch_class) {
+    const auto selectors = note_selectors_at_beat(ctx, voice, beat_position);
+    for (int event = 0; event < selectors.size(); ++event) {
+        const int index = voice * ctx.sequence_length + event;
+        Gecode::IntArgs allowed;
+        for (int pitch = 0; pitch <= 127; ++pitch)
+            if (pitch % 12 == pitch_class) allowed << pitch;
+        Gecode::dom(*ctx.space, (*ctx.pitch_vars)[index], Gecode::IntSet(allowed),
+                    Gecode::Reify(selectors[event], Gecode::RM_IMP));
+    }
+}
+
+inline void constrain_chord_tones_at_beat(DynamicRules::ConstraintContext& ctx,
+                                          int voice, int beat_position,
+                                          const HarmonicEntry& harmony) {
+    const auto selectors = note_selectors_at_beat(ctx, voice, beat_position);
+    for (int event = 0; event < selectors.size(); ++event) {
+        const int index = voice * ctx.sequence_length + event;
+        Gecode::IntArgs allowed;
+        for (int pitch = 0; pitch <= 127; ++pitch) {
+            const int pitch_class = pitch % 12;
+            if (std::find(harmony.chord_tones.begin(), harmony.chord_tones.end(), pitch_class) != harmony.chord_tones.end())
+                allowed << pitch;
+        }
+        Gecode::dom(*ctx.space, (*ctx.pitch_vars)[index], Gecode::IntSet(allowed),
+                    Gecode::Reify(selectors[event], Gecode::RM_IMP));
+    }
+}
+
 inline void post_cadence_constraint(DynamicRules::ConstraintContext& ctx,
                                      const CadenceParams& p,
                                      const HarmonicConfig& hd) {
     if (!ctx.pitch_vars) return;
     validate_harmony(p, hd);
+
+    if (!p.beat_positions.empty()) {
+        const auto* pre_harmony = find_active_entry(hd, p.beat_positions[0]);
+        const auto* resolution_harmony = find_active_entry(hd, p.beat_positions[1]);
+        if (p.require_chord_tones) {
+            for (int voice : p.target_voices) {
+                constrain_chord_tones_at_beat(ctx, voice, p.beat_positions[0], *pre_harmony);
+                constrain_chord_tones_at_beat(ctx, voice, p.beat_positions[1], *resolution_harmony);
+            }
+        }
+        if (p.require_root_position) {
+            constrain_pitch_class_at_beat(ctx, p.target_voices.back(), p.beat_positions[0], pre_harmony->chord_root);
+            constrain_pitch_class_at_beat(ctx, p.target_voices.back(), p.beat_positions[1], resolution_harmony->chord_root);
+        }
+        if (p.soprano_target_degree > 0) {
+            const int target_pc = HarmonicEntry::degree_to_pitch_class(
+                resolution_harmony->key_tonic, resolution_harmony->key_mode, p.soprano_target_degree);
+            constrain_pitch_class_at_beat(ctx, p.target_voices.front(), p.beat_positions[1], target_pc);
+        }
+        return;
+    }
 
     const int soprano_voice = p.target_voices.front();
     const int bass_voice    = p.target_voices.back();

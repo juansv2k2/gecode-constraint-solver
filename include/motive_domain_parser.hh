@@ -83,12 +83,11 @@ inline std::pair<int, int> duration_fraction(const nlohmann::json& value) {
     return {static_cast<int>(numerator), static_cast<int>(denominator)};
 }
 
-inline void validate_motives(const nlohmann::json& motives, bool rhythm, int event_count) {
+inline void validate_motives(const nlohmann::json& motives, bool rhythm, int event_count,
+                             bool require_exact_fill = true) {
     if (!motives.is_array() || motives.empty())
         throw std::runtime_error("motives must be a nonempty array of nonempty arrays");
-    if (event_count <= 0) throw std::runtime_error("Motive event count must be positive");
-    std::vector<bool> reachable(event_count + 1, false);
-    reachable[0] = true;
+    if (require_exact_fill && event_count <= 0) throw std::runtime_error("Motive event count must be positive");
     for (const auto& motive : motives) {
         if (!motive.is_array() || motive.empty())
             throw std::runtime_error("Each motive must be a nonempty array; flat lists are not motives");
@@ -98,19 +97,28 @@ inline void validate_motives(const nlohmann::json& motives, bool rhythm, int eve
                 throw std::runtime_error("Pitch motive values must be MIDI integers 0..127");
         }
     }
-    for (int start = 0; start <= event_count; ++start) {
-        if (!reachable[start]) continue;
-        for (const auto& motive : motives) {
-            const size_t end = static_cast<size_t>(start) + motive.size();
-            if (end <= static_cast<size_t>(event_count)) reachable[end] = true;
+    if (require_exact_fill) {
+        std::vector<bool> reachable(event_count + 1, false);
+        reachable[0] = true;
+        for (int start = 0; start <= event_count; ++start) {
+            if (!reachable[start]) continue;
+            for (const auto& motive : motives) {
+                const size_t end = static_cast<size_t>(start) + motive.size();
+                if (end <= static_cast<size_t>(event_count)) reachable[end] = true;
+            }
         }
+        if (!reachable[event_count])
+            throw std::runtime_error("Complete motives cannot fill solution_length=" + std::to_string(event_count));
     }
-    if (!reachable[event_count])
-        throw std::runtime_error("Complete motives cannot fill solution_length=" + std::to_string(event_count));
 }
 
 inline void normalize_domains(nlohmann::json& cfg) {
-    const int event_count = cfg.value("solution_length", 12);
+    int event_count = 12;
+    if (cfg.contains("solution_length")) {
+        if (cfg["solution_length"].is_number_integer()) event_count = cfg["solution_length"].get<int>();
+        else if (cfg["solution_length"] == "measure_count") event_count = 0;
+        else throw std::runtime_error("solution_length must be a positive integer or 'measure_count'");
+    }
     auto normalize_voice = [&](nlohmann::json& voice) {
         if (!voice.is_object()) return;
         for (const std::string component : {"pitch", "rhythm"}) {
@@ -131,7 +139,7 @@ inline void normalize_domains(nlohmann::json& cfg) {
                                 value = std::to_string(fraction.first) + "/" + std::to_string(fraction.second);
                             }
             }
-            validate_motives(domain["motives"], rhythm, event_count);
+            validate_motives(domain["motives"], rhythm, event_count, event_count > 0);
             auto values = nlohmann::json::array();
             for (const auto& motive : domain["motives"])
                 for (const auto& value : motive)
@@ -165,7 +173,8 @@ inline const nlohmann::json* component_for_voice(const nlohmann::json& cfg, int 
 }
 
 inline std::vector<Domain> parse_domains(const nlohmann::json& cfg, int voices,
-                                        int event_count, int rhythm_base) {
+                                        int event_count, int rhythm_base,
+                                        bool variable_event_count = false) {
     std::vector<Domain> result;
     for (int voice = 0; voice < voices; ++voice) {
         for (const std::string component : {"pitch", "rhythm"}) {
@@ -174,7 +183,7 @@ inline std::vector<Domain> parse_domains(const nlohmann::json& cfg, int voices,
             Domain parsed;
             parsed.voice = voice;
             parsed.rhythm = component == "rhythm";
-            validate_motives((*domain)["motives"], parsed.rhythm, event_count);
+            validate_motives((*domain)["motives"], parsed.rhythm, event_count, !variable_event_count);
             for (const auto& motive : (*domain)["motives"]) {
                 std::vector<int> values;
                 for (const auto& value : motive) {
