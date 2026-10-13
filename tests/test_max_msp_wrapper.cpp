@@ -64,6 +64,7 @@ int main(int argc, char* argv[]) {
         std::cout << "found_solution=" << (result.found_solution ? "true" : "false") << std::endl;
         std::cout << "message=" << result.message << std::endl;
         std::cout << "elapsed_ms=" << elapsed_ms << std::endl;
+        std::cout << "search_profile=" << result.search_stats.to_json().dump() << std::endl;
         if (!result.result_json.empty()) {
             std::cout << result.result_json << std::endl;
         }

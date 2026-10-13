@@ -48,25 +48,194 @@ inline bool enabled(const nlohmann::json& config) {
 inline void validate_rule_support(const nlohmann::json& config) {
     if (!enabled(config)) return;
     auto validate_rule = [](const nlohmann::json& rule) {
-        if (!rule.is_object()) return;
+        if (!rule.is_object()) throw std::runtime_error("Measure-mode rule entries must be objects");
+        if (rule.contains("enabled")) {
+            const auto& value = rule["enabled"];
+            if (!value.is_boolean() && !value.is_number_integer())
+                throw std::runtime_error("Rule enabled flag must be boolean or integer");
+            if (!(value.is_boolean() ? value.get<bool>() : value.get<int>() != 0)) return;
+        }
         const std::string type = rule.value("rule_type", std::string());
+        if (rule.value("type", std::string()) == "index") {
+            if (!rule.contains("voice") || !rule["voice"].is_number_integer() || rule["voice"].get<int>() < 0)
+                throw std::runtime_error("Measure index rule requires a nonnegative integer voice");
+            if (!rule.contains("events") || !rule["events"].is_array() || rule["events"].empty())
+                throw std::runtime_error("Measure index rule requires a nonempty events array");
+            for (const auto& event : rule["events"])
+                if (!event.is_array() || event.size() != 3 || !event[0].is_number_integer() || event[0].get<int>() < 0 ||
+                    !event[1].is_string() || !(event[2].is_null() || event[2].is_number_integer()))
+                    throw std::runtime_error("Measure index events must be [position, rhythm string, pitch or null]");
+            return;
+        }
         const bool cadence_at_beats = type == "r-cadence" &&
             rule.contains("beat_positions") && rule["beat_positions"].is_array() &&
             rule["beat_positions"].size() == 2 && !rule.contains("positions");
-        if (!cadence_at_beats)
-            throw std::runtime_error("measure-count mode currently supports only r-cadence with beat_positions; rule '" +
+        const bool melodic = type == "r-melodic-step" || type == "r-no-interval-repetition" ||
+            type == "r-no-consecutive-equal" || type == "r-no-consecutive-direction";
+        if (melodic && (rule.contains("indices") || rule.contains("stride") || rule.contains("offset")))
+            throw std::runtime_error("measure-count local melodic rules currently apply to the whole active voice; indexed subsets are not supported");
+        if (type == "r-no-interval-repetition" && rule.contains("interval_mode") &&
+            rule["interval_mode"] != "up-down" && rule["interval_mode"] != "absolute")
+            throw std::runtime_error("r-no-interval-repetition interval_mode must be up-down or absolute");
+        const bool cross_voice = type == "r-rhythm-rhythm" || type == "r-pitch-pitch";
+        const bool global = type == "r-one-voice" || type == "r-pitches-one-engine" ||
+            type == "r-pitches-all-different" || type == "r-twelve-tone-voice1" ||
+            type == "r-uniformity" || type == "r-rhythmic-uniformity";
+        const bool reversal = type == "r-palindrome-voice" || type == "r-palindrome-voice2" || type == "r-cross-voice-retrograde-inversion";
+        if (global || reversal) {
+            std::string function = rule.value("constraint", std::string());
+            if (rule.contains("constraint_function")) function = rule["constraint_function"].value("function", function);
+            const bool uniformity = type == "r-uniformity" || type == "r-rhythmic-uniformity";
+            const std::string expected = global ? (uniformity ? "equal_values" : "all_different") :
+                (type == "r-cross-voice-retrograde-inversion" ? "retrograde_inversion_relationship" : "palindrome_of_engine");
+            if (!function.empty() && function != expected && !(uniformity && function == "equal"))
+                throw std::runtime_error("Unsupported global/transformation function in measure mode: " + function);
+            if (rule.contains("indices")) {
+                if (!rule["indices"].is_array()) throw std::runtime_error("Global indices must be an array");
+                for (const auto& index : rule["indices"])
+                    if (!index.is_number_integer() || index.get<int>() < 0)
+                        throw std::runtime_error("Global indices must be nonnegative integers");
+            }
+        }
+        const bool repetition = type == "r-repetition";
+        const bool tendency = type == "r-tendency-tone";
+        const bool timepoint = type == "r-timepoint-relationship";
+        const bool signatures=type=="r-time-signature" || type=="r-metric-signature";
+        const bool metric_hierarchy=type=="r-metric-hierarchy";
+        const bool wildcard=type=="wildcard_constraint";
+        if (tendency && rule.contains("heuristic") && rule["heuristic"] != false && rule["heuristic"] != 0)
+            throw std::runtime_error("Tendency-tone rules support hard mode only");
+        if (repetition) {
+            for (const char* key : {"source_positions", "target_positions", "target_voices"}) {
+                if (!rule.contains(key) || !rule[key].is_array() || rule[key].empty())
+                    throw std::runtime_error(std::string("Measure repetition requires nonempty ") + key);
+                for (const auto& index : rule[key])
+                    if (!index.is_number_integer() || index.get<int>() < 0)
+                        throw std::runtime_error("Measure repetition indices and voices must be nonnegative integers");
+            }
+            if (rule.contains("heuristic") && rule["heuristic"] != false && rule["heuristic"] != 0 &&
+                (rule.value("relation", std::string()) == "rhythm_preserving" || rule.value("relation", std::string()) == "diatonic_sequence"))
+                throw std::runtime_error("Rhythmic and diatonic repetition currently support hard mode only");
+        }
+        if ((global || reversal) && rule.contains("heuristic") && rule["heuristic"] != false && rule["heuristic"] != 0)
+            throw std::runtime_error("Global all_different/uniformity rules currently support hard mode only");
+        if (metric_hierarchy && rule.contains("heuristic") && rule["heuristic"] != false && rule["heuristic"] != 0)
+            throw std::runtime_error("Measure metric-hierarchy rules currently support hard mode only");
+        if (metric_hierarchy && (rule.contains("stride") || rule.contains("offset")))
+            throw std::runtime_error("Measure metric-hierarchy rules support explicit event indices, not stride/offset");
+        if (metric_hierarchy) {
+            std::string function=rule.value("constraint",std::string());
+            if (rule.contains("constraint_function"))
+                function=rule["constraint_function"].value("function",function);
+            auto is_supported=[](const std::string& value) {
+                return value=="no_syncopation" || value=="no-syncopation" || value=="anti_syncopation" ||
+                       value=="anti-syncopation" || value=="no_sync" || value=="no-sync" ||
+                       value=="min_grid" || value=="min-grid" || value=="no_subdivision_below_grid" ||
+                       value=="no-subdivision-below-grid" || value=="durations" || value=="equal" ||
+                       value=="equal_values" || value=="tuplet_on_beat_start" || value=="tuplet-on-beat-start" ||
+                       value=="hierarchical_voices" || value=="hierarchical-voices" ||
+                       value=="voice_hierarchy" || value=="voice-hierarchy";
+            };
+            bool supported=function.empty() || is_supported(function);
+            if (rule.contains("parameters") && rule["parameters"].is_array())
+                for (const auto& parameter : rule["parameters"])
+                    if (parameter.is_string() && is_supported(parameter.get<std::string>())) supported=true;
+            if (!supported)
+                throw std::runtime_error("Unsupported measure r-metric-hierarchy mode");
+            bool tuplet_mode=function=="tuplet_on_beat_start" || function=="tuplet-on-beat-start";
+            if (rule.contains("parameters") && rule["parameters"].is_array())
+                for (const auto& parameter : rule["parameters"])
+                    if (parameter.is_string() &&
+                        (parameter=="tuplet_on_beat_start" || parameter=="tuplet-on-beat-start"))
+                        tuplet_mode=true;
+            if (rule.contains("indices") && tuplet_mode)
+                throw std::runtime_error("Measure tuplet_on_beat_start applies to the full active prefix; indices are unsupported");
+            if (rule.contains("indices")) {
+                if (!rule["indices"].is_array()) throw std::runtime_error("Metric-hierarchy indices must be an array");
+                for (const auto& index : rule["indices"])
+                    if (!index.is_number_integer() || index.get<int>()<0)
+                        throw std::runtime_error("Metric-hierarchy indices must be nonnegative integers");
+            }
+        }
+        if (wildcard) {
+            const std::string wildcard_type = rule.contains("wildcard_type") && rule["wildcard_type"].is_string() ?
+                rule["wildcard_type"].get<std::string>() : (rule.contains("wildcard_type") ? "" : "for_all_positions");
+            if (wildcard_type!="sliding_window" && wildcard_type!="for_all_positions" && wildcard_type!="for_all_voices")
+                throw std::runtime_error("Measure wildcard rules support sliding_window, for_all_positions and for_all_voices only");
+            if (wildcard_type!="sliding_window" && rule.contains("step_size") && rule["step_size"]!=1)
+                throw std::runtime_error("Measure for_all_positions/for_all_voices wildcards use step 1; use sliding_window for step_size");
+            if (!rule.contains("constraint") || !rule["constraint"].is_string())
+                throw std::runtime_error("Measure wildcard requires a string constraint expression");
+            if (rule.contains("pattern_offsets")) {
+                if (!rule["pattern_offsets"].is_array() || rule["pattern_offsets"].empty())
+                    throw std::runtime_error("Measure wildcard pattern_offsets must be a nonempty array");
+                for (const auto& offset : rule["pattern_offsets"])
+                    if (!offset.is_number_integer() || offset.get<int>()<0)
+                        throw std::runtime_error("Measure wildcard offsets must be nonnegative integers");
+            }
+            if (rule.contains("step_size") && (!rule["step_size"].is_number_integer() || rule["step_size"].get<int>()<=0))
+                throw std::runtime_error("Measure wildcard step_size must be a positive integer");
+            if (rule.contains("indices")) {
+                if (!rule["indices"].is_array()) throw std::runtime_error("Measure wildcard indices must be an array");
+                for (const auto& index : rule["indices"])
+                    if (!index.is_number_integer() || index.get<int>()<0)
+                        throw std::runtime_error("Measure wildcard indices must be nonnegative integers");
+            }
+            if (rule.contains("target_voices")) {
+                if (!rule["target_voices"].is_array()) throw std::runtime_error("Measure wildcard target_voices must be an array");
+                for (const auto& voice : rule["target_voices"])
+                    if (!voice.is_number_integer() || voice.get<int>()<0)
+                        throw std::runtime_error("Measure wildcard target_voices must contain nonnegative integers");
+            }
+            if (rule.contains("heuristic") && rule["heuristic"]!=false && rule["heuristic"]!=0)
+                throw std::runtime_error("Measure wildcard heuristics are not yet supported");
+        }
+        if (reversal && (rule.contains("indices") || rule.contains("stride") || rule.contains("offset")))
+            throw std::runtime_error("Reversal rules operate on the full active prefix; subset selectors are unsupported");
+        if (global && (rule.contains("stride") || rule.contains("offset")))
+            throw std::runtime_error("Global all_different/uniformity rules use indices, not stride/offset");
+        if (!cadence_at_beats && !melodic && !cross_voice && !global && !reversal && !repetition && !tendency && !timepoint && !signatures && !metric_hierarchy && !wildcard) {
+            if (type == "r-cross-voice-no-unisons")
+                throw std::runtime_error("r-cross-voice-no-unisons is not enforced by any solver path; use r-pitch-pitch with constraint no_unison");
+            if (type == "r-perfect-fifth-intervals")
+                throw std::runtime_error("r-perfect-fifth-intervals is a legacy fixed-interval chain with no measure-mode meaning; use r-pitch-pitch or dynamic_rules");
+            if (type == "r-pitches-one-voice" || type == "r-index-pitches-one-voice")
+                throw std::runtime_error(type + " is a legacy Lisp-era alias; use r-one-voice or an index rule");
+        }
+        if (!cadence_at_beats && !melodic && !cross_voice && !global && !reversal && !repetition && !tendency && !timepoint && !signatures && !metric_hierarchy && !wildcard)
+            throw std::runtime_error("Rule '" +
                                     (type.empty() ? std::string("(missing rule_type)") : type) +
-                                    "' still uses fixed event-index semantics");
+                                    "' is not yet active-aware in measure-count mode");
     };
     if (config.contains("rules")) {
         const auto& rules = config["rules"];
         if (rules.is_array()) for (const auto& rule : rules) validate_rule(rule);
         else if (rules.is_object()) for (auto it = rules.begin(); it != rules.end(); ++it) validate_rule(it.value());
     }
-    for (const char* key : {"dynamic_rules", "heuristic_rules"})
-        if (config.contains(key) && !config[key].is_null() && !config[key].empty())
-            throw std::runtime_error(std::string("measure-count mode does not yet support ") + key +
-                                     "; dynamic and heuristic rules require active-event semantics");
+    if (config.contains("dynamic_rules") && !config["dynamic_rules"].is_null() && !config["dynamic_rules"].empty()) {
+        const auto& rules=config["dynamic_rules"];
+        if (!rules.is_array()) throw std::runtime_error("Measure dynamic_rules must be an array");
+        for (const auto& rule : rules) {
+            if (!rule.is_object()) throw std::runtime_error("Measure dynamic rule entries must be objects");
+            if (rule.contains("enabled") && ((rule["enabled"].is_boolean() && !rule["enabled"].get<bool>()) ||
+                (rule["enabled"].is_number_integer() && rule["enabled"].get<int>()==0) ||
+                (rule["enabled"].is_string() && (rule["enabled"]=="false" || rule["enabled"]=="no" || rule["enabled"]=="off" || rule["enabled"]=="0"))))
+                continue;
+            if (!rule.contains("id") || !rule["id"].is_string() || !rule.contains("type") || !rule["type"].is_string() ||
+                (!rule.contains("expression") && !rule.contains("constraint")) ||
+                (rule.contains("expression") && !rule["expression"].is_string()) ||
+                (rule.contains("constraint") && !rule["constraint"].is_string()))
+                throw std::runtime_error("Measure dynamic rules require id, type and a string expression");
+            if (rule["type"]!="basic_constraint")
+                throw std::runtime_error("Measure dynamic rules currently support basic_constraint only");
+            if (rule.contains("mode") && !rule["mode"].is_string())
+                throw std::runtime_error("Measure dynamic rules require a string mode");
+            if (rule.contains("mode") && rule["mode"]!="true_false" && rule["mode"]!="constraint")
+                throw std::runtime_error("Measure dynamic rules support hard true_false/constraint mode only");
+        }
+    }
+    if (config.contains("heuristic_rules") && !config["heuristic_rules"].is_null() && !config["heuristic_rules"].empty())
+        throw std::runtime_error("measure-count mode does not yet support heuristic_rules");
 }
 
 inline TimeSignature parse_signature(const nlohmann::json& value, const std::string& context) {

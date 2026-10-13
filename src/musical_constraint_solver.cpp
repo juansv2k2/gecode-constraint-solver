@@ -942,6 +942,11 @@ MusicXmlPitchSpelling musicxml_spelling_for_pitch_class(int pitch_class, int key
     static const int NATURAL_PCS[7] = {0, 2, 4, 5, 7, 9, 11};
     static const int SHARP_PREFERRED_STEP[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
     static const int SHARP_PREFERRED_ALTER[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+    // Flat keys spell black keys as Db Eb Ab Bb; F# stays sharp as the usual chromatic neighbour.
+    static const int FLAT_PREFERRED_STEP[12] = {0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6};
+    static const int FLAT_PREFERRED_ALTER[12] = {0, -1, 0, -1, 0, 0, 1, 0, -1, 0, -1, 0};
+    const int* preferred_step = key_fifths < 0 ? FLAT_PREFERRED_STEP : SHARP_PREFERRED_STEP;
+    const int* preferred_alter = key_fifths < 0 ? FLAT_PREFERRED_ALTER : SHARP_PREFERRED_ALTER;
     const int pc = ((pitch_class % 12) + 12) % 12;
 
     MusicXmlPitchSpelling best;
@@ -955,7 +960,7 @@ MusicXmlPitchSpelling musicxml_spelling_for_pitch_class(int pitch_class, int key
             const int key_alter = musicxml_key_alter_for_step(key_fifths, step);
             const int key_distance = std::abs(alter - key_alter);
             const int preference_penalty =
-                (step == SHARP_PREFERRED_STEP[pc] && alter == SHARP_PREFERRED_ALTER[pc]) ? 0 : 1;
+                (step == preferred_step[pc] && alter == preferred_alter[pc]) ? 0 : 1;
             const int alter_magnitude = std::abs(alter);
             if (key_distance < best_key_distance ||
                 (key_distance == best_key_distance && preference_penalty < best_preference_penalty) ||
@@ -1258,8 +1263,10 @@ std::vector<nlohmann::json> expand_wildcard_heuristic_rule(
     }
 
     const std::string wildcard_type = rule_json.value("wildcard_type", "");
-    const bool pairwise_cross_voice =
-        wildcard_type == "for_all_pairs" || rule_json.value("cross_voices", false);
+    const bool cross_voices_flag = rule_json.contains("cross_voices") &&
+        ((rule_json["cross_voices"].is_boolean() && rule_json["cross_voices"].get<bool>()) ||
+         (rule_json["cross_voices"].is_number() && rule_json["cross_voices"].get<double>() != 0.0));
+    const bool pairwise_cross_voice = wildcard_type == "for_all_pairs" || cross_voices_flag;
     const bool expression_uses_voice_placeholder =
         rule_json.contains("expression") &&
         rule_json.at("expression").dump().find("voice[v]") != std::string::npos;
@@ -1948,7 +1955,8 @@ std::string MusicalSolution::to_musicxml() const {
                             const bool show_accidental = musicxml_should_show_accidental(
                                 spelling, octave, key_fifths, accidental_state);
                             xml << "          <step>" << musicxml_step_name(spelling.step_index) << "</step>\n";
-                            if (show_accidental) {
+                            // <alter> is the sounding pitch; a key signature does not replace it.
+                            if (show_accidental || spelling.alter != 0) {
                                 xml << "          <alter>" << spelling.alter << "</alter>\n";
                             }
                             xml << "          <octave>" << octave << "</octave>\n";
@@ -2047,7 +2055,7 @@ std::string MusicalSolution::to_musicxml() const {
                 xml << "      <note>\n";
                 xml << "        <pitch>\n";
                 xml << "          <step>" << musicxml_step_name(spelling.step_index) << "</step>\n";
-                if (show_accidental) {
+                if (show_accidental || spelling.alter != 0) {
                     xml << "          <alter>" << spelling.alter << "</alter>\n";
                 }
                 xml << "          <octave>" << octave << "</octave>\n";
@@ -2107,7 +2115,7 @@ std::string MusicalSolution::to_musicxml() const {
             xml << "      <note>\n";
             xml << "        <pitch>\n";
             xml << "          <step>" << musicxml_step_name(spelling.step_index) << "</step>\n";
-            if (show_accidental) {
+            if (show_accidental || spelling.alter != 0) {
                 xml << "          <alter>" << spelling.alter << "</alter>\n";
             }
             xml << "          <octave>" << octave << "</octave>\n";
@@ -2606,6 +2614,8 @@ void Solver::load_dynamic_rules(const std::vector<nlohmann::json>& rules_array) 
             add_dynamic_rule(rule_json);
         } catch (const std::exception& e) {
             std::cout << "⚠️  Skipped rule due to error: " << e.what() << std::endl;
+            if (config_.measure_count_mode)
+                throw std::runtime_error("Measure dynamic rule failed to load: " + std::string(e.what()));
         }
     }
     
@@ -2687,8 +2697,18 @@ std::vector<MusicalSolution> Solver::solve_multiple(
         std::function<void(const MusicalSolution&, int)> on_solution,
         const std::atomic<bool>* cancel_flag) {
     std::vector<MusicalSolution> solutions;
+    last_search_stats_ = SearchStats{};
+    last_search_stats_.event_capacity = config_.sequence_length;
+    last_search_stats_.num_voices = config_.num_voices;
+    auto elapsed_ms = [](std::chrono::steady_clock::time_point start) {
+        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+    };
+    const auto build_start = std::chrono::steady_clock::now();
     try {
         auto* raw_space = build_configured_space_();
+        last_search_stats_.model_build_ms = elapsed_ms(build_start);
+        last_search_stats_.motive_edges = raw_space->get_motive_edge_count();
+        last_search_stats_.timing_variables = raw_space->get_timing_variable_count();
 
         if (config_.restart_policy != SolverConfig::RestartPolicy::NONE) {
             throw std::runtime_error("Unsupported restart policy in solve_multiple()");
@@ -2708,9 +2728,12 @@ std::vector<MusicalSolution> Solver::solve_multiple(
             throw std::runtime_error("Unsupported search engine in solve_multiple()");
         }
 
+        const auto init_start = std::chrono::steady_clock::now();
         Gecode::DFS<GecodeClusterIntegration::IntegratedMusicalSpace> search_engine(raw_space, search_opts);
+        last_search_stats_.dfs_init_ms = elapsed_ms(init_start);
 
         int limit = (max_solutions < 0) ? std::numeric_limits<int>::max() : max_solutions;
+        last_search_stats_.completion_reason = "solution_limit";
         auto wall_start = std::chrono::high_resolution_clock::now();
 
         // Count only accepted solutions against the limit.
@@ -2718,6 +2741,7 @@ std::vector<MusicalSolution> Solver::solve_multiple(
         while (accepted < limit) {
             // Fast path: honour an external cancel request before even calling next().
             if (cancel_flag && cancel_flag->load(std::memory_order_relaxed)) {
+                last_search_stats_.completion_reason = "cancelled";
                 break;
             }
             // Keep a wall-clock guard in addition to Gecode TimeStop for diagnostics.
@@ -2725,15 +2749,21 @@ std::vector<MusicalSolution> Solver::solve_multiple(
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::high_resolution_clock::now() - wall_start).count();
                 if (elapsed >= timeout_ms) {
+                    last_search_stats_.completion_reason = "timeout";
                     std::cout << "   ⏱️  Timeout after " << elapsed << " ms — returning "
                               << solutions.size() << " solution(s) found so far" << std::endl;
                     break;
                 }
             }
 
+            const auto search_start = std::chrono::steady_clock::now();
             auto* solved_space = search_engine.next();
+            last_search_stats_.search_ms += elapsed_ms(search_start);
             if (!solved_space) {
+                last_search_stats_.completion_reason = "exhausted";
                 if (search_engine.stopped()) {
+                    last_search_stats_.completion_reason = cancel_flag && cancel_flag->load(std::memory_order_relaxed)
+                        ? "cancelled" : "timeout";
                     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::high_resolution_clock::now() - wall_start).count();
                     if (cancel_flag && cancel_flag->load(std::memory_order_relaxed)) {
@@ -2747,7 +2777,9 @@ std::vector<MusicalSolution> Solver::solve_multiple(
                 break;
             }
 
+            const auto extraction_start = std::chrono::steady_clock::now();
             MusicalSolution sol = extract_solution_from_space_(solved_space);
+            last_search_stats_.extraction_ms += elapsed_ms(extraction_start);
             if (sol.found_solution) {
                 solutions.push_back(sol);
                 if (on_solution) on_solution(sol, accepted);
@@ -2763,6 +2795,9 @@ std::vector<MusicalSolution> Solver::solve_multiple(
             last_search_stats_.depth    = static_cast<long long>(gs.depth);
         }
     } catch (const std::exception& e) {
+        if (last_search_stats_.completion_reason == "not_started")
+            last_search_stats_.model_build_ms = elapsed_ms(build_start);
+        last_search_stats_.completion_reason = "error";
         MusicalSolution failed;
         failed.found_solution = false;
         failed.failure_reason = "Exception during multi-solve: " + std::string(e.what());
@@ -2978,13 +3013,13 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         if (config_.rhythm_base < 4 || config_.rhythm_base % 4 != 0)
             throw std::runtime_error("Hard harmonic chord tones require quarter-note tick alignment");
         const int quarter_ticks = config_.rhythm_base / 4;
+        gecode_space->initialize_event_timing();
         for (int voice = 0; voice < config_.num_voices; ++voice) {
-            Gecode::IntVar onset(*gecode_space, 0, 0);
             for (int event = 0; event < config_.sequence_length; ++event) {
                 const int index = voice * config_.sequence_length + event;
                 Gecode::IntVar rhythm = gecode_space->get_rhythm_vars()[index];
-                Gecode::IntVar duration = Gecode::expr(*gecode_space, Gecode::abs(rhythm));
-                Gecode::IntVar end = Gecode::expr(*gecode_space, onset + duration);
+                Gecode::IntVar onset = gecode_space->get_event_boundary(voice, event);
+                Gecode::IntVar end = gecode_space->get_event_boundary(voice, event + 1);
                 for (size_t segment = 0; segment < harmonies.size(); ++segment) {
                     const auto& harmony = harmonies[segment];
                     const long long start_tick = static_cast<long long>(harmony.beat_position) * quarter_ticks;
@@ -3005,7 +3040,6 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                     Gecode::dom(*gecode_space, gecode_space->get_absolute_vars()[index], Gecode::IntSet(allowed),
                                 Gecode::Reify(selected, Gecode::RM_IMP));
                 }
-                onset = end;
             }
         }
     }
@@ -3234,6 +3268,10 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 if (voice < 0 || voice >= config_.num_voices) {
                     throw std::runtime_error("all_different rule '" + cfg.description + "' has out-of-range pitch engine " + std::to_string(engine));
                 }
+                if (config_.measure_count_mode) {
+                    gecode_space->post_active_all_different(voice, false, cfg.indices);
+                    continue;
+                }
 
                 Gecode::IntVarArgs vars;
                 for (int idx : selected_indices) {
@@ -3252,6 +3290,10 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 }
                 if (!gecode_space->has_rhythm_vars()) {
                     throw std::runtime_error("all_different rule '" + cfg.description + "' targets rhythm engine but rhythm vars are unavailable");
+                }
+                if (config_.measure_count_mode) {
+                    gecode_space->post_active_all_different(voice, true, cfg.indices);
+                    continue;
                 }
 
                 Gecode::IntVarArgs vars;
@@ -3347,6 +3389,10 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 }
 
                 Gecode::IntSet allowed_set(allowed_values.data(), static_cast<int>(allowed_values.size()));
+                if (config_.measure_count_mode) {
+                    gecode_space->post_active_uniformity(voice, is_rhythm_engine, cfg.indices, allowed_values);
+                    continue;
+                }
                 if (vars.size() > 0) {
                     Gecode::dom(*gecode_space, vars, allowed_set);
                     if (vars.size() > 1) {
@@ -3370,6 +3416,127 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
                 }
 
                 const MetricHierarchyMode mh_mode = parse_metric_hierarchy_mode(cfg.function, cfg.parameter_strings);
+
+                if (mh_mode == MetricHierarchyMode::HIERARCHICAL_VOICES)
+                    continue;
+
+                if (config_.measure_count_mode) {
+                    if (config_.measure_count_plan.solver_selects_meter)
+                        throw std::runtime_error("Measure metric-hierarchy requires a fixed measure_plan");
+                    const auto bars = MeasureCountPlan::expand_fixed_schedule(
+                        config_.measure_count_plan, config_.rhythm_base);
+                    if (mh_mode == MetricHierarchyMode::TUPLET_ON_BEAT_START) {
+                        post_tuplet_on_beat_start_constraint_(gecode_space.get(),voice,selected_indices);
+                        continue;
+                    }
+                    if (mh_mode == MetricHierarchyMode::DURATIONS_GRID || mh_mode == MetricHierarchyMode::MIN_GRID) {
+                        int grid_ticks=0;
+                        if (mh_mode == MetricHierarchyMode::MIN_GRID) {
+                            if (!metric_hierarchy_try_parse_labeled_duration_ticks(
+                                    cfg.parameter_strings,
+                                    {"min-grid", "min_grid", "grid", "allowed-grid", "allowed_grid"},
+                                    config_.rhythm_base, grid_ticks)) {
+                                for (const auto& parameter : cfg.parameter_strings) {
+                                    if (parameter.find('/') != std::string::npos) {
+                                        grid_ticks=std::abs(parse_duration_to_ticks(parameter,config_.rhythm_base));
+                                        break;
+                                    }
+                                }
+                            }
+                            if (grid_ticks<=0)
+                                throw std::runtime_error("Measure min_grid requires a positive duration parameter (e.g. 'min-grid:1/8')");
+                        } else {
+                            int finest=std::numeric_limits<int>::max();
+                            const bool ignore_tuplets=metric_hierarchy_ignore_tuplets_mode(cfg.parameter_strings);
+                            for (const auto& bar : bars) {
+                                std::vector<const SolverConfig::MetricDomainEntry*> matching_entries;
+                                for (const auto& entry : config_.metric_domain)
+                                    if (entry.numerator==bar.signature.numerator && entry.denominator==bar.signature.denominator)
+                                        matching_entries.push_back(&entry);
+                                if (matching_entries.empty()) {
+                                    if (config_.rhythm_base%bar.signature.denominator!=0)
+                                        throw std::runtime_error("Measure duration grid is not representable for a planned signature");
+                                    finest=std::min(finest,config_.rhythm_base/bar.signature.denominator);
+                                    continue;
+                                }
+                                for (const auto* entry : matching_entries) {
+                                    std::set<int> tuplets(entry->tuplets.begin(),entry->tuplets.end());
+                                    std::vector<int> subdivisions{1};
+                                    if (!ignore_tuplets)
+                                        for (int tuplet : entry->tuplets) if (tuplet>0) subdivisions.push_back(tuplet);
+                                    for (int division : entry->beat_divisions)
+                                        if (division>0 && (!ignore_tuplets || !tuplets.count(division)))
+                                            subdivisions.push_back(division);
+                                    for (int subdivision : subdivisions) {
+                                        const long long denominator=static_cast<long long>(bar.signature.denominator)*subdivision;
+                                        if (denominator>0 && config_.rhythm_base%denominator==0)
+                                            finest=std::min(finest,static_cast<int>(config_.rhythm_base/denominator));
+                                    }
+                                }
+                            }
+                            if (finest==std::numeric_limits<int>::max() || finest<=0)
+                                throw std::runtime_error("Measure duration grid could not derive a positive tick step from the fixed plan");
+                            grid_ticks=finest;
+                        }
+
+                        std::set<int> allowed{0};
+                        for (int tick : effective_voice_rhythm_domains[voice])
+                            if (tick!=0 && std::abs(tick)%grid_ticks==0) allowed.insert(tick);
+                        Gecode::IntArgs allowed_values;
+                        for (int tick : allowed) allowed_values << tick;
+                        const Gecode::IntSet allowed_set(allowed_values);
+                        for (int idx : selected_indices) {
+                            if (idx<0 || idx>=config_.sequence_length)
+                                throw std::runtime_error("Measure metric-hierarchy event index out of range");
+                            const int variable=voice*config_.sequence_length+idx;
+                            if (!cfg.indices.empty())
+                                Gecode::rel(*gecode_space,gecode_space->get_active_vars()[variable],Gecode::IRT_EQ,1);
+                            Gecode::dom(*gecode_space,gecode_space->get_rhythm_vars()[variable],allowed_set);
+                        }
+                        continue;
+                    }
+                    if (mh_mode != MetricHierarchyMode::NO_SYNCOPATION)
+                        throw std::runtime_error("Measure r-metric-hierarchy submode is not yet supported");
+                    const auto strong_beats = metric_hierarchy_parse_beat_numbers(cfg.parameter_strings);
+                    std::vector<int> boundaries;
+                    for (const auto& bar : bars) {
+                        if (config_.rhythm_base % bar.signature.denominator != 0)
+                            throw std::runtime_error("Measure no_syncopation requires exact denominator-beat ticks");
+                        const int beat_ticks = config_.rhythm_base / bar.signature.denominator;
+                        int period = beat_ticks;
+                        if (strong_beats.size() == 1) {
+                            period = bar.end_tick - bar.start_tick;
+                        } else if (strong_beats.size() > 1) {
+                            int beat_gap = std::numeric_limits<int>::max();
+                            for (size_t index = 1; index < strong_beats.size(); ++index)
+                                beat_gap = std::min(beat_gap, strong_beats[index] - strong_beats[index - 1]);
+                            period = beat_gap * beat_ticks;
+                        }
+                        for (int tick = bar.start_tick + period; tick < bar.end_tick; tick += period)
+                            boundaries.push_back(tick);
+                        if (bar.end_tick < config_.measure_horizon_ticks)
+                            boundaries.push_back(bar.end_tick);
+                    }
+                    std::sort(boundaries.begin(), boundaries.end());
+                    boundaries.erase(std::unique(boundaries.begin(), boundaries.end()), boundaries.end());
+                    gecode_space->initialize_event_timing();
+                    for (int idx : selected_indices) {
+                        if (idx < 0 || idx >= config_.sequence_length)
+                            throw std::runtime_error("Measure no_syncopation event index out of range");
+                        const int variable = voice * config_.sequence_length + idx;
+                        if (!cfg.indices.empty())
+                            Gecode::rel(*gecode_space, gecode_space->get_active_vars()[variable], Gecode::IRT_EQ, 1);
+                        const auto onset = gecode_space->get_event_boundary(voice, idx);
+                        const auto end = gecode_space->get_event_boundary(voice, idx + 1);
+                        for (int boundary : boundaries) {
+                            const Gecode::BoolVar crosses = Gecode::expr(*gecode_space,
+                                (gecode_space->get_rhythm_vars()[variable] > 0) &&
+                                (onset < boundary) && (end > boundary));
+                            Gecode::rel(*gecode_space, crosses, Gecode::IRT_EQ, 0);
+                        }
+                    }
+                    continue;
+                }
 
                 // HIERARCHICAL_VOICES is handled in the dedicated post-loop below.
                 if (mh_mode == MetricHierarchyMode::HIERARCHICAL_VOICES) {
@@ -3548,7 +3715,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
 
         post_hierarchical_voices_constraint_(
             gecode_space.get(), fine_voice, coarse_voice, selected_indices,
-            strict_all_onsets, use_beat_anchor_filter, beat_ticks);
+            strict_all_onsets, use_beat_anchor_filter, !cfg.indices.empty(), beat_ticks);
     }
 
     // POST ADVANCED CONSTRAINTS
@@ -3561,8 +3728,36 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
         std::cout << "Posted perfect fifth intervals constraint" << std::endl;
     }
     if (palindrome_voices_enabled_) {
-        gecode_space->post_palindrome_voices_constraint();
+        if (!config_.measure_count_mode) gecode_space->post_palindrome_voices_constraint();
         std::cout << "Posted palindrome voices constraint" << std::endl;
+    }
+    if (config_.measure_count_mode) {
+        for (const auto& rule : engine_rule_configs_) {
+            const bool reverse = rule.rule_type == "r-palindrome-voice" || rule.rule_type == "r-palindrome-voice2";
+            const bool inversion = rule.rule_type == "r-cross-voice-retrograde-inversion";
+            if (!reverse && !inversion) continue;
+            std::vector<int> voices;
+            auto add_voice = [&](int engine) {
+                if (engine < 0 || engine >= 2 * config_.num_voices || engine % 2 != 1)
+                    throw std::runtime_error("Active reversal must target pitch voices");
+                voices.push_back(engine / 2);
+            };
+            if (rule.target_engine >= 0) add_voice(rule.target_engine);
+            for (int engine : rule.target_engines) add_voice(engine);
+            if (voices.empty() || voices.size() > 2) throw std::runtime_error("Active reversal requires one destination or source/destination pair");
+            const int source = voices.size() == 1 ? 0 : voices[0];
+            const int target = voices.back();
+            int center = 65;
+            if (inversion && !rule.parameter_strings.empty())
+                throw std::runtime_error("Active reversal inversion center must be a numeric MIDI integer");
+            if (inversion && !rule.parameters.empty()) {
+                const double value = rule.parameters[0];
+                if (!std::isfinite(value) || value < 0 || value > 127 || value != std::round(value))
+                    throw std::runtime_error("Active reversal inversion center must be MIDI integer 0..127");
+                center = static_cast<int>(value);
+            }
+            gecode_space->post_active_reverse(source, target, inversion, center);
+        }
     }
 
     // POST DYNAMIC RULES
@@ -3593,7 +3788,7 @@ GecodeClusterIntegration::IntegratedMusicalSpace* Solver::build_configured_space
     if (retrograde_inversion_enabled_) {
         std::cout << "🎯 APPLYING RETROGRADE INVERSION CONSTRAINT!" << std::endl;
         std::cout << "   Inversion center: " << retrograde_inversion_center_ << " (MIDI)" << std::endl;
-        gecode_space->add_retrograde_inversion_constraint(retrograde_inversion_center_);
+        if (!config_.measure_count_mode) gecode_space->add_retrograde_inversion_constraint(retrograde_inversion_center_);
         std::cout << "✅ Posted retrograde inversion constraint in Gecode space" << std::endl;
     }
 
@@ -3720,6 +3915,106 @@ public:
     }
 };
 
+struct FixedPlanTupletBeat {
+    int start = 0;
+    int end = 0;
+    std::vector<int> durations;
+};
+
+class FixedPlanTupletPropagator
+    : public Gecode::NaryPropagator<Gecode::Int::IntView, Gecode::Int::PC_INT_DOM> {
+    int beat_count_;
+    int duration_count_;
+    int* starts_;
+    int* ends_;
+    int* offsets_;
+    int* durations_;
+
+    FixedPlanTupletPropagator(Gecode::Space& home, Gecode::ViewArray<Gecode::Int::IntView>& vars,
+                              const std::vector<FixedPlanTupletBeat>& beats)
+        : Gecode::NaryPropagator<Gecode::Int::IntView, Gecode::Int::PC_INT_DOM>(home,vars),
+          beat_count_(static_cast<int>(beats.size())), duration_count_(0) {
+        for (const auto& beat : beats) duration_count_+=static_cast<int>(beat.durations.size());
+        starts_=home.alloc<int>(beat_count_); ends_=home.alloc<int>(beat_count_);
+        offsets_=home.alloc<int>(beat_count_+1); durations_=home.alloc<int>(duration_count_);
+        int offset=0;
+        for (int index=0; index<beat_count_; ++index) {
+            starts_[index]=beats[index].start; ends_[index]=beats[index].end; offsets_[index]=offset;
+            for (int duration : beats[index].durations) durations_[offset++]=duration;
+        }
+        offsets_[beat_count_]=offset;
+    }
+
+    FixedPlanTupletPropagator(Gecode::Space& home, FixedPlanTupletPropagator& other)
+        : Gecode::NaryPropagator<Gecode::Int::IntView, Gecode::Int::PC_INT_DOM>(home,other),
+          beat_count_(other.beat_count_), duration_count_(other.duration_count_) {
+        starts_=home.alloc<int>(beat_count_); ends_=home.alloc<int>(beat_count_);
+        offsets_=home.alloc<int>(beat_count_+1); durations_=home.alloc<int>(duration_count_);
+        for (int index=0; index<beat_count_; ++index) {
+            starts_[index]=other.starts_[index]; ends_[index]=other.ends_[index]; offsets_[index]=other.offsets_[index];
+        }
+        offsets_[beat_count_]=other.offsets_[beat_count_];
+        for (int index=0; index<duration_count_; ++index) durations_[index]=other.durations_[index];
+    }
+
+    int beat_at(int tick) const {
+        for (int index=0; index<beat_count_; ++index)
+            if (starts_[index]<=tick && tick<ends_[index]) return index;
+        return -1;
+    }
+
+    bool is_tuplet(int duration,int beat) const {
+        if (beat<0) return false;
+        for (int index=offsets_[beat]; index<offsets_[beat+1]; ++index)
+            if (durations_[index]==duration) return true;
+        return false;
+    }
+
+public:
+    static Gecode::ExecStatus post(Gecode::Space& home,Gecode::ViewArray<Gecode::Int::IntView>& vars,
+                                   const std::vector<FixedPlanTupletBeat>& beats) {
+        (void)new (home) FixedPlanTupletPropagator(home,vars,beats);
+        return Gecode::ES_OK;
+    }
+
+    Gecode::Actor* copy(Gecode::Space& home) override {
+        return new (home) FixedPlanTupletPropagator(home,*this);
+    }
+
+    Gecode::ExecStatus propagate(Gecode::Space& home,const Gecode::ModEventDelta&) override {
+        int onset=0, active_duration=0, active_end=0;
+        bool in_tuplet_group=false;
+        for (int event=0; event<x.size(); ++event) {
+            const int beat=beat_at(onset);
+            if (!x[event].assigned()) {
+                std::vector<int> remove;
+                for (Gecode::Int::ViewValues<Gecode::Int::IntView> value(x[event]); value(); ++value) {
+                    const int duration=std::abs(value.val());
+                    const bool disallowed=in_tuplet_group ? duration!=active_duration :
+                        (is_tuplet(duration,beat) && (beat<0 || onset!=starts_[beat]));
+                    if (disallowed)
+                        remove.push_back(value.val());
+                }
+                for (int value : remove) GECODE_ME_CHECK(x[event].nq(home,value));
+                if (!x[event].assigned()) return Gecode::ES_FIX;
+            }
+
+            const int duration=std::abs(x[event].val());
+            if (in_tuplet_group) {
+                if (duration!=active_duration || onset+duration>active_end) return Gecode::ES_FAILED;
+            } else if (is_tuplet(duration,beat)) {
+                if (onset!=starts_[beat] || duration<=0 || (ends_[beat]-onset)%duration!=0)
+                    return Gecode::ES_FAILED;
+                active_duration=duration; active_end=ends_[beat]; in_tuplet_group=true;
+            }
+            onset+=duration;
+            if (in_tuplet_group && onset==active_end) in_tuplet_group=false;
+        }
+        if (in_tuplet_group) return Gecode::ES_FAILED;
+        return home.ES_SUBSUMED(*this);
+    }
+};
+
 // ---------------------------------------------------------------------------
 // post_tuplet_on_beat_start_constraint_
 //
@@ -3738,6 +4033,43 @@ void Solver::post_tuplet_on_beat_start_constraint_(
     }
     if (voice < 0 || voice >= config_.num_voices) {
         throw std::runtime_error("post_tuplet_on_beat_start: voice out of range");
+    }
+    if (config_.measure_count_mode) {
+        if (config_.measure_count_plan.solver_selects_meter)
+            throw std::runtime_error("Measure tuplet alignment requires a fixed measure_plan");
+        const auto bars=MeasureCountPlan::expand_fixed_schedule(config_.measure_count_plan,config_.rhythm_base);
+        const auto& voice_domain=config_.voice_rhythm_domains.at(voice);
+        std::vector<FixedPlanTupletBeat> beat_grid;
+        for (const auto& bar : bars) {
+            if (config_.rhythm_base%bar.signature.denominator!=0)
+                throw std::runtime_error("Measure tuplet alignment requires exact denominator-beat ticks");
+            const int beat_ticks=config_.rhythm_base/bar.signature.denominator;
+            std::set<int> tuplets;
+            for (const auto& entry : config_.metric_domain)
+                if (entry.numerator==bar.signature.numerator && entry.denominator==bar.signature.denominator)
+                    tuplets.insert(entry.tuplets.begin(),entry.tuplets.end());
+            for (int beat=0; beat<bar.signature.numerator; ++beat) {
+                FixedPlanTupletBeat beat_spec;
+                beat_spec.start=bar.start_tick+beat*beat_ticks;
+                beat_spec.end=beat_spec.start+beat_ticks;
+                for (int tuplet : tuplets) {
+                    if (tuplet<=1 || beat_ticks%tuplet!=0) continue;
+                    const int duration=beat_ticks/tuplet;
+                    if (std::any_of(voice_domain.begin(),voice_domain.end(),[duration](int value){return std::abs(value)==duration;}))
+                        beat_spec.durations.push_back(duration);
+                }
+                std::sort(beat_spec.durations.begin(),beat_spec.durations.end());
+                beat_spec.durations.erase(std::unique(beat_spec.durations.begin(),beat_spec.durations.end()),beat_spec.durations.end());
+                beat_grid.push_back(std::move(beat_spec));
+            }
+        }
+        if (std::none_of(beat_grid.begin(),beat_grid.end(),[](const auto& beat){return !beat.durations.empty();}))
+            return;
+        Gecode::ViewArray<Gecode::Int::IntView> views(*gecode_space,config_.sequence_length);
+        for (int event=0; event<config_.sequence_length; ++event)
+            views[event]=gecode_space->get_rhythm_vars()[voice*config_.sequence_length+event];
+        FixedPlanTupletPropagator::post(*gecode_space,views,beat_grid);
+        return;
     }
     if (config_.metric_domain.empty() || config_.rhythm_base <= 0) {
         throw std::runtime_error("post_tuplet_on_beat_start: requires non-empty metric_domain and positive rhythm_base");
@@ -3901,6 +4233,7 @@ void Solver::post_hierarchical_voices_constraint_(
     const std::vector<int>& selected_indices,
     bool strict_all_onsets,
     bool use_beat_anchor_filter,
+    bool explicit_indices,
     int beat_ticks) const {
     (void)strict_all_onsets;
 
@@ -3915,6 +4248,53 @@ void Solver::post_hierarchical_voices_constraint_(
         throw std::runtime_error("hierarchical_voices voice pair is out of range");
     }
     if (selected_indices.empty()) {
+        return;
+    }
+
+    if (config_.measure_count_mode) {
+        const int rhythm_stride=config_.sequence_length;
+        if (config_.measure_count_plan.solver_selects_meter)
+            throw std::runtime_error("Measure hierarchical_voices requires a fixed measure_plan");
+        const auto bars=MeasureCountPlan::expand_fixed_schedule(config_.measure_count_plan,config_.rhythm_base);
+        std::vector<int> beat_anchors;
+        if (use_beat_anchor_filter && !strict_all_onsets) {
+            for (const auto& bar : bars) {
+                if (config_.rhythm_base%bar.signature.denominator!=0)
+                    throw std::runtime_error("Measure hierarchical_voices requires exact denominator-beat ticks");
+                const int beat_ticks=config_.rhythm_base/bar.signature.denominator;
+                for (int beat=0; beat<bar.signature.numerator; ++beat)
+                    beat_anchors.push_back(bar.start_tick+beat*beat_ticks);
+            }
+        }
+        if (use_beat_anchor_filter && !strict_all_onsets && beat_anchors.empty())
+            throw std::runtime_error("Measure hierarchical_voices found no beat anchors in the fixed plan");
+
+        gecode_space->initialize_event_timing();
+        for (int coarse_event : selected_indices) {
+            if (coarse_event<0 || coarse_event>=config_.sequence_length)
+                throw std::runtime_error("Measure hierarchical_voices selected event index out of range");
+            const int coarse_index=coarse_voice*rhythm_stride+coarse_event;
+            if (explicit_indices)
+                Gecode::rel(*gecode_space,gecode_space->get_active_vars()[coarse_index],Gecode::IRT_EQ,1);
+            const auto coarse_onset=gecode_space->get_event_boundary(coarse_voice,coarse_event);
+            Gecode::BoolExpr eligible=gecode_space->get_rhythm_vars()[coarse_index]>0;
+            if (use_beat_anchor_filter && !strict_all_onsets) {
+                Gecode::BoolExpr on_beat=(coarse_onset==beat_anchors.front());
+                for (auto anchor=std::next(beat_anchors.begin()); anchor!=beat_anchors.end(); ++anchor)
+                    on_beat=on_beat || (coarse_onset==*anchor);
+                eligible=eligible && on_beat;
+            }
+            const Gecode::BoolVar require_match=Gecode::expr(*gecode_space,eligible);
+            Gecode::BoolVarArgs fine_onsets;
+            for (int fine_event=0; fine_event<config_.sequence_length; ++fine_event) {
+                const int fine_index=fine_voice*rhythm_stride+fine_event;
+                fine_onsets << Gecode::expr(*gecode_space,
+                    (gecode_space->get_rhythm_vars()[fine_index]>0) &&
+                    (gecode_space->get_event_boundary(fine_voice,fine_event)==coarse_onset));
+            }
+            Gecode::linear(*gecode_space,fine_onsets,Gecode::IRT_GQ,1,
+                           Gecode::Reify(require_match,Gecode::RM_IMP));
+        }
         return;
     }
 

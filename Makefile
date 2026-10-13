@@ -158,7 +158,7 @@ MAX_WRAPPER_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Metric timepoint regression test
 METRIC_TIMEPOINT_TEST_TARGET = bin/test-metric-timepoints
-METRIC_TIMEPOINT_TEST_SOURCE = test_metric_timepoints.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
+METRIC_TIMEPOINT_TEST_SOURCE = tests/test_metric_timepoints.cpp src/max_msp_solver_wrapper.cpp src/musical_constraint_solver.cpp src/gecode_cluster_integration.cpp src/rule_expression_parser.cpp src/dynamic_rule_compiler.cpp src/wildcard_rule_extension.cpp
 METRIC_TIMEPOINT_TEST_CXXFLAGS = -std=c++17 -O2 -Wall -g -Iinclude
 
 # Native Max external (.mxo). Set MAX_SDK_PATH to your local Max SDK root.
@@ -230,17 +230,17 @@ $(CONSTRAINT_SOLVER_MAIN_TARGET): $(CONSTRAINT_SOLVER_MAIN_SOURCE) include/music
 	$(CXX) $(CONSTRAINT_SOLVER_MAIN_CXXFLAGS) $(GECODE_INC) -o $@ $(CONSTRAINT_SOLVER_MAIN_SOURCE) $(GECODE_LIB)
 
 # Dynamic Constraint Solver - Fixed Implementation (Fully Functional JSON + Dynamic Rules)
-$(DYNAMIC_SOLVER_TARGET) $(MAX_WRAPPER_TEST_TARGET) $(MAX_EXTERNAL_TARGET) $(METRIC_TIMEPOINT_TEST_TARGET): include/motive_domains.hh include/motive_domain_parser.hh include/measure_count_plan.hh include/gecode_cluster_integration.hh
+$(DYNAMIC_SOLVER_TARGET) $(MAX_WRAPPER_TEST_TARGET) $(MAX_EXTERNAL_TARGET) $(METRIC_TIMEPOINT_TEST_TARGET) bin/test-motive-domains: include/motive_domains.hh include/motive_domain_parser.hh include/measure_count_plan.hh include/gecode_cluster_integration.hh include/dynamic_rule_compiler.hh include/cross_voice_rules.hh include/timepoint_rules.hh
 
 .PHONY: test-motive-domains
-test-motive-domains: bin/test-motive-domains
+test-motive-domains: bin/test-motive-domains $(DYNAMIC_SOLVER_TARGET)
 	./bin/test-motive-domains
 
 $(DYNAMIC_SOLVER_TARGET): $(DYNAMIC_SOLVER_SOURCE) include/musical_constraint_solver.hh include/dynamic_rule_compiler.hh include/rule_expression_parser.hh include/rule_ast.hh include/neural_pitch_scorer.hh include/cadence_rules.hh include/repetition_rules.hh include/harmonic_domain_parser.hh include/tendency_tone_rules.hh include/musicxml_svg_renderer.hh include/measure_count_plan.hh
 	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -I/usr/local/include -I/opt/homebrew/include -I/opt/homebrew/opt/gecode/include -o $@ $(DYNAMIC_SOLVER_SOURCE) $(GECODE_LIB)
 
 # Max/MSP async wrapper smoke test (SDK-independent wrapper layer)
-bin/test-motive-domains: tests/test_motive_domains.cpp $(filter-out tests/test_max_msp_wrapper.cpp,$(MAX_WRAPPER_TEST_SOURCE)) include/motive_domains.hh include/motive_domain_parser.hh include/measure_count_plan.hh include/cadence_rules.hh include/harmonic_domain_parser.hh include/gecode_cluster_integration.hh include/musical_constraint_solver.hh
+bin/test-motive-domains: tests/test_motive_domains.cpp $(filter-out tests/test_max_msp_wrapper.cpp,$(MAX_WRAPPER_TEST_SOURCE)) include/motive_domains.hh include/motive_domain_parser.hh include/measure_count_plan.hh include/cadence_rules.hh include/harmonic_domain_parser.hh include/repetition_rules.hh include/tendency_tone_rules.hh include/gecode_cluster_integration.hh include/musical_constraint_solver.hh
 	$(CXX) $(DYNAMIC_SOLVER_CXXFLAGS) $(GECODE_INC) -o $@ tests/test_motive_domains.cpp $(filter-out tests/test_max_msp_wrapper.cpp,$(MAX_WRAPPER_TEST_SOURCE)) $(GECODE_LIB)
 
 $(MAX_WRAPPER_TEST_TARGET): $(MAX_WRAPPER_TEST_SOURCE) include/max_msp_solver_wrapper.hh include/musical_constraint_solver.hh include/harmonic_domain_parser.hh include/cadence_rules.hh include/repetition_rules.hh include/tendency_tone_rules.hh include/musicxml_svg_renderer.hh

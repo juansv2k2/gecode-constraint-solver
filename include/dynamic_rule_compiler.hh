@@ -140,6 +140,163 @@ public:
 /**
  * @brief Compiler for converting AST to Gecode constraints
  */
+inline std::unique_ptr<CompiledConstraint> compile_melodic_step(
+        const std::vector<int>& voices, int max_step, bool heuristic, const std::string& id) {
+    auto compiled = std::make_unique<CompiledConstraint>(
+        id, "r-melodic-step (max_step=" + std::to_string(max_step) + ")");
+    if (heuristic) {
+        compiled->is_heuristic = true;
+        compiled->heuristic_mode = HeuristicMode::REAL_HEURISTIC;
+        compiled->heuristic_variable_type = "pitch";
+        compiled->applies_to_voices = voices;
+        compiled->score_candidate = [voices, max_step](const ConstraintContext& ctx,
+                                                      const HeuristicCandidateContext& candidate) {
+            if (!ctx.pitch_vars || candidate.voice < 0 || candidate.voice >= ctx.num_voices ||
+                candidate.position <= 0 || candidate.position >= ctx.sequence_length ||
+                std::find(voices.begin(), voices.end(), candidate.voice) == voices.end()) return 0.0;
+            const int index = candidate.voice * ctx.sequence_length + candidate.position;
+            if (index >= ctx.pitch_vars->size()) return 0.0;
+            if (ctx.space && ctx.space->is_measure_count_mode()) {
+                if (!ctx.rhythm_vars || index >= ctx.rhythm_vars->size() || candidate.candidate_value < 0) return 0.0;
+                for (int offset : {-1, 0}) {
+                    const auto& rhythm = (*ctx.rhythm_vars)[index + offset];
+                    if (!rhythm.assigned() || rhythm.val() <= 0) return 0.0;
+                }
+            }
+            const auto& previous = (*ctx.pitch_vars)[index - 1];
+            if (!previous.assigned()) return 0.0;
+            const int interval = std::abs(candidate.candidate_value - previous.val());
+            if (interval <= max_step) return 1.0;
+            if (static_cast<long long>(interval) <= static_cast<long long>(max_step) + 4) return 0.3;
+            return 0.0;
+        };
+    } else {
+        compiled->post_constraint = [voices, max_step, id](ConstraintContext& ctx) {
+            if (!ctx.pitch_vars || !ctx.space) return;
+            const bool measure_mode = ctx.space->is_measure_count_mode();
+            for (int voice : voices) {
+                if (voice < 0 || voice >= ctx.num_voices) {
+                    if (measure_mode) throw RuleCompileException(id + ": target voice out of range");
+                    continue;
+                }
+                for (int event = 0; event + 1 < ctx.sequence_length; ++event) {
+                    const int index = voice * ctx.sequence_length + event;
+                    if (index + 1 >= ctx.pitch_vars->size()) throw RuleCompileException(id + ": pitch variables out of range");
+                    IntVar forward = expr(*ctx.space, (*ctx.pitch_vars)[index + 1] - (*ctx.pitch_vars)[index]);
+                    IntVar backward = expr(*ctx.space, (*ctx.pitch_vars)[index] - (*ctx.pitch_vars)[index + 1]);
+                    if (measure_mode) {
+                        if (!ctx.rhythm_vars || index + 1 >= ctx.rhythm_vars->size())
+                            throw RuleCompileException(id + ": rhythm variables required in measure mode");
+                        BoolVar notes = expr(*ctx.space, ((*ctx.rhythm_vars)[index] > 0) && ((*ctx.rhythm_vars)[index + 1] > 0));
+                        rel(*ctx.space, forward, IRT_LQ, max_step, Reify(notes, RM_IMP));
+                        rel(*ctx.space, backward, IRT_LQ, max_step, Reify(notes, RM_IMP));
+                    } else {
+                        rel(*ctx.space, forward, IRT_LQ, max_step);
+                        rel(*ctx.space, backward, IRT_LQ, max_step);
+                    }
+                }
+            }
+        };
+    }
+    return compiled;
+}
+
+inline std::unique_ptr<CompiledConstraint> compile_measure_melodic_pattern(
+        const std::vector<int>& voices, const std::string& type, const std::string& id,
+        bool heuristic, int maximum = 2, bool absolute_intervals = false,
+        const std::string& direction = "both") {
+    const bool intervals = type == "r-no-interval-repetition";
+    const bool equal_notes = type == "r-no-consecutive-equal";
+    if (!intervals && !equal_notes && type != "r-no-consecutive-direction")
+        throw RuleCompileException(id + ": unsupported melodic pattern");
+    if (maximum < 1 || (direction != "both" && direction != "ascending" && direction != "descending"))
+        throw RuleCompileException(id + ": invalid melodic pattern parameters");
+    const long long window = intervals ? 3 : static_cast<long long>(maximum) + 1;
+    auto compiled = std::make_unique<CompiledConstraint>(id, type);
+    if (heuristic) {
+        compiled->is_heuristic = true;
+        compiled->heuristic_mode = HeuristicMode::REAL_HEURISTIC;
+        compiled->heuristic_variable_type = "pitch";
+        compiled->applies_to_voices = voices;
+        compiled->score_candidate = [voices, intervals, equal_notes, window, absolute_intervals, direction](
+                const ConstraintContext& ctx, const HeuristicCandidateContext& candidate) {
+            if (!ctx.pitch_vars || !ctx.rhythm_vars || candidate.voice < 0 || candidate.voice >= ctx.num_voices ||
+                candidate.position < 0 || candidate.position >= ctx.sequence_length || candidate.candidate_value < 0 ||
+                candidate.position + 1 < window ||
+                std::find(voices.begin(), voices.end(), candidate.voice) == voices.end()) return 0.0;
+            std::vector<int> pitches;
+            const int first = candidate.position - static_cast<int>(window) + 1;
+            for (int event = first; event <= candidate.position; ++event) {
+                const int index = candidate.voice * ctx.sequence_length + event;
+                if (index >= ctx.pitch_vars->size() || index >= ctx.rhythm_vars->size()) return 0.0;
+                const auto& rhythm = (*ctx.rhythm_vars)[index];
+                if (!rhythm.assigned() || rhythm.val() <= 0) return 0.0;
+                const auto& pitch = (*ctx.pitch_vars)[index];
+                if (event < candidate.position && !pitch.assigned()) return 0.0;
+                pitches.push_back(event == candidate.position ? candidate.candidate_value : pitch.val());
+            }
+            if (intervals) {
+                const int previous = pitches[1] - pitches[0];
+                const int current = pitches[2] - pitches[1];
+                return (absolute_intervals ? std::abs(previous) == std::abs(current) : previous == current) ? 0.0 : 1.0;
+            }
+            bool all_equal = true, ascending = true, descending = true;
+            for (size_t event = 1; event < pitches.size(); ++event) {
+                all_equal = all_equal && pitches[event] == pitches[event - 1];
+                ascending = ascending && pitches[event] > pitches[event - 1];
+                descending = descending && pitches[event] < pitches[event - 1];
+            }
+            const bool violation = equal_notes ? all_equal :
+                ((direction != "descending" && ascending) || (direction != "ascending" && descending));
+            return violation ? 0.0 : 1.0;
+        };
+    } else {
+        compiled->post_constraint = [voices, intervals, equal_notes, window, maximum, absolute_intervals, direction, id](
+                ConstraintContext& ctx) {
+            if (!ctx.space || !ctx.pitch_vars || !ctx.rhythm_vars)
+                throw RuleCompileException(id + ": pitch and rhythm variables required");
+            for (int voice : voices) {
+                if (voice < 0 || voice >= ctx.num_voices) throw RuleCompileException(id + ": target voice out of range");
+                if (window > ctx.sequence_length) continue;
+                for (int first = 0; first <= ctx.sequence_length - window; ++first) {
+                    const int index = voice * ctx.sequence_length + first;
+                    if (index + window > ctx.pitch_vars->size() || index + window > ctx.rhythm_vars->size())
+                        throw RuleCompileException(id + ": event variables out of range");
+                    BoolVar notes(*ctx.space, 1, 1);
+                    for (int offset = 0; offset < window; ++offset)
+                        notes = expr(*ctx.space, notes && ((*ctx.rhythm_vars)[index + offset] > 0));
+                    if (intervals) {
+                        IntVar previous = expr(*ctx.space, (*ctx.pitch_vars)[index + 1] - (*ctx.pitch_vars)[index]);
+                        IntVar current = expr(*ctx.space, (*ctx.pitch_vars)[index + 2] - (*ctx.pitch_vars)[index + 1]);
+                        rel(*ctx.space, previous, IRT_NQ, current, Reify(notes, RM_IMP));
+                        if (absolute_intervals) {
+                            IntVar reversed = expr(*ctx.space, -current);
+                            rel(*ctx.space, previous, IRT_NQ, reversed, Reify(notes, RM_IMP));
+                        }
+                    } else {
+                        auto forbid_run = [&](IntRelType relation) {
+                            BoolVarArgs matches;
+                            for (int offset = 0; offset < maximum; ++offset) {
+                                BoolVar match(*ctx.space, 0, 1);
+                                rel(*ctx.space, (*ctx.pitch_vars)[index + offset + 1], relation,
+                                    (*ctx.pitch_vars)[index + offset], Reify(match, RM_EQV));
+                                matches << match;
+                            }
+                            linear(*ctx.space, matches, IRT_LQ, maximum - 1, Reify(notes, RM_IMP));
+                        };
+                        if (equal_notes) forbid_run(IRT_EQ);
+                        else {
+                            if (direction != "descending") forbid_run(IRT_GR);
+                            if (direction != "ascending") forbid_run(IRT_LE);
+                        }
+                    }
+                }
+            }
+        };
+    }
+    return compiled;
+}
+
 class DynamicRuleCompiler {
 public:
     /**
@@ -156,6 +313,12 @@ public:
      * @brief Compile and post an AST constraint directly to the space (PUBLIC for wildcard extension)
      */
     static void compile_and_post_constraint(const ASTNode& node, ConstraintContext& ctx);
+
+    /** Post a measure-mode wildcard predicate only when its referenced events are active notes. */
+    static void post_measure_wildcard_predicate(const ASTNode& node, ConstraintContext& ctx);
+
+    /** Boolean form of a validated measure predicate: comparisons, literal membership, AND/OR/NOT. */
+    static BoolExpr build_measure_predicate(const ASTNode& node, ConstraintContext& ctx);
     
 private:
     /**
@@ -248,6 +411,8 @@ public:
             } catch (const std::exception& e) {
                 ++last_posted_failed_count_;
                 std::cout << "  ❌ Failed: " << constraint->rule_id << " - " << e.what() << std::endl;
+                if (ctx.space && ctx.space->is_measure_count_mode())
+                    throw RuleCompileException("Hard constraint '" + constraint->rule_id + "' could not be posted: " + e.what());
             }
         }
     }

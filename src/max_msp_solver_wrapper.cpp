@@ -4,8 +4,10 @@
 #include "wildcard_rule_extension.hh"
 #include "harmonic_domain_parser.hh"
 #include "cadence_rules.hh"
+#include "cross_voice_rules.hh"
 #include "repetition_rules.hh"
 #include "tendency_tone_rules.hh"
+#include "timepoint_rules.hh"
 #include "musicxml_svg_renderer.hh"
 
 #include <algorithm>
@@ -1345,7 +1347,7 @@ void reconstruct_flattened_max_dict_paths(nlohmann::json& cfg) {
 void coerce_scalar_array_schema_fields(nlohmann::json& value) {
     static const std::set<std::string> array_keys = {
         "dynamic_rules", "rules", "voices", "measure_plan", "duration_values", "midi_values", "time_signatures",
-        "tuplets", "beat_divisions", "indices", "target_voices", "beat_positions", "timepoints", "parameters"
+        "tuplets", "beat_divisions", "indices", "target_voices", "beat_positions", "beat_numbers", "timepoints", "parameters"
     };
 
     if (value.is_object()) {
@@ -1637,6 +1639,7 @@ void AsyncSolverWrapper::run_solve_job() {
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::steady_clock::now() - solve_wall_start).count()) / 1000.0;
             const auto search_stats = solver_.last_search_stats();
+            local_result.search_stats = search_stats;
 
             // Format solve time: show milliseconds below 1 s, seconds above.
             char time_buf[32];
@@ -1723,6 +1726,7 @@ void AsyncSolverWrapper::run_solve_job() {
                     j["found_solution"] = true;
                     j["num_solutions"] = solutions.size();
                     j["solve_time_ms"] = solution.solve_time_ms;
+                    j["search_profile"] = search_stats.to_json();
                     j["backjumps_performed"] = solution.backjumps_performed;
                     j["total_rules_checked"] = solution.total_rules_checked;
                     j["dynamic_rules_posted_ok"] = rules_ok;
@@ -2457,10 +2461,20 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                 if (r.contains("enabled") && !json_value_to_bool(r["enabled"], true)) continue;
 
                 const std::string rule_type = r.value("rule_type", std::string(""));
+                if (rule_type=="wildcard_constraint") continue;
+                if (sc.measure_count_mode && (rule_type=="r-time-signature" || rule_type=="r-metric-signature")) {
+                    TimepointRules::validate_signatures(r,sc);
+                    continue;
+                }
                 std::string function;
                 if (r.contains("constraint_function") && r["constraint_function"].is_object()) {
                     function = r["constraint_function"].value("function", std::string(""));
                 }
+                if (sc.measure_count_mode && function.empty() && r.contains("constraint"))
+                    function = r["constraint"].get<std::string>();
+                if (sc.measure_count_mode && function.empty() &&
+                    (rule_type == "r-one-voice" || rule_type == "r-pitches-one-engine" || rule_type == "r-pitches-all-different"))
+                    function = "all_different";
 
                 if (function.empty()) {
                     if (rule_type == "r-twelve-tone-voice1") {
@@ -2518,6 +2532,17 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         parameters.push_back(params_node.get<double>());
                     } else if (params_node.is_string()) {
                         parameter_strings.push_back(params_node.get<std::string>());
+                    }
+                }
+
+                if (sc.measure_count_mode && r.contains("parameters") &&
+                    !(r.contains("constraint_function") && r["constraint_function"].is_object() && r["constraint_function"].contains("parameters"))) {
+                    const auto& values = r["parameters"];
+                    if (!values.is_array()) throw std::runtime_error("Measure-mode parameters must be an array");
+                    for (const auto& value : values) {
+                        if (value.is_number()) parameters.push_back(value.get<double>());
+                        else if (value.is_string()) parameter_strings.push_back(value.get<std::string>());
+                        else throw std::runtime_error("Measure-mode parameters must contain numbers or strings");
                     }
                 }
 
@@ -2585,11 +2610,19 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                     const std::string type_field = rule_json.value("type", "");
                     const bool has_target_engine = rule_json.contains("target_engine") && rule_json["target_engine"].is_number_integer() && rule_json["target_engine"].get<int>() >= 0;
                     const bool has_target_engines = rule_json.contains("target_engines") && rule_json["target_engines"].is_array() && !rule_json["target_engines"].empty();
-                    if (!rule_type.empty() && !has_target_engine && !has_target_engines && type_field != "index") {
+                    if (!rule_type.empty() && rule_type!="wildcard_constraint" && !has_target_engine && !has_target_engines && type_field != "index") {
                         throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing target_voices after normalization");
                     }
 
+                    if (sc.measure_count_mode && (rule_type=="r-time-signature" || rule_type=="r-metric-signature")) {
+                        solver_.apply_compiled_constraint(TimepointRules::compile_signatures(rule_json,sc));
+                        continue;
+                    }
                     if (rule_type == "r-timepoint-relationship") {
+                        if (sc.measure_count_mode) {
+                            solver_.apply_compiled_constraint(TimepointRules::compile(rule_json,sc));
+                            continue;
+                        }
                         std::vector<int> target_voices;
                         if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array()) {
                             for (const auto& v : rule_json["target_voices"]) {
@@ -2911,6 +2944,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                                 }
 
                                 const int idx = voice * ctx.sequence_length + ev.pos;
+                                if (ctx.space && ctx.space->is_measure_count_mode())
+                                    Gecode::rel(*ctx.space, ctx.space->get_active_vars()[idx], Gecode::IRT_EQ, 1);
                                 if (ctx.rhythm_vars && idx < static_cast<int>(ctx.rhythm_vars->size())) {
                                     Gecode::dom(*ctx.space, (*ctx.rhythm_vars)[idx], Gecode::IntSet(ev.rhythm_ticks, ev.rhythm_ticks));
                                 }
@@ -2924,6 +2959,10 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
 
                         solver_.apply_compiled_constraint(std::move(compiled));
                     } else if (rule_type == "r-rhythm-rhythm") {
+                        if (sc.measure_count_mode) {
+                            solver_.apply_compiled_constraint(CrossVoiceRules::compile_rhythm(rule_json, sc.num_voices, sc.sequence_length));
+                            continue;
+                        }
                         // ── R-RHYTHM-RHYTHM ──────────────────────────────────────────
                         // Position-aligned cross-voice rhythm constraint.
                         // Modes: "isorhythm", "abs_isorhythm", "augmentation",
@@ -3102,6 +3141,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         // ── R-REPETITION ───────────────────────────────────────────────
                         // See include/repetition_rules.hh for the relation reference.
                         RepetitionRules::RepetitionParams rep_params = RepetitionRules::resolve_params(rule_json);
+                        if (sc.measure_count_mode) RepetitionRules::validate_measure_addresses(rep_params, sc.num_voices, sc.sequence_length);
 
                         auto compiled_rep = std::make_unique<DynamicRules::CompiledConstraint>(
                             rep_params.id, "r-repetition: " + rep_params.relation);
@@ -3147,6 +3187,10 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         solver_.apply_compiled_constraint(std::move(compiled_tt));
                         // ─────────────────────────────────────────────────────────────
                     } else if (rule_type == "r-pitch-pitch") {
+                        if (sc.measure_count_mode) {
+                            solver_.apply_compiled_constraint(CrossVoiceRules::compile_pitch(rule_json, sc.num_voices, sc.sequence_length));
+                            continue;
+                        }
                         // ── R-PITCH-PITCH ─────────────────────────────────────────────
                         // Phase 1 modes: no_unison, same_pitch, voice_above, voice_below,
                         //   exact_interval, min_interval, max_interval, interval_range, interval_class
@@ -3385,57 +3429,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         const bool ms_heur = json_value_to_bool_with_default(rule_json.contains("heuristic") ? rule_json["heuristic"] : nlohmann::json(false), false);
                         const std::string ms_id = rule_json.value("id", "r-melodic-step");
 
-                        auto compiled_ms = std::make_unique<DynamicRules::CompiledConstraint>(
-                            ms_id, "r-melodic-step (max_step=" + std::to_string(ms_max) + ")");
-
-                        if (ms_heur) {
-                            compiled_ms->is_heuristic = true;
-                            compiled_ms->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
-                            compiled_ms->heuristic_variable_type = "pitch";
-                            compiled_ms->applies_to_voices = ms_voices;
-                            compiled_ms->score_candidate = [ms_voices, ms_max](
-                                    const DynamicRules::ConstraintContext& ctx,
-                                    const DynamicRules::HeuristicCandidateContext& cand) -> double {
-                                if (!ctx.pitch_vars) return 0.0;
-                                if (std::find(ms_voices.begin(), ms_voices.end(), cand.voice) == ms_voices.end()) return 0.0;
-                                if (cand.position == 0) return 0.0;
-                                const int prev_idx = cand.voice * ctx.sequence_length + (cand.position - 1);
-                                if (prev_idx < 0 || prev_idx >= (int)ctx.pitch_vars->size()) return 0.0;
-                                const Gecode::IntVar& pv = (*ctx.pitch_vars)[prev_idx];
-                                if (!pv.assigned()) return 0.0;
-                                const int interval = std::abs(cand.candidate_value - pv.val());
-                                if (interval <= ms_max)       return 1.0;   // step
-                                if (interval <= ms_max + 4)   return 0.3;   // skip
-                                return 0.0;                                  // leap
-                            };
-                        } else {
-                            compiled_ms->post_constraint = [ms_voices, ms_max, ms_id](
-                                    DynamicRules::ConstraintContext& ctx) {
-                                if (!ctx.pitch_vars || !ctx.space) return;
-                                try {
-                                    for (int v : ms_voices) {
-                                        if (v < 0 || v >= ctx.num_voices) continue;
-                                        for (int i = 0; i + 1 < ctx.sequence_length; ++i) {
-                                            const int ci = v * ctx.sequence_length + i;
-                                            const int ni = v * ctx.sequence_length + (i + 1);
-                                            if (ci >= (int)ctx.pitch_vars->size() ||
-                                                ni >= (int)ctx.pitch_vars->size()) continue;
-                                            // |p_next - p_curr| <= ms_max via two linear rels
-                                            Gecode::IntVar p_curr = (*ctx.pitch_vars)[ci];
-                                            Gecode::IntVar p_next = (*ctx.pitch_vars)[ni];
-                                            Gecode::IntVar diff_fwd = Gecode::expr(*ctx.space, p_next - p_curr);
-                                            Gecode::IntVar diff_bwd = Gecode::expr(*ctx.space, p_curr - p_next);
-                                            Gecode::rel(*ctx.space, diff_fwd, Gecode::IRT_LQ, ms_max);
-                                            Gecode::rel(*ctx.space, diff_bwd, Gecode::IRT_LQ, ms_max);
-                                        }
-                                    }
-                                } catch (const std::exception& ex) {
-                                    std::cerr << "[r-melodic-step] post_constraint threw: "
-                                              << ex.what() << "\n";
-                                    throw;
-                                }
-                            };
-                        }
+                        auto compiled_ms = DynamicRules::compile_melodic_step(ms_voices, ms_max, ms_heur, ms_id);
 
                         std::cerr << "[MaxWrapper] r-melodic-step: " << ms_id
                                   << " max_step=" << ms_max
@@ -3502,6 +3496,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         }
                         std::cerr << "[MaxWrapper] r-no-interval-repetition: " << nir_id
                                   << (nir_heur ? " heuristic\n" : " hard\n");
+                        if (sc.measure_count_mode)
+                            compiled_nir = DynamicRules::compile_measure_melodic_pattern(nir_voices, rule_type, nir_id, nir_heur, 2, nir_absolute);
                         solver_.apply_compiled_constraint(std::move(compiled_nir));
                         // ─────────────────────────────────────────────────────────────
                     } else if (rule_type == "r-no-consecutive-equal") {
@@ -3566,6 +3562,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         }
                         std::cerr << "[MaxWrapper] r-no-consecutive-equal: " << nce_id
                                   << " max=" << nce_max << (nce_heur ? " heuristic\n" : " hard\n");
+                        if (sc.measure_count_mode)
+                            compiled_nce = DynamicRules::compile_measure_melodic_pattern(nce_voices, rule_type, nce_id, nce_heur, nce_max);
                         solver_.apply_compiled_constraint(std::move(compiled_nce));
                         // ─────────────────────────────────────────────────────────────
                     } else if (rule_type == "r-no-consecutive-direction") {
@@ -3654,6 +3652,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         std::cerr << "[MaxWrapper] r-no-consecutive-direction: " << ncd_id
                                   << " dir=" << ncd_dir << " max=" << ncd_max
                                   << (ncd_heur ? " heuristic\n" : " hard\n");
+                        if (sc.measure_count_mode)
+                            compiled_ncd = DynamicRules::compile_measure_melodic_pattern(ncd_voices, rule_type, ncd_id, ncd_heur, ncd_max, false, ncd_dir);
                         solver_.apply_compiled_constraint(std::move(compiled_ncd));
                         // ─────────────────────────────────────────────────────────────
                     } else if (rule_json.contains("id") && rule_json.contains("expression")) {
@@ -3661,6 +3661,7 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
                         solver_.load_dynamic_rules(single_rule);
                     }
                 } catch (...) {
+                    if (sc.measure_count_mode) throw;
                 }
             }
         }

@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <set>
 
 using namespace Gecode;
 using namespace GecodeClusterIntegration;
@@ -44,6 +45,100 @@ int voice_pos_to_index(const ConstraintContext& ctx, int voice, int pos) {
 }
 
 double eval_numeric_expr(const ASTNode& node, const ConstraintContext& ctx, const HeuristicCandidateContext& candidate_ctx);
+
+struct MeasureEventReference {
+    int voice;
+    int position;
+    bool pitch;
+};
+
+void validate_measure_arithmetic(const ASTNode& node, const ConstraintContext& ctx,
+                                 std::vector<MeasureEventReference>& references) {
+    if (node.type==ASTNodeType::CONSTANT) {
+        if (!std::holds_alternative<int>(node.value))
+            throw RuleCompileException("measure dynamic expressions require integer constants");
+        return;
+    }
+    if (node.type==ASTNodeType::VOICE_ACCESS) {
+        const auto& access=static_cast<const VoiceAccessNode&>(node);
+        if ((access.property!="pitch" && access.property!="rhythm") || !access.position_expr ||
+            access.position_expr->type!=ASTNodeType::CONSTANT ||
+            !std::holds_alternative<int>(access.position_expr->value))
+            throw RuleCompileException("measure dynamic expressions require literal pitch/rhythm event addresses");
+        const int position=access.position_expr->get_value<int>();
+        if (access.voice_index<0 || access.voice_index>=ctx.num_voices ||
+            position<0 || position>=ctx.sequence_length)
+            throw RuleCompileException("measure dynamic event address is out of range");
+        references.push_back({access.voice_index,position,access.property=="pitch"});
+        return;
+    }
+    if (node.type==ASTNodeType::PLUS || node.type==ASTNodeType::MINUS || node.type==ASTNodeType::MULTIPLY) {
+        if (node.children.size()!=2) throw RuleCompileException("malformed measure dynamic arithmetic expression");
+        validate_measure_arithmetic(*node.children[0],ctx,references);
+        validate_measure_arithmetic(*node.children[1],ctx,references);
+        return;
+    }
+    if (node.type==ASTNodeType::ABS) {
+        if (node.children.size()!=1) throw RuleCompileException("malformed measure dynamic abs expression");
+        validate_measure_arithmetic(*node.children[0],ctx,references);
+        return;
+    }
+    throw RuleCompileException("unsupported measure dynamic arithmetic operator");
+}
+
+void validate_measure_predicate(const ASTNode& node, const ConstraintContext& ctx,
+                                std::vector<MeasureEventReference>& references) {
+    if (node.type==ASTNodeType::AND || node.type==ASTNodeType::OR) {
+        if (node.children.size()!=2) throw RuleCompileException("malformed measure dynamic conjunction/disjunction");
+        validate_measure_predicate(*node.children[0],ctx,references);
+        validate_measure_predicate(*node.children[1],ctx,references);
+        return;
+    }
+    if (node.type==ASTNodeType::NOT) {
+        if (node.children.size()!=1) throw RuleCompileException("malformed measure dynamic negation");
+        validate_measure_predicate(*node.children[0],ctx,references);
+        return;
+    }
+    if (node.type==ASTNodeType::EQUALS || node.type==ASTNodeType::NOT_EQUALS ||
+        node.type==ASTNodeType::LESS_THAN || node.type==ASTNodeType::LESS_EQUAL ||
+        node.type==ASTNodeType::GREATER_THAN || node.type==ASTNodeType::GREATER_EQUAL) {
+        if (node.children.size()!=2) throw RuleCompileException("malformed measure dynamic comparison");
+        validate_measure_arithmetic(*node.children[0],ctx,references);
+        validate_measure_arithmetic(*node.children[1],ctx,references);
+        return;
+    }
+    if (node.type==ASTNodeType::IN || node.type==ASTNodeType::NOT_IN) {
+        if (node.children.size()!=2 || node.children[1]->type!=ASTNodeType::CONSTANT ||
+            !std::holds_alternative<std::vector<int>>(node.children[1]->value))
+            throw RuleCompileException("measure dynamic membership requires a literal integer set");
+        validate_measure_arithmetic(*node.children[0],ctx,references);
+        return;
+    }
+    throw RuleCompileException("measure dynamic rules support comparisons, literal membership and AND/OR/NOT only (got node type "
+                               + std::to_string(static_cast<int>(node.type)) + ")");
+}
+
+void post_measure_event_guards(const ASTNode& root, ConstraintContext& ctx) {
+    if (!ctx.space || !ctx.pitch_vars || !ctx.rhythm_vars)
+        throw RuleCompileException("measure dynamic rules require pitch and rhythm variables");
+    std::vector<MeasureEventReference> references;
+    validate_measure_predicate(root,ctx,references);
+    if (references.empty()) throw RuleCompileException("measure dynamic expressions must reference at least one event");
+    std::set<std::pair<int,int>> active_events, sounded_pitches;
+    for (const auto& reference : references) {
+        active_events.insert({reference.voice,reference.position});
+        if (reference.pitch) sounded_pitches.insert({reference.voice,reference.position});
+    }
+    for (const auto& event : active_events) {
+        const int index=event.first*ctx.sequence_length+event.second;
+        rel(*ctx.space,ctx.space->get_active_vars()[index],IRT_EQ,1);
+    }
+    for (const auto& event : sounded_pitches) {
+        const int index=event.first*ctx.sequence_length+event.second;
+        rel(*ctx.space,(*ctx.rhythm_vars)[index],IRT_GR,0);
+    }
+    rel(*ctx.space,DynamicRuleCompiler::build_measure_predicate(root,ctx));
+}
 
 int eval_position_expr(const ASTNode& node, const HeuristicCandidateContext& candidate_ctx) {
     switch (node.type) {
@@ -299,6 +394,14 @@ std::unique_ptr<CompiledConstraint> DynamicRuleCompiler::compile_from_json(const
         try {
             if (ast->is_heuristic()) {
                 // Heuristic modes are score-only and must not post constraints.
+                if (ctx.space && ctx.space->is_measure_count_mode())
+                    throw RuleCompileException("measure dynamic heuristics are not supported");
+                return;
+            }
+
+            if (ctx.space && ctx.space->is_measure_count_mode()) {
+                if (!ast->root) throw RuleCompileException("measure dynamic rule has no expression");
+                post_measure_event_guards(*ast->root,ctx);
                 return;
             }
 
@@ -433,6 +536,59 @@ void DynamicRuleCompiler::compile_and_post_constraint(const ASTNode& node, Const
         
         default:
             throw RuleCompileException("Unsupported constraint type for direct posting: " + std::to_string(static_cast<int>(node.type)));
+    }
+}
+
+void DynamicRuleCompiler::post_measure_wildcard_predicate(const ASTNode& node, ConstraintContext& ctx) {
+    if (!ctx.space || !ctx.space->is_measure_count_mode() || !ctx.pitch_vars || !ctx.rhythm_vars)
+        throw RuleCompileException("Measure wildcard predicate requires measure pitch/rhythm context");
+    std::vector<MeasureEventReference> references;
+    validate_measure_predicate(node,ctx,references);
+    if (references.empty()) throw RuleCompileException("Measure wildcard predicate must reference events");
+
+    const auto& first_reference=references.front();
+    const int first_index=first_reference.voice*ctx.sequence_length+first_reference.position;
+    BoolExpr applicable=ctx.space->get_active_vars()[first_index]==1;
+    if (first_reference.pitch) applicable=applicable && ((*ctx.rhythm_vars)[first_index]>0);
+    for (size_t reference_index=1; reference_index<references.size(); ++reference_index) {
+        const auto& reference=references[reference_index];
+        const int index=reference.voice*ctx.sequence_length+reference.position;
+        applicable=applicable && (ctx.space->get_active_vars()[index]==1);
+        if (reference.pitch) applicable=applicable && ((*ctx.rhythm_vars)[index]>0);
+    }
+    rel(*ctx.space,(!applicable) || build_measure_predicate(node,ctx));
+}
+
+BoolExpr DynamicRuleCompiler::build_measure_predicate(const ASTNode& node, ConstraintContext& ctx) {
+    switch (node.type) {
+        case ASTNodeType::AND:
+            return build_measure_predicate(*node.children[0],ctx) && build_measure_predicate(*node.children[1],ctx);
+        case ASTNodeType::OR:
+            return build_measure_predicate(*node.children[0],ctx) || build_measure_predicate(*node.children[1],ctx);
+        case ASTNodeType::NOT:
+            return !build_measure_predicate(*node.children[0],ctx);
+        case ASTNodeType::IN:
+        case ASTNodeType::NOT_IN: {
+            const auto& values=static_cast<const ConstantNode&>(*node.children[1]).get_value<std::vector<int>>();
+            if (values.empty()) throw RuleCompileException("Measure membership requires a nonempty literal set");
+            const IntVar value=compile_arithmetic_to_var(*node.children[0],ctx);
+            BoolExpr member=value==values.front();
+            for (size_t index=1; index<values.size(); ++index) member=member || (value==values[index]);
+            return node.type==ASTNodeType::IN ? member : !member;
+        }
+        default: {
+            const IntVar left=compile_arithmetic_to_var(*node.children[0],ctx);
+            const IntVar right=compile_arithmetic_to_var(*node.children[1],ctx);
+            switch (node.type) {
+                case ASTNodeType::EQUALS: return left==right;
+                case ASTNodeType::NOT_EQUALS: return left!=right;
+                case ASTNodeType::LESS_THAN: return left<right;
+                case ASTNodeType::LESS_EQUAL: return left<=right;
+                case ASTNodeType::GREATER_THAN: return left>right;
+                case ASTNodeType::GREATER_EQUAL: return left>=right;
+                default: throw RuleCompileException("Unsupported measure predicate operator");
+            }
+        }
     }
 }
 

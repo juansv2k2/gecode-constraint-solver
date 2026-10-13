@@ -133,8 +133,10 @@ inline bool render_file(const std::string& musicxml_path,
         return false;
     }
 
+    // One tall page: "-a" writes name_001.svg, name_002.svg for long scores, which this path can't find.
     if (!run_process(executable,
-                     {"-f", "xml", "-a", "-o", svg_path, musicxml_path}, error))
+                     {"-f", "xml", "--breaks", "auto", "--page-height", "60000",
+                      "--adjust-page-height", "-o", svg_path, musicxml_path}, error))
         return false;
     if (!std::filesystem::is_regular_file(svg_path) || std::filesystem::file_size(svg_path) == 0) {
         error = "Verovio reported success but did not produce an SVG file";

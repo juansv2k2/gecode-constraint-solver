@@ -43,6 +43,7 @@ struct SolveResult {
     int rhythm_base = 1;
     int dynamic_rules_posted_ok = 0;
     int dynamic_rules_post_failed = 0;
+    MusicalConstraintSolver::Solver::SearchStats search_stats;
 };
 
 class AsyncSolverWrapper {

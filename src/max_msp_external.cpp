@@ -326,6 +326,7 @@ void normalize_array_schema_fields(nlohmann::json& value) {
         "beat_divisions",
         "indices",
         "beat_positions",
+        "beat_numbers",
         "timepoints",
         "parameters",
         "bar_pattern",

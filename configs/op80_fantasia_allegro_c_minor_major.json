@@ -1,0 +1,619 @@
+{
+  "name": "Fantasia II - Allegro (C minor to C major)",
+  "description": "Driving section in C minor, inspired by the fast figuration of Beethoven's Choral Fantasy: sixteenth-note chord-tone arpeggios in the alto, eighth-note chord tones in the tenor, a chord-tone bass, and a soprano of stepwise eighth runs anchored on the beats. A half cadence closes bar 4 and a perfect cadence closes bar 8 in C minor; the last two bars arrive in C major.",
+  "solution_length": "measure_count",
+  "measure_count": 10,
+  "measure_plan": [
+    {
+      "bars": 10,
+      "time_signature": "4/4"
+    }
+  ],
+  "measure_fill_policy": "exact",
+  "num_voices": 4,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "value_order": "random",
+    "branching": "first_fail",
+    "random_seed": 42,
+    "timeout_ms": 120000,
+    "max_solutions": 1
+  },
+  "export_json": false,
+  "export_txt": false,
+  "export_xml": true,
+  "export_svg": false,
+  "export_png": true,
+  "file_name": "output/op80_fantasia_allegro_c_minor_major",
+  "voices": [
+    {
+      "name": "Soprano",
+      "pitch": {
+        "midi_values": [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/4", "1/8", "1/8", "1/4", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/4", "1/8", "1/8", "1/2", "1/2", "1/4", "1/4", "1/4", "1/8", "1/8", "1/4", "1/4", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/4", "1/8", "1/8", "1/2", "1/4", "1/4", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Alto",
+      "pitch": {
+        "midi_values": [55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/16", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4"]
+        ]
+      }
+    },
+    {
+      "name": "Tenor",
+      "pitch": {
+        "midi_values": [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4", "1/4", "1/4", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4", "1/4", "1/4", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Bass",
+      "pitch": {
+        "midi_values": [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2"]
+        ]
+      }
+    }
+  ],
+  "harmonic_domain": [
+    {
+      "beat": 0,
+      "degree": "i",
+      "key": "C",
+      "mode": "minor"
+    },
+    {
+      "beat": 2,
+      "degree": "V7"
+    },
+    {
+      "beat": 4,
+      "degree": "i"
+    },
+    {
+      "beat": 6,
+      "degree": "iv"
+    },
+    {
+      "beat": 8,
+      "degree": "VI"
+    },
+    {
+      "beat": 10,
+      "chord": "D",
+      "quality": "dom7"
+    },
+    {
+      "beat": 12,
+      "degree": "V"
+    },
+    {
+      "beat": 16,
+      "degree": "i"
+    },
+    {
+      "beat": 18,
+      "degree": "iv"
+    },
+    {
+      "beat": 20,
+      "degree": "VI"
+    },
+    {
+      "beat": 22,
+      "chord": "Db",
+      "quality": "major"
+    },
+    {
+      "beat": 24,
+      "degree": "V7"
+    },
+    {
+      "beat": 28,
+      "degree": "i"
+    },
+    {
+      "beat": 32,
+      "degree": "I",
+      "key": "C",
+      "mode": "major"
+    },
+    {
+      "beat": 34,
+      "degree": "IV"
+    },
+    {
+      "beat": 36,
+      "degree": "V7"
+    },
+    {
+      "beat": 38,
+      "degree": "I"
+    }
+  ],
+  "rules": [
+    {
+      "id": "phrase_1_half_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "HC",
+      "beat_positions": [11, 12],
+      "require_chord_tones": true,
+      "target_voices": [0, 1, 2, 3],
+      "require_root_position": true
+    },
+    {
+      "id": "phrase_2_perfect_cadence_c_minor",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "beat_positions": [27, 28],
+      "require_chord_tones": true,
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "final_perfect_cadence_c_major",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "beat_positions": [37, 38],
+      "require_chord_tones": true,
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "bar_8_seventh_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "beat_positions": [27, 28],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "final_seventh_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "beat_positions": [37, 38],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "final_leading_tone_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "beat_positions": [37, 38],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "soprano_c_minor_colours",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+      "constraint": "voice[v].pitch[i] in [67,68,70,71,72,73,74,75,77,78,79,80,82,83,84,85,86,87,89,90,91]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_c_major_scale",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [41, 42, 43, 44, 45, 46, 47],
+      "constraint": "voice[v].pitch[i] in [67,69,71,72,74,76,77,79,81,83,84,86,88,89,91]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_scalar_runs",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "sliding_window",
+      "pattern_offsets": [0, 1],
+      "indices": [1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 22, 26, 27, 28, 29, 30, 31, 32, 42],
+      "constraint": "abs(voice[v].pitch[i+1] - voice[v].pitch[i]) <= 2",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_no_repeated_note",
+      "rule_type": "r-no-consecutive-equal",
+      "max_consecutive": 1,
+      "target_voices": [0]
+    },
+    {
+      "id": "alto_no_repeated_note",
+      "rule_type": "r-no-consecutive-equal",
+      "max_consecutive": 1,
+      "target_voices": [1]
+    },
+    {
+      "id": "tenor_no_repeated_note",
+      "rule_type": "r-no-consecutive-equal",
+      "max_consecutive": 1,
+      "target_voices": [2]
+    },
+    {
+      "id": "soprano_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 12,
+      "target_voices": [0]
+    },
+    {
+      "id": "alto_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 9,
+      "target_voices": [1]
+    },
+    {
+      "id": "tenor_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 9,
+      "target_voices": [2]
+    },
+    {
+      "id": "bass_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 12,
+      "target_voices": [3]
+    },
+    {
+      "id": "soprano_alto_order_spacing",
+      "rule_type": "r-timepoint-relationship",
+      "time_scope": "all_timepoints",
+      "function": "interval_in_set",
+      "parameters": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      "voice_order": "descending",
+      "target_voices": [0, 1]
+    },
+    {
+      "id": "alto_tenor_order_spacing",
+      "rule_type": "r-timepoint-relationship",
+      "time_scope": "all_timepoints",
+      "function": "interval_in_set",
+      "parameters": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      "voice_order": "descending",
+      "target_voices": [1, 2]
+    },
+    {
+      "id": "tenor_bass_order_spacing",
+      "rule_type": "r-timepoint-relationship",
+      "time_scope": "all_timepoints",
+      "function": "interval_in_set",
+      "parameters": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36],
+      "voice_order": "descending",
+      "target_voices": [2, 3]
+    },
+    {
+      "id": "soprano_chord_tones_1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [17],
+      "constraint": "voice[v].pitch[i] in [69,72,74,78,81,84,86,90]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [0, 1, 6, 8, 21, 22, 38, 39, 40],
+      "constraint": "voice[v].pitch[i] in [67,72,75,79,84,87,91]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [14, 15, 26, 28],
+      "constraint": "voice[v].pitch[i] in [68,72,75,80,84,87]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [41, 42, 47],
+      "constraint": "voice[v].pitch[i] in [67,72,76,79,84,88,91]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_5",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [10, 12, 24, 25],
+      "constraint": "voice[v].pitch[i] in [68,72,77,80,84,89]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_6",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [44],
+      "constraint": "voice[v].pitch[i] in [69,72,77,81,84,89]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_7",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [30, 32],
+      "constraint": "voice[v].pitch[i] in [68,73,77,80,85,89]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_8",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [3, 4, 34, 35, 36, 37, 45, 46],
+      "constraint": "voice[v].pitch[i] in [67,71,74,77,79,83,86,89,91]",
+      "target_voices": [0]
+    },
+    {
+      "id": "soprano_chord_tones_9",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [18, 19, 20],
+      "constraint": "voice[v].pitch[i] in [67,71,74,79,83,86,91]",
+      "target_voices": [0]
+    },
+    {
+      "id": "alto_chord_tones_1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [40, 41, 42, 43, 44, 45, 46, 47],
+      "constraint": "voice[v].pitch[i] in [57,60,62,66,69,72,74,78]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 23, 56, 57, 58, 59, 60, 61, 62, 63, 104, 105, 106, 107, 108, 109, 110, 111],
+      "constraint": "voice[v].pitch[i] in [55,60,63,67,72,75,79]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [32, 33, 34, 35, 36, 37, 38, 39, 72, 73, 74, 75, 76, 77, 78, 79],
+      "constraint": "voice[v].pitch[i] in [56,60,63,68,72,75]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [112, 113, 114, 115, 116, 117, 118, 119, 132, 133],
+      "constraint": "voice[v].pitch[i] in [55,60,64,67,72,76,79]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_5",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [24, 25, 26, 27, 28, 29, 30, 31, 64, 65, 66, 67, 68, 69, 70, 71],
+      "constraint": "voice[v].pitch[i] in [56,60,65,68,72,77]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_6",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [120, 121, 122, 123, 124, 125, 126, 127],
+      "constraint": "voice[v].pitch[i] in [57,60,65,69,72,77]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_7",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [80, 81, 82, 83, 84, 85, 86, 87],
+      "constraint": "voice[v].pitch[i] in [56,61,65,68,73,77]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_8",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [8, 9, 10, 11, 12, 13, 14, 15, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 128, 129, 130, 131],
+      "constraint": "voice[v].pitch[i] in [55,59,62,65,67,71,74,77,79]",
+      "target_voices": [1]
+    },
+    {
+      "id": "alto_chord_tones_9",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [48, 49, 50, 51, 52, 53, 54, 55],
+      "constraint": "voice[v].pitch[i] in [55,59,62,67,71,74,79]",
+      "target_voices": [1]
+    },
+    {
+      "id": "tenor_chord_tones_1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [20, 21, 22, 23],
+      "constraint": "voice[v].pitch[i] in [48,50,54,57,60,62,66,69]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [0, 1, 2, 3, 8, 9, 10, 11, 28, 29, 30, 31, 52, 53, 54, 55],
+      "constraint": "voice[v].pitch[i] in [48,51,55,60,63,67]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [16, 17, 18, 19, 36, 37, 38, 39],
+      "constraint": "voice[v].pitch[i] in [48,51,56,60,63,68]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [56, 57, 58, 59, 66],
+      "constraint": "voice[v].pitch[i] in [48,52,55,60,64,67]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_5",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [12, 13, 14, 15, 32, 33, 34, 35],
+      "constraint": "voice[v].pitch[i] in [48,53,56,60,65,68]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_6",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [60, 61, 62, 63],
+      "constraint": "voice[v].pitch[i] in [48,53,57,60,65,69]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_7",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [40, 41, 42, 43],
+      "constraint": "voice[v].pitch[i] in [49,53,56,61,65,68]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_8",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [4, 5, 6, 7, 44, 45, 46, 47, 48, 49, 50, 51, 64, 65],
+      "constraint": "voice[v].pitch[i] in [50,53,55,59,62,65,67]",
+      "target_voices": [2]
+    },
+    {
+      "id": "tenor_chord_tones_9",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [24, 25, 26, 27],
+      "constraint": "voice[v].pitch[i] in [50,55,59,62,67]",
+      "target_voices": [2]
+    },
+    {
+      "id": "bass_chord_tones_1",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [10, 11],
+      "constraint": "voice[v].pitch[i] in [33,36,38,42,45,48,50,54,57]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_2",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [0, 1, 4, 5, 14, 15, 26, 27],
+      "constraint": "voice[v].pitch[i] in [31,36,39,43,48,51,55]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_3",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [8, 9, 18, 19],
+      "constraint": "voice[v].pitch[i] in [32,36,39,44,48,51,56]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_4",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [28, 29, 34],
+      "constraint": "voice[v].pitch[i] in [31,36,40,43,48,52,55]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_5",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [6, 7, 16, 17],
+      "constraint": "voice[v].pitch[i] in [32,36,41,44,48,53,56]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_6",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [30, 31],
+      "constraint": "voice[v].pitch[i] in [33,36,41,45,48,53,57]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_7",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [20, 21],
+      "constraint": "voice[v].pitch[i] in [32,37,41,44,49,53,56]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_8",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [2, 3, 22, 23, 24, 25, 32, 33],
+      "constraint": "voice[v].pitch[i] in [31,35,38,41,43,47,50,53,55]",
+      "target_voices": [3]
+    },
+    {
+      "id": "bass_chord_tones_9",
+      "rule_type": "wildcard_constraint",
+      "wildcard_type": "for_all_positions",
+      "pattern_offsets": [0],
+      "indices": [12, 13],
+      "constraint": "voice[v].pitch[i] in [31,35,38,43,47,50,55]",
+      "target_voices": [3]
+    }
+  ]
+}

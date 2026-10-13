@@ -14,8 +14,10 @@
 #include "neural_pitch_scorer.hh"
 #include "harmonic_domain_parser.hh"
 #include "cadence_rules.hh"
+#include "cross_voice_rules.hh"
 #include "repetition_rules.hh"
 #include "tendency_tone_rules.hh"
+#include "timepoint_rules.hh"
 #include "musicxml_svg_renderer.hh"
 #include <nlohmann/json.hpp>
 #include <iostream>
@@ -111,6 +113,7 @@ static void normalize_rule_targeting_for_cli_json(nlohmann::json& rule, int num_
     const std::string type_field = rule.value("type", std::string(""));
 
     if (type_field == "index") return;
+    if (rule_type == "wildcard_constraint") return;
 
     if (rule_type == "r-rhythmic-uniformity") {
         rule_type = "r-uniformity";
@@ -709,7 +712,7 @@ public:
                                     current_rule.target_engines.push_back(
                                         engine_index_for_voice_component(voice_idx, target_component, num_voices_));
                                 }
-                                if (current_rule.engine_type.empty()) {
+                                if (current_rule.engine_type.empty() || measure_count_mode_) {
                                     current_rule.engine_type = target_component;
                                 }
                                 if (current_rule.rule_type == "r-metric-hierarchy") {
@@ -719,6 +722,10 @@ public:
                             }
                         }
 
+                        if (current_rule.rule_type=="wildcard_constraint") {
+                            rules_.push_back(current_rule);
+                            continue;
+                        }
                         const bool has_target_engine = (current_rule.target_engine >= 0);
                         const bool has_target_engines = !current_rule.target_engines.empty();
                         if (!has_target_engine && !has_target_engines) {
@@ -739,12 +746,22 @@ public:
                         continue;
                     }
                     
-                    if (line == "}," && in_constraint_function) {
+                    if ((line == "}," || line == "}") && in_constraint_function) {
                         in_constraint_function = false;
                         continue;
                     }
                     
                     if (in_constraint_function) {
+                        if (in_parameters_array) {
+                            parameters_content += " " + line;
+                            if (line.find("]") != std::string::npos) {
+                                current_rule.parameters = parseDoubleArray(parameters_content);
+                                current_rule.parameter_strings = parseStringArray(parameters_content);
+                                in_parameters_array = false;
+                                parameters_content.clear();
+                            }
+                            continue;
+                        }
                         if (line.find("\"function\"") != std::string::npos) {
                             size_t pos = line.find(":");
                             if (pos != std::string::npos) {
@@ -2192,6 +2209,15 @@ int main(int argc, char* argv[]) {
                 if (hf.is_open()) { try { hf >> hcfg; } catch (...) {} }
             }
             MeasureCountPlan::validate_rule_support(hcfg);
+            if (solver_config.measure_count_mode && hcfg.contains("rules")) {
+                for (const auto& rule : hcfg["rules"]) {
+                    if (!rule.is_object() || !json_as_bool(rule,"enabled",true)) continue;
+                    const auto type=rule.value("rule_type",std::string());
+                    if (type=="r-time-signature" || type=="r-metric-signature") {
+                        TimepointRules::validate_signatures(rule,solver_config);
+                    }
+                }
+            }
             HarmonicDomainParser::parse(hcfg, solver_config.harmonic_domain,
                                          solver_config.sequence_length, solver_config.rhythm_base);
             if (hcfg.contains("require_harmonic_chord_tones")) {
@@ -2225,6 +2251,9 @@ int main(int argc, char* argv[]) {
         const auto& rules = parser.getRules();
         for (const auto& ruleConfig : rules) {
             if (ruleConfig.enabled) {
+                if (ruleConfig.rule_type=="wildcard_constraint") continue;
+                if (solver_config.measure_count_mode &&
+                    (ruleConfig.rule_type=="r-time-signature" || ruleConfig.rule_type=="r-metric-signature")) continue;
                 // Pass normalized rule targeting to the solver's internal engine mapping.
                 solver.add_rule_config(ruleConfig.rule_type, ruleConfig.function, ruleConfig.indices, 
                                      ruleConfig.target_engine, ruleConfig.target_engines, ruleConfig.engine_type, ruleConfig.description, 
@@ -2304,11 +2333,21 @@ int main(int argc, char* argv[]) {
 
                             const bool has_target_engine = rule_json.contains("target_engine") && rule_json["target_engine"].is_number_integer() && rule_json["target_engine"].get<int>() >= 0;
                             const bool has_target_engines = rule_json.contains("target_engines") && rule_json["target_engines"].is_array() && !rule_json["target_engines"].empty();
-                            if (!rule_type.empty() && !has_target_engine && !has_target_engines && type_field != "index") {
+                            if (!rule_type.empty() && rule_type!="wildcard_constraint" && !has_target_engine && !has_target_engines && type_field != "index") {
                                 throw std::runtime_error("rule '" + rule_json.value("id", rule_type) + "' is missing target_voices after normalization");
                             }
 
+                            if (solver_config.measure_count_mode && (rule_type=="r-time-signature" || rule_type=="r-metric-signature")) {
+                                solver.apply_compiled_constraint(TimepointRules::compile_signatures(rule_json,solver_config));
+                                ++regular_count;
+                                continue;
+                            }
                             if (rule_type == "r-timepoint-relationship") {
+                                if (solver_config.measure_count_mode) {
+                                    solver.apply_compiled_constraint(TimepointRules::compile(rule_json,solver_config));
+                                    ++regular_count;
+                                    continue;
+                                }
                                 std::vector<int> target_voices;
                                 if (rule_json.contains("target_voices") && rule_json["target_voices"].is_array()) {
                                     for (const auto& v : rule_json["target_voices"]) {
@@ -2635,6 +2674,8 @@ int main(int argc, char* argv[]) {
                                         if (ev.pos < 0 || ev.pos >= ctx.sequence_length)
                                             throw std::runtime_error("index rule '" + rule_id + "': position " + std::to_string(ev.pos) + " out of range (sequence_length=" + std::to_string(ctx.sequence_length) + ")");
                                         int idx = voice * ctx.sequence_length + ev.pos;
+                                        if (ctx.space && ctx.space->is_measure_count_mode())
+                                            Gecode::rel(*ctx.space, ctx.space->get_active_vars()[idx], Gecode::IRT_EQ, 1);
                                         // Pin rhythm variable
                                         if (ctx.rhythm_vars && idx < (int)ctx.rhythm_vars->size())
                                             Gecode::dom(*ctx.space, (*ctx.rhythm_vars)[idx], Gecode::IntSet(ev.rhythm_ticks, ev.rhythm_ticks));
@@ -2652,6 +2693,12 @@ int main(int argc, char* argv[]) {
                                 solver.apply_compiled_constraint(std::move(compiled));
                                 // ─────────────────────────────────────────────────────────────
                             } else if (rule_type == "r-rhythm-rhythm") {
+                                if (solver_config.measure_count_mode) {
+                                    auto cross_rule = CrossVoiceRules::compile_rhythm(rule_json, solver_config.num_voices, solver_config.sequence_length);
+                                    if (!cross_rule->is_heuristic) ++regular_count;
+                                    solver.apply_compiled_constraint(std::move(cross_rule));
+                                    continue;
+                                }
                                 // ── R-RHYTHM-RHYTHM ──────────────────────────────────────────
                                 // Position-aligned cross-voice rhythm constraint.
                                 // Modes: "isorhythm"           — r_v1[i] == r_v2[i]
@@ -2866,6 +2913,8 @@ int main(int argc, char* argv[]) {
                                 // include/repetition_rules.hh for the full field reference.
                                 RepetitionRules::RepetitionParams rep_params =
                                     RepetitionRules::resolve_params(rule_json);
+                                if (solver_config.measure_count_mode)
+                                    RepetitionRules::validate_measure_addresses(rep_params, solver_config.num_voices, solver_config.sequence_length);
 
                                 auto compiled_rep = std::make_unique<DynamicRules::CompiledConstraint>(
                                     rep_params.id, "r-repetition: " + rep_params.relation);
@@ -2918,6 +2967,12 @@ int main(int argc, char* argv[]) {
                                 solver.apply_compiled_constraint(std::move(compiled_tt));
                                 // ─────────────────────────────────────────────────────────────
                             } else if (rule_type == "r-pitch-pitch") {
+                                if (solver_config.measure_count_mode) {
+                                    auto cross_rule = CrossVoiceRules::compile_pitch(rule_json, solver_config.num_voices, solver_config.sequence_length);
+                                    if (!cross_rule->is_heuristic) ++regular_count;
+                                    solver.apply_compiled_constraint(std::move(cross_rule));
+                                    continue;
+                                }
                                 // ── R-PITCH-PITCH ─────────────────────────────────────────────
                                 // Position-aligned cross-voice pitch (harmonic) constraint.
                                 // Phase 1 modes (single position):
@@ -3200,51 +3255,7 @@ int main(int argc, char* argv[]) {
                                 const bool ms_heur = json_as_bool(rule_json, "heuristic");
                                 const std::string ms_id = rule_json.value("id", "r-melodic-step");
 
-                                auto compiled_ms = std::make_unique<DynamicRules::CompiledConstraint>(
-                                    ms_id, "r-melodic-step (max_step=" + std::to_string(ms_max) + ")");
-
-                                if (ms_heur) {
-                                    compiled_ms->is_heuristic = true;
-                                    compiled_ms->heuristic_mode = DynamicRules::HeuristicMode::REAL_HEURISTIC;
-                                    compiled_ms->heuristic_variable_type = "pitch";
-                                    compiled_ms->applies_to_voices = ms_voices;
-                                    compiled_ms->score_candidate = [ms_voices, ms_max](
-                                            const DynamicRules::ConstraintContext& ctx,
-                                            const DynamicRules::HeuristicCandidateContext& cand) -> double {
-                                        if (!ctx.pitch_vars) return 0.0;
-                                        if (std::find(ms_voices.begin(), ms_voices.end(), cand.voice) == ms_voices.end()) return 0.0;
-                                        if (cand.position == 0) return 0.0;
-                                        const int prev_idx = cand.voice * ctx.sequence_length + (cand.position - 1);
-                                        if (prev_idx < 0 || prev_idx >= (int)ctx.pitch_vars->size()) return 0.0;
-                                        const Gecode::IntVar& pv = (*ctx.pitch_vars)[prev_idx];
-                                        if (!pv.assigned()) return 0.0;
-                                        const int interval = std::abs(cand.candidate_value - pv.val());
-                                        if (interval <= ms_max)       return 1.0;   // step
-                                        if (interval <= ms_max + 4)   return 0.3;   // skip
-                                        return 0.0;                                  // leap
-                                    };
-                                } else {
-                                    compiled_ms->post_constraint = [ms_voices, ms_max, ms_id](
-                                            DynamicRules::ConstraintContext& ctx) {
-                                        if (!ctx.pitch_vars || !ctx.space) return;
-                                        for (int v : ms_voices) {
-                                            if (v < 0 || v >= ctx.num_voices) continue;
-                                            for (int i = 0; i + 1 < ctx.sequence_length; ++i) {
-                                                const int ci = v * ctx.sequence_length + i;
-                                                const int ni = v * ctx.sequence_length + (i + 1);
-                                                if (ci >= (int)ctx.pitch_vars->size() ||
-                                                    ni >= (int)ctx.pitch_vars->size()) continue;
-                                                // |p_next - p_curr| <= ms_max via two linear rels
-                                                Gecode::IntVar p_curr = (*ctx.pitch_vars)[ci];
-                                                Gecode::IntVar p_next = (*ctx.pitch_vars)[ni];
-                                                Gecode::IntVar diff_fwd = Gecode::expr(*ctx.space, p_next - p_curr);
-                                                Gecode::IntVar diff_bwd = Gecode::expr(*ctx.space, p_curr - p_next);
-                                                Gecode::rel(*ctx.space, diff_fwd, Gecode::IRT_LQ, ms_max);
-                                                Gecode::rel(*ctx.space, diff_bwd, Gecode::IRT_LQ, ms_max);
-                                            }
-                                        }
-                                    };
-                                }
+                                auto compiled_ms = DynamicRules::compile_melodic_step(ms_voices, ms_max, ms_heur, ms_id);
 
                                 if (!ms_heur) ++regular_count;
                                 std::cout << "     \u2705 Compiled r-melodic-step: " << ms_id
@@ -3327,6 +3338,8 @@ int main(int argc, char* argv[]) {
                                 std::cout << "     \u2705 Compiled r-no-interval-repetition: " << nir_id
                                           << " (" << (nir_absolute ? "absolute" : "up-down") << ")"
                                           << (nir_heur ? " heuristic" : " hard") << std::endl;
+                                if (solver_config.measure_count_mode)
+                                    compiled_nir = DynamicRules::compile_measure_melodic_pattern(nir_voices, rule_type, nir_id, nir_heur, 2, nir_absolute);
                                 solver.apply_compiled_constraint(std::move(compiled_nir));
                                 // ─────────────────────────────────────────────────────────────
                             } else if (rule_type == "r-no-consecutive-equal") {
@@ -3397,6 +3410,8 @@ int main(int argc, char* argv[]) {
                                 std::cout << "     \u2705 Compiled r-no-consecutive-equal: " << nce_id
                                           << " max=" << nce_max
                                           << (nce_heur ? " heuristic" : " hard") << std::endl;
+                                if (solver_config.measure_count_mode)
+                                    compiled_nce = DynamicRules::compile_measure_melodic_pattern(nce_voices, rule_type, nce_id, nce_heur, nce_max);
                                 solver.apply_compiled_constraint(std::move(compiled_nce));
                                 // ─────────────────────────────────────────────────────────────
                             } else if (rule_type == "r-no-consecutive-direction") {
@@ -3507,6 +3522,8 @@ int main(int argc, char* argv[]) {
                                 std::cout << "     \u2705 Compiled r-no-consecutive-direction: " << ncd_id
                                           << " dir=" << ncd_dir << " max=" << ncd_max
                                           << (ncd_heur ? " heuristic" : " hard") << std::endl;
+                                if (solver_config.measure_count_mode)
+                                    compiled_ncd = DynamicRules::compile_measure_melodic_pattern(ncd_voices, rule_type, ncd_id, ncd_heur, ncd_max, false, ncd_dir);
                                 solver.apply_compiled_constraint(std::move(compiled_ncd));
                                 // ─────────────────────────────────────────────────────────────
                             } else if (rule_json.contains("id") && rule_json.contains("expression")) {
@@ -3524,6 +3541,7 @@ int main(int argc, char* argv[]) {
                             }
                         } catch (const std::exception& e) {
                             std::cout << "     ❌ Failed to compile rule: " << e.what() << std::endl;
+                            if (solver_config.measure_count_mode) throw;
                         }
                     }
                     
@@ -3539,6 +3557,7 @@ int main(int argc, char* argv[]) {
             }
         } catch (const std::exception& e) {
             std::cout << "   ⚠️  Could not parse dynamic rules: " << e.what() << std::endl;
+            if (solver_config.measure_count_mode) throw;
             std::cout << "   Continuing with legacy rules only..." << std::endl;
         }
         

@@ -36,6 +36,8 @@
 #include <gecode/int.hh>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
+#include <limits>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -102,7 +104,12 @@ inline RepetitionParams resolve_params(const nlohmann::json& rule_json) {
         p.sequence_step = rule_json.value("sequence_step", 0);
     }
 
-    p.heuristic = rule_json.value("heuristic", false);
+    if (rule_json.contains("heuristic")) {
+        const auto& value = rule_json["heuristic"];
+        if (!value.is_boolean() && !value.is_number_integer())
+            throw std::runtime_error("r-repetition '" + p.id + "': heuristic must be boolean or integer");
+        p.heuristic = value.is_boolean() ? value.get<bool>() : value.get<int>() != 0;
+    }
     if (p.heuristic && p.relation == "diatonic_sequence")
         throw std::runtime_error(
             "r-repetition '" + p.id + "': relation 'diatonic_sequence' does not support "
@@ -120,8 +127,8 @@ inline int diatonic_shift(int p, int key_tonic, int key_mode, int step) {
     static const int MINOR_STEPS[7] = {0, 2, 3, 5, 7, 8, 10};
     const int* steps = (key_mode == 0) ? MAJOR_STEPS : MINOR_STEPS;
 
-    auto floor_div = [](int a, int b) { int q = a / b, r = a % b; if (r != 0 && ((r < 0) != (b < 0))) --q; return q; };
-    auto floor_mod = [](int a, int b) { int r = a % b; if (r != 0 && ((r < 0) != (b < 0))) r += b; return r; };
+    auto floor_div = [](long long a, long long b) { long long q = a / b, r = a % b; if (r != 0 && ((r < 0) != (b < 0))) --q; return q; };
+    auto floor_mod = [](long long a, long long b) { long long r = a % b; if (r != 0 && ((r < 0) != (b < 0))) r += b; return r; };
 
     const int rel = p - key_tonic;
     const int octave = floor_div(rel, 12);
@@ -132,15 +139,123 @@ inline int diatonic_shift(int p, int key_tonic, int key_mode, int step) {
     if (degree_index < 0) return -1;  // chromatic — no diatonic-sequence target defined
 
     const int scale_index     = octave * 7 + degree_index;
-    const int new_scale_index = scale_index + step;
-    const int new_octave      = floor_div(new_scale_index, 7);
-    const int new_degree      = floor_mod(new_scale_index, 7);
-    return key_tonic + new_octave * 12 + steps[new_degree];
+    const long long new_scale_index = static_cast<long long>(scale_index) + step;
+    const long long new_octave      = floor_div(new_scale_index, 7);
+    const int new_degree            = static_cast<int>(floor_mod(new_scale_index, 7));
+    const long long shifted = key_tonic + new_octave * 12 + steps[new_degree];
+    if (shifted < std::numeric_limits<int>::min() || shifted > std::numeric_limits<int>::max()) return -1;
+    return static_cast<int>(shifted);
+}
+
+inline void validate_measure_addresses(const RepetitionParams& params, int voices, int capacity) {
+    for (int voice : params.target_voices)
+        if (voice < 0 || voice >= voices) throw std::runtime_error("Repetition target voice out of range");
+    for (const auto& positions : {params.source_positions, params.target_positions})
+        for (int position : positions)
+            if (position < 0 || position >= capacity) throw std::runtime_error("Repetition index outside event capacity");
+}
+
+inline Gecode::IntVar key_at_event(DynamicRules::ConstraintContext& ctx, int voice, int event,
+                                  Gecode::BoolVar sounded, const HarmonicConfig& harmony) {
+    if (!harmony.enabled || harmony.entries.empty() || ctx.rhythm_base < 4 || ctx.rhythm_base % 4 != 0)
+        throw std::runtime_error("Measure diatonic sequence requires keyed harmony and quarter-note tick alignment");
+    ctx.space->initialize_event_timing();
+    const auto onset = ctx.space->get_event_boundary(voice, event);
+    Gecode::IntVar key(*ctx.space, 0, 23);
+    Gecode::BoolVarArgs coverage;
+    for (size_t segment = 0; segment < harmony.entries.size(); ++segment) {
+        const auto& entry = harmony.entries[segment];
+        const long long lower = static_cast<long long>(entry.beat_position) * (ctx.rhythm_base / 4);
+        if (lower < 0 || lower > Gecode::Int::Limits::max) throw std::runtime_error("Diatonic harmony beat out of range");
+        Gecode::BoolExpr applies = sounded && (onset >= static_cast<int>(lower));
+        if (segment + 1 < harmony.entries.size()) {
+            const long long upper = static_cast<long long>(harmony.entries[segment + 1].beat_position) * (ctx.rhythm_base / 4);
+            if (upper <= lower || upper > Gecode::Int::Limits::max)
+                throw std::runtime_error("Diatonic harmony beats must be strictly increasing");
+            applies = applies && (onset < static_cast<int>(upper));
+        }
+        if (entry.key_tonic < 0) continue;
+        Gecode::BoolVar selected = Gecode::expr(*ctx.space, applies);
+        Gecode::rel(*ctx.space, key, Gecode::IRT_EQ, entry.key_tonic * 2 + entry.key_mode,
+                    Gecode::Reify(selected, Gecode::RM_IMP));
+        coverage << selected;
+    }
+    if (coverage.size() == 0) throw std::runtime_error("Diatonic sequence requires a declared key");
+    Gecode::linear(*ctx.space, coverage, Gecode::IRT_EQ, 1, Gecode::Reify(sounded, Gecode::RM_IMP));
+    return key;
+}
+
+inline void post_measure_repetition(DynamicRules::ConstraintContext& ctx, const RepetitionParams& params,
+                                    const HarmonicConfig& harmony) {
+    validate_measure_addresses(params, ctx.num_voices, ctx.sequence_length);
+    if (!ctx.pitch_vars || !ctx.rhythm_vars) throw std::runtime_error("Measure repetition requires pitch and rhythm variables");
+    for (int voice : params.target_voices) {
+        if (voice < 0 || voice >= ctx.num_voices) throw std::runtime_error("Repetition target voice out of range");
+        std::vector<Gecode::BoolVar> paired_notes;
+        for (size_t pair = 0; pair < params.source_positions.size(); ++pair) {
+            const int source = params.source_positions[pair], target = params.target_positions[pair];
+            if (source < 0 || target < 0 || source >= ctx.sequence_length || target >= ctx.sequence_length)
+                throw std::runtime_error("Repetition index outside event capacity");
+            const int source_index = voice * ctx.sequence_length + source;
+            const int target_index = voice * ctx.sequence_length + target;
+            Gecode::rel(*ctx.space, ctx.space->get_active_vars()[source_index], Gecode::IRT_EQ, 1);
+            Gecode::rel(*ctx.space, ctx.space->get_active_vars()[target_index], Gecode::IRT_EQ, 1);
+            const auto source_rhythm = (*ctx.rhythm_vars)[source_index], target_rhythm = (*ctx.rhythm_vars)[target_index];
+            Gecode::BoolVar source_note = Gecode::expr(*ctx.space, source_rhythm > 0);
+            Gecode::BoolVar target_note = Gecode::expr(*ctx.space, target_rhythm > 0);
+            if (params.relation != "rhythm_preserving") Gecode::rel(*ctx.space, source_note, Gecode::IRT_EQ, target_note);
+            Gecode::BoolVar notes = Gecode::expr(*ctx.space, source_note && target_note);
+            paired_notes.push_back(notes);
+            const auto source_pitch = (*ctx.pitch_vars)[source_index], target_pitch = (*ctx.pitch_vars)[target_index];
+            if (params.relation == "exact") {
+                Gecode::rel(*ctx.space, target_pitch, Gecode::IRT_EQ, source_pitch, Gecode::Reify(notes, Gecode::RM_IMP));
+            } else if (params.relation == "transposed") {
+                Gecode::linear(*ctx.space, Gecode::IntArgs({1,-1}), Gecode::IntVarArgs({target_pitch,source_pitch}),
+                    Gecode::IRT_EQ, params.transpose_semitones, Gecode::Reify(notes, Gecode::RM_IMP));
+            } else if (params.relation == "rhythm_preserving") {
+                Gecode::rel(*ctx.space, target_rhythm, Gecode::IRT_EQ, source_rhythm);
+            } else if (params.relation == "diatonic_sequence") {
+                const auto source_key = key_at_event(ctx, voice, source, notes, harmony);
+                const auto target_key = key_at_event(ctx, voice, target, notes, harmony);
+                Gecode::rel(*ctx.space, source_key, Gecode::IRT_EQ, target_key, Gecode::Reify(notes, Gecode::RM_IMP));
+                Gecode::TupleSet tuples(3);
+                std::set<int> keys;
+                for (const auto& entry : harmony.entries) if (entry.key_tonic >= 0) keys.insert(entry.key_tonic * 2 + entry.key_mode);
+                for (int key : keys) for (int pitch = 0; pitch <= 127; ++pitch) {
+                    if (!source_pitch.in(pitch)) continue;
+                    const int shifted = diatonic_shift(pitch, key / 2, key % 2, params.sequence_step);
+                    if (shifted >= 0 && shifted <= 127 && target_pitch.in(shifted)) tuples.add(Gecode::IntArgs({key,pitch,shifted}));
+                }
+                tuples.finalize();
+                Gecode::extensional(*ctx.space, Gecode::IntVarArgs({source_key,source_pitch,target_pitch}), tuples,
+                                    Gecode::Reify(notes, Gecode::RM_IMP));
+            }
+        }
+        if (params.relation == "contour_preserving") {
+            for (size_t pair = 1; pair < paired_notes.size(); ++pair) {
+                const auto source_previous = (*ctx.pitch_vars)[voice * ctx.sequence_length + params.source_positions[pair - 1]];
+                const auto source_current = (*ctx.pitch_vars)[voice * ctx.sequence_length + params.source_positions[pair]];
+                const auto target_previous = (*ctx.pitch_vars)[voice * ctx.sequence_length + params.target_positions[pair - 1]];
+                const auto target_current = (*ctx.pitch_vars)[voice * ctx.sequence_length + params.target_positions[pair]];
+                Gecode::BoolVar compare = Gecode::expr(*ctx.space, paired_notes[pair - 1] && paired_notes[pair]);
+                Gecode::BoolVar source_up = Gecode::expr(*ctx.space, source_current > source_previous);
+                Gecode::BoolVar target_up = Gecode::expr(*ctx.space, target_current > target_previous);
+                Gecode::BoolVar source_down = Gecode::expr(*ctx.space, source_current < source_previous);
+                Gecode::BoolVar target_down = Gecode::expr(*ctx.space, target_current < target_previous);
+                Gecode::rel(*ctx.space, source_up, Gecode::IRT_EQ, target_up, Gecode::Reify(compare, Gecode::RM_IMP));
+                Gecode::rel(*ctx.space, source_down, Gecode::IRT_EQ, target_down, Gecode::Reify(compare, Gecode::RM_IMP));
+            }
+        }
+    }
 }
 
 inline void post_repetition_constraint(DynamicRules::ConstraintContext& ctx,
                                         const RepetitionParams& p,
                                         const HarmonicConfig& harmonic_domain) {
+    if (ctx.space && ctx.space->is_measure_count_mode()) {
+        post_measure_repetition(ctx, p, harmonic_domain);
+        return;
+    }
     const int n = (int)p.source_positions.size();
 
     for (int voice : p.target_voices) {
@@ -260,11 +375,24 @@ inline double score_candidate(const RepetitionParams& p,
     const Gecode::IntVar& src_var = (*ctx.pitch_vars)[src_idx];
     if (!src_var.assigned()) return 0.0;  // nothing to compare against yet
     const int src_val = src_var.val();
+    if (ctx.space && ctx.space->is_measure_count_mode()) {
+        if (!ctx.rhythm_vars || cand.voice < 0 || cand.voice >= ctx.num_voices || src_pos < 0 ||
+            src_pos >= ctx.sequence_length || cand.position < 0 || cand.position >= ctx.sequence_length || cand.candidate_value < 0) return 0.0;
+        std::vector<int> events{src_pos,cand.position};
+        if (p.relation == "contour_preserving" && idx > 0) {
+            events.push_back(p.source_positions[idx - 1]); events.push_back(p.target_positions[idx - 1]);
+        }
+        for (int event : events) {
+            if (event < 0 || event >= ctx.sequence_length) return 0.0;
+            const auto& rhythm = (*ctx.rhythm_vars)[cand.voice * ctx.sequence_length + event];
+            if (!rhythm.assigned() || rhythm.val() <= 0) return 0.0;
+        }
+    }
 
     if (p.relation == "exact")
         return (cand.candidate_value == src_val) ? 1.0 : -0.5;
     if (p.relation == "transposed")
-        return (cand.candidate_value == src_val + p.transpose_semitones) ? 1.0 : -0.5;
+        return (static_cast<long long>(cand.candidate_value) == static_cast<long long>(src_val) + p.transpose_semitones) ? 1.0 : -0.5;
     if (p.relation == "contour_preserving") {
         if (idx == 0) return 0.0;  // first position in the range has no prior step to compare
         const int prev_src_idx = cand.voice * ctx.sequence_length + p.source_positions[idx - 1];

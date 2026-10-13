@@ -17,7 +17,7 @@ namespace DynamicRules {
 std::unique_ptr<CompiledConstraint> WildcardRuleCompiler::compile_wildcard_from_json(
     const nlohmann::json& rule_json) {
     
-    std::string rule_id = rule_json.value("rule_id", "unnamed_wildcard");
+    std::string rule_id = rule_json.value("id", rule_json.value("rule_id", "unnamed_wildcard"));
     std::string description = rule_json.value("description", "Wildcard rule");
     
     // Parse wildcard specification
@@ -40,14 +40,25 @@ std::unique_ptr<CompiledConstraint> WildcardRuleCompiler::compile_wildcard_from_
     // Create compiled constraint
     auto compiled = std::make_unique<CompiledConstraint>(rule_id, description);
     
+    // Measure mode expands every supported wildcard shape as a guarded step-1 window.
+    auto with_measure_expansion = [&spec, &constraint_ast](std::function<void(ConstraintContext&)> legacy) {
+        WildcardSpec measure_spec = spec;
+        measure_spec.step_size = 1;
+        auto window = create_sliding_window_constraint(measure_spec, constraint_ast);
+        return std::function<void(ConstraintContext&)>([legacy, window](ConstraintContext& ctx) {
+            if (ctx.space && ctx.space->is_measure_count_mode()) window(ctx);
+            else legacy(ctx);
+        });
+    };
+
     // Select appropriate constraint creation function based on wildcard type
     switch (spec.type) {
         case WildcardType::FOR_ALL_POSITIONS: {
-            compiled->post_constraint = create_for_all_positions_constraint(spec, constraint_ast);
+            compiled->post_constraint = with_measure_expansion(create_for_all_positions_constraint(spec, constraint_ast));
             break;
         }
         case WildcardType::FOR_ALL_VOICES: {
-            compiled->post_constraint = create_for_all_voices_constraint(spec, constraint_ast);
+            compiled->post_constraint = with_measure_expansion(create_for_all_voices_constraint(spec, constraint_ast));
             break;
         }
         case WildcardType::SLIDING_WINDOW: {
@@ -199,6 +210,13 @@ std::function<void(ConstraintContext&)> WildcardRuleCompiler::create_sliding_win
     
     return [spec, constraint_expr](ConstraintContext& ctx) {
         std::cout << "  🌟 Applying SLIDING_WINDOW wildcard rule" << std::endl;
+        const bool measure_mode=ctx.space && ctx.space->is_measure_count_mode();
+        if (measure_mode) {
+            if (spec.step_size<=0) throw RuleCompileException("Measure wildcard step_size must be positive");
+            for (int index : spec.target_indices)
+                if (index<0 || index>=ctx.sequence_length)
+                    throw RuleCompileException("Measure wildcard index is outside event capacity");
+        }
         
         // Re-parse the constraint expression when applying
         RuleExpressionParser parser;
@@ -222,21 +240,36 @@ std::function<void(ConstraintContext&)> WildcardRuleCompiler::create_sliding_win
         }
         
         // Apply sliding window across each voice
-        for (int voice = 0; voice < ctx.num_voices; ++voice) {
+        std::vector<int> voices=spec.target_voices;
+        if (voices.empty()) for (int voice=0; voice<ctx.num_voices; ++voice) voices.push_back(voice);
+        for (int voice : voices) {
+            if (measure_mode && (voice<0 || voice>=ctx.num_voices))
+                throw RuleCompileException("Measure wildcard target voice is outside the configured voices");
             for (int pos = 0; pos <= ctx.sequence_length - max_offset - 1; pos += spec.step_size) {
-                // Skip if any position in the window could be a rest
-                bool can_apply = true;
-                for (int offset : spec.pattern_offsets) {
-                    if (ctx.position_can_be_rest(voice, pos + offset)) {
-                        can_apply = false;
-                        break;
+                if (measure_mode && !spec.target_indices.empty() &&
+                    std::find(spec.target_indices.begin(),spec.target_indices.end(),pos)==spec.target_indices.end())
+                    continue;
+                if (!measure_mode) {
+                    bool can_apply = true;
+                    for (int offset : spec.pattern_offsets) {
+                        if (ctx.position_can_be_rest(voice, pos + offset)) {
+                            can_apply = false;
+                            break;
+                        }
                     }
+                    if (!can_apply) continue;
                 }
-                if (!can_apply) continue;
 
                 std::cout << "    🆔 About to call apply_constraint_at_position for voice=" << voice 
                           << " pos=" << pos << std::endl;
-                apply_constraint_at_position(*constraint_ast->root, ctx, voice, pos, spec.pattern_offsets);
+                if (measure_mode) {
+                    std::unique_ptr<ASTNode> substituted=substitute_pattern_variables(
+                        *constraint_ast->root,voice,pos,spec.pattern_offsets);
+                    if (!substituted) throw RuleCompileException("Measure wildcard substitution returned no expression");
+                    DynamicRuleCompiler::post_measure_wildcard_predicate(*substituted,ctx);
+                } else {
+                    apply_constraint_at_position(*constraint_ast->root, ctx, voice, pos, spec.pattern_offsets);
+                }
                 std::cout << "    🆔 Returned from apply_constraint_at_position for voice=" << voice 
                           << " pos=" << pos << std::endl;
                 total_constraints++;
@@ -277,6 +310,9 @@ void WildcardRuleCompiler::apply_constraint_at_position(
         }
         
     } catch (const std::exception& e) {
+        if (ctx.space && ctx.space->is_measure_count_mode())
+            throw RuleCompileException("Wildcard posting failed at voice " + std::to_string(voice_idx) +
+                                      ", position " + std::to_string(position_idx) + ": " + e.what());
         std::cout << "    ⚠️  Failed to apply constraint at voice " << voice_idx 
                   << ", position " << position_idx << ": " << e.what() << std::endl;
     }
@@ -312,7 +348,9 @@ WildcardSpec WildcardRuleCompiler::parse_wildcard_spec(const nlohmann::json& rul
     // Parse other parameters
     spec.window_size = rule_json.value("window_size", 1);
     spec.step_size = rule_json.value("step_size", 1);
-    spec.cross_voices = rule_json.value("cross_voices", false);
+    spec.cross_voices = rule_json.contains("cross_voices") &&
+        ((rule_json["cross_voices"].is_boolean() && rule_json["cross_voices"].get<bool>()) ||
+         (rule_json["cross_voices"].is_number() && rule_json["cross_voices"].get<double>() != 0.0));
 
     // Parse optional index filter
     if (rule_json.contains("indices") && rule_json.at("indices").is_array()) {
@@ -320,6 +358,9 @@ WildcardSpec WildcardRuleCompiler::parse_wildcard_spec(const nlohmann::json& rul
             if (v.is_number_integer()) spec.target_indices.push_back(v.get<int>());
         }
     }
+    if (rule_json.contains("target_voices") && rule_json.at("target_voices").is_array())
+        for (const auto& value : rule_json.at("target_voices"))
+            if (value.is_number_integer()) spec.target_voices.push_back(value.get<int>());
     
     return spec;
 }

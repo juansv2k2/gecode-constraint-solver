@@ -490,29 +490,32 @@ std::vector<std::string> RuleExpressionParser::tokenize_expression(const std::st
 
 std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<std::string>& tokens) {
     // Simple recursive descent parser for binary operations
+    // Array literal: tokens starting with "[" are integer arrays like "[0", ",", "5", ",", "12]"
+    if (!tokens.empty() && !tokens.front().empty() && tokens.front().front() == '[') {
+        std::string text;
+        for (const auto& token : tokens) { if (!text.empty()) text += " "; text += token; }
+        nlohmann::json array;
+        try { array=nlohmann::json::parse(text); }
+        catch (const nlohmann::json::exception&) { throw RuleParseException("Malformed integer set literal: " + text); }
+        if (!array.is_array()) throw RuleParseException("Membership literal must be an integer array");
+        std::vector<int> values;
+        for (const auto& value : array) {
+            if (!value.is_number_integer() ||
+                (value.is_number_unsigned() && value.get<unsigned long long>()>static_cast<unsigned long long>(std::numeric_limits<int>::max())))
+                throw RuleParseException("Set literals require representable integer entries");
+            const long long number=value.get<long long>();
+            if (number<std::numeric_limits<int>::min() || number>std::numeric_limits<int>::max())
+                throw RuleParseException("Set literal entry outside integer range");
+            values.push_back(static_cast<int>(number));
+        }
+        return std::make_unique<ConstantNode>(values);
+    }
     if (tokens.size() == 1) {
         return parse_single_token(tokens[0]);
     }
 
-    // Array literal: tokens starting with "[" are integer arrays like "[0", ",", "5", ",", "12]"
-    if (!tokens.empty() && !tokens.front().empty() && tokens.front().front() == '[') {
-        std::vector<int> values;
-        for (const auto& tok : tokens) {
-            if (tok == ",") continue;
-            std::string t = tok;
-            t.erase(std::remove(t.begin(), t.end(), '['), t.end());
-            t.erase(std::remove(t.begin(), t.end(), ']'), t.end());
-            if (!t.empty()) {
-                try { values.push_back(std::stoi(t)); } catch (...) {}
-            }
-        }
-        if (!values.empty()) {
-            return std::make_unique<ConstantNode>(values);
-        }
-    }
-
-    // Handle function calls: funcname ( args... )
-    if (tokens.size() >= 3 && tokens[1] == "(") {
+    // Handle function calls: funcname ( args... ); prefix "not"/"!" is negation, not a function.
+    if (tokens.size() >= 3 && tokens[1] == "(" && tokens[0] != "not" && tokens[0] != "!") {
         // Find matching closing paren
         int depth = 0;
         int close_idx = -1;
@@ -628,24 +631,7 @@ std::unique_ptr<ASTNode> RuleExpressionParser::parse_tokens(const std::vector<st
                 std::vector<std::string> right_tokens(tokens.begin() + i + 1, tokens.end());
                 auto binary_node = std::make_unique<BinaryOpNode>(op_type);
                 binary_node->add_child(parse_tokens(left_tokens));
-                // Right side: array literal [a, b, c, ...] or normal expression
-                if (!right_tokens.empty() && !right_tokens.front().empty() &&
-                        right_tokens.front().front() == '[') {
-                    // Array literal: tokenized as "[a", ",", "b", ..., "z]"
-                    std::vector<int> values;
-                    for (const auto& tok : right_tokens) {
-                        if (tok == ",") continue;
-                        std::string t = tok;
-                        t.erase(std::remove(t.begin(), t.end(), '['), t.end());
-                        t.erase(std::remove(t.begin(), t.end(), ']'), t.end());
-                        if (!t.empty()) {
-                            try { values.push_back(std::stoi(t)); } catch (...) {}
-                        }
-                    }
-                    binary_node->add_child(std::make_unique<ConstantNode>(values));
-                } else {
-                    binary_node->add_child(parse_tokens(right_tokens));
-                }
+                binary_node->add_child(parse_tokens(right_tokens));
                 return std::move(binary_node);
             }
         }

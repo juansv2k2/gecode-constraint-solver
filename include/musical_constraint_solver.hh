@@ -520,6 +520,24 @@ public:
         long long nodes    = 0;  ///< Total nodes explored in the Gecode search tree
         long long failures = 0;  ///< Failed (backtracked) nodes — proxy for search difficulty
         long long depth    = 0;  ///< Maximum depth reached in the search tree
+        double model_build_ms = 0.0;
+        double dfs_init_ms = 0.0;
+        double search_ms = 0.0;
+        double extraction_ms = 0.0;
+        int event_capacity = 0;
+        int num_voices = 0;
+        size_t motive_edges = 0;
+        size_t timing_variables = 0;
+        std::string completion_reason = "not_started";
+
+        nlohmann::json to_json() const {
+            return {{"nodes", nodes}, {"failures", failures}, {"depth", depth},
+                    {"model_build_ms", model_build_ms}, {"dfs_init_ms", dfs_init_ms},
+                    {"search_ms", search_ms}, {"extraction_ms", extraction_ms},
+                    {"event_capacity", event_capacity}, {"num_voices", num_voices},
+                    {"motive_edges", motive_edges}, {"timing_variables", timing_variables},
+                    {"completion_reason", completion_reason}};
+        }
     };
     const SearchStats& last_search_stats() const { return last_search_stats_; }
 
@@ -661,6 +679,7 @@ private:
         const std::vector<int>& selected_indices,
         bool strict_all_onsets,
         bool use_beat_anchor_filter,
+        bool explicit_indices,
         int beat_ticks) const;
 
     /**

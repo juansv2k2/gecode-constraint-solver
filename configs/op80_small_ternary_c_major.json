@@ -1,0 +1,369 @@
+{
+  "name": "Small ternary A-B-A' in C major",
+  "description": "Song-like small ternary form in 2/4 after the C major theme of Beethoven's Choral Fantasy: A (bars 1-8) is a parallel period with a half cadence in bar 4 and a perfect cadence in bar 8; B (bars 9-12) is a contrasting vi / E7 / ii / D7 region ending on a half cadence; A' (bars 13-16) restates bars 1-2 exactly and closes with a perfect cadence. Every sounding note is a chord tone.",
+  "solution_length": "measure_count",
+  "measure_count": 16,
+  "measure_plan": [
+    {
+      "bars": 16,
+      "time_signature": "2/4"
+    }
+  ],
+  "measure_fill_policy": "exact",
+  "require_harmonic_chord_tones": true,
+  "num_voices": 4,
+  "search_options": {
+    "engine": "dfs",
+    "enable_metric_engine": 0,
+    "value_order": "random",
+    "branching": "first_fail",
+    "random_seed": 42,
+    "timeout_ms": 120000,
+    "max_solutions": 1
+  },
+  "export_json": false,
+  "export_txt": false,
+  "export_xml": true,
+  "export_svg": false,
+  "export_png": true,
+  "file_name": "output/op80_small_ternary_c_major",
+  "voices": [
+    {
+      "name": "Soprano",
+      "pitch": {
+        "midi_values": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/4", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4", "1/8", "1/8", "1/2", "1/4", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4", "1/8", "1/8", "1/2", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/8", "1/2", "1/4", "1/8", "1/8", "1/8", "1/8", "1/4", "1/4", "1/8", "1/8", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Alto",
+      "pitch": {
+        "midi_values": [57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/8", "1/8", "1/4", "1/8", "1/8", "1/4", "1/8", "1/8", "1/4", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Tenor",
+      "pitch": {
+        "midi_values": [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/4", "1/4", "1/8", "1/8", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/8", "1/8", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/8", "1/8", "1/4", "1/4", "1/4", "1/2"]
+        ]
+      }
+    },
+    {
+      "name": "Bass",
+      "pitch": {
+        "midi_values": [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
+      },
+      "rhythm": {
+        "motives": [
+          ["1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2", "1/4", "1/4", "1/4", "1/4", "1/4", "1/4", "1/2"]
+        ]
+      }
+    }
+  ],
+  "harmonic_domain": [
+    {
+      "beat": 0,
+      "degree": "I",
+      "key": "C",
+      "mode": "major"
+    },
+    {
+      "beat": 2,
+      "degree": "IV"
+    },
+    {
+      "beat": 3,
+      "degree": "I"
+    },
+    {
+      "beat": 4,
+      "degree": "vi"
+    },
+    {
+      "beat": 5,
+      "degree": "ii"
+    },
+    {
+      "beat": 6,
+      "degree": "V"
+    },
+    {
+      "beat": 8,
+      "degree": "I"
+    },
+    {
+      "beat": 10,
+      "degree": "IV"
+    },
+    {
+      "beat": 11,
+      "degree": "I"
+    },
+    {
+      "beat": 12,
+      "degree": "ii"
+    },
+    {
+      "beat": 13,
+      "degree": "V7"
+    },
+    {
+      "beat": 14,
+      "degree": "I"
+    },
+    {
+      "beat": 16,
+      "degree": "vi"
+    },
+    {
+      "beat": 17,
+      "chord": "E",
+      "quality": "dom7"
+    },
+    {
+      "beat": 18,
+      "degree": "IV"
+    },
+    {
+      "beat": 19,
+      "degree": "ii"
+    },
+    {
+      "beat": 21,
+      "chord": "D",
+      "quality": "dom7"
+    },
+    {
+      "beat": 22,
+      "degree": "V"
+    },
+    {
+      "beat": 24,
+      "degree": "I"
+    },
+    {
+      "beat": 26,
+      "degree": "IV"
+    },
+    {
+      "beat": 27,
+      "degree": "I"
+    },
+    {
+      "beat": 28,
+      "degree": "ii"
+    },
+    {
+      "beat": 29,
+      "degree": "V7"
+    },
+    {
+      "beat": 30,
+      "degree": "I"
+    }
+  ],
+  "rules": [
+    {
+      "id": "a_antecedent_half_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "HC",
+      "beat_positions": [5, 6],
+      "require_chord_tones": true,
+      "target_voices": [0, 1, 2, 3],
+      "require_root_position": true
+    },
+    {
+      "id": "a_consequent_perfect_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "beat_positions": [13, 14],
+      "require_chord_tones": true,
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "b_retransition_half_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "HC",
+      "beat_positions": [21, 22],
+      "require_chord_tones": true,
+      "target_voices": [0, 1, 2, 3],
+      "require_root_position": true
+    },
+    {
+      "id": "a_prime_perfect_cadence",
+      "rule_type": "r-cadence",
+      "cadence_type": "PAC",
+      "beat_positions": [29, 30],
+      "require_chord_tones": true,
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "a_consequent_leading_tone_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "beat_positions": [13, 14],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "a_consequent_chordal_seventh_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "beat_positions": [13, 14],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "a_prime_leading_tone_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "leading_tone",
+      "beat_positions": [29, 30],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "a_prime_chordal_seventh_resolves",
+      "rule_type": "r-tendency-tone",
+      "tendency": "chordal_seventh",
+      "beat_positions": [29, 30],
+      "target_voices": [0, 1, 2, 3]
+    },
+    {
+      "id": "bars_5_6_repeat_bars_1_2_soprano",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3, 4, 5],
+      "target_positions": [10, 11, 12, 13, 14, 15],
+      "target_voices": [0]
+    },
+    {
+      "id": "bars_5_6_repeat_bars_1_2_alto",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3],
+      "target_positions": [7, 8, 9, 10],
+      "target_voices": [1]
+    },
+    {
+      "id": "bars_5_6_repeat_bars_1_2_tenor",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3, 4],
+      "target_positions": [8, 9, 10, 11, 12],
+      "target_voices": [2]
+    },
+    {
+      "id": "bars_5_6_repeat_bars_1_2_bass",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3],
+      "target_positions": [7, 8, 9, 10],
+      "target_voices": [3]
+    },
+    {
+      "id": "bars_13_14_return_bars_1_2_soprano",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3, 4, 5],
+      "target_positions": [33, 34, 35, 36, 37, 38],
+      "target_voices": [0]
+    },
+    {
+      "id": "bars_13_14_return_bars_1_2_alto",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3],
+      "target_positions": [24, 25, 26, 27],
+      "target_voices": [1]
+    },
+    {
+      "id": "bars_13_14_return_bars_1_2_tenor",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3, 4],
+      "target_positions": [23, 24, 25, 26, 27],
+      "target_voices": [2]
+    },
+    {
+      "id": "bars_13_14_return_bars_1_2_bass",
+      "rule_type": "r-repetition",
+      "relation": "exact",
+      "source_positions": [0, 1, 2, 3],
+      "target_positions": [21, 22, 23, 24],
+      "target_voices": [3]
+    },
+    {
+      "id": "soprano_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 5,
+      "target_voices": [0]
+    },
+    {
+      "id": "alto_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 7,
+      "target_voices": [1]
+    },
+    {
+      "id": "tenor_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 7,
+      "target_voices": [2]
+    },
+    {
+      "id": "bass_melodic_step",
+      "rule_type": "r-melodic-step",
+      "max_step": 12,
+      "target_voices": [3]
+    },
+    {
+      "id": "alto_no_repeated_note",
+      "rule_type": "r-no-consecutive-equal",
+      "max_consecutive": 1,
+      "target_voices": [1]
+    },
+    {
+      "id": "tenor_no_repeated_note",
+      "rule_type": "r-no-consecutive-equal",
+      "max_consecutive": 1,
+      "target_voices": [2]
+    },
+    {
+      "id": "soprano_alto_order_spacing",
+      "rule_type": "r-timepoint-relationship",
+      "time_scope": "all_timepoints",
+      "function": "interval_in_set",
+      "parameters": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "voice_order": "descending",
+      "target_voices": [0, 1]
+    },
+    {
+      "id": "alto_tenor_order_spacing",
+      "rule_type": "r-timepoint-relationship",
+      "time_scope": "all_timepoints",
+      "function": "interval_in_set",
+      "parameters": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "voice_order": "descending",
+      "target_voices": [1, 2]
+    },
+    {
+      "id": "tenor_bass_order_spacing",
+      "rule_type": "r-timepoint-relationship",
+      "time_scope": "all_timepoints",
+      "function": "interval_in_set",
+      "parameters": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36],
+      "voice_order": "descending",
+      "target_voices": [2, 3]
+    }
+  ]
+}

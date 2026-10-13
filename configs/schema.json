@@ -90,7 +90,7 @@
     },
     "meter": {
       "type": "object",
-      "description": "Optional metric domain. Required when using r-time-signature or r-metric-hierarchy rules.",
+      "description": "Optional metric subdivision metadata. In measure-count mode the fixed measure_plan is authoritative; matching signatures supply tuplet and beat-division data.",
       "required": ["time_signatures"],
       "properties": {
         "time_signatures": {
@@ -212,7 +212,7 @@
     },
     "dynamic_rules": {
       "type": "array",
-      "description": "Expression-based hard constraints and heuristics.",
+      "description": "Expression-based constraints. In measure-count mode hard basic_constraint rules over literal event addresses are supported (comparisons, literal in/not_in, AND/OR/NOT); heuristic expressions remain gated.",
       "items": { "$ref": "#/definitions/dynamicRule" }
     },
     "harmonic_domain": {
@@ -492,8 +492,33 @@
         },
         "timepoints": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Quarter-note positions for metric timeline, e.g. ['0q', '4q', '7q']."
+          "items": { "oneOf": [{ "type": "string" }, { "type": "integer", "minimum": 0 }] },
+          "description": "Score positions: quarter-note tokens such as 0q or 3/2q; integer entries in measure-mode timepoint rules denote raw ticks."
+        },
+        "time_scope": {
+          "type": "string",
+          "enum": ["all_timepoints", "at_timepoints", "on_beats"],
+          "description": "r-timepoint-relationship selector. In measure mode uses actual sounding overlaps, explicit score ticks, or beats from the fixed bar plan."
+        },
+        "temporal_scope": {
+          "type": "string",
+          "enum": ["all_timepoints", "at_timepoints", "on_beats"],
+          "description": "Alias for time_scope; both fields must agree when supplied."
+        },
+        "beat_numbers": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "description": "One-based within-bar beats for on_beats; follows each actual signature's denominator, not fixed quarter-note positions."
+        },
+        "pair_mode": {
+          "type": "string",
+          "enum": ["adjacent", "all_pairs"],
+          "description": "r-timepoint-relationship: compare sorted adjacent target voices or every target-voice pair."
+        },
+        "voice_order": {
+          "type": "string",
+          "enum": ["none", "descending"],
+          "description": "r-timepoint-relationship: 'descending' also requires the lower-numbered voice of each pair to be at or above the higher-numbered voice wherever both sound."
         },
         "bar_pattern_type": {
           "type": "string",
@@ -556,14 +581,14 @@
           "items": { "type": "integer", "minimum": 0 },
           "minItems": 2,
           "maxItems": 2,
-          "description": "r-cadence only. Exactly two event indices: [pre-cadence chord, resolution chord]. Mutually exclusive with beat_positions."
+          "description": "r-cadence/r-tendency-tone: exactly two event indices, mutually exclusive with beat_positions. Measure tendencies use source harmony at the actual event onset."
         },
         "beat_positions": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 },
           "minItems": 2,
           "maxItems": 2,
-          "description": "r-cadence only. Exactly two absolute quarter-note offsets from score start. Constrains the sounding event at each beat, including notes begun earlier; mutually exclusive with positions."
+          "description": "r-cadence/r-tendency-tone: two absolute quarter-note offsets selecting sounding events, including notes begun earlier; mutually exclusive with positions."
         },
         "require_root_position": {
           "type": "boolean",
@@ -649,7 +674,7 @@
         },
         "expression": {
           "type": "string",
-          "description": "Expression using voice[N].pitch[i], voice[N].rhythm[i], ?current, abs(), max(), min(), in, not_in."
+          "description": "Expression using voice[N].pitch[i], voice[N].rhythm[i], ?current, abs(), max(), min(), in, not_in. In measure-count mode use literal event indices; only comparisons, literal integer membership and AND over active references are supported."
         },
         "constraint": {
           "type": "string",
@@ -670,7 +695,8 @@
         },
         "wildcard_type": {
           "type": "string",
-          "enum": ["for_all_positions", "for_all_voices", "sliding_window"]
+          "enum": ["for_all_positions", "for_all_voices", "sliding_window"],
+          "description": "In measure-count mode sliding_window, for_all_positions and for_all_voices are supported as hard guarded windows; inactive/resting windows are skipped conditionally. target_voices optionally limits the expanded voices."
         },
         "pattern_offsets": {
           "type": "array",

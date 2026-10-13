@@ -71,6 +71,13 @@ inline const std::vector<int>& harmony_positions(const CadenceParams& params) {
     return params.beat_positions.empty() ? params.positions : params.beat_positions;
 }
 
+// Max dictionaries deliver booleans as 0/1, which nlohmann's typed value<bool>() rejects.
+inline bool json_flag(const nlohmann::json& value, bool fallback) {
+    if (value.is_boolean()) return value.get<bool>();
+    if (value.is_number()) return value.get<double>() != 0.0;
+    return fallback;
+}
+
 // Applies cadence_type defaults, then lets any explicit top-level field on the
 // rule JSON override them. Fields are flat (not nested under "parameters") —
 // deliberately, since "parameters" is special-cased by the legacy line-based
@@ -108,9 +115,9 @@ inline CadenceParams resolve_params(const nlohmann::json& rule_json) {
 
     // Explicit overrides
     if (rule_json.contains("require_root_position"))
-        p.require_root_position = rule_json.value("require_root_position", p.require_root_position);
+        p.require_root_position = json_flag(rule_json["require_root_position"], p.require_root_position);
     if (rule_json.contains("require_chord_tones"))
-        p.require_chord_tones = rule_json.value("require_chord_tones", false);
+        p.require_chord_tones = json_flag(rule_json["require_chord_tones"], false);
     if (rule_json.contains("soprano_target_degree"))
         p.soprano_target_degree = rule_json.value("soprano_target_degree", p.soprano_target_degree);
     if (rule_json.contains("end_degree_required"))
@@ -191,18 +198,15 @@ inline Gecode::BoolVarArgs note_selectors_at_beat(DynamicRules::ConstraintContex
         throw std::runtime_error("r-cadence beat_positions requires rhythm variables and quarter-note tick alignment");
     const int beat_tick = beat_position * (ctx.rhythm_base / 4);
     Gecode::BoolVarArgs selectors;
-    Gecode::IntVar onset(*ctx.space, 0, 0);
+    ctx.space->initialize_event_timing();
     for (int event = 0; event < ctx.sequence_length; ++event) {
         const int index = voice * ctx.sequence_length + event;
         if (index < 0 || index >= ctx.rhythm_vars->size() || index >= ctx.pitch_vars->size())
             throw std::runtime_error("r-cadence '" + std::to_string(voice) + "': beat target voice is out of range");
         Gecode::IntVar rhythm = (*ctx.rhythm_vars)[index];
-        const int max_duration = std::max(std::abs(rhythm.min()), std::abs(rhythm.max()));
-        Gecode::IntVar duration(*ctx.space, 0, max_duration);
-        Gecode::abs(*ctx.space, rhythm, duration);
-        Gecode::IntVar end(*ctx.space, 0, std::numeric_limits<int>::max() / 4);
-        Gecode::linear(*ctx.space, Gecode::IntArgs({1, -1, -1}),
-                       Gecode::IntVarArgs({end, onset, duration}), Gecode::IRT_EQ, 0);
+        Gecode::IntVar onset = ctx.space->get_event_boundary(voice, event);
+        Gecode::IntVar end = ctx.space->get_event_boundary(voice, event + 1);
+        Gecode::rel(*ctx.space, end, Gecode::IRT_LQ, std::numeric_limits<int>::max() / 4);
 
         Gecode::BoolVar starts_before_or_at(*ctx.space, 0, 1);
         Gecode::BoolVar ends_after(*ctx.space, 0, 1);
@@ -214,7 +218,6 @@ inline Gecode::BoolVarArgs note_selectors_at_beat(DynamicRules::ConstraintContex
         Gecode::rel(*ctx.space, rhythm, Gecode::IRT_GR, 0,
                     Gecode::Reify(is_sounding_note, Gecode::RM_EQV));
         selectors << Gecode::expr(*ctx.space, starts_before_or_at && ends_after && is_sounding_note);
-        onset = end;
     }
     Gecode::linear(*ctx.space, selectors, Gecode::IRT_EQ, 1);
     return selectors;

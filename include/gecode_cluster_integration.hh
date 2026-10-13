@@ -139,6 +139,8 @@ private:
     IntVarArray interval_vars_;
     IntVarArray rhythm_vars_;  // Per-voice duration variables (empty if not configured)
     IntVarArray metric_vars_;  // Metric engine variables (phase-1 scaffold)
+    IntVarArray duration_vars_;
+    IntVarArray boundary_vars_;
     BoolVarArray active_vars_;
     BoolVarArray motive_vars_;
     std::vector<MotiveDomains::Selection> motive_edges_;
@@ -226,14 +228,23 @@ public:
     bool has_rhythm_vars() const { return rhythm_vars_.size() > 0; }
     bool has_metric_vars() const { return metric_vars_.size() > 0; }
     bool is_measure_count_mode() const { return measure_count_mode_; }
+    int get_measure_horizon_ticks() const { return measure_horizon_ticks_; }
     BoolVarArray& get_active_vars() { return active_vars_; }
     const BoolVarArray& get_active_vars() const { return active_vars_; }
     bool event_is_active(int voice, int pos) const;
     int get_active_event_count(int voice) const;
+    void post_active_all_different(int voice, bool rhythm, const std::vector<int>& indices);
+    void post_active_uniformity(int voice, bool rhythm, const std::vector<int>& indices,
+                               const std::vector<int>& allowed_values);
+    void post_active_reverse(int source_voice, int target_voice, bool inversion, int center);
     int get_sequence_length() const { return sequence_length_; }
     int get_num_voices() const { return num_voices_; }
     void post_motive_domains(const std::vector<MotiveDomains::Domain>& domains);
     std::vector<MotiveDomains::Selection> get_selected_motives() const;
+    size_t get_motive_edge_count() const { return motive_edges_.size(); }
+    void initialize_event_timing();
+    const IntVar& get_event_boundary(int voice, int boundary) const;
+    size_t get_timing_variable_count() const { return duration_vars_.size() + boundary_vars_.size(); }
 
     // ---- Rule system ----
     void add_musical_rules(const std::vector<std::shared_ptr<MusicalConstraints::MusicalRule>>& rules);
