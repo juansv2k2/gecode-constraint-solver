@@ -492,7 +492,9 @@
         },
         "timepoints": {
           "type": "array",
-          "items": { "oneOf": [{ "type": "string" }, { "type": "integer", "minimum": 0 }] },
+          "items": {
+            "oneOf": [{ "type": "string" }, { "type": "integer", "minimum": 0 }]
+          },
           "description": "Score positions: quarter-note tokens such as 0q or 3/2q; integer entries in measure-mode timepoint rules denote raw ticks."
         },
         "time_scope": {

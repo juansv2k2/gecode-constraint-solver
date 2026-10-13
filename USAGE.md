@@ -128,10 +128,10 @@ Measure mode also accepts index rules (`"type": "index"`, events `[position, rhy
 
 **Measured cost (single machine, medians of 25 runs over seeds 1, 7, 42, 99, 2026; 16 bars, four voices, exact fill).** Node and failure counts were unchanged by the optimizations, so only propagation and model-build cost moved.
 
-| Configuration | Before | After |
-| --- | --- | --- |
-| Quarter-heavy motives, four cadences | 110 ms | 87 ms |
-| Eighth-heavy motives (capacity 256), four cadences | 1667 ms | 870 ms |
+| Configuration                                                                      | Before  | After  |
+| ---------------------------------------------------------------------------------- | ------- | ------ |
+| Quarter-heavy motives, four cadences                                               | 110 ms  | 87 ms  |
+| Eighth-heavy motives (capacity 256), four cadences                                 | 1667 ms | 870 ms |
 | Quarter-heavy plus hierarchy, wildcard, no-syncopation and on-beat timepoint rules | 3418 ms | 348 ms |
 
 The gains come from the sampled-tick timepoint lookup and a per-voice upper bound on active events (a duration knapsack over the rhythm motives, with remaining slots fixed inactive). These are benchmarks of this repository's two example scores, not a controlled study.
