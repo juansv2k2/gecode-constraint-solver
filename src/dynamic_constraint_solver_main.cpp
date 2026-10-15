@@ -2227,6 +2227,7 @@ int main(int argc, char* argv[]) {
                 solver_config.require_harmonic_chord_tones = enabled.is_boolean()
                     ? enabled.get<bool>() : enabled.get<int>() != 0;
             }
+            solver_config.export_chord_symbols = json_as_bool(hcfg, "export_chord_symbols", false);
             solver_config.motive_domains = MotiveDomains::parse_domains(
                 hcfg, parser.getNumVoices(), solver_config.sequence_length, solver_config.rhythm_base,
                 parser.isMeasureCountMode());

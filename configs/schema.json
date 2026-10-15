@@ -63,6 +63,11 @@
       "default": false,
       "description": "Hard constraint: every sounding note in every voice must belong to every harmonic_domain chord it overlaps. Requires harmony from beat 0; notes sustained over chord changes must be common tones. Rests and inactive slots are excluded. Off by default so passing tones and suspensions remain possible."
     },
+    "export_chord_symbols": {
+      "$ref": "#/definitions/booleanOrInt",
+      "default": false,
+      "description": "Write each harmonic_domain chord as a MusicXML <harmony> chord symbol above the first part, so harmony stays visible in bars where every voice rests."
+    },
     "num_voices": {
       "type": "integer",
       "minimum": 1,

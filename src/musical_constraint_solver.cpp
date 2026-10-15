@@ -1849,7 +1849,36 @@ std::string MusicalSolution::to_musicxml() const {
                               return a.index < b.index;
                           });
 
+                // Chord symbols sit in the first part only; <offset> places a chord that falls inside a note or rest.
+                std::vector<const ChordSymbol*> measure_chords;
+                if (voice == 0) {
+                    for (const auto& chord : chord_symbols) {
+                        const int tick = chord.beat * quarter_ticks;
+                        if (tick >= measure.start_ticks && tick < measure.end_ticks) measure_chords.push_back(&chord);
+                    }
+                }
+                size_t next_chord = 0;
+                auto emit_chord_symbols = [&](int note_onset, int note_end) {
+                    while (next_chord < measure_chords.size() &&
+                           measure_chords[next_chord]->beat * quarter_ticks < note_end) {
+                        const auto& chord = *measure_chords[next_chord++];
+                        const auto root = musicxml_spelling_for_pitch_class(chord.root_pc, key_fifths);
+                        const char* kind = chord.quality == 1 ? "minor" : (chord.quality == 2 ? "dominant" : "major");
+                        const char* text = chord.quality == 1 ? "m" : (chord.quality == 2 ? "7" : "");
+                        xml << "      <harmony>\n";
+                        xml << "        <root>\n";
+                        xml << "          <root-step>" << musicxml_step_name(root.step_index) << "</root-step>\n";
+                        if (root.alter != 0) xml << "          <root-alter>" << root.alter << "</root-alter>\n";
+                        xml << "        </root>\n";
+                        xml << "        <kind text=\"" << text << "\">" << kind << "</kind>\n";
+                        const int offset = chord.beat * quarter_ticks - note_onset;
+                        if (offset > 0) xml << "        <offset>" << offset << "</offset>\n";
+                        xml << "      </harmony>\n";
+                    }
+                };
+
                 if (events.empty()) {
+                    emit_chord_symbols(measure.start_ticks, measure.end_ticks);
                     xml << "      <note>\n";
                     xml << "        <rest/>\n";
                     emit_musicxml_note_duration(
@@ -1943,6 +1972,7 @@ std::string MusicalSolution::to_musicxml() const {
 
                     for (size_t ei = 0; ei < events.size(); ++ei) {
                         const auto& ev = events[ei];
+                        emit_chord_symbols(ev.onset_ticks, ev.onset_ticks + std::max(1, ev.duration_ticks));
                         const auto& en = ev_notations[ei];
                         xml << "      <note>\n";
                         if (ev.is_rest || ev.pitch < 0) {
@@ -4391,6 +4421,10 @@ MusicalSolution Solver::extract_solution_from_space_(
             solution.key_mode = harmonic_entry.key_mode;
             break;
         }
+    }
+    if (config_.export_chord_symbols && config_.harmonic_domain.enabled) {
+        for (const auto& harmonic_entry : config_.harmonic_domain.entries)
+            solution.chord_symbols.push_back({harmonic_entry.beat_position, harmonic_entry.chord_root, harmonic_entry.chord_quality});
     }
     int rules_checked = 0;
     bool success = (solved_space != nullptr);

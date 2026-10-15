@@ -164,6 +164,7 @@ struct SolverConfig {
         std::vector<int> harmonic_state;
     } harmonic_domain;
     bool require_harmonic_chord_tones = false;
+    bool export_chord_symbols = false;  // write the harmonic_domain as MusicXML <harmony> elements
 
 
     // Random search seed semantics:
@@ -250,6 +251,13 @@ struct MusicalSolution {
     std::vector<int> metric_signature;              // Metric/time signature data
     int key_fifths = 0;                              // Key signature for MusicXML rendering
     int key_mode = 0;                                // 0=major, 1=minor
+
+    struct ChordSymbol {
+        int beat = 0;      // quarter-note beats from the start of the score
+        int root_pc = 0;
+        int quality = 0;   // 0=major 1=minor 2=dom7
+    };
+    std::vector<ChordSymbol> chord_symbols;          // Filled only when export_chord_symbols is set
 
     // Canonical score-level solved representation (phase-1 scaffold).
     // When available, this is the single source of truth and legacy arrays are projections.

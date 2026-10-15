@@ -2394,6 +2394,8 @@ bool AsyncSolverWrapper::apply_config_json(const std::string& config_json, std::
         sc.harmonic_domain = harmonic_domain_;
         sc.require_harmonic_chord_tones = cfg.contains("require_harmonic_chord_tones") &&
             json_value_to_bool_with_default(cfg["require_harmonic_chord_tones"], false);
+        sc.export_chord_symbols = cfg.contains("export_chord_symbols") &&
+            json_value_to_bool_with_default(cfg["export_chord_symbols"], false);
 
         // ── Build tick-indexed harmonic state now that rhythm_base is known ──
         // beat_position is in quarter-note beats; onset tick = beat * quarter_ticks.

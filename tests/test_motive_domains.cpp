@@ -756,6 +756,61 @@ void check_cli_solution(const nlohmann::json& config, bool expected=true) {
     std::remove(filename);
 }
 
+// MusicXML written by the CLI: explicit <alter>, flat spelling in flat keys, opt-in chord symbols.
+void check_xml_export() {
+    auto config = nlohmann::json::parse(
+        R"({"solution_length":"measure_count","measure_count":2,"measure_plan":[{"bars":2,"time_signature":"4/4"}],"measure_fill_policy":"exact","num_voices":1,"search_options":{"engine":"dfs","enable_metric_engine":0,"random_seed":1,"max_solutions":1},"export_json":false,"export_txt":false,"export_xml":true,"export_svg":false,"export_png":false,"voices":[{"pitch":{"motives":[[63,61,67,70,60]]},"rhythm":{"motives":[["1/4","1/4","1/4","1/4","-1/1"]]}}],"harmonic_domain":[{"beat":0,"degree":"I","key":"Eb","mode":"major"},{"beat":4,"degree":"V7"}]})");
+    auto count = [](const std::string& text, const std::string& part) {
+        size_t total = 0;
+        for (size_t at = text.find(part); at != std::string::npos; at = text.find(part, at + part.size())) ++total;
+        return total;
+    };
+    auto render = [&](bool symbols) {
+        char base[] = "/tmp/gecode-xml-export-XXXXXX";
+        const int descriptor = mkstemp(base);
+        require(descriptor >= 0, "Create XML export base name");
+        close(descriptor);
+        const std::string config_path = std::string(base) + ".json";
+        const std::string xml_path = std::string(base) + "_result.xml";
+        auto run = config;
+        run["file_name"] = base;
+        if (symbols) run["export_chord_symbols"] = 1;
+        {
+            std::ofstream output(config_path);
+            output << run.dump(2);
+            require(bool(output), "Write XML export config");
+        }
+        const std::string command = "bin/dynamic-solver " + config_path + " 2>&1";
+        std::FILE* stream = popen(command.c_str(), "r");
+        require(stream != nullptr, "Run XML export CLI");
+        std::string log;
+        char buffer[1024];
+        while (std::fgets(buffer, sizeof(buffer), stream)) log += buffer;
+        require(pclose(stream) == 0, "CLI exports the XML config: " + log);
+        std::ifstream input(xml_path);
+        require(bool(input), "CLI wrote the XML result: " + log);
+        const std::string xml((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+        std::remove(config_path.c_str());
+        std::remove(xml_path.c_str());
+        std::remove(base);
+        return xml;
+    };
+
+    const std::string plain = render(false);
+    require(count(plain, "<alter>-1</alter>") == 3, "Eb, Db and Bb carry an explicit flat <alter> despite the key signature");
+    require(count(plain, "<alter>1</alter>") == 0, "Flat keys spell pitch class 1 as Db, not C sharp");
+    require(count(plain, "<harmony>") == 0, "Chord symbols are opt-in");
+
+    const std::string symbols = render(true);
+    require(count(symbols, "<harmony>") == 2, "One chord symbol per harmonic_domain entry, including the rest bar");
+    require(symbols.find("<root-step>E</root-step>\n          <root-alter>-1</root-alter>") != std::string::npos &&
+            symbols.find("<kind text=\"\">major</kind>") != std::string::npos, "Eb major symbol");
+    require(symbols.find("<root-step>B</root-step>\n          <root-alter>-1</root-alter>") != std::string::npos &&
+            symbols.find("<kind text=\"7\">dominant</kind>") != std::string::npos, "Bb7 symbol");
+    require(symbols.rfind("<harmony>") > symbols.rfind("</pitch>") && symbols.rfind("<harmony>") < symbols.find("<rest/>"),
+            "The second chord sits in the rest bar, after the last note and before the rest");
+}
+
 void check_tendency_equivalence() {
     for (bool beat : {false,true}) for (const std::string tendency : {"leading_tone","chordal_seventh"}) {
         const std::vector<int> pitches = tendency == "leading_tone" ? std::vector<int>{67,71,72} : std::vector<int>{52,53,55};
@@ -1393,6 +1448,7 @@ int main() {
         check_active_reverse_equivalence();
         check_repetition_equivalence();
         check_tendency_equivalence();
+        check_xml_export();
         check_timepoint_equivalence();
         check_cli_verbose_transformation();
         check_exhaustive_timing_equivalence(false);
